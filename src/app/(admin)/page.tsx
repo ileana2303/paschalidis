@@ -9,7 +9,6 @@ import DemographicCard from "@/components/ecommerce/DemographicCard";
 export const metadata: Metadata = {
   title:
     "Paschalidis - Web Platform",
-  description: "A web platform built with Next.js, Tailwind CSS, and TypeScript, showcasing a modern and responsive design for an e-commerce dashboard.",
 };
 
 export default function Ecommerce() {
