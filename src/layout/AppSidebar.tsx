@@ -377,18 +377,20 @@ const AppSidebar: React.FC = () => {
             <Image
               className={`absolute left-0 top-1/2 -translate-y-1/2 dark:hidden transition-opacity duration-200 ${showExpandedLogo ? "opacity-100" : "opacity-0 pointer-events-none"
                 }`}
-              src="/images/logo/logo.svg"
+              src="/images/logo/logo.png"
               alt="Logo"
-              width={150}
-              height={40}
+              width={154}
+              height={32}
+              style={{ width: "150px", height: "auto" }}
             />
             <Image
               className={`absolute left-0 top-1/2 -translate-y-1/2 hidden dark:block transition-opacity duration-200 ${showExpandedLogo ? "opacity-100" : "opacity-0 pointer-events-none"
                 }`}
-              src="/images/logo/logo-dark.svg"
+              src="/images/logo/logo-dark.png"
               alt="Logo"
-              width={150}
-              height={40}
+              width={154}
+              height={32}
+              style={{ width: "150px", height: "auto" }}
             />
             <Image
               className={`absolute left-0 top-1/2 -translate-y-1/2 transition-opacity duration-200 ${showExpandedLogo ? "opacity-0 pointer-events-none" : "opacity-100"
