@@ -10,12 +10,14 @@ export {
   ChevronLeft,
   ClipboardList,
   Clock3,
+  Ellipsis,
   Eye,
   EyeOff,
   FileText,
   FolderOpen,
   LayoutDashboard,
   Mail,
+  Menu,
   MoreHorizontal,
   Package,
   PackageSearch,
@@ -26,6 +28,7 @@ export {
   Table2,
   UserRound,
   Users,
+  X,
 } from "lucide-react";
 
 export type { LucideIcon } from "lucide-react";
