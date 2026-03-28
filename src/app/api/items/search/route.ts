@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
                 service: "SqlData",
                 clientID: process.env.S1_CLIENT_ID,
                 appId: "2001",
-                SqlName: "BCUSTOMERS",
-                SEA: search,
+                SqlName: "ITEM_SEARCH",
+                part: search,
             }),
         });
 

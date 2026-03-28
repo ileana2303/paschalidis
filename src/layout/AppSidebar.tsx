@@ -1,5 +1,11 @@
 "use client";
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -93,6 +99,8 @@ const othersItems: NavItem[] = [
     ],
   },
 ];
+
+const subscribe = () => () => {};
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -226,6 +234,9 @@ const AppSidebar: React.FC = () => {
 
   // const isActive = (path: string) => path === pathname;
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
+  const hasMounted = useSyncExternalStore(subscribe, () => true, () => false);
+  const isSidebarExpanded = isExpanded || isHovered || isMobileOpen;
+  const showExpandedLogo = hasMounted ? isSidebarExpanded : true;
 
   useEffect(() => {
     // Check if the current path matches any submenu item
@@ -294,35 +305,39 @@ const AppSidebar: React.FC = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`py-8 flex  ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+        className={`py-8 flex  ${showExpandedLogo ? "justify-start" : "lg:justify-center"
           }`}
       >
         <Link href="/">
-          {isExpanded || isHovered || isMobileOpen ? (
-            <>
-              <Image
-                className="dark:hidden"
-                src="/images/logo/logo-icon.png"
-                alt="Logo"
-                width={50}
-                height={50}
-              />
-              <Image
-                className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
-                alt="Logo"
-                width={50}
-                height={50}
-              />
-            </>
-          ) : (
+          <div
+            className={`relative h-10 transition-all duration-300 ${showExpandedLogo ? "w-[150px]" : "w-10"
+              }`}
+          >
             <Image
+              className={`absolute left-0 top-1/2 -translate-y-1/2 dark:hidden transition-opacity duration-200 ${showExpandedLogo ? "opacity-100" : "opacity-0 pointer-events-none"
+                }`}
+              src="/images/logo/logo.svg"
+              alt="Logo"
+              width={150}
+              height={40}
+            />
+            <Image
+              className={`absolute left-0 top-1/2 -translate-y-1/2 hidden dark:block transition-opacity duration-200 ${showExpandedLogo ? "opacity-100" : "opacity-0 pointer-events-none"
+                }`}
+              src="/images/logo/logo-dark.svg"
+              alt="Logo"
+              width={150}
+              height={40}
+            />
+            <Image
+              className={`absolute left-0 top-1/2 -translate-y-1/2 transition-opacity duration-200 ${showExpandedLogo ? "opacity-0 pointer-events-none" : "opacity-100"
+                }`}
               src="/images/logo/logo-icon.png"
               alt="Logo"
-              width={50}
-              height={50}
+              width={40}
+              height={40}
             />
-          )}
+          </div>
         </Link>
       </div>
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
