@@ -1,10 +1,10 @@
 "use client";
 import React, { useState } from "react";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
 import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
 import Select from "../Select";
 import MultiSelect from "../MultiSelect";
-import { ChevronDownIcon } from "@/icons";
 
 export default function SelectInputs() {
   const options = [
@@ -40,7 +40,7 @@ export default function SelectInputs() {
             className="dark:bg-dark-900"
           />
           <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-              <ChevronDownIcon/>
+              <ChevronDown className="h-5 w-5" />
             </span>
          </div>
         </div>

@@ -1,10 +1,13 @@
 "use client";
 import React, { useState } from 'react';
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
+import Clock3 from "lucide-react/dist/esm/icons/clock-3.js";
+import Eye from "lucide-react/dist/esm/icons/eye.js";
+import EyeOff from "lucide-react/dist/esm/icons/eye-off.js";
 import ComponentCard from '../../common/ComponentCard';
 import Label from '../Label';
 import Input from '../input/InputField';
 import Select from '../Select';
-import { ChevronDownIcon, EyeCloseIcon, EyeIcon, TimeIcon } from '../../../icons';
 import DatePicker from '@/components/form/date-picker';
 
 export default function DefaultInputs() {
@@ -38,7 +41,7 @@ export default function DefaultInputs() {
             className="dark:bg-dark-900"
           />
              <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-              <ChevronDownIcon/>
+              <ChevronDown className="h-5 w-5" />
             </span>
           </div>
         </div>
@@ -54,9 +57,9 @@ export default function DefaultInputs() {
               className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
             >
               {showPassword ? (
-                <EyeIcon className="fill-gray-500 dark:fill-gray-400" />
+                <Eye className="h-5 w-5 text-gray-500 dark:text-gray-400" />
               ) : (
-                <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400" />
+                <EyeOff className="h-5 w-5 text-gray-500 dark:text-gray-400" />
               )}
             </button>
           </div>
@@ -84,7 +87,7 @@ export default function DefaultInputs() {
               onChange={(e) => console.log(e.target.value)}
             />
             <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-              <TimeIcon />
+              <Clock3 className="h-5 w-5" />
             </span>
           </div>
         </div>

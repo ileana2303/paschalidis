@@ -48,11 +48,6 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    icon: LayoutDashboard,
-    name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
-  },
-  {
     icon: Search,
     name: "Αναζήτηση Πελατών",
     path: "/search-customer",
@@ -153,7 +148,7 @@ const othersItems: NavItem[] = [
   },
 ];
 
-const subscribe = () => () => {};
+const subscribe = () => () => { };
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -206,7 +201,7 @@ const AppSidebar: React.FC = () => {
                 <Link
                   href={nav.path}
                   className={`menu-item group ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                  }`}
+                    }`}
                 >
                   <span
                     className={`${isActive(nav.path)
