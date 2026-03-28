@@ -40,18 +40,18 @@ export default function MonthlySalesChart() {
     },
     xaxis: {
       categories: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
+        "Ιαν",
+        "Φεβ",
+        "Μάρ",
+        "Απρ",
+        "Μάι",
+        "Ιούν",
+        "Ιούλ",
+        "Αύγ",
+        "Σεπ",
+        "Οκτ",
+        "Νοέ",
+        "Δεκ",
       ],
       axisBorder: {
         show: false,
@@ -111,7 +111,7 @@ export default function MonthlySalesChart() {
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Monthly Sales
+             Μηνιαίες Πωλήσεις
         </h3>
 
         <div className="relative inline-block">

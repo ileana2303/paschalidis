@@ -14,6 +14,9 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 
 export default function MonthlyTarget() {
   const series = [75.55];
+  const currentMonth = new Intl.DateTimeFormat("el-GR", {
+    month: "long",
+  }).format(new Date());
   const options: ApexOptions = {
     colors: ["#465FFF"],
     chart: {
@@ -78,10 +81,10 @@ export default function MonthlyTarget() {
         <div className="flex justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-              Monthly Target
+              Στόχος του {currentMonth}
             </h3>
             <p className="mt-1 font-normal text-gray-500 text-theme-sm dark:text-gray-400">
-              Target you’ve set for each month
+              Ποσοστό επίτευξης του στόχου για τον τρέχοντα μήνα
             </p>
           </div>
           <div className="relative inline-block">
@@ -124,19 +127,15 @@ export default function MonthlyTarget() {
             +10%
           </span>
         </div>
-        <p className="mx-auto mt-10 w-full max-w-[380px] text-center text-sm text-gray-500 sm:text-base">
-          You earn $3287 today, it&apos;s higher than last month. Keep up your
-          good work!
-        </p>
       </div>
 
       <div className="flex items-center justify-center gap-5 px-6 py-3.5 sm:gap-8 sm:py-5">
         <div>
           <p className="mb-1 text-center text-gray-500 text-theme-xs dark:text-gray-400 sm:text-sm">
-            Target
+            Στόχος
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
-            $20K
+             $10K
             <svg
               width="16"
               height="16"
@@ -158,7 +157,7 @@ export default function MonthlyTarget() {
 
         <div>
           <p className="mb-1 text-center text-gray-500 text-theme-xs dark:text-gray-400 sm:text-sm">
-            Revenue
+            Πωλήσεις
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
             $20K
@@ -183,7 +182,7 @@ export default function MonthlyTarget() {
 
         <div>
           <p className="mb-1 text-center text-gray-500 text-theme-xs dark:text-gray-400 sm:text-sm">
-            Today
+            Σήμερα
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
             $20K
