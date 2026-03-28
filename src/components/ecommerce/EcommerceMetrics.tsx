@@ -1,9 +1,6 @@
 "use client";
 import React from "react";
-import ArrowDown from "lucide-react/dist/esm/icons/arrow-down.js";
-import ArrowUp from "lucide-react/dist/esm/icons/arrow-up.js";
-import Package from "lucide-react/dist/esm/icons/package.js";
-import Users from "lucide-react/dist/esm/icons/users.js";
+import { ArrowDown, ArrowUp, Package, Users } from "@/lib/lucide";
 import Badge from "../ui/badge/Badge";
 
 export const EcommerceMetrics = () => {

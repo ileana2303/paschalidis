@@ -9,7 +9,6 @@ import React, {
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
 import {
   BadgePercent,
   BookOpenText,
@@ -27,7 +26,8 @@ import {
   Shield,
   Table2,
   UserRound,
-} from "lucide-react";
+  type LucideIcon,
+} from "@/lib/lucide";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
 

@@ -2,9 +2,7 @@
 import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
-import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.js";
-import Eye from "lucide-react/dist/esm/icons/eye.js";
-import EyeOff from "lucide-react/dist/esm/icons/eye-off.js";
+import { ChevronLeft, Eye, EyeOff } from "@/lib/lucide";
 import Link from "next/link";
 import React, { useState } from "react";
 

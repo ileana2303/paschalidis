@@ -1,9 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
-import Clock3 from "lucide-react/dist/esm/icons/clock-3.js";
-import Eye from "lucide-react/dist/esm/icons/eye.js";
-import EyeOff from "lucide-react/dist/esm/icons/eye-off.js";
+import { ChevronDown, Clock3, Eye, EyeOff } from "@/lib/lucide";
 import ComponentCard from '../../common/ComponentCard';
 import Label from '../Label';
 import Input from '../input/InputField';

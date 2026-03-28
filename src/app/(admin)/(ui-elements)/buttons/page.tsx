@@ -1,14 +1,12 @@
 import ComponentCard from "@/components/common/ComponentCard";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Button from "@/components/ui/button/Button";
-import Package from "lucide-react/dist/esm/icons/package.js";
+import { Package } from "@/lib/lucide";
 import { Metadata } from "next";
 import React from "react";
 
 export const metadata: Metadata = {
-  title: "Next.js Buttons | TailAdmin - Next.js Dashboard Template",
-  description:
-    "This is Next.js Buttons page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
+  title: "Paschalidis Buttons",
 };
 
 export default function Buttons() {

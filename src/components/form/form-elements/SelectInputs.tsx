@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.js";
+import { ChevronDown } from "@/lib/lucide";
 import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
 import Select from "../Select";
