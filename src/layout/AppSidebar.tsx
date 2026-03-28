@@ -20,7 +20,6 @@ import {
   ClipboardList,
   FileText,
   FolderOpen,
-  LayoutDashboard,
   MoreHorizontal,
   PackageSearch,
   Search,
