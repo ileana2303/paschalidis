@@ -197,7 +197,7 @@
 }
 
 @utility menu-item-active {
-  @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
+  @apply bg-brand-50 text-brand-500 dark:bg-brand-100 dark:text-brand-400;
 }
 
 @utility menu-item-inactive {
@@ -233,7 +233,7 @@
 }
 
 @utility menu-dropdown-item-active {
-  @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
+  @apply bg-brand-50 text-brand-500 dark:bg-brand-100 dark:text-brand-400;
 }
 
 @utility menu-dropdown-item-inactive {
@@ -253,12 +253,11 @@
 }
 
 @utility no-scrollbar {
-  /* Chrome, Safari and Opera */
   &::-webkit-scrollbar {
     display: none;
   }
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none; 
 }
 
 @utility custom-scrollbar {
@@ -282,7 +281,6 @@
 
 
 @layer utilities {
-  /* For Remove Date Icon */
   input[type="date"]::-webkit-inner-spin-button,
   input[type="time"]::-webkit-inner-spin-button,
   input[type="date"]::-webkit-calendar-picker-indicator,
@@ -292,7 +290,6 @@
   }
 }
 
-/* third-party libraries CSS */
 .apexcharts-legend-text {
   @apply !text-gray-700 dark:!text-gray-400;
 }
@@ -740,7 +737,7 @@ span.flatpickr-weekday,
 }
 
 .task {
-  transition: all 0.2s ease; /* Smooth transition for visual effects */
+  transition: all 0.2s ease; 
 }
 
 .task {
@@ -748,5 +745,5 @@ span.flatpickr-weekday,
   box-shadow: 0 1px 3px 0 rgba(16, 24, 40, 0.1),
     0 1px 2px 0 rgba(16, 24, 40, 0.06);
   opacity: 0.8;
-  cursor: grabbing; /* Changes the cursor to indicate dragging */
+  cursor: grabbing; 
 }
