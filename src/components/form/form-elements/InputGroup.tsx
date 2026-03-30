@@ -1,6 +1,5 @@
 "use client";
-import React from "react";
-import { Mail } from "@/lib/lucide";
+import { Mail } from "@/app/lib/lucide";
 import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
 import Input from "../input/InputField";

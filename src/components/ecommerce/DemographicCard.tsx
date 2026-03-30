@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { MoreHorizontal } from "@/lib/lucide";
+import { MoreHorizontal } from "@/app/lib/lucide";
 
 import CountryMap from "./CountryMap";
 import { useState } from "react";

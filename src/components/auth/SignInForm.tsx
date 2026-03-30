@@ -3,7 +3,7 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
-import { ChevronLeft, Eye, EyeOff } from "@/lib/lucide";
+import { ChevronLeft, Eye, EyeOff } from "@/app/lib/lucide";
 import Link from "next/link";
 import React, { useState } from "react";
 

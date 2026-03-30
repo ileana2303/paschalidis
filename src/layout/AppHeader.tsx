@@ -3,7 +3,7 @@ import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
-import { Ellipsis, Menu, X } from "@/lib/lucide";
+import { Ellipsis, Menu, X } from "@/app/lib/lucide";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";

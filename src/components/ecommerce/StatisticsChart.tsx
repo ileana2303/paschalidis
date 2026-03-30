@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { ApexOptions } from "apexcharts";
 import flatpickr from "flatpickr";
-import { Calendar } from "@/lib/lucide";
+import { Calendar } from "@/app/lib/lucide";
 import ChartTab from "../common/ChartTab";
 
 

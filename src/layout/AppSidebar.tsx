@@ -27,7 +27,7 @@ import {
   Table2,
   UserRound,
   type LucideIcon,
-} from "@/lib/lucide";
+} from "@/app/lib/lucide";
 import { useSidebar } from "../context/SidebarContext";
 
 type NavSubItem = {

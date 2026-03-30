@@ -1,6 +1,6 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Badge from "@/components/ui/badge/Badge";
-import { Plus } from "@/lib/lucide";
+import { Plus } from "@/app/lib/lucide";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

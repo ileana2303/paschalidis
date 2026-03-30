@@ -1,7 +1,7 @@
 import ComponentCard from "@/components/common/ComponentCard";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Button from "@/components/ui/button/Button";
-import { Package } from "@/lib/lucide";
+import { Package } from "@/app/lib/lucide";
 import { Metadata } from "next";
 import React from "react";
 

@@ -1,4 +1,8 @@
-export async function searchCustomers(search: string) {
+import { ICustomerInfo, ApiResponse } from "../interface";
+
+export async function searchCustomers(
+    search: string
+): Promise<ApiResponse<ICustomerInfo>> {
     const res = await fetch("/api/customers/search", {
         method: "POST",
         headers: {

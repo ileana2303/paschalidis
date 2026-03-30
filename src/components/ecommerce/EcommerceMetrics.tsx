@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { ArrowDown, ArrowUp, Package, Users } from "@/lib/lucide";
+import { ArrowDown, ArrowUp, Package, Users } from "@/app/lib/lucide";
 import Badge from "../ui/badge/Badge";
 
 export const EcommerceMetrics = () => {

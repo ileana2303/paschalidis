@@ -3,12 +3,18 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useState } from "react";
 import { searchCustomers } from "@/app/lib/api/customers";
-import { Search, X } from "@/lib/lucide";
+import { Search, X } from "@/app/lib/lucide";
+import { ICustomerInfo } from "@/app/lib/interface";
+import { useCustomerStore } from "@/stores/customerStore";
+import { useRouter } from "next/navigation";
 
 export default function SearchCustomer() {
     const [search, setSearch] = useState("");
     const [loading, setLoading] = useState(false);
-    const [customers, setCustomers] = useState<any[]>([]);
+    const [customers, setCustomers] = useState<ICustomerInfo[]>([]);
+
+    const setCustomer = useCustomerStore((state) => state.setCustomer);
+    const router = useRouter();
 
     const handleSearch = async () => {
         if (!search) return;
@@ -47,11 +53,10 @@ export default function SearchCustomer() {
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                                    className={`w-full rounded-xl border bg-white px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-900 dark:text-white ${
-                                        search.trim()
-                                            ? "border-brand-500 ring-2 ring-brand-500"
-                                            : "border-gray-300 dark:border-gray-700"
-                                    }`}
+                                    className={`w-full rounded-xl border bg-white px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-900 dark:text-white ${search.trim()
+                                        ? "border-brand-500 ring-2 ring-brand-500"
+                                        : "border-gray-300 dark:border-gray-700"
+                                        }`}
                                     placeholder="Όνομα, ΑΦΜ, email..."
                                 />
 
@@ -90,9 +95,14 @@ export default function SearchCustomer() {
 
                 <div className="px-5 pb-7 xl:px-10 xl:pb-12">
                     <div className="mx-auto mt-6 w-full max-w-[820px] space-y-3 text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
-                        {customers.map((c) => (
+                        {customers.map((c: ICustomerInfo) => (
                             <div
                                 key={c.TRDR}
+                                onClick={() => {
+                                    setCustomer(c);
+
+                                    router.push("/search-parts");
+                                }}
                                 className="rounded-xl border p-4 cursor-pointer hover:bg-brand-100 transition"
                             >
                                 <p className="font-semibold">{c.NAME}</p>

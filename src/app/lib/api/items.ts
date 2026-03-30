@@ -1,4 +1,8 @@
-export async function searchItems(search: string) {
+import { IItem, ApiResponse } from "../interface";
+
+export async function searchItems(
+    search: string
+): Promise<ApiResponse<IItem>> {
     const res = await fetch("/api/items/search", {
         method: "POST",
         headers: {
