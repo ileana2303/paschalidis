@@ -8,7 +8,7 @@ import DemographicCard from "@/components/ecommerce/DemographicCard";
 
 export const metadata: Metadata = {
   title:
-    "Paschalidis - Web Platform",
+    "Paschalidis - ERP Platform",
 };
 
 export default function Ecommerce() {
