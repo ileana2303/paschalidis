@@ -207,6 +207,12 @@ export default function SearchPartsClient() {
         }
     };
 
+    const basketPreviewRows = [
+        "Ανταλλακτικό",
+        "Ποσότητα",
+        "Τιμή",
+    ];
+
     return (
         <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
             {!hasScrolledResults && (
@@ -248,131 +254,232 @@ export default function SearchPartsClient() {
                 </div>
             )}
 
-            <div className="relative min-h-0 flex-1 w-full lg:w-2/3">
-                <div
-                    ref={resultsContainerRef}
-                    className="h-full overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-                    onScroll={handleResultsScroll}
-                >
-                    <div className="sticky top-0 z-10 overflow-hidden bg-white px-5 py-7 transition-all duration-300 dark:bg-[#0f172a] xl:px-10 xl:py-12">
-                        <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
-                            <h3
-                                className={`overflow-hidden text-theme-xl font-semibold text-gray-800 transition-all duration-300 dark:text-white/90 sm:text-2xl ${hasScrolledResults
-                                    ? "mb-0 max-h-0 opacity-0"
-                                    : "mb-4 max-h-16 opacity-100"
-                                    }`}
-                            >
-                                Βρείτε το ανταλλακτικό που ψάχνετε
-                            </h3>
+            <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
+                <div className="relative min-h-0 w-full xl:min-w-0 xl:basis-2/3">
+                    <div
+                        ref={resultsContainerRef}
+                        className="h-full overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+                        onScroll={handleResultsScroll}
+                    >
+                        <div className="sticky top-0 z-10 overflow-hidden bg-white px-5 py-7 transition-all duration-300 dark:bg-[#0f172a] xl:px-10 xl:py-12">
+                            <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
+                                <h3
+                                    className={`overflow-hidden text-theme-xl font-semibold text-gray-800 transition-all duration-300 dark:text-white/90 sm:text-2xl ${hasScrolledResults
+                                        ? "mb-0 max-h-0 opacity-0"
+                                        : "mb-4 max-h-16 opacity-100"
+                                        }`}
+                                >
+                                    Βρείτε το ανταλλακτικό που ψάχνετε
+                                </h3>
 
-                            <div className={`flex items-center gap-2 ${hasScrolledResults ? "mt-0" : "mt-6"}`}>
-                                <div className="relative min-w-0 flex-1">
-                                    <input
-                                        type="text"
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                        onFocus={() => {
-                                            if (search) {
-                                                setSearch("");
-                                            }
-                                        }}
-                                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                                        placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
-                                        className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${search.trim()
-                                            ? "border-brand-500 ring-2 ring-brand-500"
-                                            : "border-gray-300 dark:border-gray-700"
-                                            }`}
-                                    />
+                                <div className={`flex items-center gap-2 ${hasScrolledResults ? "mt-0" : "mt-6"}`}>
+                                    <div className="relative min-w-0 flex-1">
+                                        <input
+                                            type="text"
+                                            value={search}
+                                            onChange={(e) => setSearch(e.target.value)}
+                                            onFocus={() => {
+                                                if (search) {
+                                                    setSearch("");
+                                                }
+                                            }}
+                                            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                                            placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
+                                            className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${search.trim()
+                                                ? "border-brand-500 ring-2 ring-brand-500"
+                                                : "border-gray-300 dark:border-gray-700"
+                                                }`}
+                                        />
 
-                                    {search.trim() && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setSearch("")}
-                                            aria-label="Καθαρισμός αναζήτησης"
-                                            className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                                        {search.trim() && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSearch("")}
+                                                aria-label="Καθαρισμός αναζήτησης"
+                                                className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={handleSearch}
+                                        aria-label="Αναζήτηση"
+                                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 font-medium text-white shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-3"
+                                    >
+                                        {loading ? (
+                                            <span
+                                                aria-hidden="true"
+                                                className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                                            />
+                                        ) : (
+                                            <>
+                                                <Search className="h-5 w-5" />
+                                                <span className="hidden sm:inline">Αναζήτηση</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-5 pb-2 xl:px-10 xl:pb-2">
+                            <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
+                                {items.length > 0 && (
+                                    <p className="mb-2 text-sm text-gray-500">
+                                        Βρέθηκαν {items.length} αποτελέσματα
+                                    </p>
+                                )}
+
+                                <div className="space-y-2">
+                                    {items.map((item) => (
+                                        <div
+                                            key={item.ITEM_CODE}
+                                            className="rounded-xl border p-4 bg-white cursor-pointer hover:bg-brand-100 hover:border-2 hover:border-brand-500 transition"
                                         >
-                                            <X className="h-4 w-4" />
-                                        </button>
-                                    )}
+                                            <p className="font-semibold text-gray-800">
+                                                {item.ITEM_CODE2}
+                                            </p>
+
+                                            <p className="font-semibold text-gray-800">
+                                                {item.MNF_DESCR}
+                                            </p>
+
+                                            <p className="text-sm text-gray-500">
+                                                {item.ITEM_DESCR}
+                                            </p>
+
+                                            <p className="mt-1 text-xs">
+                                                {item.STATUS_LABEL}
+                                            </p>
+
+                                            <p className="text-xs text-gray-400">
+                                                {item.STANDCOST}
+                                            </p>
+                                        </div>
+                                    ))}
                                 </div>
 
-                                <button
-                                    onClick={handleSearch}
-                                    aria-label="Αναζήτηση"
-                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 font-medium text-white shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-3"
-                                >
-                                    {loading ? (
-                                        <span
-                                            aria-hidden="true"
-                                            className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
-                                        />
-                                    ) : (
-                                        <>
-                                            <Search className="h-5 w-5" />
-                                            <span className="hidden sm:inline">Αναζήτηση</span>
-                                        </>
-                                    )}
-                                </button>
+                                {hasSearched && !loading && items.length === 0 && (
+                                    <p className="mt-6 text-center text-sm text-gray-400">
+                                        Δεν βρέθηκαν ανταλλακτικά
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    <div className="px-5 pb-2 xl:px-10 xl:pb-2">
-                        <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
-                            {items.length > 0 && (
-                                <p className="mb-2 text-sm text-gray-500">
-                                    Βρέθηκαν {items.length} αποτελέσματα
-                                </p>
-                            )}
-
-                            <div className="space-y-2">
-                                {items.map((item) => (
-                                    <div
-                                        key={item.ITEM_CODE}
-                                        className="rounded-xl border p-4 bg-white cursor-pointer hover:bg-brand-100 hover:border-2 hover:border-brand-500 transition"
-                                    >
-                                        <p className="font-semibold text-gray-800">
-                                            {item.ITEM_CODE2}
-                                        </p>
-
-                                        <p className="font-semibold text-gray-800">
-                                            {item.MNF_DESCR}
-                                        </p>
-
-                                        <p className="text-sm text-gray-500">
-                                            {item.ITEM_DESCR}
-                                        </p>
-
-                                        <p className="mt-1 text-xs">
-                                            {item.STATUS_LABEL}
-                                        </p>
-
-                                        <p className="text-xs text-gray-400">
-                                            {item.STANDCOST}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {hasSearched && !loading && items.length === 0 && (
-                                <p className="mt-6 text-center text-sm text-gray-400">
-                                    Δεν βρέθηκαν ανταλλακτικά
-                                </p>
-                            )}
-                        </div>
-                    </div>
+                    {items.length > 0 && (hasScrolledResults || isResultsScrollable === false) && (
+                        <button
+                            type="button"
+                            onClick={handleOpenSearchModal}
+                            aria-label="Νέα αναζήτηση ανταλλακτικού"
+                            className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
+                        >
+                            <Plus className="h-5 w-5" />
+                        </button>
+                    )}
                 </div>
 
-                {items.length > 0 && (hasScrolledResults || isResultsScrollable === false) && (
-                    <button
-                        type="button"
-                        onClick={handleOpenSearchModal}
-                        aria-label="Νέα αναζήτηση ανταλλακτικού"
-                        className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
-                    >
-                        <Plus className="h-5 w-5" />
-                    </button>
-                )}
+                <aside className="min-h-[280px] w-full xl:min-h-0 xl:basis-1/3 xl:min-w-[320px]">
+                    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                        <div className="shrink-0 border-b border-gray-100 px-5 py-5 dark:border-gray-800">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-500">
+                                        Basket Preview
+                                    </p>
+                                    <h3 className="mt-2 text-lg font-semibold text-gray-800 dark:text-white/90">
+                                        Καλάθι Πελάτη
+                                    </h3>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Προεπισκόπηση καλαθιού μέχρι να συνδεθεί το backend.
+                                    </p>
+                                </div>
+                                <span className="rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
+                                    Soon
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto px-5 py-5">
+                            <div className="rounded-2xl border border-brand-100 bg-brand-50/70 p-4 dark:border-brand-500/20 dark:bg-brand-500/5">
+                                <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand-500">
+                                    Επιλεγμένος Πελάτης
+                                </p>
+                                <p className="mt-2 font-semibold text-gray-800 dark:text-white/90">
+                                    {customer?.NAME ?? "Δεν έχει επιλεγεί πελάτης"}
+                                </p>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    {customer ? `ΑΦΜ: ${customer.AFM}` : "Επιλέξτε πελάτη για να εμφανιστούν στοιχεία καλαθιού."}
+                                </p>
+                            </div>
+
+                            <div className="mt-5 grid grid-cols-2 gap-3">
+                                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40">
+                                    <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
+                                        Προϊόντα
+                                    </p>
+                                    <p className="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                                        0
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40">
+                                    <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
+                                        Σύνολο
+                                    </p>
+                                    <p className="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                                        --
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-5 rounded-2xl border border-dashed border-gray-300 p-4 dark:border-gray-700">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                                        Γραμμές Καλαθιού
+                                    </p>
+                                    <span className="text-xs text-gray-400">
+                                        Demo UI
+                                    </span>
+                                </div>
+
+                                <div className="mt-4 space-y-3">
+                                    {basketPreviewRows.map((label) => (
+                                        <div
+                                            key={label}
+                                            className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40"
+                                        >
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-700 dark:text-white/90">
+                                                        {label}
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-gray-400">
+                                                        Θα προβάλλεται από το καλάθι του πελάτη
+                                                    </p>
+                                                </div>
+                                                <span className="rounded-full bg-white px-2.5 py-1 text-xs text-gray-400 shadow-sm dark:bg-gray-800">
+                                                    TBD
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mt-5 rounded-2xl bg-gray-50 p-4 dark:bg-gray-900/40">
+                                <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                                    Επόμενο βήμα
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-gray-500">
+                                    Όταν συνδεθεί το backend, εδώ θα εμφανίζονται οι γραμμές του καλαθιού, οι ποσότητες, οι τιμές και οι ενέργειες ολοκλήρωσης.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
             </div>
 
             <Modal isOpen={isSearchModalOpen} onClose={closeSearchModal} className="max-w-[820px] m-4 p-6 sm:p-8">
