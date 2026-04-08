@@ -48,6 +48,7 @@ export interface IItem {
 
 export interface ApiResponse<T> {
     success: boolean;
+    message?: string;
     totalcount: number;
     rows: T[];
 }

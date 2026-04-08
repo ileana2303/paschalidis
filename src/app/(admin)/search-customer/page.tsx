@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 
 export default function SearchCustomer() {
     const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
     const search = useCustomerSearchStore((state) => state.search);
     const customers = useCustomerSearchStore((state) => state.customers);
     const hasSearched = useCustomerSearchStore((state) => state.hasSearched);
@@ -26,6 +27,7 @@ export default function SearchCustomer() {
 
         if (!trimmedSearch) return;
 
+        setErrorMessage("");
         setSearchValue(trimmedSearch);
         setSearchAttempted(true);
         setLoading(true);
@@ -39,6 +41,12 @@ export default function SearchCustomer() {
                 setCustomerResults([]);
             }
         } catch (error) {
+            setCustomerResults([]);
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : "Η αναζήτηση πελατών δεν είναι διαθέσιμη προσωρινά"
+            );
             console.error(error);
         } finally {
             setLoading(false);
@@ -104,6 +112,12 @@ export default function SearchCustomer() {
 
                 <div className="px-5 pb-7 xl:px-10 xl:pb-12">
                     <div className="mx-auto mt-6 w-full max-w-[820px] space-y-3 text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
+                        {errorMessage && (
+                            <p className="mb-3 text-sm text-error-600">
+                                {errorMessage}
+                            </p>
+                        )}
+
                         {customers.length > 0 && (
                             <p className="mb-3 text-sm text-gray-500">
                                 Βρέθηκαν {customers.length} πελάτες

@@ -11,9 +11,15 @@ export async function searchCustomers(
         body: JSON.stringify({ search }),
     });
 
+    const data: ApiResponse<ICustomerInfo> = await res.json();
+
     if (!res.ok) {
-        throw new Error("Failed to fetch customers");
+        throw new Error(data.message ?? "Failed to fetch customers");
     }
 
-    return res.json();
+    if (!data.success) {
+        throw new Error(data.message ?? "Failed to fetch customers");
+    }
+
+    return data;
 }
