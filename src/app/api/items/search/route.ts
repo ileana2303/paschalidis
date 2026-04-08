@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     try {
         const { search } = await req.json();
 
-        const response = await fetch("https://dev-fordps.oncloud.gr/s1services", {
+        const response = await fetch("https://fordps.oncloud.gr/s1services", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
                 service: "SqlData",
                 clientID: process.env.S1_CLIENT_ID,
-                appId: "2001",
+                appId: "1305",
                 SqlName: "ITEM_SEARCH",
                 part: search,
             }),

@@ -37,7 +37,11 @@ export default function SearchPartsClient() {
 
     return (
         <div>
-            <PageBreadcrumb pageTitle="Αναζήτηση Ανταλλακτικών" />
+            <PageBreadcrumb
+                pageTitle="Αναζήτηση Ανταλλακτικών"
+                backHref="/search-customer"
+                backLabel="Επιστροφή στην αναζήτηση πελατών"
+            />
 
             {customer && (
                 <div className="mb-4 flex items-center gap-8 rounded-full border-2 border-brand-500 bg-brand-50 p-4 text-sm text-gray-700">
@@ -122,11 +126,15 @@ export default function SearchPartsClient() {
                         <div className="space-y-3">
                             {items.map((item) => (
                                 <div
-                                    key={item.MTRL}
+                                    key={item.ITEM_CODE}
                                     className="rounded-xl border p-4 transition hover:bg-gray-50"
                                 >
                                     <p className="font-semibold text-gray-800">
-                                        {item.ITEM_CODE}
+                                        {item.ITEM_CODE2}
+                                    </p>
+
+                                    <p className="font-semibold text-gray-800">
+                                        {item.MNF_DESCR}
                                     </p>
 
                                     <p className="text-sm text-gray-500">
@@ -138,7 +146,7 @@ export default function SearchPartsClient() {
                                     </p>
 
                                     <p className="text-xs text-gray-400">
-                                        {item.PRICE_MESSAGE}
+                                        {item.STANDCOST}
                                     </p>
                                 </div>
                             ))}

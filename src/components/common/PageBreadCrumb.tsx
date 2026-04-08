@@ -1,19 +1,37 @@
 import Link from "next/link";
 import React from "react";
+import { ChevronLeft } from "@/app/lib/lucide";
 
 interface BreadcrumbProps {
   pageTitle: string;
+  backHref?: string;
+  backLabel?: string;
 }
 
-const PageBreadcrumb: React.FC<BreadcrumbProps> = ({ pageTitle }) => {
+const PageBreadcrumb: React.FC<BreadcrumbProps> = ({
+  pageTitle,
+  backHref,
+  backLabel = "Back",
+}) => {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-      <h2
-        className="text-xl font-semibold text-gray-800 dark:text-white/90"
-        x-text="pageName"
-      >
-        {pageTitle}
-      </h2>
+      <div className="flex items-center gap-3">
+        {backHref && (
+          <Link
+            href={backHref}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:border-brand-500 hover:text-brand-500 dark:border-gray-800 dark:text-gray-400 dark:hover:border-brand-500 dark:hover:text-brand-500"
+            aria-label={backLabel}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Link>
+        )}
+        <h2
+          className="text-xl font-semibold text-gray-800 dark:text-white/90"
+          x-text="pageName"
+        >
+          {pageTitle}
+        </h2>
+      </div>
       <nav>
         <ol className="flex items-center gap-1.5">
           <li>
