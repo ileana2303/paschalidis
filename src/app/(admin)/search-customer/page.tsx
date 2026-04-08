@@ -69,6 +69,11 @@ export default function SearchCustomer() {
                                 <input
                                     value={search}
                                     onChange={(e) => setSearchValue(e.target.value)}
+                                    onFocus={() => {
+                                        if (search) {
+                                            setSearchValue("");
+                                        }
+                                    }}
                                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                                     className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${search.trim()
                                         ? "border-brand-500 ring-2 ring-brand-500"

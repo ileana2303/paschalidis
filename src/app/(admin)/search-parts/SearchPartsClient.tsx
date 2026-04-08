@@ -20,9 +20,9 @@ export default function SearchPartsClient() {
     const [customerModalLoading, setCustomerModalLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
     const [customerModalHasSearched, setCustomerModalHasSearched] = useState(false);
-    const [isSearchHeaderHidden, setIsSearchHeaderHidden] = useState(false);
     const [hasScrolledResults, setHasScrolledResults] = useState(false);
     const [hasMounted, setHasMounted] = useState(false);
+    const [isResultsScrollable, setIsResultsScrollable] = useState<boolean | null>(null);
     const [customerModalError, setCustomerModalError] = useState("");
     const customer = useCustomerStore((state) => state.customer);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
@@ -38,6 +38,7 @@ export default function SearchPartsClient() {
     } = useModal();
     const modalInputRef = useRef<HTMLInputElement>(null);
     const customerModalInputRef = useRef<HTMLInputElement>(null);
+    const resultsContainerRef = useRef<HTMLDivElement>(null);
 
     const handleOpenSearchModal = useCallback(() => {
         setModalSearch("");
@@ -55,6 +56,25 @@ export default function SearchPartsClient() {
     useEffect(() => {
         setHasMounted(true);
     }, []);
+
+    useEffect(() => {
+        const updateScrollability = () => {
+            const container = resultsContainerRef.current;
+
+            if (!container) {
+                return;
+            }
+
+            setIsResultsScrollable(container.scrollHeight > container.clientHeight + 1);
+        };
+
+        updateScrollability();
+        window.addEventListener("resize", updateScrollability);
+
+        return () => {
+            window.removeEventListener("resize", updateScrollability);
+        };
+    }, [hasMounted, items.length]);
 
     useEffect(() => {
         if (isSearchModalOpen) {
@@ -176,33 +196,31 @@ export default function SearchPartsClient() {
         setItems([]);
         setHasSearched(false);
         setHasScrolledResults(false);
-        setIsSearchHeaderHidden(false);
         closeCustomerModal();
     };
 
     const handleResultsScroll = (event: UIEvent<HTMLDivElement>) => {
         const scrollTop = event.currentTarget.scrollTop;
-        const nextIsHidden = scrollTop > 16;
 
         if (scrollTop > 0) {
             setHasScrolledResults(true);
         }
-
-        setIsSearchHeaderHidden((currentValue) =>
-            currentValue === nextIsHidden ? currentValue : nextIsHidden
-        );
     };
 
     return (
-        <div>
-            <PageBreadcrumb
-                pageTitle="Αναζήτηση Ανταλλακτικών"
-                backHref="/search-customer"
-                backLabel="Επιστροφή στην αναζήτηση πελατών"
-            />
+        <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
+            {!hasScrolledResults && (
+                <div className="shrink-0">
+                    <PageBreadcrumb
+                        pageTitle="Αναζήτηση Ανταλλακτικών"
+                        backHref="/search-customer"
+                        backLabel="Επιστροφή στην αναζήτηση πελατών"
+                    />
+                </div>
+            )}
 
             {hasMounted && customer && (
-                <div className="mb-4 flex items-center gap-3 rounded-full border-2 border-brand-500 bg-brand-50 p-4 text-sm text-gray-700">
+                <div className="mb-4 shrink-0 flex items-center gap-3 rounded-full border-2 border-brand-500 bg-brand-50 p-4 text-sm text-gray-700">
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 sm:gap-8">
                         <span className="font-semibold text-gray-800">
                             {customer.NAME}
@@ -230,28 +248,34 @@ export default function SearchPartsClient() {
                 </div>
             )}
 
-            <div className="relative w-full lg:w-2/3">
+            <div className="relative min-h-0 flex-1 w-full lg:w-2/3">
                 <div
-                    className="max-h-[calc(100dvh-14rem)] overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] lg:max-h-[calc(100dvh-10.5rem)]"
+                    ref={resultsContainerRef}
+                    className="h-full overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
                     onScroll={handleResultsScroll}
                 >
-                    <div
-                        className={`sticky top-0 z-10 overflow-hidden bg-white transition-all duration-300 dark:bg-[#0f172a] ${isSearchHeaderHidden
-                            ? "max-h-0 px-5 py-0 opacity-0 xl:px-10 xl:py-0"
-                            : "max-h-80 px-5 py-7 opacity-100 xl:px-10 xl:py-12"
-                            }`}
-                    >
+                    <div className="sticky top-0 z-10 overflow-hidden bg-white px-5 py-7 transition-all duration-300 dark:bg-[#0f172a] xl:px-10 xl:py-12">
                         <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
-                            <h3 className="mb-4 text-theme-xl font-semibold text-gray-800 dark:text-white/90 sm:text-2xl">
+                            <h3
+                                className={`overflow-hidden text-theme-xl font-semibold text-gray-800 transition-all duration-300 dark:text-white/90 sm:text-2xl ${hasScrolledResults
+                                    ? "mb-0 max-h-0 opacity-0"
+                                    : "mb-4 max-h-16 opacity-100"
+                                    }`}
+                            >
                                 Βρείτε το ανταλλακτικό που ψάχνετε
                             </h3>
 
-                            <div className="mt-6 flex items-center gap-2">
+                            <div className={`flex items-center gap-2 ${hasScrolledResults ? "mt-0" : "mt-6"}`}>
                                 <div className="relative min-w-0 flex-1">
                                     <input
                                         type="text"
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
+                                        onFocus={() => {
+                                            if (search) {
+                                                setSearch("");
+                                            }
+                                        }}
                                         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                                         placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
                                         className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${search.trim()
@@ -339,7 +363,7 @@ export default function SearchPartsClient() {
                     </div>
                 </div>
 
-                {hasScrolledResults && (
+                {items.length > 0 && (hasScrolledResults || isResultsScrollable === false) && (
                     <button
                         type="button"
                         onClick={handleOpenSearchModal}
@@ -359,15 +383,20 @@ export default function SearchPartsClient() {
 
                     <div className="mt-6 flex items-center gap-2">
                         <div className="relative min-w-0 flex-1">
-                            <input
-                                ref={modalInputRef}
-                                type="text"
-                                value={modalSearch}
-                                onChange={(e) => setModalSearch(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && handleModalSearch()}
-                                placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
-                                className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${modalSearch.trim()
-                                    ? "border-brand-500 ring-2 ring-brand-500"
+                                <input
+                                    ref={modalInputRef}
+                                    type="text"
+                                    value={modalSearch}
+                                    onChange={(e) => setModalSearch(e.target.value)}
+                                    onFocus={() => {
+                                        if (modalSearch) {
+                                            setModalSearch("");
+                                        }
+                                    }}
+                                    onKeyDown={(e) => e.key === "Enter" && handleModalSearch()}
+                                    placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
+                                    className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${modalSearch.trim()
+                                        ? "border-brand-500 ring-2 ring-brand-500"
                                     : "border-gray-300 dark:border-gray-700"
                                     }`}
                             />
@@ -419,6 +448,11 @@ export default function SearchPartsClient() {
                                     ref={customerModalInputRef}
                                     value={customerModalSearch}
                                     onChange={(e) => setCustomerModalSearch(e.target.value)}
+                                    onFocus={() => {
+                                        if (customerModalSearch) {
+                                            setCustomerModalSearch("");
+                                        }
+                                    }}
                                     onKeyDown={(e) => e.key === "Enter" && handleCustomerModalSearch()}
                                     className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${customerModalSearch.trim()
                                         ? "border-brand-500 ring-2 ring-brand-500"
