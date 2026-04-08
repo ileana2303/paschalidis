@@ -1,11 +1,15 @@
 export interface ICustomerInfo {
     TRDR: string;
+    CODE: string;
     NAME: string;
-    AFM: string;
     EMAIL?: string;
+    AFM: string;
     PHONE01?: string;
     MAIN_ADDRESS: string;
+    MAIN_ZIP: string;
     MAIN_CITY: string;
+    NUMBER_OF_BRANCHES: string;
+    INDEX_SEARCH: string;
 }
 
 export interface IItem {

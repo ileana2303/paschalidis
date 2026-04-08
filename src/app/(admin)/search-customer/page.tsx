@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 export default function SearchCustomer() {
     const [search, setSearch] = useState("");
     const [loading, setLoading] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);
     const [customers, setCustomers] = useState<ICustomerInfo[]>([]);
 
     const setCustomer = useCustomerStore((state) => state.setCustomer);
@@ -19,6 +20,7 @@ export default function SearchCustomer() {
     const handleSearch = async () => {
         if (!search) return;
 
+        setHasSearched(true);
         setLoading(true);
 
         try {
@@ -112,6 +114,12 @@ export default function SearchCustomer() {
                                 </p>
                             </div>
                         ))}
+
+                        {hasSearched && !loading && customers.length === 0 && (
+                            <p className="mt-6 text-center text-sm text-gray-400">
+                                Δεν βρέθηκαν πελάτες
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
