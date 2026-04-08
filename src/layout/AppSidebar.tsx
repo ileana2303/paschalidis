@@ -289,7 +289,6 @@ const AppSidebar: React.FC = () => {
   const showExpandedLogo = hasMounted ? isSidebarExpanded : true;
 
   useEffect(() => {
-    // Check if the current path matches any submenu item
     let nextOpenSubmenu: { type: "main" | "others"; index: number } | null =
       null;
     ["main", "others"].forEach((menuType) => {
@@ -325,7 +324,6 @@ const AppSidebar: React.FC = () => {
   }, [pathname, isActive]);
 
   useEffect(() => {
-    // Set the height of the submenu items when the submenu is opened
     if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {

@@ -5,18 +5,11 @@ import { useState } from "react";
 import { searchItems } from "@/app/lib/api/items";
 import { Search, X } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
-
-type Item = {
-    MTRL: string;
-    ITEM_CODE: string;
-    ITEM_DESCR: string;
-    STATUS_LABEL: string;
-    PRICE_MESSAGE: string;
-};
+import { IItem } from "@/app/lib/interface";
 
 export default function SearchPartsClient() {
     const [search, setSearch] = useState("");
-    const [items, setItems] = useState<Item[]>([]);
+    const [items, setItems] = useState<IItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
     const customer = useCustomerStore((state) => state.customer);
@@ -79,7 +72,7 @@ export default function SearchPartsClient() {
                                     onChange={(e) => setSearch(e.target.value)}
                                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                                     placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
-                                    className={`w-full rounded-full border bg-white px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${search.trim()
+                                    className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${search.trim()
                                         ? "border-brand-500 ring-2 ring-brand-500"
                                         : "border-gray-300 dark:border-gray-700"
                                         }`}
