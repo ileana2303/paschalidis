@@ -2,10 +2,12 @@
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
     Check,
     Circle,
     Loader2,
+    Plus,
     RefreshCw,
     ShoppingCart,
     Trash2,
@@ -18,6 +20,7 @@ import OrderSummary from "@/components/basket/order-summary";
 type ReceiptType = "receipt" | "invoice";
 
 export default function BasketClient() {
+    const router = useRouter();
     const customer = useCustomerStore((state) => state.customer);
     const [basket, setBasket] = useState<IBasket | null>(null);
     const [loading, setLoading] = useState(false);
@@ -136,7 +139,7 @@ export default function BasketClient() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-500">
-                                        Προϊόντα
+                                        Προϊόντα στο καλάθι
                                     </p>
                                     <h3 className="mt-1 text-lg font-semibold text-gray-800 dark:text-white/90">
                                         Λίστα Ανταλλακτικών
@@ -283,6 +286,15 @@ export default function BasketClient() {
                             )}
                         </div>
                     </div>
+
+                    <button
+                        type="button"
+                        onClick={() => router.push("/search-parts")}
+                        aria-label="Νέα αναζήτηση ανταλλακτικού"
+                        className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
+                    >
+                        <Plus className="h-5 w-5" />
+                    </button>
                 </div>
 
                 <OrderSummary

@@ -31,6 +31,7 @@ export default function SearchPartsClient() {
     const [basketError, setBasketError] = useState("");
     const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+    const [sidebarVisible, setSidebarVisible] = useState(true);
     const customer = useCustomerStore((state) => state.customer);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const {
@@ -46,6 +47,7 @@ export default function SearchPartsClient() {
     const modalInputRef = useRef<HTMLInputElement>(null);
     const customerModalInputRef = useRef<HTMLInputElement>(null);
     const resultsContainerRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     const handleOpenSearchModal = useCallback(() => {
         setModalSearch("");
@@ -63,6 +65,12 @@ export default function SearchPartsClient() {
     useEffect(() => {
         setHasMounted(true);
     }, []);
+
+    useEffect(() => {
+        if (hasMounted) {
+            searchInputRef.current?.focus();
+        }
+    }, [hasMounted]);
 
     useEffect(() => {
         const updateScrollability = () => {
@@ -309,7 +317,7 @@ export default function SearchPartsClient() {
             )}
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
-                <div className="relative min-h-0 w-full xl:min-w-0 xl:basis-2/3">
+                <div className={`relative min-h-0 w-full xl:min-w-0 ${sidebarVisible ? "xl:basis-2/3" : ""} transition-all duration-300`}>
                     <div
                         ref={resultsContainerRef}
                         className="h-full overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
@@ -329,6 +337,7 @@ export default function SearchPartsClient() {
                                 <div className={`flex items-center gap-2 ${hasScrolledResults ? "mt-0" : "mt-6"}`}>
                                     <div className="relative min-w-0 flex-1">
                                         <input
+                                            ref={searchInputRef}
                                             type="text"
                                             value={search}
                                             onChange={(e) => setSearch(e.target.value)}
@@ -458,6 +467,9 @@ export default function SearchPartsClient() {
                     }}
                     onRemoveItem={handleRemoveBasketItem}
                     removingItems={removingItems}
+                    collapsible
+                    collapsed={!sidebarVisible}
+                    onToggleCollapse={() => setSidebarVisible((v) => !v)}
                 />
             </div>
 

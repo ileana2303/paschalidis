@@ -1,7 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { searchCustomers } from "@/app/lib/api/customers";
 import { Search, X } from "@/app/lib/lucide";
 import { ICustomerInfo } from "@/app/lib/interface";
@@ -21,6 +21,11 @@ export default function SearchCustomer() {
     const clearSearchState = useCustomerSearchStore((state) => state.clearSearchState);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const router = useRouter();
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        searchInputRef.current?.focus();
+    }, []);
 
     const handleSearch = async () => {
         const trimmedSearch = search.trim();
@@ -67,6 +72,7 @@ export default function SearchCustomer() {
                         <div className="mt-6 flex items-center gap-2">
                             <div className="relative min-w-0 flex-1">
                                 <input
+                                    ref={searchInputRef}
                                     value={search}
                                     onChange={(e) => setSearchValue(e.target.value)}
                                     onFocus={() => {

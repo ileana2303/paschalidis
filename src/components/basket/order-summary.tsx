@@ -5,6 +5,8 @@ import {
     Circle,
     Loader2,
     MapPin,
+    PanelRightClose,
+    PanelRightOpen,
     Receipt,
     RefreshCw,
     Send,
@@ -36,6 +38,9 @@ interface OrderSummaryProps {
     onToggleItem?: (uid: string) => void;
     onRemoveItem?: (uid: string) => void;
     removingItems?: Set<string>;
+    collapsible?: boolean;
+    collapsed?: boolean;
+    onToggleCollapse?: () => void;
 }
 
 const formatPrice = (price: number | null) => {
@@ -63,33 +68,63 @@ export default function OrderSummary({
     onToggleItem,
     onRemoveItem,
     removingItems,
+    collapsible = false,
+    collapsed = false,
+    onToggleCollapse,
 }: OrderSummaryProps) {
+    if (collapsible && collapsed) {
+        return (
+            <aside className="hidden xl:flex shrink-0">
+                <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    aria-label="Εμφάνιση σύνοψης"
+                    className="flex h-8 w-8 items-center justify-center self-start mt-6 rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                >
+                    <PanelRightOpen className="h-4 w-4" />
+                </button>
+            </aside>
+        );
+    }
+
     return (
         <aside className="min-h-[280px] w-full xl:min-h-0 xl:basis-1/3 xl:min-w-[320px]">
             <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                {/* Header */}
+               
                 <div className="shrink-0 border-b border-gray-100 px-5 py-5 dark:border-gray-800">
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-500">
-                                Σύνοψη
+                                Σύνοψη Παραγγελίας
                             </p>
                             <h3 className="mt-2 text-lg font-semibold text-gray-800 dark:text-white/90">
                                 Καλάθι Πελάτη
                             </h3>
                         </div>
 
-                        {customer && (
-                            <button
-                                type="button"
-                                onClick={onRefresh}
-                                disabled={loading}
-                                aria-label="Ανανέωση καλαθιού"
-                                className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                            >
-                                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                            </button>
-                        )}
+                        <div className="flex items-center gap-1">
+                            {customer && (
+                                <button
+                                    type="button"
+                                    onClick={onRefresh}
+                                    disabled={loading}
+                                    aria-label="Ανανέωση καλαθιού"
+                                    className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                                </button>
+                            )}
+                            {collapsible && onToggleCollapse && (
+                                <button
+                                    type="button"
+                                    onClick={onToggleCollapse}
+                                    aria-label="Απόκρυψη σύνοψης"
+                                    className="hidden xl:flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                                >
+                                    <PanelRightClose className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 

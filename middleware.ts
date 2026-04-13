@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify, SignJWT } from "jose";
 
-const SECRET_KEY = process.env.AUTH_SECRET ?? "";
-const key = new TextEncoder().encode(SECRET_KEY);
-
 const COOKIE_NAME = "session";
 const EXPIRATION_DAYS = 7;
 const REFRESH_THRESHOLD_SECONDS = (EXPIRATION_DAYS * 24 * 60 * 60) / 2; // halfway = 3.5 days
+
+function getSecretKey() {
+    const secret = process.env.AUTH_SECRET;
+    if (!secret) {
+        throw new Error("AUTH_SECRET environment variable is not set");
+    }
+    return new TextEncoder().encode(secret);
+}
 
 /**
  * Public paths that don't require authentication.
@@ -35,7 +40,7 @@ export async function middleware(req: NextRequest) {
     }
 
     try {
-        const { payload } = await jwtVerify(session.value, key);
+        const { payload } = await jwtVerify(session.value, getSecretKey());
         const response = NextResponse.next();
 
         // Sliding expiration: if more than half the lifetime has passed,
@@ -51,7 +56,7 @@ export async function middleware(req: NextRequest) {
                 .setProtectedHeader({ alg: "HS256" })
                 .setIssuedAt()
                 .setExpirationTime(`${EXPIRATION_DAYS}d`)
-                .sign(key);
+                .sign(getSecretKey());
 
             response.cookies.set(COOKIE_NAME, newToken, {
                 httpOnly: true,

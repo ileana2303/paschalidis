@@ -25,6 +25,8 @@ export {
   MoreHorizontal,
   Package,
   PackageSearch,
+  PanelRightClose,
+  PanelRightOpen,
   Plus,
   Receipt,
   RefreshCw,
