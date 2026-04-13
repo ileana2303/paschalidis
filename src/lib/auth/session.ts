@@ -2,13 +2,15 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { AppUser, UserSession } from "./types";
 
-const SECRET_KEY = process.env.AUTH_SECRET;
-if (!SECRET_KEY) {
-    throw new Error("AUTH_SECRET environment variable is not set");
-}
-
-const key = new TextEncoder().encode(SECRET_KEY);
 const COOKIE_NAME = "session";
+
+function getSecretKey() {
+    const secret = process.env.AUTH_SECRET;
+    if (!secret) {
+        throw new Error("AUTH_SECRET environment variable is not set");
+    }
+    return new TextEncoder().encode(secret);
+}
 const EXPIRATION_DAYS = 7;
 
 /**
@@ -30,7 +32,7 @@ export async function createSessionToken(user: AppUser): Promise<string> {
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
         .setExpirationTime(`${EXPIRATION_DAYS}d`)
-        .sign(key);
+        .sign(getSecretKey());
 }
 
 /**
@@ -44,7 +46,7 @@ export async function getSession(): Promise<UserSession | null> {
     if (!sessionCookie?.value) return null;
 
     try {
-        const { payload } = await jwtVerify(sessionCookie.value, key);
+        const { payload } = await jwtVerify(sessionCookie.value, getSecretKey());
         return payload as unknown as UserSession;
     } catch {
         return null;
