@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getPool } from "@/lib/db/connection";
-import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
     try {
@@ -25,12 +24,14 @@ export async function POST(req: NextRequest) {
 
         const pool = await getPool();
 
-        // Check if an active basket already exists for this customer
-        const existing = await pool
+        // Find the active basket for this customer (not submitted, not deleted)
+        const basketResult = await pool
             .request()
             .input("trdr", Number(trdr))
+            .input("userUID", session.userUID)
             .query(`
-                SELECT TOP 1 Uid, CustomerS1TRDR, CountProducts, TotalCost
+                SELECT TOP 1 
+                    Uid, CustomerS1TRDR, CountProducts, TotalCost
                 FROM Baskets
                 WHERE CustomerS1TRDR = @trdr
                     AND LinkedOrderID IS NULL
@@ -38,45 +39,47 @@ export async function POST(req: NextRequest) {
                 ORDER BY DateIn DESC
             `);
 
-        if (existing.recordset.length > 0) {
-            const basket = existing.recordset[0];
+        if (basketResult.recordset.length === 0) {
             return NextResponse.json({
                 success: true,
-                basket: {
-                    Uid: basket.Uid,
-                    CustomerS1TRDR: basket.CustomerS1TRDR,
-                    CountProducts: basket.CountProducts ?? 0,
-                    TotalCost: basket.TotalCost ?? 0,
-                    Items: [],
-                },
+                basket: null,
             });
         }
 
-        // Create a new basket
-        const uid = randomUUID();
+        const basket = basketResult.recordset[0];
 
-        await pool
+        // Fetch basket items
+        const itemsResult = await pool
             .request()
-            .input("uid", uid)
-            .input("trdr", Number(trdr))
-            .input("userUID", session.userUID)
+            .input("basketUID", basket.Uid)
             .query(`
-                INSERT INTO Baskets (Uid, CustomerS1TRDR, CountProducts, TotalCost, CreatedByUID, DateIn)
-                VALUES (@uid, @trdr, 0, 0, @userUID, GETDATE())
+                SELECT 
+                    Uid,
+                    ProductCode,
+                    ProductName,
+                    ProductS1MTRL,
+                    Qty,
+                    ProductPrice,
+                    ProductBargainPrice,
+                    BargainStatus
+                FROM BasketItems
+                WHERE BasketUID = @basketUID
+                    AND DateDeleted IS NULL
+                ORDER BY DateIn DESC
             `);
 
         return NextResponse.json({
             success: true,
             basket: {
-                Uid: uid,
-                CustomerS1TRDR: Number(trdr),
-                CountProducts: 0,
-                TotalCost: 0,
-                Items: [],
+                Uid: basket.Uid,
+                CustomerS1TRDR: basket.CustomerS1TRDR,
+                CountProducts: basket.CountProducts ?? 0,
+                TotalCost: basket.TotalCost ?? 0,
+                Items: itemsResult.recordset,
             },
         });
     } catch (error) {
-        console.error("[basket/create] Server error", error);
+        console.error("[basket/items] Server error", error);
 
         return NextResponse.json(
             { success: false, message: "Server error" },

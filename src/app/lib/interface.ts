@@ -46,6 +46,31 @@ export interface IItem {
     STANDCOST: number;
 }
 
+export interface IBasketItem {
+    Uid: string;
+    ProductCode: string | null;
+    ProductName: string | null;
+    ProductS1MTRL: number;
+    Qty: number | null;
+    ProductPrice: number | null;
+    ProductBargainPrice: number | null;
+    BargainStatus: number | null;
+}
+
+export interface IBasket {
+    Uid: string;
+    CustomerS1TRDR: number;
+    CountProducts: number | null;
+    TotalCost: number | null;
+    Items: IBasketItem[];
+}
+
+export interface BasketResponse {
+    success: boolean;
+    message?: string;
+    basket: IBasket | null;
+}
+
 export interface ApiResponse<T> {
     success: boolean;
     message?: string;

@@ -10,7 +10,6 @@ import SelectInputs from "@/components/form/form-elements/SelectInputs";
 import TextAreaInput from "@/components/form/form-elements/TextAreaInput";
 import ToggleSwitch from "@/components/form/form-elements/ToggleSwitch";
 import { Metadata } from "next";
-import React from "react";
 
 export const metadata: Metadata = {
   title: "Paschalidis Form Elements"
