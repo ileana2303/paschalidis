@@ -82,7 +82,7 @@ export async function deleteSessionCookie() {
  */
 export async function verifyToken(token: string): Promise<UserSession | null> {
     try {
-        const { payload } = await jwtVerify(token, key);
+        const { payload } = await jwtVerify(token, getSecretKey());
         return payload as unknown as UserSession;
     } catch {
         return null;
