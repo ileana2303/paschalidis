@@ -22,6 +22,7 @@ export {
   Mail,
   MapPin,
   Menu,
+  Minus,
   MoreHorizontal,
   Package,
   PackageSearch,

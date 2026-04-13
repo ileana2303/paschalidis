@@ -13,6 +13,7 @@ export interface ICustomerInfo {
 }
 
 export interface IItem {
+    MTRL: number;
     ITEM_CODE: string;
     ITEM_OMOIO: string;
     CODE1_0: string;

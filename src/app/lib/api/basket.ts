@@ -131,3 +131,25 @@ export async function deleteBasket(
 
     return data;
 }
+
+export async function requestDiscount(
+    basketUid: string,
+    itemUid: string,
+    bargainPrice: number
+): Promise<{ success: boolean; message?: string }> {
+    const res = await fetch("/api/basket/request-discount", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ basketUid, itemUid, bargainPrice }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(data.message ?? "Failed to request discount");
+    }
+
+    return data;
+}

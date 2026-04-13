@@ -4,12 +4,12 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useRef, useState } from "react";
 import { searchCustomers } from "@/app/lib/api/customers";
 import { searchItems } from "@/app/lib/api/items";
-import { Plus, Search, X, Trash2, Loader2 } from "@/app/lib/lucide";
+import { Plus, Search, X, Trash2, Loader2, ChevronDown, Minus, ShoppingCart, BadgePercent, Check, Clock3, Send, Package } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
-import { ICustomerInfo, IItem, IBasket } from "@/app/lib/interface";
+import { ICustomerInfo, IItem, IBasket, IBasketItem } from "@/app/lib/interface";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
-import { fetchBasketItems, removeBasketItem } from "@/app/lib/api/basket";
+import { fetchBasketItems, removeBasketItem, addItemToBasket, createBasket, requestDiscount, updateBasketItem } from "@/app/lib/api/basket";
 import OrderSummary from "@/components/basket/order-summary";
 
 export default function SearchPartsClient() {
@@ -32,6 +32,13 @@ export default function SearchPartsClient() {
     const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [sidebarVisible, setSidebarVisible] = useState(true);
+    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+    const [quantities, setQuantities] = useState<Record<string, number>>({});
+    const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
+    const [discountPrices, setDiscountPrices] = useState<Record<string, string>>({});
+    const [submittingDiscount, setSubmittingDiscount] = useState<Set<string>>(new Set());
+    const [updatingQty, setUpdatingQty] = useState<Set<string>>(new Set());
+    const [basketQtyEdits, setBasketQtyEdits] = useState<Record<string, number>>({});
     const customer = useCustomerStore((state) => state.customer);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const {
@@ -267,6 +274,125 @@ export default function SearchPartsClient() {
         }
     };
 
+    const toggleExpanded = (itemCode: string) => {
+        setExpandedItems((prev) => {
+            const next = new Set(prev);
+            if (next.has(itemCode)) next.delete(itemCode);
+            else next.add(itemCode);
+            return next;
+        });
+    };
+
+    const getQuantity = (itemCode: string) => quantities[itemCode] ?? 1;
+
+    const setQuantity = (itemCode: string, qty: number) => {
+        if (qty < 1) qty = 1;
+        setQuantities((prev) => ({ ...prev, [itemCode]: qty }));
+    };
+
+    const handleAddToBasket = async (item: IItem) => {
+        if (!customer) return;
+
+        setAddingToBasket((prev) => new Set(prev).add(item.ITEM_CODE));
+
+        try {
+            let basketUid = basket?.Uid;
+
+            if (!basketUid) {
+                const created = await createBasket(customer.TRDR);
+                if (created.success && created.basket) {
+                    basketUid = created.basket.Uid;
+                    setBasket(created.basket);
+                } else {
+                    return;
+                }
+            }
+
+            await addItemToBasket({
+                basketUid,
+                productCode: item.ITEM_CODE,
+                productName: item.ITEM_DESCR,
+                productS1MTRL: item.MTRL,
+                qty: getQuantity(item.ITEM_CODE),
+                productPrice: item.PRICE_WHOLE,
+            });
+
+            setQuantities((prev) => ({ ...prev, [item.ITEM_CODE]: 1 }));
+            await loadBasket(customer.TRDR);
+        } catch (err) {
+            console.error("Failed to add item to basket:", err);
+        } finally {
+            setAddingToBasket((prev) => {
+                const next = new Set(prev);
+                next.delete(item.ITEM_CODE);
+                return next;
+            });
+        }
+    };
+
+    const formatPrice = (price: number | string | null | undefined) => {
+        if (price == null) return "—";
+        const num = Number(price);
+        if (isNaN(num)) return "—";
+        return num.toFixed(2) + " €";
+    };
+
+    const findBasketItem = (itemCode: string): IBasketItem | undefined => {
+        return basket?.Items.find((bi) => bi.ProductCode === itemCode);
+    };
+
+    const handleRequestDiscount = async (item: IItem) => {
+        if (!basket) return;
+
+        const basketItem = findBasketItem(item.ITEM_CODE);
+        if (!basketItem) return;
+
+        const priceStr = discountPrices[item.ITEM_CODE];
+        const price = Number(priceStr);
+        if (!priceStr || isNaN(price) || price <= 0) return;
+
+        setSubmittingDiscount((prev) => new Set(prev).add(item.ITEM_CODE));
+
+        try {
+            await requestDiscount(basket.Uid, basketItem.Uid, price);
+            setDiscountPrices((prev) => ({ ...prev, [item.ITEM_CODE]: "" }));
+            if (customer?.TRDR) await loadBasket(customer.TRDR);
+        } catch (err) {
+            console.error("Failed to request discount:", err);
+        } finally {
+            setSubmittingDiscount((prev) => {
+                const next = new Set(prev);
+                next.delete(item.ITEM_CODE);
+                return next;
+            });
+        }
+    };
+
+    const handleUpdateBasketQty = async (item: IItem) => {
+        if (!basket) return;
+
+        const basketItem = findBasketItem(item.ITEM_CODE);
+        if (!basketItem) return;
+
+        const newQty = basketQtyEdits[item.ITEM_CODE] ?? basketItem.Qty ?? 1;
+        if (newQty === basketItem.Qty) return;
+
+        setUpdatingQty((prev) => new Set(prev).add(item.ITEM_CODE));
+
+        try {
+            await updateBasketItem(basket.Uid, basketItem.Uid, newQty);
+            if (customer?.TRDR) await loadBasket(customer.TRDR);
+        } catch (err) {
+            console.error("Failed to update basket qty:", err);
+        } finally {
+            setUpdatingQty((prev) => {
+                const next = new Set(prev);
+                next.delete(item.ITEM_CODE);
+                return next;
+            });
+        }
+    };
+
     const handleResultsScroll = (event: UIEvent<HTMLDivElement>) => {
         const scrollTop = event.currentTarget.scrollTop;
 
@@ -396,32 +522,392 @@ export default function SearchPartsClient() {
                                 )}
 
                                 <div className="space-y-2">
-                                    {items.map((item) => (
-                                        <div
-                                            key={item.ITEM_CODE}
-                                            className="rounded-xl border p-4 bg-white cursor-pointer hover:bg-brand-100 hover:border-2 hover:border-brand-500 transition"
-                                        >
-                                            <p className="font-semibold text-gray-800">
-                                                {item.ITEM_CODE2}
-                                            </p>
+                                    {items.map((item) => {
+                                        const isExpanded = expandedItems.has(item.ITEM_CODE);
+                                        const qty = getQuantity(item.ITEM_CODE);
+                                        const isAdding = addingToBasket.has(item.ITEM_CODE);
 
-                                            <p className="font-semibold text-gray-800">
-                                                {item.MNF_DESCR}
-                                            </p>
+                                        return (
+                                            <div
+                                                key={item.ITEM_CODE}
+                                                className="rounded-xl border border-gray-200 bg-white transition  hover:bg-brand-100 hover:border-2 hover:border-brand-500 dark:border-gray-800 dark:bg-white/[0.03]"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleExpanded(item.ITEM_CODE)}
+                                                    className="flex w-full items-start gap-3 p-4 text-left"
+                                                >
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-sm font-bold text-brand-600 dark:text-brand-400">
+                                                                {item.ITEM_CODE2}
+                                                            </p>
+                                                            <span
+                                                                className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight ${item.STATUS_NOW === 1
+                                                                    ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                                                                    : item.STATUS_NOW === 0
+                                                                        ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                                                                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
+                                                                    }`}
+                                                            >
+                                                                {item.STATUS_LABEL}
+                                                            </span>
+                                                        </div>
+                                                        <p className="mt-0.5 text-sm font-medium text-gray-800 dark:text-white/90">
+                                                            {item.MNF_DESCR}
+                                                        </p>
+                                                        <p className="mt-0.5 text-xs text-gray-500">
+                                                            {item.ITEM_DESCR}
+                                                        </p>
+                                                    </div>
+                                                    <ChevronDown
+                                                        className={`mt-1 h-5 w-5 shrink-0 text-gray-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                                                    />
+                                                </button>
 
-                                            <p className="text-sm text-gray-500">
-                                                {item.ITEM_DESCR}
-                                            </p>
+                                                {/* Expanded details */}
+                                                <div
+                                                    className={`overflow-hidden transition-all duration-200 ${isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+                                                        }`}
+                                                >
+                                                    <div className="border-t border-gray-100 px-4 py-4 dark:border-gray-800">
+                                                        {/* Codes */}
+                                                        <div className="mb-3">
+                                                            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                                                                Κωδικοί
+                                                            </p>
+                                                            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-4">
+                                                                <div>
+                                                                    <span className="text-gray-400">Κωδικός: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.ITEM_CODE}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Κωδ. 2: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.ITEM_CODE2}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Ομοιος: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.ITEM_OMOIO || "—"}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">CODE1_0: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.CODE1_0 || "—"}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
 
-                                            <p className="mt-1 text-xs">
-                                                {item.STATUS_LABEL}
-                                            </p>
+                                                        {/* Stock / Availability */}
+                                                        <div className="mb-3">
+                                                            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                                                                Απόθεμα
+                                                            </p>
+                                                            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-3">
+                                                                <div>
+                                                                    <span className="text-gray-400">ΥΠ 1001: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.YP1001}</span>
+                                                                    {item.THESI1001 && (
+                                                                        <span className="ml-1 text-gray-400">({item.THESI1001})</span>
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">ΥΠ 1006: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.YP1006}</span>
+                                                                    {item.THESI1006 && (
+                                                                        <span className="ml-1 text-gray-400">({item.THESI1006})</span>
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">ΥΠ 1007: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.YP1007}</span>
+                                                                    {item.THESI1007 && (
+                                                                        <span className="ml-1 text-gray-400">({item.THESI1007})</span>
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Συνολ. Διαθ.: </span>
+                                                                    <span className="font-semibold text-gray-800 dark:text-white/90">{item.TOTAL_AVAIL}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Σε εξέλιξη: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.ONGOING}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Καθαρή Διαθ.: </span>
+                                                                    <span className="font-semibold text-gray-800 dark:text-white/90">{item.NET_QTY_AVAILABLE}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
 
-                                            <p className="text-xs text-gray-400">
-                                                {item.STANDCOST}
-                                            </p>
-                                        </div>
-                                    ))}
+                                                        {/* Orders */}
+                                                        <div className="mb-3">
+                                                            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                                                                Παραγγελίες
+                                                            </p>
+                                                            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-3">
+                                                                <div>
+                                                                    <span className="text-gray-400">Παραγγελθέντα: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.SoOrdered}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Δεσμευμένα: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.SoReserved}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Κατάσταση: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.STATUS_MOBILE || "—"}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Prices */}
+                                                        <div>
+                                                            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                                                                Τιμές
+                                                            </p>
+                                                            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-3">
+                                                                <div>
+                                                                    <span className="text-gray-400">Χονδρική: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{formatPrice(item.PRICE_WHOLE)}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Λιανική: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{formatPrice(item.PRICE_RETAIL)}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Κόστος: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{formatPrice(item.STANDCOST)}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Τιμοκ. 01: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{formatPrice(item.PRICER01)}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Τιμοκ. 02: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{formatPrice(item.PRICER02)}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-gray-400">Τιμοκ. 03: </span>
+                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{formatPrice(item.PRICER03)}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Basket actions — discount request + stock qty + add to basket */}
+                                                {customer && (
+                                                    <div className="border-t border-gray-100 dark:border-gray-800">
+                                                        {/* Discount request section — only when item is in basket */}
+                                                        {(() => {
+                                                            const basketItem = findBasketItem(item.ITEM_CODE);
+                                                            if (!basketItem) return null;
+
+                                                            const isSubmittingDiscount = submittingDiscount.has(item.ITEM_CODE);
+                                                            const discountValue = discountPrices[item.ITEM_CODE] ?? "";
+
+                                                            return (
+                                                                <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <BadgePercent className="h-4 w-4 text-amber-500" />
+                                                                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                                                            Αίτημα Έκπτωσης
+                                                                        </p>
+                                                                        {/* Current status badge */}
+                                                                        {basketItem.BargainStatus != null && (
+                                                                            <span
+                                                                                className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                                                                    basketItem.BargainStatus === 200
+                                                                                        ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                                                                                        : basketItem.BargainStatus === 500
+                                                                                            ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                                                                                            : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+                                                                                }`}
+                                                                            >
+                                                                                {basketItem.BargainStatus === 200 ? (
+                                                                                    <><Check className="h-3 w-3" /> Εγκρίθηκε: {formatPrice(basketItem.ProductBargainPrice)}</>
+                                                                                ) : basketItem.BargainStatus === 500 ? (
+                                                                                    <><X className="h-3 w-3" /> Απορρίφθηκε</>
+                                                                                ) : (
+                                                                                    <><Clock3 className="h-3 w-3" /> Αναμονή: {formatPrice(basketItem.ProductBargainPrice)}</>
+                                                                                )}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="relative">
+                                                                            <input
+                                                                                type="number"
+                                                                                min={0}
+                                                                                step="0.01"
+                                                                                value={discountValue}
+                                                                                onChange={(e) =>
+                                                                                    setDiscountPrices((prev) => ({
+                                                                                        ...prev,
+                                                                                        [item.ITEM_CODE]: e.target.value,
+                                                                                    }))
+                                                                                }
+                                                                                onKeyDown={(e) => e.key === "Enter" && handleRequestDiscount(item)}
+                                                                                placeholder="Τιμή έκπτωσης..."
+                                                                                className="h-9 w-36 rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                                            />
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRequestDiscount(item)}
+                                                                            disabled={isSubmittingDiscount || !discountValue || Number(discountValue) <= 0}
+                                                                            className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:bg-amber-600 disabled:opacity-40"
+                                                                        >
+                                                                            {isSubmittingDiscount ? (
+                                                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                                            ) : (
+                                                                                <Send className="h-3.5 w-3.5" />
+                                                                            )}
+                                                                            <span>Αίτημα</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
+
+                                                        {/* Stock quantity section — update qty for items already in basket */}
+                                                        {(() => {
+                                                            const basketItem = findBasketItem(item.ITEM_CODE);
+                                                            if (!basketItem) return null;
+
+                                                            const currentQty = basketQtyEdits[item.ITEM_CODE] ?? basketItem.Qty ?? 1;
+                                                            const isUpdating = updatingQty.has(item.ITEM_CODE);
+                                                            const hasChanged = currentQty !== (basketItem.Qty ?? 1);
+
+                                                            return (
+                                                                <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <Package className="h-4 w-4 text-blue-500" />
+                                                                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                                                            Ποσότητα στο καλάθι
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-700">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    setBasketQtyEdits((prev) => ({
+                                                                                        ...prev,
+                                                                                        [item.ITEM_CODE]: Math.max(1, currentQty - 1),
+                                                                                    }))
+                                                                                }
+                                                                                disabled={currentQty <= 1}
+                                                                                aria-label="Μείωση"
+                                                                                className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
+                                                                            >
+                                                                                <Minus className="h-4 w-4" />
+                                                                            </button>
+                                                                            <input
+                                                                                type="number"
+                                                                                min={1}
+                                                                                value={currentQty}
+                                                                                onChange={(e) => {
+                                                                                    const val = parseInt(e.target.value, 10);
+                                                                                    if (!isNaN(val) && val >= 1) {
+                                                                                        setBasketQtyEdits((prev) => ({
+                                                                                            ...prev,
+                                                                                            [item.ITEM_CODE]: val,
+                                                                                        }));
+                                                                                    }
+                                                                                }}
+                                                                                onKeyDown={(e) => e.key === "Enter" && hasChanged && handleUpdateBasketQty(item)}
+                                                                                className="h-9 w-14 border-x border-gray-200 bg-transparent text-center text-sm font-medium text-gray-800 outline-none dark:border-gray-700 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                                            />
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    setBasketQtyEdits((prev) => ({
+                                                                                        ...prev,
+                                                                                        [item.ITEM_CODE]: currentQty + 1,
+                                                                                    }))
+                                                                                }
+                                                                                aria-label="Αύξηση"
+                                                                                className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-100 dark:hover:bg-gray-800"
+                                                                            >
+                                                                                <Plus className="h-4 w-4" />
+                                                                            </button>
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleUpdateBasketQty(item)}
+                                                                            disabled={isUpdating || !hasChanged}
+                                                                            className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-3 py-2 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-600 disabled:opacity-40"
+                                                                        >
+                                                                            {isUpdating ? (
+                                                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                                            ) : (
+                                                                                <Check className="h-3.5 w-3.5" />
+                                                                            )}
+                                                                            <span>Ενημέρωση</span>
+                                                                        </button>
+                                                                        <span className="ml-auto text-xs text-gray-400">
+                                                                            Τρέχουσα: {basketItem.Qty ?? 0}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
+
+                                                        {/* Add to basket controls */}
+                                                        <div className="flex items-center gap-3 px-4 py-3">
+                                                            <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-700">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setQuantity(item.ITEM_CODE, qty - 1)}
+                                                                    disabled={qty <= 1}
+                                                                    aria-label="Μείωση ποσότητας"
+                                                                    className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
+                                                                >
+                                                                    <Minus className="h-4 w-4" />
+                                                                </button>
+                                                                <input
+                                                                    type="number"
+                                                                    min={1}
+                                                                    value={qty}
+                                                                    onChange={(e) => {
+                                                                        const val = parseInt(e.target.value, 10);
+                                                                        if (!isNaN(val)) setQuantity(item.ITEM_CODE, val);
+                                                                    }}
+                                                                    className="h-9 w-12 border-x border-gray-200 bg-transparent text-center text-sm font-medium text-gray-800 outline-none dark:border-gray-700 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setQuantity(item.ITEM_CODE, qty + 1)}
+                                                                    aria-label="Αύξηση ποσότητας"
+                                                                    className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-100 dark:hover:bg-gray-800"
+                                                                >
+                                                                    <Plus className="h-4 w-4" />
+                                                                </button>
+                                                            </div>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleAddToBasket(item)}
+                                                                disabled={isAdding}
+                                                                className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md disabled:opacity-60"
+                                                            >
+                                                                {isAdding ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <ShoppingCart className="h-4 w-4" />
+                                                                )}
+                                                                <span className="hidden sm:inline">Προσθήκη</span>
+                                                            </button>
+
+                                                            <span className="ml-auto text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                                                {formatPrice(item.PRICE_WHOLE)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
 
                                 {hasSearched && !loading && items.length === 0 && (
