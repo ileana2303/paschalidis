@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import SearchPartsClient from "./SearchPartsClient";
+import SearchPartsClient from "./search-parts-client";
 
 export const metadata: Metadata = {
     title: "Paschalidis - ERP Platform",

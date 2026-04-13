@@ -4,12 +4,13 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useRef, useState } from "react";
 import { searchCustomers } from "@/app/lib/api/customers";
 import { searchItems } from "@/app/lib/api/items";
-import { Plus, Search, X, Trash2, RefreshCw, Loader2, ShoppingCart } from "@/app/lib/lucide";
+import { Plus, Search, X, Trash2, Loader2 } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
 import { ICustomerInfo, IItem, IBasket } from "@/app/lib/interface";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
-import { fetchBasketItems } from "@/app/lib/api/basket";
+import { fetchBasketItems, removeBasketItem } from "@/app/lib/api/basket";
+import OrderSummary from "@/components/basket/order-summary";
 
 export default function SearchPartsClient() {
     const [search, setSearch] = useState("");
@@ -28,6 +29,8 @@ export default function SearchPartsClient() {
     const [basket, setBasket] = useState<IBasket | null>(null);
     const [basketLoading, setBasketLoading] = useState(false);
     const [basketError, setBasketError] = useState("");
+    const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const customer = useCustomerStore((state) => state.customer);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const {
@@ -212,6 +215,7 @@ export default function SearchPartsClient() {
 
             if (data.success) {
                 setBasket(data.basket);
+                setSelectedItems(new Set(data.basket?.Items.map((item) => item.Uid) ?? []));
             } else {
                 setBasketError(data.message ?? "Αποτυχία φόρτωσης καλαθιού");
             }
@@ -232,8 +236,28 @@ export default function SearchPartsClient() {
         } else {
             setBasket(null);
             setBasketError("");
+            setSelectedItems(new Set());
         }
     }, [customer?.TRDR, loadBasket]);
+
+    const handleRemoveBasketItem = async (uid: string) => {
+        if (!basket) return;
+
+        setRemovingItems((prev) => new Set(prev).add(uid));
+
+        try {
+            await removeBasketItem(basket.Uid, uid);
+            if (customer?.TRDR) await loadBasket(customer.TRDR);
+        } catch (err) {
+            console.error("Failed to remove item:", err);
+        } finally {
+            setRemovingItems((prev) => {
+                const next = new Set(prev);
+                next.delete(uid);
+                return next;
+            });
+        }
+    };
 
     const handleResultsScroll = (event: UIEvent<HTMLDivElement>) => {
         const scrollTop = event.currentTarget.scrollTop;
@@ -241,11 +265,6 @@ export default function SearchPartsClient() {
         if (scrollTop > 0) {
             setHasScrolledResults(true);
         }
-    };
-
-    const formatPrice = (price: number | null) => {
-        if (price == null) return "--";
-        return price.toFixed(2) + " €";
     };
 
     return (
@@ -417,157 +436,29 @@ export default function SearchPartsClient() {
                     )}
                 </div>
 
-                <aside className="min-h-[280px] w-full xl:min-h-0 xl:basis-1/3 xl:min-w-[320px]">
-                    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                        <div className="shrink-0 border-b border-gray-100 px-5 py-5 dark:border-gray-800">
-                            <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-500">
-                                        Basket Preview
-                                    </p>
-                                    <h3 className="mt-2 text-lg font-semibold text-gray-800 dark:text-white/90">
-                                        Καλάθι Πελάτη
-                                    </h3>
-                                </div>
-
-                                {customer && (
-                                    <button
-                                        type="button"
-                                        onClick={() => loadBasket(customer.TRDR)}
-                                        disabled={basketLoading}
-                                        aria-label="Ανανέωση καλαθιού"
-                                        className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                                    >
-                                        <RefreshCw className={`h-4 w-4 ${basketLoading ? "animate-spin" : ""}`} />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto px-5 py-5">
-                            <div className="rounded-2xl border border-brand-100 bg-brand-50/70 p-4 dark:border-brand-500/20 dark:bg-brand-500/5">
-                                <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand-500">
-                                    Επιλεγμένος Πελάτης
-                                </p>
-                                <p className="mt-2 font-semibold text-gray-800 dark:text-white/90">
-                                    {customer?.NAME ?? "Δεν έχει επιλεγεί πελάτης"}
-                                </p>
-                                <p className="mt-1 text-sm text-gray-500">
-                                    {customer ? `ΑΦΜ: ${customer.AFM}` : "Επιλέξτε πελάτη για να εμφανιστούν στοιχεία καλαθιού."}
-                                </p>
-                            </div>
-
-                            <div className="mt-5 grid grid-cols-2 gap-3">
-                                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40">
-                                    <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
-                                        Προϊόντα
-                                    </p>
-                                    <p className="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-                                        {basket?.CountProducts ?? 0}
-                                    </p>
-                                </div>
-                                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40">
-                                    <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
-                                        Σύνολο
-                                    </p>
-                                    <p className="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-                                        {formatPrice(basket?.TotalCost ?? null)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {basketError && (
-                                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-500/30 dark:bg-red-500/10">
-                                    <p className="text-sm text-red-600 dark:text-red-400">
-                                        {basketError}
-                                    </p>
-                                </div>
-                            )}
-
-                            {basketLoading && (
-                                <div className="mt-5 flex items-center justify-center py-8">
-                                    <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
-                                </div>
-                            )}
-
-                            {!basketLoading && customer && !basketError && (
-                                <div className="mt-5">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                                            Γραμμές Καλαθιού
-                                        </p>
-                                        {basket?.Items && basket.Items.length > 0 && (
-                                            <span className="text-xs text-gray-400">
-                                                {basket.Items.length} {basket.Items.length === 1 ? "προϊόν" : "προϊόντα"}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {(!basket || basket.Items.length === 0) ? (
-                                        <div className="mt-4 rounded-2xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-                                            <ShoppingCart className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
-                                            <p className="mt-3 text-sm text-gray-400">
-                                                Το καλάθι είναι κενό
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="mt-4 space-y-3">
-                                            {basket.Items.map((item) => (
-                                                <div
-                                                    key={item.Uid}
-                                                    className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40"
-                                                >
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                                                                {item.ProductCode}
-                                                            </p>
-                                                            <p className="mt-0.5 truncate text-xs text-gray-500">
-                                                                {item.ProductName}
-                                                            </p>
-                                                            <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-                                                                <span>
-                                                                    Ποσ: <span className="font-medium text-gray-700 dark:text-white/90">{item.Qty ?? 0}</span>
-                                                                </span>
-                                                                <span>
-                                                                    Τιμή: <span className="font-medium text-gray-700 dark:text-white/90">{formatPrice(item.ProductPrice)}</span>
-                                                                </span>
-                                                            </div>
-                                                            {item.ProductBargainPrice != null && item.ProductBargainPrice > 0 && (
-                                                                <div className="mt-1.5">
-                                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${item.BargainStatus === 200
-                                                                            ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                                                                            : item.BargainStatus === 500
-                                                                                ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                                                                                : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
-                                                                        }`}>
-                                                                        {item.BargainStatus === 200
-                                                                            ? `Έκπτωση: ${formatPrice(item.ProductBargainPrice)}`
-                                                                            : item.BargainStatus === 500
-                                                                                ? "Αίτημα απορρίφθηκε"
-                                                                                : `Αίτημα: ${formatPrice(item.ProductBargainPrice)}`}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {!customer && (
-                                <div className="mt-5 rounded-2xl bg-gray-50 p-4 dark:bg-gray-900/40">
-                                    <p className="text-sm leading-6 text-gray-500">
-                                        Επιλέξτε πελάτη για να εμφανιστεί η προεπισκόπηση καλαθιού.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </aside>
+                <OrderSummary
+                    customer={customer}
+                    basket={basket}
+                    loading={basketLoading}
+                    error={basketError}
+                    onRefresh={() => customer && loadBasket(customer.TRDR)}
+                    onSendOrder={() => {
+                        // TODO: integrate with order submission API
+                    }}
+                    selectedItems={selectedItems}
+                    selectedCount={basket?.Items.filter((i) => selectedItems.has(i.Uid)).length ?? 0}
+                    selectedTotal={basket?.Items.filter((i) => selectedItems.has(i.Uid)).reduce((sum, i) => sum + (i.ProductPrice ?? 0) * (i.Qty ?? 0), 0) ?? 0}
+                    onToggleItem={(uid) => {
+                        setSelectedItems((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(uid)) next.delete(uid);
+                            else next.add(uid);
+                            return next;
+                        });
+                    }}
+                    onRemoveItem={handleRemoveBasketItem}
+                    removingItems={removingItems}
+                />
             </div>
 
             <Modal isOpen={isSearchModalOpen} onClose={closeSearchModal} className="max-w-[820px] m-4 p-6 sm:p-8">
