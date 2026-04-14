@@ -78,3 +78,22 @@ export interface ApiResponse<T> {
     totalcount: number;
     rows: T[];
 }
+
+export interface IProduct {
+    mtrl: string;
+    code: string;
+    name: string;
+    barcode: string;
+    price: string;
+    soft1Active: string;
+    modifiedDate: string;
+}
+
+export interface ProductsResponse {
+    success: boolean;
+    page: number;
+    totalPages: number;
+    pageSize: number;
+    totalCount: string;
+    data: IProduct[];
+}
