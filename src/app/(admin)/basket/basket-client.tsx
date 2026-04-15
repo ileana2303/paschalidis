@@ -1,7 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     Check,
@@ -14,6 +14,13 @@ import {
 } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
 import { IBasket, IBasketItem } from "@/app/lib/interface";
+import {
+    getBasketItemEffectivePrice,
+    getBasketItemId,
+    getBasketItemLineTotal,
+    getBasketItemQty,
+    normalizeBasket,
+} from "@/app/lib/basket";
 import { fetchBasketItems, removeBasketItem } from "@/app/lib/api/basket";
 import OrderSummary from "@/components/basket/order-summary";
 
@@ -37,7 +44,7 @@ export default function BasketClient() {
         return price.toFixed(2) + " €";
     };
 
-    const loadBasket = async () => {
+    const loadBasket = useCallback(async () => {
         if (!customer) return;
 
         setLoading(true);
@@ -45,10 +52,10 @@ export default function BasketClient() {
 
         try {
             const data = await fetchBasketItems(customer.TRDR);
-
-            if (data.success && data.basket) {
-                setBasket(data.basket);
-                setSelectedItems(new Set(data.basket.Items.map((item) => item.Uid)));
+            if (data.success && data.rows) {
+                const nextBasket = normalizeBasket(data);
+                setBasket(nextBasket);
+                setSelectedItems(new Set(nextBasket.items.map((item) => getBasketItemId(item))));
             } else {
                 setBasket(null);
                 setSelectedItems(new Set());
@@ -62,11 +69,18 @@ export default function BasketClient() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [customer]);
 
     useEffect(() => {
+        if (!customer) {
+            setBasket(null);
+            setSelectedItems(new Set());
+            setError("");
+            return;
+        }
+
         loadBasket();
-    }, [customer?.TRDR]);
+    }, [customer, loadBasket]);
 
     const toggleItem = (uid: string) => {
         setSelectedItems((prev) => {
@@ -83,19 +97,19 @@ export default function BasketClient() {
     };
 
     const handleRemoveItem = async (item: IBasketItem) => {
-        if (!basket) return;
+        if (!basket || !customer) return;
 
-        setRemovingItems((prev) => new Set(prev).add(item.Uid));
+        setRemovingItems((prev) => new Set(prev).add(getBasketItemId(item)));
 
         try {
-            await removeBasketItem(basket.Uid, item.Uid);
+            await removeBasketItem(customer.TRDR, getBasketItemId(item));
             await loadBasket();
         } catch (err) {
             console.error("Failed to remove item:", err);
         } finally {
             setRemovingItems((prev) => {
                 const next = new Set(prev);
-                next.delete(item.Uid);
+                next.delete(getBasketItemId(item));
                 return next;
             });
         }
@@ -110,12 +124,12 @@ export default function BasketClient() {
         setSendingOrder(false);
     };
 
-    const selectedItemsList = basket?.Items.filter((item) =>
-        selectedItems.has(item.Uid)
+    const selectedItemsList = basket?.items.filter((item) =>
+        selectedItems.has(getBasketItemId(item))
     ) ?? [];
 
     const selectedTotal = selectedItemsList.reduce(
-        (sum, item) => sum + (item.ProductPrice ?? 0) * (item.Qty ?? 0),
+        (sum, item) => sum + getBasketItemLineTotal(item),
         0
     );
 
@@ -134,7 +148,7 @@ export default function BasketClient() {
             <div className="flex min-h-0 flex-1 flex-col gap-5 xl:flex-row">
                 <div className="relative flex min-h-0 flex-1 flex-col xl:basis-2/3">
                     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                 
+
                         <div className="shrink-0 border-b border-gray-100 px-5 py-5 dark:border-gray-800">
                             <div className="flex items-center justify-between">
                                 <div>
@@ -172,7 +186,7 @@ export default function BasketClient() {
                                 </div>
                             )}
 
-                            {!loading && !error && (!basket || basket.Items.length === 0) && (
+                            {!loading && !error && (!basket || basket.items.length === 0) && (
                                 <div className="flex flex-col items-center justify-center py-16">
                                     <ShoppingCart className="h-12 w-12 text-gray-300 dark:text-gray-600" />
                                     <p className="mt-4 text-sm text-gray-400">
@@ -181,15 +195,16 @@ export default function BasketClient() {
                                 </div>
                             )}
 
-                            {!loading && !error && basket && basket.Items.length > 0 && (
+                            {!loading && !error && basket && basket.items.length > 0 && (
                                 <div className="space-y-3">
-                                    {basket.Items.map((item) => {
-                                        const isSelected = selectedItems.has(item.Uid);
-                                        const isRemoving = removingItems.has(item.Uid);
+                                    {basket.items.map((item) => {
+                                        const itemId = getBasketItemId(item);
+                                        const isSelected = selectedItems.has(itemId);
+                                        const isRemoving = removingItems.has(itemId);
 
                                         return (
                                             <div
-                                                key={item.Uid}
+                                                key={itemId}
                                                 className={`group rounded-xl border p-4 transition-all ${isSelected
                                                     ? "border-brand-300 bg-brand-50/50 dark:border-brand-500/30 dark:bg-brand-500/5"
                                                     : "border-gray-200 bg-gray-50/50 opacity-60 dark:border-gray-800 dark:bg-gray-900/40"
@@ -198,7 +213,7 @@ export default function BasketClient() {
                                                 <div className="flex items-start gap-4">
                                                     <button
                                                         type="button"
-                                                        onClick={() => toggleItem(item.Uid)}
+                                                        onClick={() => toggleItem(itemId)}
                                                         aria-label={isSelected ? "Αποεπιλογή" : "Επιλογή"}
                                                         className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition ${isSelected
                                                             ? "border-brand-500 bg-brand-500 text-white"
@@ -216,10 +231,10 @@ export default function BasketClient() {
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div className="min-w-0 flex-1">
                                                                 <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                                                                    {item.ProductCode ?? "—"}
+                                                                    {item.CODE ?? "—"}
                                                                 </p>
                                                                 <p className="mt-0.5 truncate text-xs text-gray-500">
-                                                                    {item.ProductName ?? "—"}
+                                                                    {item.NAME ?? "—"}
                                                                 </p>
                                                             </div>
 
@@ -239,44 +254,25 @@ export default function BasketClient() {
                                                         </div>
 
                                                         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                                                            <span>
-                                                                Ποσότητα:{" "}
-                                                                <span className="font-medium text-gray-700 dark:text-white/90">
-                                                                    {item.Qty ?? 0}
+                                                                <span>
+                                                                    Ποσότητα:{" "}
+                                                                    <span className="font-medium text-gray-700 dark:text-white/90">
+                                                                    {getBasketItemQty(item)}
+                                                                    </span>
                                                                 </span>
-                                                            </span>
-                                                            <span>
-                                                                Τιμή:{" "}
-                                                                <span className="font-medium text-gray-700 dark:text-white/90">
-                                                                    {formatPrice(item.ProductPrice)}
+                                                                <span>
+                                                                    Τιμή:{" "}
+                                                                    <span className="font-medium text-gray-700 dark:text-white/90">
+                                                                    {formatPrice(getBasketItemEffectivePrice(item))}
+                                                                    </span>
                                                                 </span>
-                                                            </span>
-                                                            <span>
-                                                                Σύνολο:{" "}
-                                                                <span className="font-semibold text-gray-800 dark:text-white/90">
-                                                                    {formatPrice((item.ProductPrice ?? 0) * (item.Qty ?? 0))}
-                                                                </span>
-                                                            </span>
-                                                        </div>
-
-                                                        {item.ProductBargainPrice != null && item.ProductBargainPrice > 0 && (
-                                                            <div className="mt-2">
-                                                                <span
-                                                                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${item.BargainStatus === 200
-                                                                        ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                                                                        : item.BargainStatus === 500
-                                                                            ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                                                                            : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
-                                                                        }`}
-                                                                >
-                                                                    {item.BargainStatus === 200
-                                                                        ? `Έκπτωση: ${formatPrice(item.ProductBargainPrice)}`
-                                                                        : item.BargainStatus === 500
-                                                                            ? "Αίτημα απορρίφθηκε"
-                                                                            : `Αίτημα: ${formatPrice(item.ProductBargainPrice)}`}
+                                                                <span>
+                                                                    Σύνολο:{" "}
+                                                                    <span className="font-semibold text-gray-800 dark:text-white/90">
+                                                                    {formatPrice(getBasketItemLineTotal(item))}
+                                                                    </span>
                                                                 </span>
                                                             </div>
-                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -316,7 +312,7 @@ export default function BasketClient() {
                     sendingOrder={sendingOrder}
                     onToggleItem={toggleItem}
                     onRemoveItem={(uid) => {
-                        const item = basket?.Items.find((i) => i.Uid === uid);
+                        const item = basket?.items.find((i) => i.BASKETID === uid);
                         if (item) handleRemoveItem(item);
                     }}
                     removingItems={removingItems}

@@ -1,13 +1,9 @@
 import { BasketResponse } from "../interface";
 
-export async function fetchBasketItems(
-    trdr: string
-): Promise<BasketResponse> {
+export async function fetchBasketItems(trdr: string): Promise<BasketResponse> {
     const res = await fetch("/api/basket/items", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trdr }),
     });
 
@@ -20,9 +16,17 @@ export async function fetchBasketItems(
     return data;
 }
 
-export async function createBasket(
-    trdr: string
-): Promise<BasketResponse> {
+export async function createBasket(trdr: string): Promise<{
+    success: boolean;
+    message?: string;
+    basket?: {
+        Uid: string;
+        CustomerS1TRDR: number;
+        CountProducts: number;
+        TotalCost: number;
+        Items: [];
+    };
+}> {
     const res = await fetch("/api/basket/create", {
         method: "POST",
         headers: {
@@ -31,7 +35,7 @@ export async function createBasket(
         body: JSON.stringify({ trdr }),
     });
 
-    const data: BasketResponse = await res.json();
+    const data = await res.json();
 
     if (!res.ok) {
         throw new Error(data.message ?? "Failed to create basket");
@@ -40,23 +44,23 @@ export async function createBasket(
     return data;
 }
 
-interface AddItemParams {
-    basketUid: string;
-    productCode?: string | null;
-    productName?: string | null;
-    productS1MTRL: number;
-    qty: number;
-    productPrice?: number | null;
-}
 
-export async function addItemToBasket(
-    params: AddItemParams
-): Promise<{ success: boolean; message?: string }> {
+// Add item to basket using BASKET_IN
+export async function addItemToBasket(params: {
+    TRDR: string;
+    MTRL: number;
+    QTY: number;
+    PRICE_ERP: number;
+    PRICE_REQ: number;
+    CODE?: string | null;
+    NAME?: string | null;
+    BRANCH?: number;
+    TRD_BRANCH?: number;
+    COMPANY?: number;
+}): Promise<{ success: boolean; message?: string }> {
     const res = await fetch("/api/basket/add-item", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
     });
 
@@ -70,7 +74,7 @@ export async function addItemToBasket(
 }
 
 export async function updateBasketItem(
-    basketUid: string,
+    trdr: string,
     itemUid: string,
     qty: number
 ): Promise<{ success: boolean; message?: string }> {
@@ -79,7 +83,7 @@ export async function updateBasketItem(
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ basketUid, itemUid, qty }),
+        body: JSON.stringify({ trdr, itemUid, qty }),
     });
 
     const data = await res.json();
@@ -92,7 +96,7 @@ export async function updateBasketItem(
 }
 
 export async function removeBasketItem(
-    basketUid: string,
+    trdr: string,
     itemUid: string
 ): Promise<{ success: boolean; message?: string }> {
     const res = await fetch("/api/basket/remove-item", {
@@ -100,7 +104,7 @@ export async function removeBasketItem(
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ basketUid, itemUid }),
+        body: JSON.stringify({ trdr, itemUid }),
     });
 
     const data = await res.json();
@@ -133,7 +137,7 @@ export async function deleteBasket(
 }
 
 export async function requestDiscount(
-    basketUid: string,
+    trdr: string,
     itemUid: string,
     bargainPrice: number
 ): Promise<{ success: boolean; message?: string }> {
@@ -142,7 +146,7 @@ export async function requestDiscount(
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ basketUid, itemUid, bargainPrice }),
+        body: JSON.stringify({ trdr, itemUid, bargainPrice }),
     });
 
     const data = await res.json();

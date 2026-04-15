@@ -56,31 +56,38 @@ export interface IItemTRDR extends IItem {
     BASKET_ERP_PRICE: string;
 }
 
-
-
+// Matches BASKET_OUT row
 export interface IBasketItem {
-    Uid: string;
-    ProductCode: string | null;
-    ProductName: string | null;
-    ProductS1MTRL: number;
-    Qty: number | null;
-    ProductPrice: number | null;
-    ProductBargainPrice: number | null;
-    BargainStatus: number | null;
+    BASKETID: string;
+    TRDR: string;
+    MTRL: string;
+    QTY: string;
+    PRICE_ERP: string;
+    PRICE_REQ: string;
+    BRANCH: string;
+    TRD_BRANCH: string;
+    IS_APROVED: string;
+    APPUSER_ID: string;
+    BASKET_DATE: string;
+    INS_DATE: string;
+    COMPANY: string;
+    CODE: string;
+    NAME: string;
+    CODE2: string;
+    CUST_NAME: string;
 }
 
+// For compatibility, basket is just a list of items and totalcount
 export interface IBasket {
-    Uid: string;
-    CustomerS1TRDR: number;
-    CountProducts: number | null;
-    TotalCost: number | null;
-    Items: IBasketItem[];
+    items: IBasketItem[];
+    totalcount: number;
 }
 
 export interface BasketResponse {
     success: boolean;
     message?: string;
-    basket: IBasket | null;
+    totalcount: number;
+    rows: IBasketItem[];
 }
 
 export interface ApiResponse<T> {

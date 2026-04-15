@@ -16,6 +16,17 @@ import {
     StickyNote,
     Trash2,
 } from "@/app/lib/lucide";
+import {
+    getBasketItemApprovalStatus,
+    getBasketItemCode,
+    getBasketItemEffectivePrice,
+    getBasketItemId,
+    getBasketItemLineTotal,
+    getBasketItemName,
+    getBasketItemQty,
+    getBasketItemRequestedPrice,
+    hasBasketItemDiscount,
+} from "@/app/lib/basket";
 import { IBasket, IBasketItem, ICustomerInfo } from "@/app/lib/interface";
 
 type ReceiptType = "receipt" | "invoice";
@@ -76,6 +87,7 @@ export default function OrderSummary({
 }: OrderSummaryProps) {
     const pathname = usePathname();
     const isOnBasketPage = pathname === "/basket";
+    const basketTotal = basket?.items.reduce((sum, item) => sum + getBasketItemLineTotal(item), 0) ?? 0;
 
     if (collapsible && collapsed) {
         return (
@@ -169,11 +181,11 @@ export default function OrderSummary({
                                     <>
                                         {selectedCount}
                                         <span className="text-sm font-normal text-gray-400">
-                                            {" "}/ {basket?.Items.length ?? 0}
+                                            {" "}/ {basket?.items.length ?? 0}
                                         </span>
                                     </>
                                 ) : (
-                                    basket?.CountProducts ?? 0
+                                    basket?.totalcount ?? 0
                                 )}
                             </p>
                         </div>
@@ -184,7 +196,7 @@ export default function OrderSummary({
                             <p className="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
                                 {selectedTotal != null
                                     ? formatPrice(selectedTotal || null)
-                                    : formatPrice(basket?.TotalCost ?? null)}
+                                    : formatPrice(basketTotal || null)}
                             </p>
                         </div>
                     </div>
@@ -209,14 +221,14 @@ export default function OrderSummary({
                                 <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
                                     Γραμμές Καλαθιού
                                 </p>
-                                {basket?.Items && basket.Items.length > 0 && (
+                                {basket?.items && basket.items.length > 0 && (
                                     <span className="text-xs text-gray-400">
-                                        {basket.Items.length} {basket.Items.length === 1 ? "προϊόν" : "προϊόντα"}
+                                        {basket.items.length} {basket.items.length === 1 ? "προϊόν" : "προϊόντα"}
                                     </span>
                                 )}
                             </div>
 
-                            {(!basket || basket.Items.length === 0) ? (
+                            {(!basket || basket.items.length === 0) ? (
                                 <div className="mt-4 rounded-2xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
                                     <ShoppingCart className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
                                     <p className="mt-3 text-sm text-gray-400">
@@ -225,12 +237,12 @@ export default function OrderSummary({
                                 </div>
                             ) : (
                                 <div className="mt-4 space-y-3">
-                                    {basket.Items.map((item) => (
+                                    {basket.items.map((item) => (
                                         <BasketLineItem
-                                            key={item.Uid}
+                                            key={item.BASKETID}
                                             item={item}
-                                            isSelected={selectedItems?.has(item.Uid)}
-                                            isRemoving={removingItems?.has(item.Uid)}
+                                            isSelected={selectedItems?.has(item.BASKETID)}
+                                            isRemoving={removingItems?.has(item.BASKETID)}
                                             onToggle={onToggleItem}
                                             onRemove={onRemoveItem}
                                         />
@@ -321,7 +333,7 @@ export default function OrderSummary({
                     <button
                         type="button"
                         onClick={onSendOrder}
-                        disabled={sendingOrder || (selectedItems ? selectedItems.size === 0 : (basket?.Items.length ?? 0) === 0)}
+                        disabled={sendingOrder || (selectedItems ? selectedItems.size === 0 : (basket?.items.length ?? 0) === 0)}
                         className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-brand-300"
                     >
                         {sendingOrder ? (
@@ -361,7 +373,7 @@ function BasketLineItem({
                 {onToggle && (
                     <button
                         type="button"
-                        onClick={() => onToggle(item.Uid)}
+                        onClick={() => onToggle(getBasketItemId(item))}
                         aria-label={selected ? "Αποεπιλογή" : "Επιλογή"}
                         className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition ${selected
                             ? "border-brand-500 bg-brand-500 text-white"
@@ -377,32 +389,32 @@ function BasketLineItem({
                 )}
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                        {item.ProductCode}
+                        {getBasketItemCode(item) || "—"}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-gray-500">
-                        {item.ProductName}
+                        {getBasketItemName(item) || "—"}
                     </p>
                     <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
                         <span>
-                            Ποσ: <span className="font-medium text-gray-700 dark:text-white/90">{item.Qty ?? 0}</span>
+                            Ποσ: <span className="font-medium text-gray-700 dark:text-white/90">{getBasketItemQty(item)}</span>
                         </span>
                         <span>
-                            Τιμή: <span className="font-medium text-gray-700 dark:text-white/90">{formatPrice(item.ProductPrice)}</span>
+                            Τιμή: <span className="font-medium text-gray-700 dark:text-white/90">{formatPrice(getBasketItemEffectivePrice(item))}</span>
                         </span>
                     </div>
-                    {item.ProductBargainPrice != null && item.ProductBargainPrice > 0 && (
+                    {hasBasketItemDiscount(item) && (
                         <div className="mt-1.5">
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${item.BargainStatus === 200
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getBasketItemApprovalStatus(item) === "approved"
                                 ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                                : item.BargainStatus === 500
+                                : getBasketItemApprovalStatus(item) === "rejected"
                                     ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
                                     : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
                                 }`}>
-                                {item.BargainStatus === 200
-                                    ? `Έκπτωση: ${formatPrice(item.ProductBargainPrice)}`
-                                    : item.BargainStatus === 500
+                                {getBasketItemApprovalStatus(item) === "approved"
+                                    ? `Έκπτωση: ${formatPrice(getBasketItemRequestedPrice(item))}`
+                                    : getBasketItemApprovalStatus(item) === "rejected"
                                         ? "Αίτημα απορρίφθηκε"
-                                        : `Αίτημα: ${formatPrice(item.ProductBargainPrice)}`}
+                                        : `Αίτημα: ${formatPrice(getBasketItemRequestedPrice(item))}`}
                             </span>
                         </div>
                     )}
@@ -410,7 +422,7 @@ function BasketLineItem({
                 {onRemove && (
                     <button
                         type="button"
-                        onClick={() => onRemove(item.Uid)}
+                        onClick={() => onRemove(getBasketItemId(item))}
                         disabled={isRemoving}
                         aria-label="Αφαίρεση"
                         className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"

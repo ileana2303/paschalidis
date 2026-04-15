@@ -13,11 +13,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { basketUid, itemUid, bargainPrice } = await req.json();
+        const { trdr, itemUid, bargainPrice } = await req.json();
 
-        if (!basketUid || !itemUid) {
+        if (!trdr || !itemUid || isNaN(Number(trdr))) {
             return NextResponse.json(
-                { success: false, message: "Basket UID and Item UID are required" },
+                { success: false, message: "Customer TRDR and Item UID are required" },
                 { status: 400 }
             );
         }
@@ -31,15 +31,16 @@ export async function POST(req: NextRequest) {
 
         const pool = await getPool();
 
-        // Verify the basket exists and is active
         const basketCheck = await pool
             .request()
-            .input("basketUid", basketUid)
+            .input("trdr", Number(trdr))
             .query(`
-                SELECT Uid FROM Baskets
-                WHERE Uid = @basketUid
+                SELECT TOP 1 Uid
+                FROM Baskets
+                WHERE CustomerS1TRDR = @trdr
                     AND LinkedOrderID IS NULL
                     AND DateDeleted IS NULL
+                ORDER BY DateIn DESC
             `);
 
         if (basketCheck.recordset.length === 0) {
@@ -48,6 +49,8 @@ export async function POST(req: NextRequest) {
                 { status: 404 }
             );
         }
+
+        const basketUid = basketCheck.recordset[0].Uid;
 
         // Update the item with the bargain price and set status to pending (100)
         const result = await pool
@@ -71,7 +74,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Update basket totals
         await pool
             .request()
             .input("basketUid", basketUid)

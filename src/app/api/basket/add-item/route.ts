@@ -14,24 +14,32 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { basketUid, productCode, productName, productS1MTRL, qty, productPrice } =
+        const {
+            TRDR,
+            MTRL,
+            QTY,
+            PRICE_ERP,
+            PRICE_REQ,
+            CODE,
+            NAME,
+        } =
             await req.json();
 
-        if (!basketUid) {
+        if (!TRDR || isNaN(Number(TRDR))) {
             return NextResponse.json(
-                { success: false, message: "Basket UID is required" },
+                { success: false, message: "Customer TRDR is required" },
                 { status: 400 }
             );
         }
 
-        if (!productS1MTRL || isNaN(Number(productS1MTRL))) {
+        if (!MTRL || isNaN(Number(MTRL))) {
             return NextResponse.json(
                 { success: false, message: "Product S1 MTRL is required" },
                 { status: 400 }
             );
         }
 
-        if (!qty || isNaN(Number(qty)) || Number(qty) <= 0) {
+        if (!QTY || isNaN(Number(QTY)) || Number(QTY) <= 0) {
             return NextResponse.json(
                 { success: false, message: "Quantity must be a positive number" },
                 { status: 400 }
@@ -40,29 +48,38 @@ export async function POST(req: NextRequest) {
 
         const pool = await getPool();
 
-        // Verify the basket exists and is active
-        const basketCheck = await pool
+        const existingBasket = await pool
             .request()
-            .input("basketUid", basketUid)
+            .input("trdr", Number(TRDR))
             .query(`
-                SELECT Uid FROM Baskets
-                WHERE Uid = @basketUid
+                SELECT TOP 1 Uid
+                FROM Baskets
+                WHERE CustomerS1TRDR = @trdr
                     AND LinkedOrderID IS NULL
                     AND DateDeleted IS NULL
+                ORDER BY DateIn DESC
             `);
 
-        if (basketCheck.recordset.length === 0) {
-            return NextResponse.json(
-                { success: false, message: "Basket not found or already submitted" },
-                { status: 404 }
-            );
+        let basketUid = existingBasket.recordset[0]?.Uid as string | undefined;
+
+        if (!basketUid) {
+            basketUid = randomUUID();
+
+            await pool
+                .request()
+                .input("uid", basketUid)
+                .input("trdr", Number(TRDR))
+                .input("userUID", session.userUID)
+                .query(`
+                    INSERT INTO Baskets (Uid, CustomerS1TRDR, CountProducts, TotalCost, CreatedByUID, DateIn)
+                    VALUES (@uid, @trdr, 0, 0, @userUID, GETDATE())
+                `);
         }
 
-        // Check if this product already exists in the basket
         const existingItem = await pool
             .request()
             .input("basketUid", basketUid)
-            .input("productS1MTRL", Number(productS1MTRL))
+            .input("productS1MTRL", Number(MTRL))
             .query(`
                 SELECT Uid, Qty FROM BasketItems
                 WHERE BasketUID = @basketUid
@@ -71,8 +88,7 @@ export async function POST(req: NextRequest) {
             `);
 
         if (existingItem.recordset.length > 0) {
-            // Update quantity of existing item
-            const newQty = Number(existingItem.recordset[0].Qty) + Number(qty);
+            const newQty = Number(existingItem.recordset[0].Qty) + Number(QTY);
 
             await pool
                 .request()
@@ -91,20 +107,45 @@ export async function POST(req: NextRequest) {
                 .request()
                 .input("uid", itemUid)
                 .input("basketUid", basketUid)
-                .input("productCode", productCode ?? null)
-                .input("productName", productName ?? null)
-                .input("productS1MTRL", Number(productS1MTRL))
-                .input("qty", Number(qty))
-                .input("productPrice", productPrice != null ? Number(productPrice) : null)
+                .input("productCode", CODE ?? null)
+                .input("productName", NAME ?? null)
+                .input("productS1MTRL", Number(MTRL))
+                .input("qty", Number(QTY))
+                .input("productPrice", PRICE_ERP != null ? Number(PRICE_ERP) : null)
+                .input(
+                    "productBargainPrice",
+                    PRICE_REQ != null && Number(PRICE_REQ) !== Number(PRICE_ERP)
+                        ? Number(PRICE_REQ)
+                        : null
+                )
                 .query(`
                     INSERT INTO BasketItems 
-                        (Uid, BasketUID, ProductCode, ProductName, ProductS1MTRL, Qty, ProductPrice, DateIn)
+                        (
+                            Uid,
+                            BasketUID,
+                            ProductCode,
+                            ProductName,
+                            ProductS1MTRL,
+                            Qty,
+                            ProductPrice,
+                            ProductBargainPrice,
+                            DateIn
+                        )
                     VALUES 
-                        (@uid, @basketUid, @productCode, @productName, @productS1MTRL, @qty, @productPrice, GETDATE())
+                        (
+                            @uid,
+                            @basketUid,
+                            @productCode,
+                            @productName,
+                            @productS1MTRL,
+                            @qty,
+                            @productPrice,
+                            @productBargainPrice,
+                            GETDATE()
+                        )
                 `);
         }
 
-        // Update basket totals
         await pool
             .request()
             .input("basketUid", basketUid)

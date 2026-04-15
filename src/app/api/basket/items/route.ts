@@ -13,22 +13,21 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { trdr } = await req.json();
+        const { trdr, TRDR } = await req.json();
+        const normalizedTrdr = trdr ?? TRDR;
 
-        if (!trdr || isNaN(Number(trdr))) {
+        if (!normalizedTrdr || isNaN(Number(normalizedTrdr))) {
             return NextResponse.json(
-                { success: false, message: "Customer TRDR is required" },
+                { success: false, message: "Customer TRDR is required", totalcount: 0, rows: [] },
                 { status: 400 }
             );
         }
 
         const pool = await getPool();
 
-        // Find the active basket for this customer (not submitted, not deleted)
         const basketResult = await pool
             .request()
-            .input("trdr", Number(trdr))
-            .input("userUID", session.userUID)
+            .input("trdr", Number(normalizedTrdr))
             .query(`
                 SELECT TOP 1 
                     Uid, CustomerS1TRDR, CountProducts, TotalCost
@@ -42,26 +41,36 @@ export async function POST(req: NextRequest) {
         if (basketResult.recordset.length === 0) {
             return NextResponse.json({
                 success: true,
-                basket: null,
+                totalcount: 0,
+                rows: [],
             });
         }
 
         const basket = basketResult.recordset[0];
 
-        // Fetch basket items
         const itemsResult = await pool
             .request()
+            .input("trdr", Number(normalizedTrdr))
             .input("basketUID", basket.Uid)
             .query(`
                 SELECT 
-                    Uid,
-                    ProductCode,
-                    ProductName,
-                    ProductS1MTRL,
-                    Qty,
-                    ProductPrice,
-                    ProductBargainPrice,
-                    BargainStatus
+                    Uid AS BASKETID,
+                    CAST(@trdr AS NVARCHAR(50)) AS TRDR,
+                    CAST(ProductS1MTRL AS NVARCHAR(50)) AS MTRL,
+                    CAST(Qty AS NVARCHAR(50)) AS QTY,
+                    CAST(ISNULL(ProductPrice, 0) AS NVARCHAR(50)) AS PRICE_ERP,
+                    CAST(ISNULL(ProductBargainPrice, ProductPrice) AS NVARCHAR(50)) AS PRICE_REQ,
+                    '' AS BRANCH,
+                    '' AS TRD_BRANCH,
+                    CAST(ISNULL(BargainStatus, '') AS NVARCHAR(50)) AS IS_APROVED,
+                    CAST('' AS NVARCHAR(255)) AS APPUSER_ID,
+                    '' AS BASKET_DATE,
+                    '' AS INS_DATE,
+                    '' AS COMPANY,
+                    ISNULL(ProductCode, '') AS CODE,
+                    ISNULL(ProductName, '') AS NAME,
+                    '' AS CODE2,
+                    '' AS CUST_NAME
                 FROM BasketItems
                 WHERE BasketUID = @basketUID
                     AND DateDeleted IS NULL
@@ -70,13 +79,8 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            basket: {
-                Uid: basket.Uid,
-                CustomerS1TRDR: basket.CustomerS1TRDR,
-                CountProducts: basket.CountProducts ?? 0,
-                TotalCost: basket.TotalCost ?? 0,
-                Items: itemsResult.recordset,
-            },
+            totalcount: basket.CountProducts ?? itemsResult.recordset.length,
+            rows: itemsResult.recordset,
         });
     } catch (error) {
         console.error("[basket/items] Server error", error);

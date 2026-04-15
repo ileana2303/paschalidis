@@ -26,8 +26,8 @@ import type { StockInfo } from "@/app/lib/interface";
 import type { IProduct, IItem } from "@/app/lib/interface";
 
 const BRANCHES = [
-    { id: "1001", label: "Αθηνών" },
-    { id: "1006", label: "Ν. Κόσμος" },
+    { id: "1001", label: "Κασομούλη" },
+    { id: "1006", label: "Κεντρικό" },
     { id: "1007", label: "Μεσογείων" },
 ] as const;
 
