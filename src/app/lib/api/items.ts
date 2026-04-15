@@ -17,3 +17,30 @@ export async function searchItems(
 
     return res.json();
 }
+
+// ── Batch stock lookup ─────────────────────────────────────
+export interface StockInfo {
+    stock1001: number;
+    stock1006: number;
+    stock1007: number;
+    totalAvail: number;
+    ongoing: number;
+    netAvail: number;
+}
+
+export async function fetchBatchStock(
+    codes: string[]
+): Promise<Record<string, StockInfo>> {
+    if (codes.length === 0) return {};
+
+    const res = await fetch("/api/items/stock-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codes }),
+    });
+
+    if (!res.ok) return {};
+
+    const data = await res.json();
+    return data.stocks ?? {};
+}

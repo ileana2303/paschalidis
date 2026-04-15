@@ -49,7 +49,7 @@ const navItems: NavItem[] = [
   },
   {
     icon: ClipboardList,
-    name: "Ανατροφοδοσία Παραγγελίες",
+    name: "Ανατροφοδοσία Καταστήματος",
     path: "/order-feedback",
   },
   {
