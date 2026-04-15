@@ -104,3 +104,12 @@ export interface ProductsResponse {
     totalCount: string;
     data: IProduct[];
 }
+
+export interface StockInfo {
+    stock1001: number;
+    stock1006: number;
+    stock1007: number;
+    totalAvail: number;
+    ongoing: number;
+    netAvail: number;
+}

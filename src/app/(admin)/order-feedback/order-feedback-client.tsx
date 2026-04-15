@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { fetchCatalogProducts } from "@/app/lib/api/catalogs";
 import { searchItems, fetchBatchStock } from "@/app/lib/api/items";
-import type { StockInfo } from "@/app/lib/api/items";
+import type { StockInfo } from "@/app/lib/interface";
 import type { IProduct, IItem } from "@/app/lib/interface";
 
 const BRANCHES = [

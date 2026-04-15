@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
             service: "SqlData",
             clientID,
             appId: "1305",
-            SqlName: "SEARCHDDDD",
+            SqlName: "SEARCH_PARTS_PER_TRDR",
             part: normalizedSearch,
             ...(normalizedTrdr != null && { TRDR: normalizedTrdr }),
         };
