@@ -1,15 +1,33 @@
-import { IItem, ApiResponse, StockInfo } from "../interface";
+import { IItem, IItemTRDR, ApiResponse, StockInfo } from "../interface";
 
 export async function searchItems(
-    search: string,
-    trdr?: string
+    search: string
 ): Promise<ApiResponse<IItem>> {
     const res = await fetch("/api/items/search", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ search, ...(trdr ? { trdr: Number(trdr) } : {}) }),
+        body: JSON.stringify({ search }),
+    });
+
+    if (!res.ok) {
+        throw new Error("Failed to fetch items");
+    }
+
+    return res.json();
+}
+
+export async function searchItemsByTrdr(
+    search: string,
+    trdr: string
+): Promise<ApiResponse<IItemTRDR>> {
+    const res = await fetch("/api/items/search", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ search, trdr: Number(trdr) }),
     });
 
     if (!res.ok) {

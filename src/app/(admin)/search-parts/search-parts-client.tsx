@@ -3,7 +3,7 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useRef, useState } from "react";
 import { searchCustomers } from "@/app/lib/api/customers";
-import { searchItems } from "@/app/lib/api/items";
+import { searchItems, searchItemsByTrdr } from "@/app/lib/api/items";
 import { Plus, Search, X, Trash2, Loader2, ChevronDown, Minus, ShoppingCart, BadgePercent, Check, Clock3, Send, Package } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
 import { ICustomerInfo, IItem, IBasket, IBasketItem } from "@/app/lib/interface";
@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { fetchBasketItems, removeBasketItem, addItemToBasket, createBasket, requestDiscount, updateBasketItem } from "@/app/lib/api/basket";
 import OrderSummary from "@/components/basket/order-summary";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SearchPartsClient() {
     const [search, setSearch] = useState("");
@@ -41,6 +42,9 @@ export default function SearchPartsClient() {
     const [basketQtyEdits, setBasketQtyEdits] = useState<Record<string, number>>({});
     const customer = useCustomerStore((state) => state.customer);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
+    const clearCustomer = useCustomerStore((state) => state.clearCustomer);
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const {
         isOpen: isSearchModalOpen,
         openModal: openSearchModal,
@@ -72,6 +76,23 @@ export default function SearchPartsClient() {
     useEffect(() => {
         setHasMounted(true);
     }, []);
+
+    // Sync URL trdr param with customer store on mount
+    useEffect(() => {
+        if (!hasMounted) return;
+
+        const urlTrdr = searchParams.get("trdr");
+
+        if (urlTrdr && customer?.TRDR !== urlTrdr) {
+            // URL has trdr but store doesn't match — clear stale store state
+            // (the customer will be loaded fresh from the customer search flow)
+            router.replace("/search-parts");
+            clearCustomer();
+        } else if (!urlTrdr && customer) {
+            // No trdr in URL but store has a customer — clear the stale customer
+            clearCustomer();
+        }
+    }, [hasMounted]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (hasMounted) {
@@ -143,13 +164,15 @@ export default function SearchPartsClient() {
     const runSearch = async (value: string) => {
         const trimmedSearch = value.trim();
 
-        if (!trimmedSearch || !customer?.TRDR) return false;
+        if (!trimmedSearch) return false;
 
         setHasSearched(true);
         setLoading(true);
 
         try {
-            const data = await searchItems(trimmedSearch, customer.TRDR);
+            const data = customer?.TRDR
+                ? await searchItemsByTrdr(trimmedSearch, customer.TRDR)
+                : await searchItems(trimmedSearch);
             setSearch(trimmedSearch);
 
             if (data.success) {
@@ -219,6 +242,7 @@ export default function SearchPartsClient() {
         setHasSearched(false);
         setHasScrolledResults(false);
         closeCustomerModal();
+        router.replace(`/search-parts?trdr=${selectedCustomer.TRDR}`);
     };
 
     const loadBasket = useCallback(async (trdr: string) => {
@@ -407,8 +431,7 @@ export default function SearchPartsClient() {
                 <div className="shrink-0">
                     <PageBreadcrumb
                         pageTitle="Αναζήτηση Ανταλλακτικών"
-                        backHref="/search-customer"
-                        backLabel="Επιστροφή στην αναζήτηση πελατών"
+                        {...(customer ? { backHref: "/search-customer", backLabel: "Επιστροφή στην αναζήτηση πελατών" } : {})}
                     />
                 </div>
             )}
@@ -433,8 +456,31 @@ export default function SearchPartsClient() {
 
                     <button
                         type="button"
+                        onClick={() => {
+                            clearCustomer();
+                            setItems([]);
+                            setHasSearched(false);
+                            setSearch("");
+                            router.replace("/search-parts");
+                        }}
+                        aria-label="Αφαίρεση επιλογής πελάτη"
+                        className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-error-500 bg-white text-error-500 shadow-sm transition-all duration-200 hover:bg-error-500 hover:text-white dark:border-error-500 dark:bg-gray-900 dark:text-error-400 dark:hover:bg-error-500 dark:hover:text-white"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+            )}
+
+            {hasMounted && !customer && (
+                <div className="mb-4 shrink-0 flex items-center gap-3 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+                    <span className="flex-1">
+                        Δεν έχει επιλεγεί πελάτης — αναζήτηση ανταλλακτικών χωρίς πελάτη
+                    </span>
+
+                    <button
+                        type="button"
                         onClick={handleOpenCustomerModal}
-                        aria-label="Νέα αναζήτηση πελάτη"
+                        aria-label="Αναζήτηση πελάτη"
                         className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-white text-brand-500 shadow-sm transition-all duration-200 hover:bg-brand-500 hover:text-white dark:border-brand-500 dark:bg-gray-900 dark:text-brand-400 dark:hover:bg-brand-500 dark:hover:text-white"
                     >
                         <Plus className="h-5 w-5" />
@@ -443,7 +489,7 @@ export default function SearchPartsClient() {
             )}
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
-                <div className={`relative min-h-0 w-full xl:min-w-0 ${sidebarVisible ? "xl:basis-2/3" : ""} transition-all duration-300`}>
+                <div className={`relative min-h-0 w-full xl:min-w-0 ${customer && sidebarVisible ? "xl:basis-2/3" : ""} transition-all duration-300`}>
                     <div
                         ref={resultsContainerRef}
                         className="h-full overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
@@ -923,32 +969,34 @@ export default function SearchPartsClient() {
                     )}
                 </div>
 
-                <OrderSummary
-                    customer={customer}
-                    basket={basket}
-                    loading={basketLoading}
-                    error={basketError}
-                    onRefresh={() => customer && loadBasket(customer.TRDR)}
-                    onSendOrder={() => {
-                        // TODO: integrate with order submission API
-                    }}
-                    selectedItems={selectedItems}
-                    selectedCount={basket?.Items.filter((i) => selectedItems.has(i.Uid)).length ?? 0}
-                    selectedTotal={basket?.Items.filter((i) => selectedItems.has(i.Uid)).reduce((sum, i) => sum + (i.ProductPrice ?? 0) * (i.Qty ?? 0), 0) ?? 0}
-                    onToggleItem={(uid) => {
-                        setSelectedItems((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(uid)) next.delete(uid);
-                            else next.add(uid);
-                            return next;
-                        });
-                    }}
-                    onRemoveItem={handleRemoveBasketItem}
-                    removingItems={removingItems}
-                    collapsible
-                    collapsed={!sidebarVisible}
-                    onToggleCollapse={() => setSidebarVisible((v) => !v)}
-                />
+                {customer && (
+                    <OrderSummary
+                        customer={customer}
+                        basket={basket}
+                        loading={basketLoading}
+                        error={basketError}
+                        onRefresh={() => customer && loadBasket(customer.TRDR)}
+                        onSendOrder={() => {
+                            // TODO: integrate with order submission API
+                        }}
+                        selectedItems={selectedItems}
+                        selectedCount={basket?.Items.filter((i) => selectedItems.has(i.Uid)).length ?? 0}
+                        selectedTotal={basket?.Items.filter((i) => selectedItems.has(i.Uid)).reduce((sum, i) => sum + (i.ProductPrice ?? 0) * (i.Qty ?? 0), 0) ?? 0}
+                        onToggleItem={(uid) => {
+                            setSelectedItems((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(uid)) next.delete(uid);
+                                else next.add(uid);
+                                return next;
+                            });
+                        }}
+                        onRemoveItem={handleRemoveBasketItem}
+                        removingItems={removingItems}
+                        collapsible
+                        collapsed={!sidebarVisible}
+                        onToggleCollapse={() => setSidebarVisible((v) => !v)}
+                    />
+                )}
             </div>
 
             <Modal isOpen={isSearchModalOpen} onClose={closeSearchModal} className="max-w-[820px] m-4 p-6 sm:p-8">

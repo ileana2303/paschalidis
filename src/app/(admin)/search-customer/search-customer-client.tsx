@@ -9,7 +9,7 @@ import { useCustomerStore } from "@/stores/customerStore";
 import { useCustomerSearchStore } from "@/stores/customerSearchStore";
 import { useRouter } from "next/navigation";
 
-export default function SearchCustomerClient () {
+export default function SearchCustomerClient() {
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const search = useCustomerSearchStore((state) => state.search);
@@ -24,6 +24,7 @@ export default function SearchCustomerClient () {
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        clearSearchState();
         searchInputRef.current?.focus();
     }, []);
 
@@ -141,7 +142,7 @@ export default function SearchCustomerClient () {
                                 onClick={() => {
                                     setCustomer(c);
 
-                                    router.push("/search-parts");
+                                    router.push(`/search-parts?trdr=${c.TRDR}`);
                                 }}
                                 className="rounded-xl border p-4 bg-white cursor-pointer hover:bg-brand-100 hover:border-2 hover:border-brand-500 transition"
                             >

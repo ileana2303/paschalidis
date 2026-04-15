@@ -38,7 +38,6 @@ export interface IItem {
 
     SoOrdered: string;
     SoReserved: string;
-    BasketReserved: string;
 
     PRICE_WHOLE: string;
     PRICE_RETAIL: string;
@@ -47,12 +46,17 @@ export interface IItem {
     PRICER03: string;
     STANDCOST: string;
     PRICE_MESSAGE: string;
+}
 
+export interface IItemTRDR extends IItem {
+    BasketReserved: string;
     BASKET_QTY: string;
     BASKET_DATE: string;
     BASKET_REQ_PRICE: string;
     BASKET_ERP_PRICE: string;
 }
+
+
 
 export interface IBasketItem {
     Uid: string;

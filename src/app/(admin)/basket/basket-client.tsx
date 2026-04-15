@@ -289,7 +289,7 @@ export default function BasketClient() {
 
                     <button
                         type="button"
-                        onClick={() => router.push("/search-parts")}
+                        onClick={() => router.push(customer ? `/search-parts?trdr=${customer.TRDR}` : "/search-parts")}
                         aria-label="Νέα αναζήτηση ανταλλακτικού"
                         className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
                     >

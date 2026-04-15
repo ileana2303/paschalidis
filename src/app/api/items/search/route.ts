@@ -68,14 +68,24 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const requestBody = {
-            service: "SqlData",
-            clientID,
-            appId: "1305",
-            SqlName: "SEARCH_PARTS_PER_TRDR",
-            part: normalizedSearch,
-            ...(normalizedTrdr != null && { TRDR: normalizedTrdr }),
-        };
+        const hasCustomer = normalizedTrdr != null;
+
+        const requestBody = hasCustomer
+            ? {
+                service: "SqlData",
+                clientID,
+                appId: "1305",
+                SqlName: "SEARCH_PARTS_PER_TRDR",
+                part: normalizedSearch,
+                TRDR: normalizedTrdr,
+            }
+            : {
+                service: "SqlData",
+                clientID,
+                appId: "1305",
+                SqlName: "ITEM_SEARCH",
+                part: normalizedSearch,
+            };
 
         console.log("[items/search] Request body:", JSON.stringify(requestBody));
 
