@@ -47,8 +47,9 @@ async function parseJsonWithEncodingFallback(response: Response) {
 
 export async function POST(req: NextRequest) {
     try {
-        const { search } = await req.json();
+        const { search, trdr } = await req.json();
         const normalizedSearch = typeof search === "string" ? search.trim() : "";
+        const normalizedTrdr = trdr != null ? Number(trdr) : undefined;
         const clientID = process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
 
         if (!normalizedSearch) {
@@ -67,21 +68,30 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const requestBody = {
+            service: "SqlData",
+            clientID,
+            appId: "1305",
+            SqlName: "SEARCHDDDD",
+            part: normalizedSearch,
+            ...(normalizedTrdr != null && { TRDR: normalizedTrdr }),
+        };
+
+        console.log("[items/search] Request body:", JSON.stringify(requestBody));
+
         const response = await fetch("https://fordps.oncloud.gr/s1services", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-                service: "SqlData",
-                clientID,
-                appId: "1305",
-                SqlName: "ITEM_SEARCH",
-                part: normalizedSearch,
-            }),
+            body: JSON.stringify(requestBody),
         });
 
+        console.log("[items/search] Upstream status:", response.status);
+
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[items/search] Upstream error body:", errorText);
             return NextResponse.json(
                 { success: false, message: "Upstream request failed" },
                 { status: response.status }
@@ -89,6 +99,8 @@ export async function POST(req: NextRequest) {
         }
 
         const data = await parseJsonWithEncodingFallback(response);
+
+        console.log("[items/search] Upstream response:", JSON.stringify(data));
 
         if (
             typeof data === "object" &&

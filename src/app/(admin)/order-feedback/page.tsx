@@ -4,7 +4,7 @@ import OrderFeedbackClient from "./order-feedback-client";
 const title = "Ανατροφοδοσία Καταστήματος";
 
 export const metadata: Metadata = {
-  title: `${title} | Paschalidis`,
+  title: `${title} | Paschalidis ERP`,
 };
 
 export default function OrderFeedbackPage() {

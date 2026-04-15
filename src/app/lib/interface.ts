@@ -13,7 +13,7 @@ export interface ICustomerInfo {
 }
 
 export interface IItem {
-    MTRL: number;
+    MTRL: string;
     ITEM_CODE: string;
     ITEM_OMOIO: string;
     CODE1_0: string;
@@ -22,29 +22,36 @@ export interface IItem {
     MNF_DESCR: string;
 
     STATUS_LABEL: string;
-    STATUS_NOW: number;
+    STATUS_NOW: string;
     STATUS_MOBILE: string;
 
-    YP1001: number;
+    YP1001: string;
     THESI1001: string;
-    YP1006: number;
+    YP1006: string;
     THESI1006: string;
-    YP1007: number;
+    YP1007: string;
     THESI1007: string;
 
-    TOTAL_AVAIL: number;
-    ONGOING: number;
-    NET_QTY_AVAILABLE: number;
+    TOTAL_AVAIL: string;
+    ONGOING: string;
+    NET_QTY_AVAILABLE: string;
 
-    SoOrdered: number;
-    SoReserved: number;
+    SoOrdered: string;
+    SoReserved: string;
+    BasketReserved: string;
 
-    PRICE_WHOLE: number;
-    PRICE_RETAIL: number;
-    PRICER01: number;
-    PRICER02: number;
-    PRICER03: number;
-    STANDCOST: number;
+    PRICE_WHOLE: string;
+    PRICE_RETAIL: string;
+    PRICER01: string;
+    PRICER02: string;
+    PRICER03: string;
+    STANDCOST: string;
+    PRICE_MESSAGE: string;
+
+    BASKET_QTY: string;
+    BASKET_DATE: string;
+    BASKET_REQ_PRICE: string;
+    BASKET_ERP_PRICE: string;
 }
 
 export interface IBasketItem {

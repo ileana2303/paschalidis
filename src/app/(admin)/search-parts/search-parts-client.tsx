@@ -143,13 +143,13 @@ export default function SearchPartsClient() {
     const runSearch = async (value: string) => {
         const trimmedSearch = value.trim();
 
-        if (!trimmedSearch) return false;
+        if (!trimmedSearch || !customer?.TRDR) return false;
 
         setHasSearched(true);
         setLoading(true);
 
         try {
-            const data = await searchItems(trimmedSearch);
+            const data = await searchItems(trimmedSearch, customer.TRDR);
             setSearch(trimmedSearch);
 
             if (data.success) {
@@ -312,9 +312,9 @@ export default function SearchPartsClient() {
                 basketUid,
                 productCode: item.ITEM_CODE,
                 productName: item.ITEM_DESCR,
-                productS1MTRL: item.MTRL,
+                productS1MTRL: Number(item.MTRL),
                 qty: getQuantity(item.ITEM_CODE),
-                productPrice: item.PRICE_WHOLE,
+                productPrice: Number(item.PRICE_WHOLE),
             });
 
             setQuantities((prev) => ({ ...prev, [item.ITEM_CODE]: 1 }));
@@ -543,9 +543,9 @@ export default function SearchPartsClient() {
                                                                 {item.ITEM_CODE2}
                                                             </p>
                                                             <span
-                                                                className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight ${item.STATUS_NOW === 1
+                                                                className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight ${item.STATUS_NOW === "1"
                                                                     ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                                                                    : item.STATUS_NOW === 0
+                                                                    : item.STATUS_NOW === "0"
                                                                         ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
                                                                         : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
                                                                     }`}
@@ -565,13 +565,12 @@ export default function SearchPartsClient() {
                                                     />
                                                 </button>
 
-                                                {/* Expanded details */}
                                                 <div
                                                     className={`overflow-hidden transition-all duration-200 ${isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
                                                         }`}
                                                 >
                                                     <div className="border-t border-gray-100 px-4 py-4 dark:border-gray-800">
-                                                        {/* Codes */}
+
                                                         <div className="mb-3">
                                                             <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                                                 Κωδικοί
@@ -596,7 +595,6 @@ export default function SearchPartsClient() {
                                                             </div>
                                                         </div>
 
-                                                        {/* Stock / Availability */}
                                                         <div className="mb-3">
                                                             <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                                                 Απόθεμα
@@ -638,7 +636,6 @@ export default function SearchPartsClient() {
                                                             </div>
                                                         </div>
 
-                                                        {/* Orders */}
                                                         <div className="mb-3">
                                                             <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                                                 Παραγγελίες
@@ -659,7 +656,6 @@ export default function SearchPartsClient() {
                                                             </div>
                                                         </div>
 
-                                                        {/* Prices */}
                                                         <div>
                                                             <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                                                 Τιμές
@@ -697,7 +693,6 @@ export default function SearchPartsClient() {
                                                 {/* Basket actions — discount request + stock qty + add to basket */}
                                                 {customer && (
                                                     <div className="border-t border-gray-100 dark:border-gray-800">
-                                                        {/* Discount request section — only when item is in basket */}
                                                         {(() => {
                                                             const basketItem = findBasketItem(item.ITEM_CODE);
                                                             if (!basketItem) return null;
@@ -712,16 +707,15 @@ export default function SearchPartsClient() {
                                                                         <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
                                                                             Αίτημα Έκπτωσης
                                                                         </p>
-                                                                        {/* Current status badge */}
+
                                                                         {basketItem.BargainStatus != null && (
                                                                             <span
-                                                                                className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                                                                    basketItem.BargainStatus === 200
-                                                                                        ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                                                                                        : basketItem.BargainStatus === 500
-                                                                                            ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                                                                                            : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-                                                                                }`}
+                                                                                className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${basketItem.BargainStatus === 200
+                                                                                    ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                                                                                    : basketItem.BargainStatus === 500
+                                                                                        ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                                                                                        : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+                                                                                    }`}
                                                                             >
                                                                                 {basketItem.BargainStatus === 200 ? (
                                                                                     <><Check className="h-3 w-3" /> Εγκρίθηκε: {formatPrice(basketItem.ProductBargainPrice)}</>
@@ -769,7 +763,6 @@ export default function SearchPartsClient() {
                                                             );
                                                         })()}
 
-                                                        {/* Stock quantity section — update qty for items already in basket */}
                                                         {(() => {
                                                             const basketItem = findBasketItem(item.ITEM_CODE);
                                                             if (!basketItem) return null;
@@ -853,7 +846,6 @@ export default function SearchPartsClient() {
                                                             );
                                                         })()}
 
-                                                        {/* Add to basket controls */}
                                                         <div className="flex items-center gap-3 px-4 py-3">
                                                             <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-700">
                                                                 <button

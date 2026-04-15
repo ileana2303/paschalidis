@@ -166,12 +166,12 @@ export default function OrderFeedbackClient() {
                 code: item.ITEM_CODE,
                 name: item.ITEM_DESCR,
                 price: String(item.PRICE_RETAIL),
-                stock1001: item.YP1001,
-                stock1006: item.YP1006,
-                stock1007: item.YP1007,
-                totalAvail: item.TOTAL_AVAIL,
-                ongoing: item.ONGOING,
-                netAvail: item.NET_QTY_AVAILABLE,
+                stock1001: Number(item.YP1001),
+                stock1006: Number(item.YP1006),
+                stock1007: Number(item.YP1007),
+                totalAvail: Number(item.TOTAL_AVAIL),
+                ongoing: Number(item.ONGOING),
+                netAvail: Number(item.NET_QTY_AVAILABLE),
             }));
         }
 
@@ -282,9 +282,6 @@ export default function OrderFeedbackClient() {
             <PageBreadcrumb pageTitle="Ανατροφοδοσία Παραγγελίες" />
 
             <div className="flex flex-col gap-6 xl:flex-row">
-                {/* ══════════════════════════════════════════════
-                    LEFT: Product table
-                   ══════════════════════════════════════════════ */}
                 <div className="w-full xl:w-3/4">
                     {/* ── Toolbar ────────────────────────────── */}
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

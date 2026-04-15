@@ -1,14 +1,15 @@
 import { IItem, ApiResponse } from "../interface";
 
 export async function searchItems(
-    search: string
+    search: string,
+    trdr?: string
 ): Promise<ApiResponse<IItem>> {
     const res = await fetch("/api/items/search", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ search }),
+        body: JSON.stringify({ search, ...(trdr ? { trdr: Number(trdr) } : {}) }),
     });
 
     if (!res.ok) {
