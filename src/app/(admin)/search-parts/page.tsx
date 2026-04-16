@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import SearchPartsClient from "./search-parts-client";
 
 const title = "Αναζήτηση Ανταλλακτικών";
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function SearchPartsPage() {
-    return <SearchPartsClient />;
+    return (
+        <Suspense fallback={null}>
+            <SearchPartsClient />
+        </Suspense>
+    );
 }
