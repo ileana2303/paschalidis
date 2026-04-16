@@ -56,7 +56,6 @@ export interface IItemTRDR extends IItem {
     BASKET_ERP_PRICE: string;
 }
 
-// Matches BASKET_OUT row
 export interface IBasketItem {
     BASKETID: string;
     TRDR: string;

@@ -9,7 +9,6 @@ import { useCustomerStore } from "@/stores/customerStore";
 import { ICustomerInfo, IItem, IBasket, IBasketItem } from "@/app/lib/interface";
 import {
     getBasketItemApprovalStatus,
-    getBasketItemEffectivePrice,
     getBasketItemId,
     getBasketItemLineTotal,
     getBasketItemQty,
@@ -22,6 +21,7 @@ import { useModal } from "@/hooks/useModal";
 import { fetchBasketItems, removeBasketItem, addItemToBasket, requestDiscount, updateBasketItem } from "@/app/lib/api/basket";
 import OrderSummary from "@/components/basket/order-summary";
 import { useRouter, useSearchParams } from "next/navigation";
+import CustomerInfoContainer from "./customer-info-container";
 
 export default function SearchPartsClient() {
     const [search, setSearch] = useState("");
@@ -437,57 +437,18 @@ export default function SearchPartsClient() {
                 </div>
             )}
 
-            {hasMounted && customer && (
-                <div className="mb-4 shrink-0 flex items-center gap-3 rounded-full border-2 border-brand-500 bg-brand-50 p-4 text-sm text-gray-700">
-                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 sm:gap-8">
-                        <span className="font-semibold text-gray-800">
-                            {customer.NAME}
-                        </span>
-
-                        <span className="text-gray-500">
-                            ΑΦΜ: {customer.AFM}
-                        </span>
-
-                        {customer.PHONE01 && (
-                            <span className="text-gray-500">
-                                📞 {customer.PHONE01}
-                            </span>
-                        )}
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => {
-                            clearCustomer();
-                            setItems([]);
-                            setHasSearched(false);
-                            setSearch("");
-                            router.replace("/search-parts");
-                        }}
-                        aria-label="Αφαίρεση επιλογής πελάτη"
-                        className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-error-500 bg-white text-error-500 shadow-sm transition-all duration-200 hover:bg-error-500 hover:text-white dark:border-error-500 dark:bg-gray-900 dark:text-error-400 dark:hover:bg-error-500 dark:hover:text-white"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
-            )}
-
-            {hasMounted && !customer && (
-                <div className="mb-4 shrink-0 flex items-center gap-3 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-                    <span className="flex-1">
-                        Δεν έχει επιλεγεί πελάτης — Αναζήτηση ανταλλακτικών χωρίς πελάτη
-                    </span>
-
-                    <button
-                        type="button"
-                        onClick={handleOpenCustomerModal}
-                        aria-label="Αναζήτηση πελάτη"
-                        className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-white text-brand-500 shadow-sm transition-all duration-200 hover:bg-brand-500 hover:text-white dark:border-brand-500 dark:bg-gray-900 dark:text-brand-400 dark:hover:bg-brand-500 dark:hover:text-white"
-                    >
-                        <Plus className="h-5 w-5" />
-                    </button>
-                </div>
-            )}
+            <CustomerInfoContainer
+                hasMounted={hasMounted}
+                customer={customer}
+                onClearCustomer={() => {
+                    clearCustomer();
+                    setItems([]);
+                    setHasSearched(false);
+                    setSearch("");
+                    router.replace("/search-parts");
+                }}
+                onOpenCustomerModal={handleOpenCustomerModal}
+            />
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
                 <div className={`relative min-h-0 w-full xl:min-w-0 ${customer && sidebarVisible ? "xl:basis-2/3" : ""} transition-all duration-300`}>
@@ -592,7 +553,7 @@ export default function SearchPartsClient() {
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex items-center gap-2">
                                                             <p className="text-sm font-bold text-brand-600 dark:text-brand-400">
-                                                                {item.ITEM_CODE2}
+                                                                {item.ITEM_CODE}
                                                             </p>
                                                             <span
                                                                 className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight ${item.STATUS_NOW === "1"
@@ -634,10 +595,6 @@ export default function SearchPartsClient() {
                                                                 Κωδικοί
                                                             </p>
                                                             <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-4">
-                                                                <div>
-                                                                    <span className="text-gray-400">Κωδικός: </span>
-                                                                    <span className="font-medium text-gray-700 dark:text-white/80">{item.ITEM_CODE}</span>
-                                                                </div>
                                                                 <div>
                                                                     <span className="text-gray-400">Κωδ. 2: </span>
                                                                     <span className="font-medium text-gray-700 dark:text-white/80">{item.ITEM_CODE2}</span>

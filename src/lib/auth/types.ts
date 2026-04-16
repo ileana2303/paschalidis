@@ -5,7 +5,7 @@
 export interface AppUser {
     // BaseEntity fields
     Id: number;
-    Uid: string;           // uniqueidentifier (Guid) in SQL Server
+    Uid: string;
     DateIn: string | null;
     DateUpdated: string | null;
     DateDeleted: string | null;
@@ -13,7 +13,6 @@ export interface AppUser {
     LastUpdatedBy: string | null;
     DeletedBy: string | null;
 
-    // AppUser fields
     Username: string;
     Password: string;
     Soft1_Code: string | null;
