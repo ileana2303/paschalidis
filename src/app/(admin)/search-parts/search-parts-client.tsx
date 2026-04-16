@@ -3,10 +3,10 @@
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useRef, useState } from "react";
 import { searchCustomers } from "@/app/lib/api/customers";
-import { searchItems, searchItemsByTrdr } from "@/app/lib/api/items";
+import { requestStockQuantity, searchItems, searchItemsByTrdr } from "@/app/lib/api/items";
 import { Plus, Search, X, Loader2, ChevronDown, Minus, ShoppingCart, BadgePercent, Check, Clock3, Send, Package } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
-import { ICustomerInfo, IItem, IBasket, IBasketItem } from "@/app/lib/interface";
+import { ICustomerInfo, IItem, IBasket, IBasketItem, StockRequestStatus } from "@/app/lib/interface";
 import {
     getBasketItemApprovalStatus,
     getBasketItemId,
@@ -22,7 +22,10 @@ import OrderSummary from "@/components/basket/order-summary";
 import { useRouter, useSearchParams } from "next/navigation";
 import CustomerInfoContainer from "../../../components/customer/customer-info-container";
 import PartsSearchModal from "../../../components/parts/parts-search-modal";
+import PartStockQuantityContainer from "../../../components/parts/part-stock-quantity-container";
 import CustomerSearchModal from "../../../components/customer/customer-search-modal";
+
+const DEFAULT_STOCK_REQUEST_BRANCH = "1001";
 
 export default function SearchPartsClient() {
     const [search, setSearch] = useState("");
@@ -46,6 +49,10 @@ export default function SearchPartsClient() {
     const [sidebarVisible, setSidebarVisible] = useState(true);
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const [quantities, setQuantities] = useState<Record<string, number>>({});
+    const [storeOrderQuantities, setStoreOrderQuantities] = useState<Record<string, number>>({});
+    const [stockRequestStatuses, setStockRequestStatuses] = useState<Record<string, StockRequestStatus>>({});
+    const [stockRequestErrors, setStockRequestErrors] = useState<Record<string, string>>({});
+    const [submittingStockRequests, setSubmittingStockRequests] = useState<Set<string>>(new Set());
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
     const [discountPrices, setDiscountPrices] = useState<Record<string, string>>({});
     const [submittingDiscount, setSubmittingDiscount] = useState<Set<string>>(new Set());
@@ -324,6 +331,73 @@ export default function SearchPartsClient() {
         setQuantities((prev) => ({ ...prev, [itemCode]: qty }));
     };
 
+    const getStoreStock = (item: IItem) => {
+        const netAvailable = Number(item.NET_QTY_AVAILABLE);
+        if (Number.isFinite(netAvailable)) {
+            return netAvailable;
+        }
+
+        const totalAvailable = Number(item.TOTAL_AVAIL);
+        if (Number.isFinite(totalAvailable)) {
+            return totalAvailable;
+        }
+
+        const branchStocks = [item.YP1001, item.YP1006, item.YP1007]
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value) && value > 0);
+
+        return branchStocks.reduce((sum, value) => sum + value, 0);
+    };
+
+    const getStoreOrderQuantity = (mtrl: string) => storeOrderQuantities[mtrl] ?? 0;
+
+    const setStoreOrderQuantity = (mtrl: string, qty: number) => {
+        setStoreOrderQuantities((prev) => ({ ...prev, [mtrl]: qty }));
+    };
+
+    const handleSubmitStockRequest = async (item: IItem) => {
+        const mtrlKey = String(item.MTRL);
+        const qty = getStoreOrderQuantity(mtrlKey);
+
+        if (qty <= 0) {
+            setStockRequestErrors((prev) => ({
+                ...prev,
+                [mtrlKey]: "Type a quantity greater than 0",
+            }));
+            return;
+        }
+
+        setSubmittingStockRequests((prev) => new Set(prev).add(mtrlKey));
+        setStockRequestErrors((prev) => ({ ...prev, [mtrlKey]: "" }));
+
+        try {
+            await requestStockQuantity({
+                mtrl: Number(item.MTRL),
+                qty,
+                branch: DEFAULT_STOCK_REQUEST_BRANCH,
+            });
+
+            setStockRequestStatuses((prev) => ({
+                ...prev,
+                [mtrlKey]: "pending",
+            }));
+        } catch (error) {
+            setStockRequestErrors((prev) => ({
+                ...prev,
+                [mtrlKey]:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to submit stock request",
+            }));
+        } finally {
+            setSubmittingStockRequests((prev) => {
+                const next = new Set(prev);
+                next.delete(mtrlKey);
+                return next;
+            });
+        }
+    };
+
     const handleAddToBasket = async (item: IItem) => {
         if (!customer) return;
 
@@ -536,15 +610,21 @@ export default function SearchPartsClient() {
                                         const qty = getQuantity(item.ITEM_CODE);
                                         const isAdding = addingToBasket.has(item.ITEM_CODE);
                                         const isInBasket = !!findBasketItem(item);
+                                        const mtrlKey = String(item.MTRL);
+                                        const storeStock = getStoreStock(item);
+                                        const storeOrderQty = getStoreOrderQuantity(mtrlKey);
+                                        const stockRequestStatus = stockRequestStatuses[mtrlKey] ?? null;
+                                        const stockRequestError = stockRequestErrors[mtrlKey] ?? "";
+                                        const isSubmittingStockRequest = submittingStockRequests.has(mtrlKey);
 
                                         return (
-                                            <div
-                                                key={item.ITEM_CODE}
-                                                className={`rounded-xl border transition hover:border-2 ${isInBasket
-                                                    ? "border-green-400 bg-green-50 hover:bg-green-100 hover:border-green-500 dark:border-green-600 dark:bg-green-500/[0.06] dark:hover:bg-green-500/10 dark:hover:border-green-500"
-                                                    : "border-gray-200 bg-white hover:bg-brand-100 hover:border-brand-500 dark:border-gray-800 dark:bg-white/[0.03]"
-                                                    }`}
-                                            >
+                                            <div key={`${item.ITEM_CODE}-${mtrlKey}`} className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_228px]">
+                                                <div
+                                                    className={`rounded-xl border transition hover:border-2 ${isInBasket
+                                                        ? "border-green-400 bg-green-50 hover:bg-green-100 hover:border-green-500 dark:border-green-600 dark:bg-green-500/[0.06] dark:hover:bg-green-500/10 dark:hover:border-green-500"
+                                                        : "border-gray-200 bg-white hover:bg-brand-100 hover:border-brand-500 dark:border-gray-800 dark:bg-white/[0.03]"
+                                                        }`}
+                                                >
                                                 <button
                                                     type="button"
                                                     onClick={() => toggleExpanded(item.ITEM_CODE)}
@@ -706,8 +786,8 @@ export default function SearchPartsClient() {
                                                 </div>
 
                                                 {/* Basket actions — discount request + stock qty + add to basket */}
-                                                {customer && (
-                                                    <div className="border-t border-gray-100 dark:border-gray-800">
+                                                    {customer && (
+                                                        <div className="border-t border-gray-100 dark:border-gray-800">
                                                         {(() => {
                                                             const basketItem = findBasketItem(item);
                                                             if (!basketItem) return null;
@@ -919,8 +999,22 @@ export default function SearchPartsClient() {
                                                                 </div>
                                                             );
                                                         })()}
-                                                    </div>
-                                                )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <PartStockQuantityContainer
+                                                    mtrl={item.MTRL}
+                                                    stock={storeStock}
+                                                    quantity={storeOrderQty}
+                                                    onQuantityChange={(nextQuantity) =>
+                                                        setStoreOrderQuantity(mtrlKey, nextQuantity)
+                                                    }
+                                                    onSubmitRequest={() => handleSubmitStockRequest(item)}
+                                                    requestStatus={stockRequestStatus}
+                                                    isSubmittingRequest={isSubmittingStockRequest}
+                                                    requestError={stockRequestError}
+                                                />
                                             </div>
                                         );
                                     })}

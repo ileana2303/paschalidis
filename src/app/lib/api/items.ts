@@ -1,4 +1,11 @@
-import { IItem, IItemTRDR, ApiResponse, StockInfo } from "../interface";
+import {
+    IItem,
+    IItemTRDR,
+    ApiResponse,
+    StockInfo,
+    StockRequestInsertResponse,
+    StockRequestRoutePayload,
+} from "../interface";
 
 export async function searchItems(
     search: string
@@ -53,4 +60,24 @@ export async function fetchBatchStock(
 
     const data = await res.json();
     return data.stocks ?? {};
+}
+
+export async function requestStockQuantity(
+    payload: StockRequestRoutePayload
+): Promise<StockRequestInsertResponse> {
+    const res = await fetch("/api/items/request-stock", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    const data = (await res.json()) as StockRequestInsertResponse;
+
+    if (!res.ok || !data?.success) {
+        throw new Error(data?.message ?? "Failed to submit stock request");
+    }
+
+    return data;
 }

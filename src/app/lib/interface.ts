@@ -123,3 +123,29 @@ export interface StockInfo {
     ongoing: number;
     netAvail: number;
 }
+
+export type StockRequestStatus = "approved" | "pending" | "declined";
+
+export interface StockRequestRoutePayload {
+    mtrl: number;
+    qty: number;
+    branch: string;
+}
+
+export interface StockRequestInsertPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ANTROF_INSERT";
+    MTRL: string;
+    BRANCH: string;
+    QTY_REQUESTED: number;
+    APPUSER_ID: string;
+}
+
+export interface IStockRequestInsertRow {
+    MESSAGE_TO_CALLER: string;
+    NEW_ID: string;
+}
+
+export interface StockRequestInsertResponse extends ApiResponse<IStockRequestInsertRow> { }
