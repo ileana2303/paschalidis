@@ -1,6 +1,6 @@
 "use client";
 
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { useEffect, useRef, useState } from "react";
 import { searchCustomers } from "@/app/lib/api/customers";
 import { Search, X } from "@/app/lib/lucide";

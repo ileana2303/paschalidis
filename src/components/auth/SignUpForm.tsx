@@ -1,7 +1,7 @@
 "use client";
-import Checkbox from "@/components/form/input/Checkbox";
-import Input from "@/components/form/input/InputField";
-import Label from "@/components/form/Label";
+import Checkbox from "@/components/template components/form/input/Checkbox";
+import Input from "@/components/template components/form/input/InputField";
+import Label from "@/components/template components/form/Label";
 import { ChevronLeft, Eye, EyeOff } from "@/app/lib/lucide";
 import Link from "next/link";
 import React, { useState } from "react";

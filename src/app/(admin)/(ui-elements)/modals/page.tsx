@@ -1,4 +1,4 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import DefaultModal from "@/components/example/ModalExample/DefaultModal";
 import FormInModal from "@/components/example/ModalExample/FormInModal";
 import FullScreenModal from "@/components/example/ModalExample/FullScreenModal";

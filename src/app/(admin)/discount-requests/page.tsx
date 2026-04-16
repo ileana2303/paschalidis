@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AdminPlaceholderPage from "@/components/common/AdminPlaceholderPage";
+import AdminPlaceholderPage from "@/components/template components/common/AdminPlaceholderPage";
 
 const title = "Αιτήματα εκπτώσεων";
 

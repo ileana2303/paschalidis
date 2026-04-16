@@ -1,6 +1,6 @@
-import ComponentCard from "@/components/common/ComponentCard";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import BasicTableOne from "@/components/tables/BasicTableOne";
+import ComponentCard from "@/components/template components/common/ComponentCard";
+import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
+import BasicTableOne from "@/components/template components/tables/BasicTableOne";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

@@ -1,4 +1,4 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 
 type AdminPlaceholderPageProps = {
   title: string;

@@ -1,5 +1,5 @@
-import GridShape from "@/components/common/GridShape";
-import ThemeTogglerTwo from "@/components/common/ThemeTogglerTwo";
+import GridShape from "@/components/template components/common/GridShape";
+import ThemeTogglerTwo from "@/components/template components/common/ThemeTogglerTwo";
 
 import { ThemeProvider } from "@/context/ThemeContext";
 import Image from "next/image";

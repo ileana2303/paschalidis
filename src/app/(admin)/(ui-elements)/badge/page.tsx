@@ -1,4 +1,4 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import Badge from "@/components/ui/badge/Badge";
 import { Plus } from "@/app/lib/lucide";
 import { Metadata } from "next";

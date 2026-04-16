@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { ArrowDown, ArrowUp, Package, Users } from "@/app/lib/lucide";
-import Badge from "../ui/badge/Badge";
+import Badge from "../../ui/badge/Badge";
 
 export const EcommerceMetrics = () => {
   const currentMonth = new Intl.DateTimeFormat("el-GR", {

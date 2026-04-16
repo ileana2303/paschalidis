@@ -10,9 +10,9 @@ import {
     Send,
     Trash2,
 } from "lucide-react";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import Badge from "@/components/ui/badge/Badge";
-import Pagination from "@/components/tables/Pagination";
+import Pagination from "@/components/template components/tables/Pagination";
 import {
     Table,
     TableBody,

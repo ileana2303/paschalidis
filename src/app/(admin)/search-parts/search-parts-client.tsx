@@ -1,10 +1,10 @@
 "use client";
 
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useRef, useState } from "react";
 import { searchCustomers } from "@/app/lib/api/customers";
 import { searchItems, searchItemsByTrdr } from "@/app/lib/api/items";
-import { Plus, Search, X, Trash2, Loader2, ChevronDown, Minus, ShoppingCart, BadgePercent, Check, Clock3, Send, Package } from "@/app/lib/lucide";
+import { Plus, Search, X, Loader2, ChevronDown, Minus, ShoppingCart, BadgePercent, Check, Clock3, Send, Package } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
 import { ICustomerInfo, IItem, IBasket, IBasketItem } from "@/app/lib/interface";
 import {
@@ -16,12 +16,13 @@ import {
     hasBasketItemDiscount,
     normalizeBasket,
 } from "@/app/lib/basket";
-import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { fetchBasketItems, removeBasketItem, addItemToBasket, requestDiscount, updateBasketItem } from "@/app/lib/api/basket";
 import OrderSummary from "@/components/basket/order-summary";
 import { useRouter, useSearchParams } from "next/navigation";
-import CustomerInfoContainer from "./customer-info-container";
+import CustomerInfoContainer from "../../../components/customer/customer-info-container";
+import PartsSearchModal from "../../../components/parts/parts-search-modal";
+import CustomerSearchModal from "../../../components/customer/customer-search-modal";
 
 export default function SearchPartsClient() {
     const [search, setSearch] = useState("");
@@ -539,11 +540,10 @@ export default function SearchPartsClient() {
                                         return (
                                             <div
                                                 key={item.ITEM_CODE}
-                                                className={`rounded-xl border transition hover:border-2 ${
-                                                    isInBasket
-                                                        ? "border-green-400 bg-green-50 hover:bg-green-100 hover:border-green-500 dark:border-green-600 dark:bg-green-500/[0.06] dark:hover:bg-green-500/10 dark:hover:border-green-500"
-                                                        : "border-gray-200 bg-white hover:bg-brand-100 hover:border-brand-500 dark:border-gray-800 dark:bg-white/[0.03]"
-                                                }`}
+                                                className={`rounded-xl border transition hover:border-2 ${isInBasket
+                                                    ? "border-green-400 bg-green-50 hover:bg-green-100 hover:border-green-500 dark:border-green-600 dark:bg-green-500/[0.06] dark:hover:bg-green-500/10 dark:hover:border-green-500"
+                                                    : "border-gray-200 bg-white hover:bg-brand-100 hover:border-brand-500 dark:border-gray-800 dark:bg-white/[0.03]"
+                                                    }`}
                                             >
                                                 <button
                                                     type="button"
@@ -977,162 +977,29 @@ export default function SearchPartsClient() {
                 )}
             </div>
 
-            <Modal isOpen={isSearchModalOpen} onClose={closeSearchModal} className="max-w-[820px] m-4 p-6 sm:p-8">
-                <div className="pr-12">
-                    <h4 className="mb-4 text-theme-xl font-semibold text-gray-800 dark:text-white/90 sm:text-2xl">
-                        Βρείτε το ανταλλακτικό που ψάχνετε
-                    </h4>
+            <PartsSearchModal
+                isOpen={isSearchModalOpen}
+                onClose={closeSearchModal}
+                inputRef={modalInputRef}
+                searchValue={modalSearch}
+                onSearchValueChange={setModalSearch}
+                onSearch={handleModalSearch}
+                loading={loading}
+            />
 
-                    <div className="mt-6 flex items-center gap-2">
-                        <div className="relative min-w-0 flex-1">
-                            <input
-                                ref={modalInputRef}
-                                type="text"
-                                value={modalSearch}
-                                onChange={(e) => setModalSearch(e.target.value)}
-                                onFocus={() => {
-                                    if (modalSearch) {
-                                        setModalSearch("");
-                                    }
-                                }}
-                                onKeyDown={(e) => e.key === "Enter" && handleModalSearch()}
-                                placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
-                                className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${modalSearch.trim()
-                                    ? "border-brand-500 ring-2 ring-brand-500"
-                                    : "border-gray-300 dark:border-gray-700"
-                                    }`}
-                            />
-
-                            {modalSearch.trim() && (
-                                <button
-                                    type="button"
-                                    onClick={() => setModalSearch("")}
-                                    aria-label="Καθαρισμός αναζήτησης"
-                                    className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
-                            )}
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={handleModalSearch}
-                            aria-label="Αναζήτηση από modal"
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 font-medium text-white shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-3"
-                        >
-                            {loading ? (
-                                <span
-                                    aria-hidden="true"
-                                    className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
-                                />
-                            ) : (
-                                <>
-                                    <Search className="h-5 w-5" />
-                                    <span className="hidden sm:inline">Αναζήτηση</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
-
-            <Modal isOpen={isCustomerModalOpen} onClose={closeCustomerModal} className="max-w-[900px] m-4 p-6 sm:p-8">
-                <div className="space-y-6 pr-12">
-                    <div>
-                        <h4 className="mb-4 text-theme-xl font-semibold text-gray-800 dark:text-white/90 sm:text-2xl">
-                            Βρείτε τον πελάτη στη λίστα των καταχωρημένων πελατών
-                        </h4>
-
-                        <div className="mt-6 flex items-center gap-2">
-                            <div className="relative min-w-0 flex-1">
-                                <input
-                                    ref={customerModalInputRef}
-                                    value={customerModalSearch}
-                                    onChange={(e) => setCustomerModalSearch(e.target.value)}
-                                    onFocus={() => {
-                                        if (customerModalSearch) {
-                                            setCustomerModalSearch("");
-                                        }
-                                    }}
-                                    onKeyDown={(e) => e.key === "Enter" && handleCustomerModalSearch()}
-                                    className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${customerModalSearch.trim()
-                                        ? "border-brand-500 ring-2 ring-brand-500"
-                                        : "border-gray-300 dark:border-gray-700"
-                                        }`}
-                                    placeholder="Όνομα, ΑΦΜ, email..."
-                                />
-
-                                {customerModalSearch.trim() && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setCustomerModalSearch("")}
-                                        aria-label="Καθαρισμός αναζήτησης"
-                                        className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                )}
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={handleCustomerModalSearch}
-                                aria-label="Αναζήτηση πελάτη"
-                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-3"
-                            >
-                                {customerModalLoading ? (
-                                    <span
-                                        aria-hidden="true"
-                                        className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
-                                    />
-                                ) : (
-                                    <>
-                                        <Search className="h-5 w-5" />
-                                        <span className="hidden sm:inline">Αναζήτηση</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="max-h-[60dvh] overflow-y-auto">
-                        <div className="space-y-3">
-                            {customerModalError && (
-                                <p className="text-sm text-red-500">
-                                    {customerModalError}
-                                </p>
-                            )}
-
-                            {customerResults.length > 0 && (
-                                <p className="text-sm text-gray-500">
-                                    Βρέθηκαν {customerResults.length} πελάτες
-                                </p>
-                            )}
-
-                            {customerResults.map((resultCustomer) => (
-                                <div
-                                    key={resultCustomer.TRDR}
-                                    onClick={() => handleCustomerSelect(resultCustomer)}
-                                    className="rounded-xl border bg-white p-4 cursor-pointer transition hover:border-2 hover:border-brand-500 hover:bg-brand-100"
-                                >
-                                    <p className="font-semibold">{resultCustomer.NAME}</p>
-                                    <p className="text-sm text-gray-500">{resultCustomer.AFM}</p>
-                                    <p className="text-xs">
-                                        {resultCustomer.MAIN_ADDRESS} - {resultCustomer.MAIN_CITY}
-                                    </p>
-                                </div>
-                            ))}
-
-                            {customerModalHasSearched && !customerModalLoading && customerResults.length === 0 && !customerModalError && (
-                                <p className="text-center text-sm text-gray-400">
-                                    Δεν βρέθηκαν πελάτες
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </Modal>
+            <CustomerSearchModal
+                isOpen={isCustomerModalOpen}
+                onClose={closeCustomerModal}
+                inputRef={customerModalInputRef}
+                searchValue={customerModalSearch}
+                onSearchValueChange={setCustomerModalSearch}
+                onSearch={handleCustomerModalSearch}
+                loading={customerModalLoading}
+                error={customerModalError}
+                results={customerResults}
+                hasSearched={customerModalHasSearched}
+                onSelectCustomer={handleCustomerSelect}
+            />
         </div>
     );
 }

@@ -2,9 +2,9 @@
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { MoreHorizontal } from "@/app/lib/lucide";
-import { DropdownItem } from "../ui/dropdown/DropdownItem";
+import { DropdownItem } from "../../ui/dropdown/DropdownItem";
 import { useState } from "react";
-import { Dropdown } from "../ui/dropdown/Dropdown";
+import { Dropdown } from "../../ui/dropdown/Dropdown";
 
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {

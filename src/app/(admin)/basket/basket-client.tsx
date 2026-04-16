@@ -1,6 +1,6 @@
 "use client";
 
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -254,25 +254,25 @@ export default function BasketClient() {
                                                         </div>
 
                                                         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                                                                <span>
-                                                                    Ποσότητα:{" "}
-                                                                    <span className="font-medium text-gray-700 dark:text-white/90">
+                                                            <span>
+                                                                Ποσότητα:{" "}
+                                                                <span className="font-medium text-gray-700 dark:text-white/90">
                                                                     {getBasketItemQty(item)}
-                                                                    </span>
                                                                 </span>
-                                                                <span>
-                                                                    Τιμή:{" "}
-                                                                    <span className="font-medium text-gray-700 dark:text-white/90">
+                                                            </span>
+                                                            <span>
+                                                                Τιμή:{" "}
+                                                                <span className="font-medium text-gray-700 dark:text-white/90">
                                                                     {formatPrice(getBasketItemEffectivePrice(item))}
-                                                                    </span>
                                                                 </span>
-                                                                <span>
-                                                                    Σύνολο:{" "}
-                                                                    <span className="font-semibold text-gray-800 dark:text-white/90">
+                                                            </span>
+                                                            <span>
+                                                                Σύνολο:{" "}
+                                                                <span className="font-semibold text-gray-800 dark:text-white/90">
                                                                     {formatPrice(getBasketItemLineTotal(item))}
-                                                                    </span>
                                                                 </span>
-                                                            </div>
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

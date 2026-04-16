@@ -3,8 +3,8 @@ import React from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
-import Input from "../form/input/InputField";
-import Label from "../form/Label";
+import Input from "../template components/form/input/InputField";
+import Label from "../template components/form/Label";
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
