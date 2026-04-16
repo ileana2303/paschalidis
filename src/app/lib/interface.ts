@@ -149,3 +149,84 @@ export interface IStockRequestInsertRow {
 }
 
 export interface StockRequestInsertResponse extends ApiResponse<IStockRequestInsertRow> { }
+
+export interface StockRequestListRoutePayload {
+    branch: string;
+}
+
+export interface StockRequestListPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ANTROF_LIST";
+    BRANCH: string;
+}
+
+export interface IStockRequestListRow {
+    BASKETID: string;
+    MTRL: string;
+    ITEM_CODE: string;
+    ITEM_NAME: string;
+    QTY: string;
+    QTY_REQUESTED: string;
+    BRANCH: string;
+    INS_DATE: string;
+    APPROVED_TS?: string;
+    STATUS: string;
+}
+
+export interface StockRequestListResponse extends ApiResponse<IStockRequestListRow> { }
+
+export type StockRequestUpdateAction = "APPROVE" | "DECLINE";
+
+export interface StockRequestUpdateRoutePayload {
+    action: StockRequestUpdateAction;
+    basketId: number;
+    mtrl: string;
+    qty: string;
+}
+
+export interface StockRequestUpdatePayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ANATROF_UPDATE";
+    ACTION: StockRequestUpdateAction;
+    BASKETID: number;
+    MTRL: string;
+    QTY: string;
+    APPUSER_ID: string;
+}
+
+export interface IStockRequestMessageRow {
+    MESSAGE_TO_CALLER: string;
+}
+
+export interface StockRequestUpdateResponse extends ApiResponse<IStockRequestMessageRow> { }
+
+export interface StockRequestMassDeleteRoutePayload {
+    basketIds: Array<string | number>;
+}
+
+export interface StockRequestMassDeletePayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ANTROF_MASS_DELETE";
+    BASKET_IDS: string;
+    APPUSER_ID: string;
+}
+
+export interface StockRequestMassDeleteResponse extends ApiResponse<IStockRequestMessageRow> { }
+
+
+export interface StockRequestProps {
+    mtrl: string;
+    stock: number;
+    quantity: number;
+    onQuantityChange: (nextQuantity: number) => void;
+    onSubmitRequest: () => void;
+    requestStatus: StockRequestStatus | null;
+    isSubmittingRequest: boolean;
+    requestError: string;
+}

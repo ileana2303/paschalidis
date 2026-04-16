@@ -3,8 +3,14 @@ import {
     IItemTRDR,
     ApiResponse,
     StockInfo,
+    StockRequestListResponse,
+    StockRequestListRoutePayload,
+    StockRequestMassDeleteResponse,
+    StockRequestMassDeleteRoutePayload,
     StockRequestInsertResponse,
     StockRequestRoutePayload,
+    StockRequestUpdateResponse,
+    StockRequestUpdateRoutePayload,
 } from "../interface";
 
 export async function searchItems(
@@ -77,6 +83,66 @@ export async function requestStockQuantity(
 
     if (!res.ok || !data?.success) {
         throw new Error(data?.message ?? "Failed to submit stock request");
+    }
+
+    return data;
+}
+
+export async function fetchStockRequests(
+    payload: StockRequestListRoutePayload
+): Promise<StockRequestListResponse> {
+    const res = await fetch("/api/items/stock-requests", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    const data = (await res.json()) as StockRequestListResponse;
+
+    if (!res.ok || !data?.success) {
+        throw new Error(data?.message ?? "Failed to fetch stock requests");
+    }
+
+    return data;
+}
+
+export async function updateStockRequest(
+    payload: StockRequestUpdateRoutePayload
+): Promise<StockRequestUpdateResponse> {
+    const res = await fetch("/api/items/stock-requests", {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    const data = (await res.json()) as StockRequestUpdateResponse;
+
+    if (!res.ok || !data?.success) {
+        throw new Error(data?.message ?? "Failed to update stock request");
+    }
+
+    return data;
+}
+
+export async function massDeleteStockRequests(
+    payload: StockRequestMassDeleteRoutePayload
+): Promise<StockRequestMassDeleteResponse> {
+    const res = await fetch("/api/items/stock-requests", {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    const data = (await res.json()) as StockRequestMassDeleteResponse;
+
+    if (!res.ok || !data?.success) {
+        throw new Error(data?.message ?? "Failed to delete stock requests");
     }
 
     return data;

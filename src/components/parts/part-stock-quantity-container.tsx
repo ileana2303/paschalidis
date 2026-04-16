@@ -1,18 +1,8 @@
 import { Loader2, Minus, Plus, Send } from "@/app/lib/lucide";
-import type { StockRequestStatus } from "@/app/lib/interface";
+import type { StockRequestProps } from "@/app/lib/interface";
 
-interface PartStockQuantityContainerProps {
-    mtrl: string;
-    stock: number;
-    quantity: number;
-    onQuantityChange: (nextQuantity: number) => void;
-    onSubmitRequest: () => void;
-    requestStatus: StockRequestStatus | null;
-    isSubmittingRequest: boolean;
-    requestError: string;
-}
 
-export default function PartStockQuantityContainer({
+export default function StockRequest({
     mtrl,
     stock,
     quantity,
@@ -21,7 +11,7 @@ export default function PartStockQuantityContainer({
     requestStatus,
     isSubmittingRequest,
     requestError,
-}: PartStockQuantityContainerProps) {
+}: StockRequestProps) {
     const statusClassName =
         requestStatus === "approved"
             ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
@@ -38,12 +28,22 @@ export default function PartStockQuantityContainer({
 
     return (
         <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-white/[0.02]">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                MTRL
-            </p>
-            <p className="mt-0.5 text-xs font-semibold text-gray-700 dark:text-white/90">
-                {mtrl}
-            </p>
+            <div className="flex items-start justify-between gap-2">
+                <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                        MTRL
+                    </p>
+                    <p className="mt-0.5 text-xs font-semibold text-gray-700 dark:text-white/90">
+                        {mtrl}
+                    </p>
+                </div>
+
+                {requestStatus && (
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClassName}`}>
+                        {statusLabel}
+                    </span>
+                )}
+            </div>
 
             <div className="mt-3 rounded-lg border border-gray-200 bg-white/80 p-2 dark:border-gray-700 dark:bg-gray-900/40">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
@@ -111,16 +111,8 @@ export default function PartStockQuantityContainer({
                 ) : (
                     <Send className="h-3.5 w-3.5" />
                 )}
-                <span>Send Request</span>
+                <span>Καταχώρηση Αιτήματος</span>
             </button>
-
-            {requestStatus && (
-                <div className="mt-2 flex justify-center">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClassName}`}>
-                        {statusLabel}
-                    </span>
-                </div>
-            )}
 
             {requestError && (
                 <p className="mt-2 text-center text-[10px] font-medium text-red-500">
