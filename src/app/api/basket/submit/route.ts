@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import type {
     BasketActionResponse,
-    BasketInPayload,
-    BasketInRoutePayload,
+    BasketOutPayload,
+    BasketOutRoutePayload,
 } from "@/app/lib/interface";
 
 const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
 const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
-const DEFAULT_BRANCH = 1006;
-const DEFAULT_TRD_BRANCH = 1000;
-const DEFAULT_COMPANY = 1001;
 
 function getClientID() {
     return process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
@@ -73,21 +70,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const body = await req.json() as BasketInRoutePayload;
-        const normalizedTrdr = Number(body.TRDR);
-        const normalizedMtrl = Number(body.MTRL);
-        const normalizedQty = Number(body.QTY);
-        const normalizedPriceErp = Number(body.PRICE_ERP);
-        const normalizedPriceReq =
-            body.PRICE_REQ != null ? Number(body.PRICE_REQ) : normalizedPriceErp;
-        const normalizedBranch =
-            body.BRANCH != null ? Number(body.BRANCH) : DEFAULT_BRANCH;
-        const normalizedTrdBranch =
-            body.TRD_BRANCH != null ? Number(body.TRD_BRANCH) : DEFAULT_TRD_BRANCH;
-        const normalizedCompany =
-            body.COMPANY != null ? Number(body.COMPANY) : DEFAULT_COMPANY;
-        const normalizedAppUserId = String(body.APPUSER_ID ?? session.userUID ?? "").trim();
+        const body = await req.json() as BasketOutRoutePayload & { TRDR?: string };
+        const normalizedTrdr = String(body.trdr ?? body.TRDR ?? "").trim();
         const clientID = getClientID();
+
+        if (!normalizedTrdr || !Number.isFinite(Number(normalizedTrdr))) {
+            return NextResponse.json(
+                { success: false, message: "Customer TRDR is required" },
+                { status: 400 }
+            );
+        }
 
         if (!clientID) {
             return NextResponse.json(
@@ -96,62 +88,12 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (!Number.isFinite(normalizedTrdr) || normalizedTrdr <= 0) {
-            return NextResponse.json(
-                { success: false, message: "Customer TRDR is required" },
-                { status: 400 }
-            );
-        }
-
-        if (!Number.isFinite(normalizedMtrl) || normalizedMtrl <= 0) {
-            return NextResponse.json(
-                { success: false, message: "Product MTRL is required" },
-                { status: 400 }
-            );
-        }
-
-        if (!Number.isFinite(normalizedQty) || normalizedQty <= 0) {
-            return NextResponse.json(
-                { success: false, message: "Quantity must be a positive number" },
-                { status: 400 }
-            );
-        }
-
-        if (!Number.isFinite(normalizedPriceErp) || normalizedPriceErp < 0) {
-            return NextResponse.json(
-                { success: false, message: "PRICE_ERP is required" },
-                { status: 400 }
-            );
-        }
-
-        if (!Number.isFinite(normalizedPriceReq) || normalizedPriceReq < 0) {
-            return NextResponse.json(
-                { success: false, message: "PRICE_REQ is invalid" },
-                { status: 400 }
-            );
-        }
-
-        if (!normalizedAppUserId) {
-            return NextResponse.json(
-                { success: false, message: "APPUSER_ID is required" },
-                { status: 400 }
-            );
-        }
-
-        const payload: BasketInPayload = {
+        const payload: BasketOutPayload = {
             service: "SqlData",
             clientID,
             appId: "1305",
-            SqlName: "BASKET_IN",
+            SqlName: "BASKET_OUT",
             TRDR: normalizedTrdr,
-            MTRL: normalizedMtrl,
-            QTY: normalizedQty,
-            PRICE_ERP: normalizedPriceErp,
-            PRICE_REQ: normalizedPriceReq,
-            BRANCH: normalizedBranch,
-            TRD_BRANCH: normalizedTrdBranch,
-            APPUSER_ID: normalizedAppUserId,
-            COMPANY: normalizedCompany,
         };
 
         const response = await fetch(S1_ENDPOINT, {
@@ -164,7 +106,7 @@ export async function POST(req: NextRequest) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("[basket/add-item] Upstream error body:", errorText);
+            console.error("[basket/submit] Upstream error body:", errorText);
 
             return NextResponse.json(
                 { success: false, message: "Upstream request failed" },
@@ -176,30 +118,39 @@ export async function POST(req: NextRequest) {
             success?: boolean;
             message?: string;
             totalcount?: number;
-            rows?: Array<{ MESSAGE_TO_CALLER?: string }>;
+            rows?: Array<{ MESSAGE_TO_CALLER?: string } | Record<string, unknown>>;
         };
 
         if (upstreamData?.success === false) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: upstreamData.message ?? "Upstream basket insert failed",
+                    message: upstreamData.message ?? "Upstream basket submit failed",
                 },
                 { status: 502 }
             );
         }
 
+        const firstRow = upstreamData?.rows?.[0];
+        const callerMessage =
+            firstRow &&
+                typeof firstRow === "object" &&
+                "MESSAGE_TO_CALLER" in firstRow &&
+                typeof firstRow.MESSAGE_TO_CALLER === "string"
+                ? firstRow.MESSAGE_TO_CALLER
+                : undefined;
+
         const data: BasketActionResponse = {
             success: true,
             message:
                 upstreamData?.message ??
-                upstreamData?.rows?.[0]?.MESSAGE_TO_CALLER ??
-                "Item added to basket",
+                callerMessage ??
+                "Order submitted",
         };
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error("[basket/add-item] Server error", error);
+        console.error("[basket/submit] Server error", error);
 
         return NextResponse.json(
             { success: false, message: "Server error" },

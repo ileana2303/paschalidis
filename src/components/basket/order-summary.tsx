@@ -18,11 +18,10 @@ import {
 } from "@/app/lib/lucide";
 import {
     getBasketItemApprovalStatus,
-    getBasketItemCode,
+    getBasketItemBasePrice,
     getBasketItemEffectivePrice,
     getBasketItemId,
     getBasketItemLineTotal,
-    getBasketItemName,
     getBasketItemQty,
     getBasketItemRequestedPrice,
     hasBasketItemDiscount,
@@ -389,19 +388,32 @@ function BasketLineItem({
                 )}
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                        {getBasketItemCode(item) || "—"}
+                        MTRL: {item.MTRL || "-"}
                     </p>
-                    <p className="mt-0.5 truncate text-xs text-gray-500">
-                        {getBasketItemName(item) || "—"}
-                    </p>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
                         <span>
-                            Ποσ: <span className="font-medium text-gray-700 dark:text-white/90">{getBasketItemQty(item)}</span>
+                            TOTAL_QTY:{" "}
+                            <span className="font-medium text-gray-700 dark:text-white/90">
+                                {item.TOTAL_QTY ?? getBasketItemQty(item)}
+                            </span>
                         </span>
                         <span>
-                            Τιμή: <span className="font-medium text-gray-700 dark:text-white/90">{formatPrice(getBasketItemEffectivePrice(item))}</span>
+                            PRICE_ERP:{" "}
+                            <span className="font-medium text-gray-700 dark:text-white/90">
+                                {formatPrice(getBasketItemBasePrice(item))}
+                            </span>
+                        </span>
+                        <span>
+                            PRICE_REQ:{" "}
+                            <span className="font-medium text-gray-700 dark:text-white/90">
+                                {formatPrice(getBasketItemRequestedPrice(item))}
+                            </span>
                         </span>
                     </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                        MAX_INS_DATE: {item.MAX_INS_DATE || item.INS_DATE || "-"}
+                    </p>
+                
                     {hasBasketItemDiscount(item) && (
                         <div className="mt-1.5">
                             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getBasketItemApprovalStatus(item) === "approved"

@@ -3,11 +3,11 @@
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { useEffect, useRef, useState } from "react";
 import { searchCustomers } from "@/app/lib/api/customers";
-import { Search, X } from "@/app/lib/lucide";
 import { ICustomerInfo } from "@/app/lib/interface";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useCustomerSearchStore } from "@/stores/customerSearchStore";
 import { useRouter } from "next/navigation";
+import SearchBar from "@/components/search/search-bar";
 
 export default function SearchCustomerClient() {
     const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function SearchCustomerClient() {
     useEffect(() => {
         clearSearchState();
         searchInputRef.current?.focus();
-    }, []);
+    }, [clearSearchState]);
 
     const handleSearch = async () => {
         const trimmedSearch = search.trim();
@@ -70,55 +70,16 @@ export default function SearchCustomerClient() {
                             Βρείτε τον πελάτη στη λίστα των καταχωρημένων πελατών
                         </h3>
 
-                        <div className="mt-6 flex items-center gap-2">
-                            <div className="relative min-w-0 flex-1">
-                                <input
-                                    ref={searchInputRef}
-                                    value={search}
-                                    onChange={(e) => setSearchValue(e.target.value)}
-                                    onFocus={() => {
-                                        if (search) {
-                                            setSearchValue("");
-                                        }
-                                    }}
-                                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                                    className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${search.trim()
-                                        ? "border-brand-500 ring-2 ring-brand-500"
-                                        : "border-gray-300 dark:border-gray-700"
-                                        }`}
-                                    placeholder="Όνομα, ΑΦΜ, email..."
-                                />
-
-                                {search.trim() && (
-                                    <button
-                                        type="button"
-                                        onClick={clearSearchState}
-                                        aria-label="Καθαρισμός αναζήτησης"
-                                        className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                )}
-                            </div>
-
-                            <button
-                                onClick={handleSearch}
-                                aria-label="Αναζήτηση"
-                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-3"
-                            >
-                                {loading ? (
-                                    <span
-                                        aria-hidden="true"
-                                        className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
-                                    />
-                                ) : (
-                                    <>
-                                        <Search className="h-5 w-5" />
-                                        <span className="hidden sm:inline">Αναζήτηση</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                        <SearchBar
+                            inputRef={searchInputRef}
+                            value={search}
+                            onChange={setSearchValue}
+                            onSearch={handleSearch}
+                            onClear={clearSearchState}
+                            placeholder="Όνομα, ΑΦΜ, email..."
+                            loading={loading}
+                            containerClassName="mt-6"
+                        />
                     </div>
                 </div>
 

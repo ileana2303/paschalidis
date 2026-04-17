@@ -4,16 +4,13 @@ import PageBreadcrumb from "@/components/template components/common/PageBreadCru
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-    Check,
-    Circle,
     Loader2,
     Plus,
     RefreshCw,
     ShoppingCart,
-    Trash2,
 } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
-import { IBasket, IBasketItem } from "@/app/lib/interface";
+import { IBasket } from "@/app/lib/interface";
 import {
     getBasketItemEffectivePrice,
     getBasketItemId,
@@ -21,7 +18,10 @@ import {
     getBasketItemQty,
     normalizeBasket,
 } from "@/app/lib/basket";
-import { fetchBasketItems, removeBasketItem } from "@/app/lib/api/basket";
+import {
+    fetchBasketItems,
+    submitBasketOrder,
+} from "@/app/lib/api/basket";
 import OrderSummary from "@/components/basket/order-summary";
 
 type ReceiptType = "receipt" | "invoice";
@@ -32,8 +32,8 @@ export default function BasketClient() {
     const [basket, setBasket] = useState<IBasket | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-    const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
     const [receiptType, setReceiptType] = useState<ReceiptType>("receipt");
     const [pickupPoint, setPickupPoint] = useState("");
     const [notes, setNotes] = useState("");
@@ -52,20 +52,17 @@ export default function BasketClient() {
 
         try {
             const data = await fetchBasketItems(customer.TRDR);
-            if (data.success && data.rows) {
-                const nextBasket = normalizeBasket(data);
-                setBasket(nextBasket);
-                setSelectedItems(new Set(nextBasket.items.map((item) => getBasketItemId(item))));
-            } else {
-                setBasket(null);
-                setSelectedItems(new Set());
-            }
+            const nextBasket = normalizeBasket(data);
+            setBasket(nextBasket);
+            setSelectedItems(new Set(nextBasket.items.map((item) => getBasketItemId(item))));
         } catch (err) {
             setError(
                 err instanceof Error
                     ? err.message
                     : "Αποτυχία φόρτωσης καλαθιού"
             );
+            setBasket(null);
+            setSelectedItems(new Set());
         } finally {
             setLoading(false);
         }
@@ -74,8 +71,9 @@ export default function BasketClient() {
     useEffect(() => {
         if (!customer) {
             setBasket(null);
-            setSelectedItems(new Set());
             setError("");
+            setSuccessMessage("");
+            setSelectedItems(new Set());
             return;
         }
 
@@ -96,32 +94,26 @@ export default function BasketClient() {
         });
     };
 
-    const handleRemoveItem = async (item: IBasketItem) => {
-        if (!basket || !customer) return;
-
-        setRemovingItems((prev) => new Set(prev).add(getBasketItemId(item)));
-
-        try {
-            await removeBasketItem(customer.TRDR, getBasketItemId(item));
-            await loadBasket();
-        } catch (err) {
-            console.error("Failed to remove item:", err);
-        } finally {
-            setRemovingItems((prev) => {
-                const next = new Set(prev);
-                next.delete(getBasketItemId(item));
-                return next;
-            });
-        }
-    };
-
     const handleSendOrder = async () => {
-        if (!basket || selectedItems.size === 0) return;
+        if (!customer || !basket || basket.items.length === 0 || selectedItems.size === 0) return;
 
         setSendingOrder(true);
+        setError("");
+        setSuccessMessage("");
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setSendingOrder(false);
+        try {
+            const result = await submitBasketOrder(customer.TRDR);
+            setSuccessMessage(result.message ?? "Η παραγγελία καταχωρήθηκε");
+            await loadBasket();
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Αποτυχία αποστολής παραγγελίας"
+            );
+        } finally {
+            setSendingOrder(false);
+        }
     };
 
     const selectedItemsList = basket?.items.filter((item) =>
@@ -186,6 +178,14 @@ export default function BasketClient() {
                                 </div>
                             )}
 
+                            {!loading && !error && successMessage && (
+                                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-500/30 dark:bg-green-500/10">
+                                    <p className="text-sm text-green-700 dark:text-green-400">
+                                        {successMessage}
+                                    </p>
+                                </div>
+                            )}
+
                             {!loading && !error && (!basket || basket.items.length === 0) && (
                                 <div className="flex flex-col items-center justify-center py-16">
                                     <ShoppingCart className="h-12 w-12 text-gray-300 dark:text-gray-600" />
@@ -197,87 +197,48 @@ export default function BasketClient() {
 
                             {!loading && !error && basket && basket.items.length > 0 && (
                                 <div className="space-y-3">
-                                    {basket.items.map((item) => {
-                                        const itemId = getBasketItemId(item);
-                                        const isSelected = selectedItems.has(itemId);
-                                        const isRemoving = removingItems.has(itemId);
-
-                                        return (
-                                            <div
-                                                key={itemId}
-                                                className={`group rounded-xl border p-4 transition-all ${isSelected
-                                                    ? "border-brand-300 bg-brand-50/50 dark:border-brand-500/30 dark:bg-brand-500/5"
-                                                    : "border-gray-200 bg-gray-50/50 opacity-60 dark:border-gray-800 dark:bg-gray-900/40"
-                                                    }`}
-                                            >
-                                                <div className="flex items-start gap-4">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleItem(itemId)}
-                                                        aria-label={isSelected ? "Αποεπιλογή" : "Επιλογή"}
-                                                        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition ${isSelected
-                                                            ? "border-brand-500 bg-brand-500 text-white"
-                                                            : "border-gray-300 text-transparent hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
-                                                            }`}
-                                                    >
-                                                        {isSelected ? (
-                                                            <Check className="h-3.5 w-3.5" />
-                                                        ) : (
-                                                            <Circle className="h-3.5 w-3.5" />
-                                                        )}
-                                                    </button>
-
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="flex items-start justify-between gap-3">
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                                                                    {item.CODE ?? "—"}
-                                                                </p>
-                                                                <p className="mt-0.5 truncate text-xs text-gray-500">
-                                                                    {item.NAME ?? "—"}
-                                                                </p>
-                                                            </div>
-
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleRemoveItem(item)}
-                                                                disabled={isRemoving}
-                                                                aria-label="Διαγραφή"
-                                                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                                                            >
-                                                                {isRemoving ? (
-                                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                                ) : (
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                )}
-                                                            </button>
+                                    {basket.items.map((item) => (
+                                        <div
+                                            key={item.BASKETID}
+                                            className="rounded-xl border border-brand-300 bg-brand-50/50 p-4 transition-all dark:border-brand-500/30 dark:bg-brand-500/5"
+                                        >
+                                            <div className="flex items-start gap-4">
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-sm font-medium text-gray-700 dark:text-white/90">
+                                                                {item.CODE ?? "—"}
+                                                            </p>
+                                                            <p className="mt-0.5 truncate text-xs text-gray-500">
+                                                                {item.NAME ?? "—"}
+                                                            </p>
                                                         </div>
+                                                    </div>
 
-                                                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                                                            <span>
-                                                                Ποσότητα:{" "}
-                                                                <span className="font-medium text-gray-700 dark:text-white/90">
-                                                                    {getBasketItemQty(item)}
-                                                                </span>
+                                                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                                                        <span>
+                                                            Ποσότητα:{" "}
+                                                            <span className="font-medium text-gray-700 dark:text-white/90">
+                                                                {getBasketItemQty(item)}
                                                             </span>
-                                                            <span>
-                                                                Τιμή:{" "}
-                                                                <span className="font-medium text-gray-700 dark:text-white/90">
-                                                                    {formatPrice(getBasketItemEffectivePrice(item))}
-                                                                </span>
+                                                        </span>
+                                                        <span>
+                                                            Τιμή:{" "}
+                                                            <span className="font-medium text-gray-700 dark:text-white/90">
+                                                                {formatPrice(getBasketItemEffectivePrice(item))}
                                                             </span>
-                                                            <span>
-                                                                Σύνολο:{" "}
-                                                                <span className="font-semibold text-gray-800 dark:text-white/90">
-                                                                    {formatPrice(getBasketItemLineTotal(item))}
-                                                                </span>
+                                                        </span>
+                                                        <span>
+                                                            Σύνολο:{" "}
+                                                            <span className="font-semibold text-gray-800 dark:text-white/90">
+                                                                {formatPrice(getBasketItemLineTotal(item))}
                                                             </span>
-                                                        </div>
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -311,11 +272,6 @@ export default function BasketClient() {
                     onSendOrder={handleSendOrder}
                     sendingOrder={sendingOrder}
                     onToggleItem={toggleItem}
-                    onRemoveItem={(uid) => {
-                        const item = basket?.items.find((i) => i.BASKETID === uid);
-                        if (item) handleRemoveItem(item);
-                    }}
-                    removingItems={removingItems}
                 />
             </div>
         </div>

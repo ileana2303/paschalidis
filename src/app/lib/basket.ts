@@ -8,7 +8,16 @@ export function normalizeBasket(data: BasketResponse): IBasket {
 }
 
 export function getBasketItemId(item: IBasketItem): string {
-    return item.BASKETID;
+    const uid = String(item.BASKETID ?? "").trim();
+    if (uid) {
+        return uid;
+    }
+
+    const fallback = [String(item.MTRL ?? "").trim(), String(item.CODE ?? "").trim()]
+        .filter(Boolean)
+        .join("-");
+
+    return fallback || "unknown-item";
 }
 
 export function getBasketItemCode(item: IBasketItem): string {

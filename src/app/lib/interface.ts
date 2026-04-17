@@ -13,46 +13,46 @@ export interface ICustomerInfo {
 }
 
 export interface IItem {
-  MTRL: string;
-  ITEM_CODE: string;
-  ITEM_OMOIO: string;
-  CODE1_0: string;
-  ITEM_CODE2: string;
-  ITEM_DESCR: string;
-  MNF_DESCR: string;
+    MTRL: string;
+    ITEM_CODE: string;
+    ITEM_OMOIO: string;
+    CODE1_0: string;
+    ITEM_CODE2: string;
+    ITEM_DESCR: string;
+    MNF_DESCR: string;
 
-  STATUS_LABEL: string;
-  STATUS_NOW: string;
-  STATUS_MOBILE: string;
+    STATUS_LABEL: string;
+    STATUS_NOW: string;
+    STATUS_MOBILE: string;
 
-  YP1001: string;
-  THESI1001: string;
-  YP1006: string;
-  THESI1006: string;
-  YP1007: string;
-  THESI1007: string;
+    YP1001: string;
+    THESI1001: string;
+    YP1006: string;
+    THESI1006: string;
+    YP1007: string;
+    THESI1007: string;
 
-  TOTAL_AVAIL: string;
-  ONGOING: string;
-  NET_QTY_AVAILABLE: string;
+    TOTAL_AVAIL: string;
+    ONGOING: string;
+    NET_QTY_AVAILABLE: string;
 
-  SoOrdered: string;
-  SoReserved: string;
+    SoOrdered: string;
+    SoReserved: string;
 
-  BasketReserved: string;
+    BasketReserved: string;
 
-  PRICE_WHOLE: string;
-  PRICE_RETAIL: string;
-  PRICER01: string;
-  PRICER02: string;
-  PRICER03: string;
-  STANDCOST: string;
-  PRICE_MESSAGE: string;
+    PRICE_WHOLE: string;
+    PRICE_RETAIL: string;
+    PRICER01: string;
+    PRICER02: string;
+    PRICER03: string;
+    STANDCOST: string;
+    PRICE_MESSAGE: string;
 
-  BASKET_QTY: string;
-  BASKET_DATE: string;
-  BASKET_REQ_PRICE: string;
-  BASKET_ERP_PRICE: string;
+    BASKET_QTY: string;
+    BASKET_DATE: string;
+    BASKET_REQ_PRICE: string;
+    BASKET_ERP_PRICE: string;
 }
 
 export interface IItemTRDR extends IItem {
@@ -68,6 +68,7 @@ export interface IBasketItem {
     TRDR: string;
     MTRL: string;
     QTY: string;
+    TOTAL_QTY?: string;
     PRICE_ERP: string;
     PRICE_REQ: string;
     BRANCH: string;
@@ -76,6 +77,7 @@ export interface IBasketItem {
     APPUSER_ID: string;
     BASKET_DATE: string;
     INS_DATE: string;
+    MAX_INS_DATE?: string;
     COMPANY: string;
     CODE: string;
     NAME: string;
@@ -83,7 +85,6 @@ export interface IBasketItem {
     CUST_NAME: string;
 }
 
-// For compatibility, basket is just a list of items and totalcount
 export interface IBasket {
     items: IBasketItem[];
     totalcount: number;
@@ -94,6 +95,95 @@ export interface BasketResponse {
     message?: string;
     totalcount: number;
     rows: IBasketItem[];
+}
+
+export interface IItemPerCustItemRow {
+    BASKETID?: string | number;
+    TRDR?: string | number;
+    MTRL?: string | number;
+    QTY?: string | number;
+    TOTAL_QTY?: string | number;
+    BASKET_QTY?: string | number;
+    PRICE_ERP?: string | number;
+    PRICE_REQ?: string | number;
+    BASKET_ERP_PRICE?: string | number;
+    BASKET_REQ_PRICE?: string | number;
+    BRANCH?: string | number;
+    TRD_BRANCH?: string | number;
+    IS_APROVED?: string | number;
+    BargainStatus?: string | number;
+    APPUSER_ID?: string;
+    BASKET_DATE?: string;
+    INS_DATE?: string;
+    MAX_INS_DATE?: string;
+    COMPANY?: string | number;
+    CODE?: string;
+    ITEM_CODE?: string;
+    NAME?: string;
+    ITEM_DESCR?: string;
+    CODE2?: string;
+    CUST_NAME?: string;
+}
+
+export interface BasketItemsRoutePayload {
+    trdr: string;
+}
+
+export interface BasketItemsPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ITEM_PER_CUST_ITEM";
+    TRDR: string;
+}
+
+export interface BasketInRoutePayload {
+    TRDR: string | number;
+    MTRL: number;
+    QTY: number;
+    PRICE_ERP: number;
+    PRICE_REQ?: number;
+    BRANCH?: number;
+    TRD_BRANCH?: number;
+    COMPANY?: number;
+    APPUSER_ID?: string;
+}
+
+export interface BasketRequestPriceRoutePayload extends BasketInRoutePayload {
+    PRICE_REQ: number;
+}
+
+export interface BasketInPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "BASKET_IN";
+    TRDR: number;
+    MTRL: number;
+    QTY: number;
+    PRICE_ERP: number;
+    PRICE_REQ: number;
+    BRANCH: number;
+    TRD_BRANCH: number;
+    APPUSER_ID: string;
+    COMPANY: number;
+}
+
+export interface BasketOutRoutePayload {
+    trdr: string;
+}
+
+export interface BasketOutPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "BASKET_OUT";
+    TRDR: string;
+}
+
+export interface BasketActionResponse {
+    success: boolean;
+    message?: string;
 }
 
 export interface ApiResponse<T> {
@@ -225,7 +315,6 @@ export interface StockRequestMassDeletePayload {
 }
 
 export interface StockRequestMassDeleteResponse extends ApiResponse<IStockRequestMessageRow> { }
-
 
 export interface StockRequestProps {
     mtrl: string;

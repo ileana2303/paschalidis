@@ -1,4 +1,9 @@
-import { BasketResponse } from "../interface";
+import type {
+    BasketActionResponse,
+    BasketInRoutePayload,
+    BasketRequestPriceRoutePayload,
+    BasketResponse,
+} from "../interface";
 
 export async function fetchBasketItems(trdr: string): Promise<BasketResponse> {
     const res = await fetch("/api/basket/items", {
@@ -7,152 +12,52 @@ export async function fetchBasketItems(trdr: string): Promise<BasketResponse> {
         body: JSON.stringify({ trdr }),
     });
 
-    const data: BasketResponse = await res.json();
+    const data = await res.json() as BasketResponse;
 
-    if (!res.ok) {
+    if (!res.ok || !data.success) {
         throw new Error(data.message ?? "Failed to fetch basket items");
     }
 
     return data;
 }
 
-export async function createBasket(trdr: string): Promise<{
-    success: boolean;
-    message?: string;
-    basket?: {
-        Uid: string;
-        CustomerS1TRDR: number;
-        CountProducts: number;
-        TotalCost: number;
-        Items: [];
-    };
-}> {
-    const res = await fetch("/api/basket/create", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ trdr }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.message ?? "Failed to create basket");
-    }
-
-    return data;
-}
-
-
-// Add item to basket using BASKET_IN
-export async function addItemToBasket(params: {
-    TRDR: string;
-    MTRL: number;
-    QTY: number;
-    PRICE_ERP: number;
-    PRICE_REQ: number;
-    CODE?: string | null;
-    NAME?: string | null;
-    BRANCH?: number;
-    TRD_BRANCH?: number;
-    COMPANY?: number;
-}): Promise<{ success: boolean; message?: string }> {
+export async function addItemToBasket(
+    params: BasketInRoutePayload
+): Promise<BasketActionResponse> {
     const res = await fetch("/api/basket/add-item", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
     });
 
-    const data = await res.json();
+    const data = await res.json() as BasketActionResponse;
 
-    if (!res.ok) {
+    if (!res.ok || !data.success) {
         throw new Error(data.message ?? "Failed to add item to basket");
     }
 
     return data;
 }
 
-export async function updateBasketItem(
-    trdr: string,
-    itemUid: string,
-    qty: number
-): Promise<{ success: boolean; message?: string }> {
-    const res = await fetch("/api/basket/update-item", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ trdr, itemUid, qty }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.message ?? "Failed to update item");
-    }
-
-    return data;
-}
-
-export async function removeBasketItem(
-    trdr: string,
-    itemUid: string
-): Promise<{ success: boolean; message?: string }> {
-    const res = await fetch("/api/basket/remove-item", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ trdr, itemUid }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.message ?? "Failed to remove item");
-    }
-
-    return data;
-}
-
-export async function deleteBasket(
-    basketUid: string
-): Promise<{ success: boolean; message?: string }> {
-    const res = await fetch("/api/basket/delete", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ basketUid }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.message ?? "Failed to delete basket");
-    }
-
-    return data;
-}
-
 export async function requestDiscount(
-    trdr: string,
-    itemUid: string,
-    bargainPrice: number
-): Promise<{ success: boolean; message?: string }> {
-    const res = await fetch("/api/basket/request-discount", {
+    params: BasketRequestPriceRoutePayload
+): Promise<BasketActionResponse> {
+    return addItemToBasket(params);
+}
+
+export async function submitBasketOrder(
+    trdr: string
+): Promise<BasketActionResponse> {
+    const res = await fetch("/api/basket/submit", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ trdr, itemUid, bargainPrice }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trdr }),
     });
 
-    const data = await res.json();
+    const data = await res.json() as BasketActionResponse;
 
-    if (!res.ok) {
-        throw new Error(data.message ?? "Failed to request discount");
+    if (!res.ok || !data.success) {
+        throw new Error(data.message ?? "Failed to submit order");
     }
 
     return data;

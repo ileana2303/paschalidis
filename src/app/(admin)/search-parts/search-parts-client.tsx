@@ -4,28 +4,28 @@ import PageBreadcrumb from "@/components/template components/common/PageBreadCru
 import { type UIEvent, useCallback, useEffect, useRef, useState } from "react";
 import { searchCustomers } from "@/app/lib/api/customers";
 import { requestStockQuantity, searchItems, searchItemsByTrdr } from "@/app/lib/api/items";
-import { Plus, Search, X, Loader2, ChevronDown, Minus, ShoppingCart, BadgePercent, Check, Clock3, Send, Package } from "@/app/lib/lucide";
+import { Plus, Loader2, ChevronDown, Minus, ShoppingCart, BadgePercent, Send } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
 import { ICustomerInfo, IItem, IBasket, IBasketItem, StockRequestStatus } from "@/app/lib/interface";
 import {
-    getBasketItemApprovalStatus,
     getBasketItemId,
     getBasketItemLineTotal,
     getBasketItemQty,
     getBasketItemRequestedPrice,
-    hasBasketItemDiscount,
     normalizeBasket,
 } from "@/app/lib/basket";
 import { useModal } from "@/hooks/useModal";
-import { fetchBasketItems, removeBasketItem, addItemToBasket, requestDiscount, updateBasketItem } from "@/app/lib/api/basket";
+import { fetchBasketItems, addItemToBasket, requestDiscount, submitBasketOrder } from "@/app/lib/api/basket";
 import OrderSummary from "@/components/basket/order-summary";
 import { useRouter, useSearchParams } from "next/navigation";
 import CustomerInfoContainer from "../../../components/customer/customer-info-container";
 import PartsSearchModal from "../../../components/parts/parts-search-modal";
 import PartStockQuantityContainer from "../../../components/parts/part-stock-quantity-container";
 import CustomerSearchModal from "../../../components/customer/customer-search-modal";
+import SearchBar from "@/components/search/search-bar";
 
 const DEFAULT_STOCK_REQUEST_BRANCH = "1001";
+type ReceiptType = "receipt" | "invoice";
 
 export default function SearchPartsClient() {
     const [search, setSearch] = useState("");
@@ -44,8 +44,11 @@ export default function SearchPartsClient() {
     const [basket, setBasket] = useState<IBasket | null>(null);
     const [basketLoading, setBasketLoading] = useState(false);
     const [basketError, setBasketError] = useState("");
-    const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+    const [receiptType, setReceiptType] = useState<ReceiptType>("receipt");
+    const [pickupPoint, setPickupPoint] = useState("");
+    const [notes, setNotes] = useState("");
+    const [sendingOrder, setSendingOrder] = useState(false);
     const [sidebarVisible, setSidebarVisible] = useState(true);
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -56,8 +59,6 @@ export default function SearchPartsClient() {
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
     const [discountPrices, setDiscountPrices] = useState<Record<string, string>>({});
     const [submittingDiscount, setSubmittingDiscount] = useState<Set<string>>(new Set());
-    const [updatingQty, setUpdatingQty] = useState<Set<string>>(new Set());
-    const [basketQtyEdits, setBasketQtyEdits] = useState<Record<string, number>>({});
     const customer = useCustomerStore((state) => state.customer);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const clearCustomer = useCustomerStore((state) => state.clearCustomer);
@@ -268,19 +269,16 @@ export default function SearchPartsClient() {
         try {
             const data = await fetchBasketItems(trdr);
 
-            if (data.success) {
-                const nextBasket = normalizeBasket(data);
-                setBasket(nextBasket);
-                setSelectedItems(new Set(nextBasket.items.map((item) => getBasketItemId(item))));
-            } else {
-                setBasketError(data.message ?? "Αποτυχία φόρτωσης καλαθιού");
-            }
+            const nextBasket = normalizeBasket(data);
+            setBasket(nextBasket);
+            setSelectedItems(new Set(nextBasket.items.map((item) => getBasketItemId(item))));
         } catch (error) {
             setBasketError(
                 error instanceof Error
                     ? error.message
                     : "Αποτυχία φόρτωσης καλαθιού"
             );
+            setSelectedItems(new Set());
         } finally {
             setBasketLoading(false);
         }
@@ -295,25 +293,6 @@ export default function SearchPartsClient() {
             setSelectedItems(new Set());
         }
     }, [customer?.TRDR, loadBasket]);
-
-    const handleRemoveBasketItem = async (uid: string) => {
-        if (!basket || !customer) return;
-
-        setRemovingItems((prev) => new Set(prev).add(uid));
-
-        try {
-            await removeBasketItem(customer.TRDR, uid);
-            await loadBasket(customer.TRDR);
-        } catch (err) {
-            console.error("Failed to remove item:", err);
-        } finally {
-            setRemovingItems((prev) => {
-                const next = new Set(prev);
-                next.delete(uid);
-                return next;
-            });
-        }
-    };
 
     const toggleExpanded = (itemCode: string) => {
         setExpandedItems((prev) => {
@@ -410,8 +389,6 @@ export default function SearchPartsClient() {
                 QTY: getQuantity(item.ITEM_CODE),
                 PRICE_ERP: Number(item.PRICE_WHOLE),
                 PRICE_REQ: Number(item.PRICE_WHOLE),
-                CODE: item.ITEM_CODE,
-                NAME: item.ITEM_DESCR,
             });
 
             setQuantities((prev) => ({ ...prev, [item.ITEM_CODE]: 1 }));
@@ -440,52 +417,67 @@ export default function SearchPartsClient() {
         );
     };
 
+    const handleSendOrder = async () => {
+        if (!customer || !basket || basket.items.length === 0 || selectedItems.size === 0) return;
+
+        setSendingOrder(true);
+        setBasketError("");
+
+        try {
+            await submitBasketOrder(customer.TRDR);
+            await loadBasket(customer.TRDR);
+        } catch (error) {
+            setBasketError(
+                error instanceof Error
+                    ? error.message
+                    : "Αποτυχία αποστολής παραγγελίας"
+            );
+        } finally {
+            setSendingOrder(false);
+        }
+    };
+
+    const selectedItemsList = basket?.items.filter((item) =>
+        selectedItems.has(getBasketItemId(item))
+    ) ?? [];
+
+    const selectedTotal = selectedItemsList.reduce(
+        (sum, item) => sum + getBasketItemLineTotal(item),
+        0
+    );
+
     const handleRequestDiscount = async (item: IItem) => {
-        if (!basket || !customer) return;
+        if (!customer) return;
 
-        const basketItem = findBasketItem(item);
-        if (!basketItem) return;
+        const discountValue = discountPrices[item.ITEM_CODE] ?? "";
+        const requestedPrice = Number(discountValue);
 
-        const priceStr = discountPrices[item.ITEM_CODE];
-        const price = Number(priceStr);
-        if (!priceStr || isNaN(price) || price <= 0) return;
+        if (!discountValue || !Number.isFinite(requestedPrice) || requestedPrice <= 0) {
+            return;
+        }
 
         setSubmittingDiscount((prev) => new Set(prev).add(item.ITEM_CODE));
 
         try {
-            await requestDiscount(customer.TRDR, getBasketItemId(basketItem), price);
+            await requestDiscount({
+                TRDR: customer.TRDR,
+                MTRL: Number(item.MTRL),
+                QTY: getQuantity(item.ITEM_CODE),
+                PRICE_ERP: Number(item.PRICE_WHOLE),
+                PRICE_REQ: requestedPrice,
+            });
+
             setDiscountPrices((prev) => ({ ...prev, [item.ITEM_CODE]: "" }));
+            setQuantities((prev) => ({ ...prev, [item.ITEM_CODE]: 1 }));
             await loadBasket(customer.TRDR);
-        } catch (err) {
-            console.error("Failed to request discount:", err);
+        } catch (error) {
+            setBasketError(
+                error instanceof Error
+                    ? error.message
+                    : "Αποτυχία αιτήματος τιμής"
+            );
         } finally {
             setSubmittingDiscount((prev) => {
-                const next = new Set(prev);
-                next.delete(item.ITEM_CODE);
-                return next;
-            });
-        }
-    };
-
-    const handleUpdateBasketQty = async (item: IItem) => {
-        if (!basket || !customer) return;
-
-        const basketItem = findBasketItem(item);
-        if (!basketItem) return;
-
-        const currentQty = getBasketItemQty(basketItem);
-        const newQty = basketQtyEdits[item.ITEM_CODE] ?? currentQty;
-        if (newQty === currentQty) return;
-
-        setUpdatingQty((prev) => new Set(prev).add(item.ITEM_CODE));
-
-        try {
-            await updateBasketItem(customer.TRDR, getBasketItemId(basketItem), newQty);
-            await loadBasket(customer.TRDR);
-        } catch (err) {
-            console.error("Failed to update basket qty:", err);
-        } finally {
-            setUpdatingQty((prev) => {
                 const next = new Set(prev);
                 next.delete(item.ITEM_CODE);
                 return next;
@@ -543,56 +535,17 @@ export default function SearchPartsClient() {
                                     Βρείτε το ανταλλακτικό που ψάχνετε
                                 </h3>
 
-                                <div className={`flex items-center gap-2 ${hasScrolledResults ? "mt-0" : "mt-6"}`}>
-                                    <div className="relative min-w-0 flex-1">
-                                        <input
-                                            ref={searchInputRef}
-                                            type="text"
-                                            value={search}
-                                            onChange={(e) => setSearch(e.target.value)}
-                                            onFocus={() => {
-                                                if (search) {
-                                                    setSearch("");
-                                                }
-                                            }}
-                                            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                                            placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
-                                            className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2  focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${search.trim()
-                                                ? "border-brand-500 ring-2 ring-brand-500"
-                                                : "border-gray-300 dark:border-gray-700"
-                                                }`}
-                                        />
-
-                                        {search.trim() && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setSearch("")}
-                                                aria-label="Καθαρισμός αναζήτησης"
-                                                className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    <button
-                                        onClick={handleSearch}
-                                        aria-label="Αναζήτηση"
-                                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 font-medium text-white shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-3"
-                                    >
-                                        {loading ? (
-                                            <span
-                                                aria-hidden="true"
-                                                className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
-                                            />
-                                        ) : (
-                                            <>
-                                                <Search className="h-5 w-5" />
-                                                <span className="hidden sm:inline">Αναζήτηση</span>
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
+                                <SearchBar
+                                    inputRef={searchInputRef}
+                                    value={search}
+                                    onChange={setSearch}
+                                    onSearch={handleSearch}
+                                    onClear={() => setSearch("")}
+                                    placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
+                                    loading={loading}
+                                    containerClassName={hasScrolledResults ? "mt-0" : "mt-6"}
+                                    searchButtonClassName="font-medium shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md"
+                                />
                             </div>
                         </div>
 
@@ -622,7 +575,7 @@ export default function SearchPartsClient() {
                                                 <div
                                                     className={`rounded-xl border transition hover:border-2 ${isInBasket
                                                         ? "border-green-400 bg-green-50 hover:bg-green-100 hover:border-green-500 dark:border-green-600 dark:bg-green-500/[0.06] dark:hover:bg-green-500/10 dark:hover:border-green-500"
-                                                        : "border-gray-200 bg-white hover:bg-brand-100 hover:border-brand-500 dark:border-gray-800 dark:bg-white/[0.03]"
+                                                        : "border-gray-200 bg-white hover:bg-brand-100/40 hover:border-brand-500 dark:border-gray-800 dark:bg-white/[0.03]"
                                                         }`}
                                                 >
                                                     <button
@@ -925,70 +878,58 @@ export default function SearchPartsClient() {
                                                         </div>
                                                     </div>
 
-                                                    {/* Basket actions — discount request + stock qty + add to basket */}
                                                     {customer && (
                                                         <div className="border-t border-gray-100 dark:border-gray-800">
                                                             {(() => {
                                                                 const basketItem = findBasketItem(item);
-                                                                if (!basketItem) return null;
-
-                                                                const isSubmittingDiscount = submittingDiscount.has(item.ITEM_CODE);
+                                                                const requestedPrice =
+                                                                    basketItem != null
+                                                                        ? getBasketItemRequestedPrice(basketItem)
+                                                                        : null;
                                                                 const discountValue = discountPrices[item.ITEM_CODE] ?? "";
-                                                                const approvalStatus = getBasketItemApprovalStatus(basketItem);
-                                                                const requestedPrice = getBasketItemRequestedPrice(basketItem);
+                                                                const isSubmittingRequestPrice =
+                                                                    submittingDiscount.has(item.ITEM_CODE);
 
                                                                 return (
                                                                     <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-                                                                        <div className="flex items-center gap-2 mb-2">
+                                                                        <div className="mb-2 flex items-center gap-2">
                                                                             <BadgePercent className="h-4 w-4 text-amber-500" />
                                                                             <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                                                                                Αίτημα Έκπτωσης
+                                                                                Αίτημα Τιμής
                                                                             </p>
-
-                                                                            {hasBasketItemDiscount(basketItem) && approvalStatus && (
-                                                                                <span
-                                                                                    className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${approvalStatus === "approved"
-                                                                                        ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                                                                                        : approvalStatus === "rejected"
-                                                                                            ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                                                                                            : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-                                                                                        }`}
-                                                                                >
-                                                                                    {approvalStatus === "approved" ? (
-                                                                                        <><Check className="h-3 w-3" /> Εγκρίθηκε: {formatPrice(requestedPrice)}</>
-                                                                                    ) : approvalStatus === "rejected" ? (
-                                                                                        <><X className="h-3 w-3" /> Απορρίφθηκε</>
-                                                                                    ) : (
-                                                                                        <><Clock3 className="h-3 w-3" /> Αναμονή: {formatPrice(requestedPrice)}</>
-                                                                                    )}
+                                                                            {requestedPrice != null && requestedPrice > 0 && (
+                                                                                <span className="ml-auto text-xs font-medium text-amber-700 dark:text-amber-400">
+                                                                                    Τρέχον: {formatPrice(requestedPrice)}
                                                                                 </span>
                                                                             )}
                                                                         </div>
                                                                         <div className="flex items-center gap-2">
-                                                                            <div className="relative">
-                                                                                <input
-                                                                                    type="number"
-                                                                                    min={0}
-                                                                                    step="0.01"
-                                                                                    value={discountValue}
-                                                                                    onChange={(e) =>
-                                                                                        setDiscountPrices((prev) => ({
-                                                                                            ...prev,
-                                                                                            [item.ITEM_CODE]: e.target.value,
-                                                                                        }))
+                                                                            <input
+                                                                                type="number"
+                                                                                min={0}
+                                                                                step="0.01"
+                                                                                value={discountValue}
+                                                                                onChange={(e) =>
+                                                                                    setDiscountPrices((prev) => ({
+                                                                                        ...prev,
+                                                                                        [item.ITEM_CODE]: e.target.value,
+                                                                                    }))
+                                                                                }
+                                                                                onKeyDown={(e) => {
+                                                                                    if (e.key === "Enter") {
+                                                                                        handleRequestDiscount(item);
                                                                                     }
-                                                                                    onKeyDown={(e) => e.key === "Enter" && handleRequestDiscount(item)}
-                                                                                    placeholder="Τιμή έκπτωσης..."
-                                                                                    className="h-9 w-36 rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                                                                />
-                                                                            </div>
+                                                                                }}
+                                                                                placeholder="Νέα τιμή..."
+                                                                                className="h-9 w-36 rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                                            />
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => handleRequestDiscount(item)}
-                                                                                disabled={isSubmittingDiscount || !discountValue || Number(discountValue) <= 0}
+                                                                                disabled={isSubmittingRequestPrice || !discountValue || Number(discountValue) <= 0}
                                                                                 className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:bg-amber-600 disabled:opacity-40"
                                                                             >
-                                                                                {isSubmittingDiscount ? (
+                                                                                {isSubmittingRequestPrice ? (
                                                                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                                                 ) : (
                                                                                     <Send className="h-3.5 w-3.5" />
@@ -1000,142 +941,73 @@ export default function SearchPartsClient() {
                                                                 );
                                                             })()}
 
+                                                            <div className="flex items-center gap-3 px-4 py-3">
+                                                                <div className="inline-flex items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900/40">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setQuantity(item.ITEM_CODE, qty - 1)}
+                                                                        disabled={qty <= 1}
+                                                                        aria-label="Μείωση ποσότητας"
+                                                                        className="flex h-10 w-10 items-center justify-center text-gray-500 transition-colors hover:bg-brand-50 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent dark:text-gray-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300 dark:disabled:text-gray-600"
+                                                                    >
+                                                                        <Minus className="h-4 w-4" />
+                                                                    </button>
+                                                                    <input
+                                                                        type="number"
+                                                                        min={1}
+                                                                        value={qty === 1 ? "" : qty}
+                                                                        placeholder="1"
+                                                                        onChange={(e) => {
+                                                                            const rawValue = e.target.value;
+                                                                            if (rawValue === "") {
+                                                                                setQuantity(item.ITEM_CODE, 1);
+                                                                                return;
+                                                                            }
+
+                                                                            const val = parseInt(rawValue, 10);
+                                                                            if (!isNaN(val)) setQuantity(item.ITEM_CODE, val);
+                                                                        }}
+                                                                        onBlur={() => {
+                                                                            if (qty < 1) setQuantity(item.ITEM_CODE, 1);
+                                                                        }}
+                                                                        className="h-10 w-14 border-x border-gray-200 bg-gray-50/70 text-center text-sm font-semibold text-gray-800 outline-none transition-colors focus:bg-white focus:ring-2 focus:ring-inset focus:ring-brand-500/40 dark:border-gray-700 dark:bg-gray-800/70 dark:text-white dark:focus:bg-gray-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setQuantity(item.ITEM_CODE, qty + 1)}
+                                                                        aria-label="Αύξηση ποσότητας"
+                                                                        className="flex h-10 w-10 items-center justify-center text-gray-500 transition-colors hover:bg-brand-50 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 dark:text-gray-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
+                                                                    >
+                                                                        <Plus className="h-4 w-4" />
+                                                                    </button>
+                                                                </div>
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleAddToBasket(item)}
+                                                                    disabled={isAdding}
+                                                                    className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md disabled:opacity-60"
+                                                                >
+                                                                    {isAdding ? (
+                                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                                    ) : (
+                                                                        <ShoppingCart className="h-4 w-4" />
+                                                                    )}
+                                                                    <span className="hidden sm:inline">Προσθήκη</span>
+                                                                </button>
+
+                                                                <span className="ml-auto text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                                                    {formatPrice(item.PRICE_WHOLE)}
+                                                                </span>
+                                                            </div>
                                                             {(() => {
                                                                 const basketItem = findBasketItem(item);
 
-                                                                if (basketItem) {
-                                                                    const originalQty = getBasketItemQty(basketItem);
-                                                                    const currentQty = basketQtyEdits[item.ITEM_CODE] ?? originalQty;
-                                                                    const isUpdating = updatingQty.has(item.ITEM_CODE);
-                                                                    const hasChanged = currentQty !== originalQty;
-
-                                                                    return (
-                                                                        <div className="flex items-center gap-3 px-4 py-3">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <Package className="h-4 w-4 text-green-500" />
-                                                                                <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                                                                                    Ποσότητα στο καλάθι
-                                                                                </p>
-                                                                            </div>
-                                                                            <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-700">
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() =>
-                                                                                        setBasketQtyEdits((prev) => ({
-                                                                                            ...prev,
-                                                                                            [item.ITEM_CODE]: Math.max(1, currentQty - 1),
-                                                                                        }))
-                                                                                    }
-                                                                                    disabled={currentQty <= 1}
-                                                                                    aria-label="Μείωση"
-                                                                                    className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
-                                                                                >
-                                                                                    <Minus className="h-4 w-4" />
-                                                                                </button>
-                                                                                <input
-                                                                                    type="number"
-                                                                                    min={1}
-                                                                                    value={currentQty}
-                                                                                    onChange={(e) => {
-                                                                                        const val = parseInt(e.target.value, 10);
-                                                                                        if (!isNaN(val) && val >= 1) {
-                                                                                            setBasketQtyEdits((prev) => ({
-                                                                                                ...prev,
-                                                                                                [item.ITEM_CODE]: val,
-                                                                                            }));
-                                                                                        }
-                                                                                    }}
-                                                                                    onKeyDown={(e) => e.key === "Enter" && hasChanged && handleUpdateBasketQty(item)}
-                                                                                    className="h-9 w-14 border-x border-gray-200 bg-transparent text-center text-sm font-medium text-gray-800 outline-none dark:border-gray-700 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                                                                />
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() =>
-                                                                                        setBasketQtyEdits((prev) => ({
-                                                                                            ...prev,
-                                                                                            [item.ITEM_CODE]: currentQty + 1,
-                                                                                        }))
-                                                                                    }
-                                                                                    aria-label="Αύξηση"
-                                                                                    className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-100 dark:hover:bg-gray-800"
-                                                                                >
-                                                                                    <Plus className="h-4 w-4" />
-                                                                                </button>
-                                                                            </div>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleUpdateBasketQty(item)}
-                                                                                disabled={isUpdating || !hasChanged}
-                                                                                className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-green-600 disabled:opacity-40"
-                                                                            >
-                                                                                {isUpdating ? (
-                                                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                                                ) : (
-                                                                                    <Check className="h-4 w-4" />
-                                                                                )}
-                                                                                <span className="hidden sm:inline">Ενημέρωση</span>
-                                                                            </button>
-
-                                                                            <span className="ml-auto text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                                                                {formatPrice(item.PRICE_WHOLE)}
-                                                                            </span>
-                                                                        </div>
-                                                                    );
-                                                                }
+                                                                if (!basketItem) return null;
 
                                                                 return (
-                                                                    <div className="flex items-center gap-3 px-4 py-3">
-                                                                        <div className="flex items-center rounded-lg border border-gray-200 dark:border-gray-700">
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => setQuantity(item.ITEM_CODE, qty - 1)}
-                                                                                disabled={qty <= 1}
-                                                                                aria-label="Μείωση ποσότητας"
-                                                                                className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
-                                                                            >
-                                                                                <Minus className="h-4 w-4" />
-                                                                            </button>
-                                                                            <input
-                                                                                type="number"
-                                                                                min={1}
-                                                                                value={qty === 1 ? "" : qty}
-                                                                                placeholder=" "
-                                                                                onChange={(e) => {
-                                                                                    const val = parseInt(e.target.value, 10);
-                                                                                    if (!isNaN(val)) setQuantity(item.ITEM_CODE, val);
-                                                                                }}
-                                                                                onBlur={() => {
-                                                                                    if (qty < 1) setQuantity(item.ITEM_CODE, 1);
-                                                                                }}
-                                                                                className="h-9 w-12 border-x border-gray-200 bg-transparent text-center text-sm font-medium text-gray-800 outline-none dark:border-gray-700 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                                                            />
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => setQuantity(item.ITEM_CODE, qty + 1)}
-                                                                                aria-label="Αύξηση ποσότητας"
-                                                                                className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-100 dark:hover:bg-gray-800"
-                                                                            >
-                                                                                <Plus className="h-4 w-4" />
-                                                                            </button>
-                                                                        </div>
-
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleAddToBasket(item)}
-                                                                            disabled={isAdding}
-                                                                            className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md disabled:opacity-60"
-                                                                        >
-                                                                            {isAdding ? (
-                                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                                            ) : (
-                                                                                <ShoppingCart className="h-4 w-4" />
-                                                                            )}
-                                                                            <span className="hidden sm:inline">Προσθήκη</span>
-                                                                        </button>
-
-                                                                        <span className="ml-auto text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                                                            {formatPrice(item.PRICE_WHOLE)}
-                                                                        </span>
+                                                                    <div className="border-t border-gray-100 px-4 py-2 text-xs text-green-700 dark:border-gray-800 dark:text-green-400">
+                                                                        Ήδη στο καλάθι: {getBasketItemQty(basketItem)} τεμ.
                                                                     </div>
                                                                 );
                                                             })()}
@@ -1188,12 +1060,17 @@ export default function SearchPartsClient() {
                         loading={basketLoading}
                         error={basketError}
                         onRefresh={() => customer && loadBasket(customer.TRDR)}
-                        onSendOrder={() => {
-                            // TODO: integrate with order submission API
-                        }}
                         selectedItems={selectedItems}
-                        selectedCount={basket?.items.filter((i) => selectedItems.has(getBasketItemId(i))).length ?? 0}
-                        selectedTotal={basket?.items.filter((i) => selectedItems.has(getBasketItemId(i))).reduce((sum, i) => sum + getBasketItemLineTotal(i), 0) ?? 0}
+                        selectedCount={selectedItemsList.length}
+                        selectedTotal={selectedTotal}
+                        receiptType={receiptType}
+                        onReceiptTypeChange={setReceiptType}
+                        pickupPoint={pickupPoint}
+                        onPickupPointChange={setPickupPoint}
+                        notes={notes}
+                        onNotesChange={setNotes}
+                        onSendOrder={handleSendOrder}
+                        sendingOrder={sendingOrder}
                         onToggleItem={(uid) => {
                             setSelectedItems((prev) => {
                                 const next = new Set(prev);
@@ -1202,8 +1079,6 @@ export default function SearchPartsClient() {
                                 return next;
                             });
                         }}
-                        onRemoveItem={handleRemoveBasketItem}
-                        removingItems={removingItems}
                         collapsible
                         collapsed={!sidebarVisible}
                         onToggleCollapse={() => setSidebarVisible((v) => !v)}
