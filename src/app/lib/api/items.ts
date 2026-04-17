@@ -50,7 +50,6 @@ export async function searchItemsByTrdr(
     return res.json();
 }
 
-// ── Batch stock lookup ─────────────────────────────────────
 export async function fetchBatchStock(
     codes: string[]
 ): Promise<Record<string, StockInfo>> {

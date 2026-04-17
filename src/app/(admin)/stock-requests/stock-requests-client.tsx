@@ -7,16 +7,10 @@ import {
     massDeleteStockRequests,
     updateStockRequest,
 } from "@/app/lib/api/items";
-import { Check, Loader2, RefreshCw, Trash2, X } from "@/app/lib/lucide";
+import { Check, Loader2, Trash2, X } from "@/app/lib/lucide";
 import type { IStockRequestListRow } from "@/app/lib/interface";
 
-const BRANCHES = [
-    { id: "1001", label: "Κασομούλη" },
-    { id: "1006", label: "Κεντρικό" },
-    { id: "1007", label: "Μεσογείων" },
-] as const;
-
-type BranchId = (typeof BRANCHES)[number]["id"];
+const DEFAULT_BRANCH = "1001";
 
 function getStatusStyle(status: string) {
     const normalized = status.toUpperCase();
@@ -36,8 +30,50 @@ function canUpdate(status: string) {
     return status.toUpperCase().includes("ΕΚΚΡΕΜ");
 }
 
+function getStatusPriority(status: string) {
+    const normalized = status.toUpperCase();
+
+    if (normalized.includes("ΕΚΚΡΕΜ") || normalized.includes("PENDING")) return 0;
+    if (normalized.includes("ΕΓΚΡΙΘ") || normalized.includes("APPROV")) return 1;
+    if (normalized.includes("ΑΠΟΡΡΙ") || normalized.includes("DECLIN")) return 2;
+
+    return 3;
+}
+
+function parseDateValue(value: string) {
+    const timestamp = new Date(value).getTime();
+    if (Number.isNaN(timestamp)) return 0;
+    return timestamp;
+}
+
+function sortStockRequestRows(rows: IStockRequestListRow[]) {
+    return [...rows].sort((a, b) => {
+        const statusRankDiff = getStatusPriority(a.STATUS) - getStatusPriority(b.STATUS);
+        if (statusRankDiff !== 0) return statusRankDiff;
+
+        const statusNameDiff = a.STATUS.localeCompare(b.STATUS, "el-GR");
+        if (statusNameDiff !== 0) return statusNameDiff;
+
+        return parseDateValue(b.INS_DATE) - parseDateValue(a.INS_DATE);
+    });
+}
+
+function formatDateTime(value?: string) {
+    if (!value) return "—";
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+
+    return parsed.toLocaleString("el-GR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
 export default function StockRequestsClient() {
-    const [branch, setBranch] = useState<BranchId>("1001");
     const [rows, setRows] = useState<IStockRequestListRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -45,14 +81,17 @@ export default function StockRequestsClient() {
     const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
     const [deleting, setDeleting] = useState(false);
 
+    const [editedQty, setEditedQty] = useState<Record<string, string>>({});
+
     const loadRows = useCallback(async () => {
         setLoading(true);
         setError("");
 
         try {
-            const data = await fetchStockRequests({ branch });
-            setRows(data.rows ?? []);
+            const data = await fetchStockRequests({ branch: DEFAULT_BRANCH });
+            setRows(sortStockRequestRows(data.rows ?? []));
             setSelectedIds(new Set());
+            setEditedQty({});
         } catch (err) {
             setRows([]);
             setError(
@@ -63,7 +102,7 @@ export default function StockRequestsClient() {
         } finally {
             setLoading(false);
         }
-    }, [branch]);
+    }, []);
 
     useEffect(() => {
         loadRows();
@@ -88,9 +127,15 @@ export default function StockRequestsClient() {
             if (rows.length > 0 && rows.every((row) => prev.has(row.BASKETID))) {
                 return new Set();
             }
-
             return new Set(rows.map((row) => row.BASKETID));
         });
+    };
+
+    const handleQtyChange = (basketId: string, value: string) => {
+        setEditedQty((prev) => ({
+            ...prev,
+            [basketId]: value,
+        }));
     };
 
     const handleUpdateAction = async (
@@ -105,8 +150,9 @@ export default function StockRequestsClient() {
                 action,
                 basketId: Number(row.BASKETID),
                 mtrl: row.MTRL,
-                qty: row.QTY,
+                qty: editedQty[row.BASKETID] ?? row.QTY_REQUESTED,
             });
+
             await loadRows();
         } catch (err) {
             setError(
@@ -145,54 +191,33 @@ export default function StockRequestsClient() {
         }
     };
 
+    const isQtyChanged = (row: IStockRequestListRow) => {
+        const edited = editedQty[row.BASKETID];
+        if (edited === undefined) return false;
+
+        return String(edited) !== String(row.QTY_REQUESTED);
+    };
+
     return (
         <div>
             <PageBreadcrumb pageTitle="Λίστα Αιτημάτων Ανατροφοδοσίας" />
 
             <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.02]">
                 <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
-                    <div className="flex items-center gap-2">
-                        <label className="text-sm text-gray-500 dark:text-gray-400">
-                            Κατάστημα:
-                        </label>
-                        <select
-                            value={branch}
-                            onChange={(e) => setBranch(e.target.value as BranchId)}
-                            className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                        >
-                            {BRANCHES.map((entry) => (
-                                <option key={entry.id} value={entry.id}>
-                                    {entry.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={loadRows}
-                            disabled={loading}
-                            className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-white/5"
-                        >
-                            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-                            Ανανέωση
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={handleMassDelete}
-                            disabled={deleting || selectedIds.size === 0}
-                            className="flex items-center gap-2 rounded-lg bg-red-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-600 disabled:opacity-40"
-                        >
-                            {deleting ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                                <Trash2 className="h-3.5 w-3.5" />
-                            )}
-                            Διαγραφή Επιλεγμένων ({selectedIds.size})
-                        </button>
-                    </div>
+            
+                    <button
+                        type="button"
+                        onClick={handleMassDelete}
+                        disabled={deleting || selectedIds.size === 0}
+                        className="flex items-center gap-2 rounded-lg bg-red-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-600 disabled:opacity-40"
+                    >
+                        {deleting ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Διαγραφή Επιλεγμένων ({selectedIds.size})
+                    </button>
                 </div>
 
                 {error && (
@@ -215,46 +240,29 @@ export default function StockRequestsClient() {
                         <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
                             <thead className="bg-gray-50 dark:bg-white/[0.02]">
                                 <tr>
-                                    <th className="px-4 py-3 text-left">
+                                    <th className="px-4 py-3">
                                         <input
                                             type="checkbox"
                                             checked={allVisibleSelected}
                                             onChange={toggleAll}
                                         />
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        Status
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        ID
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        MTRL
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        Κωδικός
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        Περιγραφή
-                                    </th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        Stock
-                                    </th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        Ζήτηση
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        Εισαγωγή
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        Έγκριση
-                                    </th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        Actions
-                                    </th>
+                                    <th className="px-4 py-3 text-xs text-gray-500">Κατάσταση</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500">ID</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500">MTRL</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500">Κωδικός</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500">Περιγραφή</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500">Κατάστημα</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500 text-right">Απόθεμα</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500 text-right">Αιτούμενη Ποσότητα</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500 text-right">Εγκεκριμένη Ποσότητα</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500">Ημ/νία Αιτήματος</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500">Ημ/νία Έγκρισης</th>
+                                    <th className="px-4 py-3 text-xs text-gray-500 text-right">Ενέργειες</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+
+                            <tbody>
                                 {rows.map((row) => {
                                     const rowUpdating = updatingIds.has(row.BASKETID);
                                     const rowCanUpdate = canUpdate(row.STATUS);
@@ -268,68 +276,66 @@ export default function StockRequestsClient() {
                                                     onChange={() => toggleRow(row.BASKETID)}
                                                 />
                                             </td>
+
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${getStatusStyle(row.STATUS)}`}>
+                                                <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyle(row.STATUS)}`}>
                                                     {row.STATUS}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                {row.BASKETID}
+
+                                            <td className="px-4 py-3">{row.BASKETID}</td>
+                                            <td className="px-4 py-3">{row.MTRL}</td>
+                                            <td className="px-4 py-3">{row.ITEM_CODE}</td>
+                                            <td className="px-4 py-3">{row.ITEM_NAME}</td>
+                                            <td className="px-4 py-3">{row.BRANCH}</td>
+                                            <td className="px-4 py-3 text-right">{row.QTY}</td>
+                                            <td className="px-4 py-3 text-right">{row.QTY_REQUESTED}</td>
+                                            <td className="px-4 py-3 text-right">
+                                                <input
+                                                    type="number"
+                                                    value={editedQty[row.BASKETID] ?? row.QTY_REQUESTED}
+                                                    onChange={(e) =>
+                                                        handleQtyChange(row.BASKETID, e.target.value)
+                                                    }
+                                                    className={`w-20 rounded-md border px-2 py-1 text-sm text-right transition
+                ${isQtyChanged(row)
+                                                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200 dark:bg-blue-500/10 dark:border-blue-400"
+                                                            : "border-gray-300 dark:border-gray-700 dark:bg-gray-900"
+                                                        }
+            `}
+                                                />
+
+                                                {isQtyChanged(row) && (
+                                                    <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                                                )}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                {row.MTRL}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
-                                                {row.ITEM_CODE}
-                                            </td>
-                                            <td className="max-w-[340px] px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                <span className="block truncate" title={row.ITEM_NAME}>
-                                                    {row.ITEM_NAME}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-700 dark:text-gray-300">
-                                                {row.QTY}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-gray-800 dark:text-white/90">
-                                                {row.QTY_REQUESTED}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                {row.INS_DATE}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                {row.APPROVED_TS ?? "—"}
-                                            </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(row.INS_DATE)}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(row.APPROVED_TS)}</td>
+
+                                            <td className="px-4 py-3 text-right">
                                                 <div className="flex justify-end gap-2">
                                                     <button
-                                                        type="button"
                                                         onClick={() =>
                                                             handleUpdateAction(row, "APPROVE")
                                                         }
                                                         disabled={!rowCanUpdate || rowUpdating}
-                                                        className="inline-flex items-center gap-1 rounded-md bg-green-500 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-green-600 disabled:opacity-40"
+                                                        className="bg-green-500 text-white px-2 py-1 rounded"
                                                     >
                                                         {rowUpdating ? (
-                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                            <Loader2 className="animate-spin h-4 w-4" />
                                                         ) : (
-                                                            <Check className="h-3.5 w-3.5" />
+                                                            <Check className="h-4 w-4" />
                                                         )}
-                                                        Approve
                                                     </button>
+
                                                     <button
-                                                        type="button"
                                                         onClick={() =>
                                                             handleUpdateAction(row, "DECLINE")
                                                         }
                                                         disabled={!rowCanUpdate || rowUpdating}
-                                                        className="inline-flex items-center gap-1 rounded-md bg-red-500 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-red-600 disabled:opacity-40"
+                                                        className="bg-red-500 text-white px-2 py-1 rounded"
                                                     >
-                                                        {rowUpdating ? (
-                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                        ) : (
-                                                            <X className="h-3.5 w-3.5" />
-                                                        )}
-                                                        Decline
+                                                        <X className="h-4 w-4" />
                                                     </button>
                                                 </div>
                                             </td>
