@@ -13,39 +13,46 @@ export interface ICustomerInfo {
 }
 
 export interface IItem {
-    MTRL: string;
-    ITEM_CODE: string;
-    ITEM_OMOIO: string;
-    CODE1_0: string;
-    ITEM_CODE2: string;
-    ITEM_DESCR: string;
-    MNF_DESCR: string;
+  MTRL: string;
+  ITEM_CODE: string;
+  ITEM_OMOIO: string;
+  CODE1_0: string;
+  ITEM_CODE2: string;
+  ITEM_DESCR: string;
+  MNF_DESCR: string;
 
-    STATUS_LABEL: string;
-    STATUS_NOW: string;
-    STATUS_MOBILE: string;
+  STATUS_LABEL: string;
+  STATUS_NOW: string;
+  STATUS_MOBILE: string;
 
-    YP1001: string;
-    THESI1001: string;
-    YP1006: string;
-    THESI1006: string;
-    YP1007: string;
-    THESI1007: string;
+  YP1001: string;
+  THESI1001: string;
+  YP1006: string;
+  THESI1006: string;
+  YP1007: string;
+  THESI1007: string;
 
-    TOTAL_AVAIL: string;
-    ONGOING: string;
-    NET_QTY_AVAILABLE: string;
+  TOTAL_AVAIL: string;
+  ONGOING: string;
+  NET_QTY_AVAILABLE: string;
 
-    SoOrdered: string;
-    SoReserved: string;
+  SoOrdered: string;
+  SoReserved: string;
 
-    PRICE_WHOLE: string;
-    PRICE_RETAIL: string;
-    PRICER01: string;
-    PRICER02: string;
-    PRICER03: string;
-    STANDCOST: string;
-    PRICE_MESSAGE: string;
+  BasketReserved: string;
+
+  PRICE_WHOLE: string;
+  PRICE_RETAIL: string;
+  PRICER01: string;
+  PRICER02: string;
+  PRICER03: string;
+  STANDCOST: string;
+  PRICE_MESSAGE: string;
+
+  BASKET_QTY: string;
+  BASKET_DATE: string;
+  BASKET_REQ_PRICE: string;
+  BASKET_ERP_PRICE: string;
 }
 
 export interface IItemTRDR extends IItem {
