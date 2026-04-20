@@ -1,50 +1,38 @@
 /**
- * Mirrors the ASP.NET AppUser entity (AppUser.cs + BaseEntity.cs).
- * This is the shape returned by the AppUsers table query.
- */
-export interface AppUser {
-    // BaseEntity fields
-    Id: number;
-    Uid: string;
-    DateIn: string | null;
-    DateUpdated: string | null;
-    DateDeleted: string | null;
-    CreatedBy: string | null;
-    LastUpdatedBy: string | null;
-    DeletedBy: string | null;
-
-    Username: string;
-    Password: string;
-    Soft1_Code: string | null;
-    Fname: string;
-    Lname: string;
-    Email: string;
-    Mobile: string | null;
-    PinCode: string | null;
-    Role: string;
-    IsActive: number | null;
-    IsSuperAdmin: number | null;
-}
-
-/**
- * JWT payload — matches the claims from AuthService.cs CreateClaimsFromUser.
- */
-export interface UserSession {
-    username: string;
-    fullName: string;
-    userEmail: string;
-    userUID: string;
-    userRole: string;
-    userIsSuperAdmin: string;
-    dateIn: string;
-}
-
-/**
  * Matches LoginViewModel.cs
  */
 export interface LoginRequest {
     username: string;
     password: string;
+    rememberMe?: boolean;
+}
+
+export interface ExternalLoginListAccessItem {
+    name: string;
+    code: string;
+}
+
+export interface ExternalLoginListBranchItem {
+    name: string;
+    s1Code: string;
+}
+
+export interface ExternalLoginUserAccount {
+    username: string;
+    fullName: string;
+    email: string;
+    role: string;
+    uid: string;
+    s1code: string;
+    listAccess: ExternalLoginListAccessItem[];
+    listBranches: ExternalLoginListBranchItem[];
+}
+
+export interface ExternalLoginResponse {
+    statusCode: number;
+    message: string;
+    detailedMessage: string;
+    userAccount?: ExternalLoginUserAccount;
 }
 
 /**
@@ -56,4 +44,5 @@ export interface ToastMessage {
     type?: string;
     exmessage?: string;
     redirectlink?: string;
+    userAccount?: ExternalLoginUserAccount;
 }

@@ -18,11 +18,11 @@ import {
     getBasketItemQty,
     normalizeBasket,
 } from "@/app/lib/basket";
-import {
-    fetchBasketItems,
-    submitBasketOrder,
-} from "@/app/lib/api/basket";
 import OrderSummary from "@/components/basket/order-summary";
+import {
+    useFetchBasketItemsMutation,
+    useSubmitBasketOrderMutation,
+} from "@/hooks/queries/useApiMutations";
 
 type ReceiptType = "receipt" | "invoice";
 
@@ -38,6 +38,8 @@ export default function BasketClient() {
     const [pickupPoint, setPickupPoint] = useState("");
     const [notes, setNotes] = useState("");
     const [sendingOrder, setSendingOrder] = useState(false);
+    const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
+    const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
 
     const formatPrice = (price: number | null) => {
         if (price == null) return "--";
@@ -66,7 +68,7 @@ export default function BasketClient() {
         } finally {
             setLoading(false);
         }
-    }, [customer]);
+    }, [customer, fetchBasketItems]);
 
     useEffect(() => {
         if (!customer) {

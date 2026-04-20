@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
-import {
-    fetchStockRequests,
-    massDeleteStockRequests,
-    updateStockRequest,
-} from "@/app/lib/api/items";
 import { Check, Loader2, Trash2, X } from "@/app/lib/lucide";
 import type { IStockRequestListRow } from "@/app/lib/interface";
+import {
+    useFetchStockRequestsMutation,
+    useMassDeleteStockRequestsMutation,
+    useUpdateStockRequestMutation,
+} from "@/hooks/queries/useApiMutations";
 
 const DEFAULT_BRANCH = "1001";
 
@@ -82,13 +82,18 @@ export default function StockRequestsClient() {
     const [deleting, setDeleting] = useState(false);
 
     const [editedQty, setEditedQty] = useState<Record<string, string>>({});
+    const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
+    const { mutateAsync: updateStockRequest } = useUpdateStockRequestMutation();
+    const { mutateAsync: massDeleteStockRequests } = useMassDeleteStockRequestsMutation();
 
     const loadRows = useCallback(async () => {
         setLoading(true);
         setError("");
 
         try {
-            const data = await fetchStockRequests({ branch: DEFAULT_BRANCH });
+            const data = await fetchStockRequests({
+                branch: DEFAULT_BRANCH,
+            });
             setRows(sortStockRequestRows(data.rows ?? []));
             setSelectedIds(new Set());
             setEditedQty({});
@@ -102,7 +107,7 @@ export default function StockRequestsClient() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [fetchStockRequests]);
 
     useEffect(() => {
         loadRows();

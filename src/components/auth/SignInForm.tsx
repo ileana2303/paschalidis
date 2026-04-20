@@ -3,20 +3,22 @@ import Checkbox from "@/components/template components/form/input/Checkbox";
 import Input from "@/components/template components/form/input/InputField";
 import Label from "@/components/template components/form/Label";
 import Button from "@/components/ui/button/Button";
-import { ChevronLeft, Eye, EyeOff } from "@/app/lib/lucide";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import type { ToastMessage } from "@/lib/auth/types";
+import { useLoginMutation } from "@/hooks/queries/useAuthQueries";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function SignInForm() {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const loginMutation = useLoginMutation();
+  const setUser = useAuthStore((state) => state.setUser);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,16 +26,15 @@ export default function SignInForm() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+      const data: ToastMessage = await loginMutation.mutateAsync({
+        username,
+        password,
+        rememberMe: isChecked,
       });
 
-      const data: ToastMessage = await res.json();
-
       if (data.result) {
-        router.push(data.redirectlink ?? "/");
+        setUser(data.userAccount ?? null);
+        window.location.href = data.redirectlink ?? "/";
       } else {
         setError(data.message);
       }
@@ -45,15 +46,6 @@ export default function SignInForm() {
   }
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
-      <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
-        <Link
-          href="/"
-          className="inline-flex items-center text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Back to dashboard
-        </Link>
-      </div>
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
         <div>
           <div className="mb-5 sm:mb-8">

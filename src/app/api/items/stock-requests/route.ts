@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import type {
     StockRequestListPayload,
     StockRequestListRoutePayload,
@@ -90,9 +90,8 @@ async function callSoftOne(payload: unknown, logLabel: string) {
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await getSession();
-
-        if (!session) {
+        const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+        if (!sessionCookie?.trim()) {
             return NextResponse.json(
                 { success: false, message: "Unauthorized" },
                 { status: 401 }
@@ -146,9 +145,8 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
     try {
-        const session = await getSession();
-
-        if (!session) {
+        const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+        if (!sessionCookie?.trim()) {
             return NextResponse.json(
                 { success: false, message: "Unauthorized" },
                 { status: 401 }
@@ -221,9 +219,8 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
     try {
-        const session = await getSession();
-
-        if (!session) {
+        const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+        if (!sessionCookie?.trim()) {
             return NextResponse.json(
                 { success: false, message: "Unauthorized" },
                 { status: 401 }

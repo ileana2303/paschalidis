@@ -12,42 +12,27 @@ import {
     StockRequestUpdateResponse,
     StockRequestUpdateRoutePayload,
 } from "../interface";
+import { httpClient } from "@/lib/http/client";
 
 export async function searchItems(
     search: string
 ): Promise<ApiResponse<IItem>> {
-    const res = await fetch("/api/items/search", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ search }),
-    });
-
-    if (!res.ok) {
-        throw new Error("Failed to fetch items");
-    }
-
-    return res.json();
+    const { data } = await httpClient.post<ApiResponse<IItem>>(
+        "/api/items/search",
+        { search }
+    );
+    return data;
 }
 
 export async function searchItemsByTrdr(
     search: string,
     trdr: string
 ): Promise<ApiResponse<IItemTRDR>> {
-    const res = await fetch("/api/items/search", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ search, trdr: Number(trdr) }),
-    });
-
-    if (!res.ok) {
-        throw new Error("Failed to fetch items");
-    }
-
-    return res.json();
+    const { data } = await httpClient.post<ApiResponse<IItemTRDR>>(
+        "/api/items/search",
+        { search, trdr: Number(trdr) }
+    );
+    return data;
 }
 
 export async function fetchBatchStock(
@@ -55,32 +40,22 @@ export async function fetchBatchStock(
 ): Promise<Record<string, StockInfo>> {
     if (codes.length === 0) return {};
 
-    const res = await fetch("/api/items/stock-batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codes }),
-    });
-
-    if (!res.ok) return {};
-
-    const data = await res.json();
+    const { data } = await httpClient.post<{ stocks?: Record<string, StockInfo> }>(
+        "/api/items/stock-batch",
+        { codes }
+    );
     return data.stocks ?? {};
 }
 
 export async function requestStockQuantity(
     payload: StockRequestRoutePayload
 ): Promise<StockRequestInsertResponse> {
-    const res = await fetch("/api/items/request-stock", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-    });
+    const { data } = await httpClient.post<StockRequestInsertResponse>(
+        "/api/items/request-stock",
+        payload
+    );
 
-    const data = (await res.json()) as StockRequestInsertResponse;
-
-    if (!res.ok || !data?.success) {
+    if (!data?.success) {
         throw new Error(data?.message ?? "Failed to submit stock request");
     }
 
@@ -90,17 +65,12 @@ export async function requestStockQuantity(
 export async function fetchStockRequests(
     payload: StockRequestListRoutePayload
 ): Promise<StockRequestListResponse> {
-    const res = await fetch("/api/items/stock-requests", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-    });
+    const { data } = await httpClient.post<StockRequestListResponse>(
+        "/api/items/stock-requests",
+        payload
+    );
 
-    const data = (await res.json()) as StockRequestListResponse;
-
-    if (!res.ok || !data?.success) {
+    if (!data?.success) {
         throw new Error(data?.message ?? "Failed to fetch stock requests");
     }
 
@@ -110,17 +80,12 @@ export async function fetchStockRequests(
 export async function updateStockRequest(
     payload: StockRequestUpdateRoutePayload
 ): Promise<StockRequestUpdateResponse> {
-    const res = await fetch("/api/items/stock-requests", {
-        method: "PATCH",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-    });
+    const { data } = await httpClient.patch<StockRequestUpdateResponse>(
+        "/api/items/stock-requests",
+        payload
+    );
 
-    const data = (await res.json()) as StockRequestUpdateResponse;
-
-    if (!res.ok || !data?.success) {
+    if (!data?.success) {
         throw new Error(data?.message ?? "Failed to update stock request");
     }
 
@@ -130,17 +95,12 @@ export async function updateStockRequest(
 export async function massDeleteStockRequests(
     payload: StockRequestMassDeleteRoutePayload
 ): Promise<StockRequestMassDeleteResponse> {
-    const res = await fetch("/api/items/stock-requests", {
-        method: "DELETE",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-    });
+    const { data } = await httpClient.delete<StockRequestMassDeleteResponse>(
+        "/api/items/stock-requests",
+        { data: payload }
+    );
 
-    const data = (await res.json()) as StockRequestMassDeleteResponse;
-
-    if (!res.ok || !data?.success) {
+    if (!data?.success) {
         throw new Error(data?.message ?? "Failed to delete stock requests");
     }
 

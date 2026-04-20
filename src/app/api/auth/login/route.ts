@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSessionToken, setSessionCookie } from "@/lib/auth/session";
-import { findUserByUsername } from "@/lib/db/users";
-import type { ToastMessage, LoginRequest } from "@/lib/auth/types";
+import { setSessionCookie } from "@/lib/auth/session";
+import { backend } from "@/lib/http/backend";
+import type {
+    ExternalLoginResponse,
+    LoginRequest,
+    ToastMessage,
+} from "@/lib/auth/types";
 
 /**
  * POST /api/auth/login
  *
- * Mirrors AccountController.cs → LoginUser:
- * 1. Validate input
- * 2. Look up user by username
- * 3. Check IsActive
- * 4. Compare password (plain-text, matching the ASP.NET original)
- * 5. Create JWT session cookie
- * 6. Return ToastMessage JSON
+ * Proxies credentials to upstream /Api/Login endpoint, then creates
+ * the app session cookie from the returned user account.
  */
 export async function POST(req: NextRequest) {
     let tmessage: ToastMessage;
@@ -29,46 +28,41 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(tmessage, { status: 400 });
         }
 
-        const user = await findUserByUsername(body.username);
+        const upstreamResponse = await backend.post<ExternalLoginResponse>(
+            "/Api/Login",
+            {
+                username: body.username,
+                password: body.password,
+                rememberMe: body.rememberMe ?? true,
+            }
+        );
+        const upstreamData = upstreamResponse.data;
 
-        if (!user) {
+        if (
+            upstreamResponse.status < 200 ||
+            upstreamResponse.status >= 300 ||
+            upstreamData.statusCode !== 200 ||
+            !upstreamData.userAccount
+        ) {
             tmessage = {
                 result: false,
                 message:
+                    upstreamData.message ||
+                    upstreamData.detailedMessage ||
                     "Δεν βρέθηκε χρήστης με αυτά τα στοιχεία, προσπαθήστε ξανά",
                 type: "error",
             };
             return NextResponse.json(tmessage, { status: 401 });
         }
 
-        if (user.IsActive !== 1) {
-            tmessage = {
-                result: false,
-                message: "Μη ενεργός χρήστης",
-                type: "error",
-            };
-            return NextResponse.json(tmessage, { status: 403 });
-        }
-
-        // NOTE: The original ASP.NET code compares passwords as plain text.
-        // Consider migrating to bcrypt/argon2 for production security.
-        if (user.Password !== body.password) {
-            tmessage = {
-                result: false,
-                message: "Λάθος κωδικός",
-                type: "error",
-            };
-            return NextResponse.json(tmessage, { status: 401 });
-        }
-
-        const token = await createSessionToken(user);
-        await setSessionCookie(token);
+        await setSessionCookie();
 
         tmessage = {
             result: true,
             message: "Επιτυχής σύνδεση",
             type: "success",
             redirectlink: "/",
+            userAccount: upstreamData.userAccount,
         };
 
         return NextResponse.json(tmessage);

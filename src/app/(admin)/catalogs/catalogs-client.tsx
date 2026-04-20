@@ -12,8 +12,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { fetchCatalogProducts } from "@/app/lib/api/catalogs";
 import type { IProduct } from "@/app/lib/interface";
+import { useFetchCatalogProductsMutation } from "@/hooks/queries/useApiMutations";
 
 const PAGE_SIZE = 100;
 
@@ -30,6 +30,7 @@ export default function CatalogsClient() {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
     const [exporting, setExporting] = useState(false);
+    const { mutateAsync: fetchCatalogProducts } = useFetchCatalogProductsMutation();
 
     // ── Fetch products when page changes ───────────────────
     const loadPage = useCallback(async (targetPage: number) => {
@@ -37,7 +38,10 @@ export default function CatalogsClient() {
         setError(null);
 
         try {
-            const res = await fetchCatalogProducts(targetPage, PAGE_SIZE);
+            const res = await fetchCatalogProducts({
+                page: targetPage,
+                pageSize: PAGE_SIZE,
+            });
             setProducts(res.data);
             setPage(res.page);
             setTotalPages(res.totalPages);
@@ -47,7 +51,7 @@ export default function CatalogsClient() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [fetchCatalogProducts]);
 
     useEffect(() => {
         loadPage(1);

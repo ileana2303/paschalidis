@@ -2,12 +2,12 @@
 
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { useEffect, useRef, useState } from "react";
-import { searchCustomers } from "@/app/lib/api/customers";
 import { ICustomerInfo } from "@/app/lib/interface";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useCustomerSearchStore } from "@/stores/customerSearchStore";
 import { useRouter } from "next/navigation";
 import SearchBar from "@/components/search/search-bar";
+import { useSearchCustomersMutation } from "@/hooks/queries/useApiMutations";
 
 export default function SearchCustomerClient() {
     const [loading, setLoading] = useState(false);
@@ -22,6 +22,7 @@ export default function SearchCustomerClient() {
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const router = useRouter();
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const searchCustomersMutation = useSearchCustomersMutation();
 
     useEffect(() => {
         clearSearchState();
@@ -39,7 +40,7 @@ export default function SearchCustomerClient() {
         setLoading(true);
 
         try {
-            const data = await searchCustomers(trimmedSearch);
+            const data = await searchCustomersMutation.mutateAsync(trimmedSearch);
 
             if (data.success) {
                 setCustomerResults(data.rows);

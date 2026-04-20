@@ -1,23 +1,15 @@
 import { ICustomerInfo, ApiResponse } from "../interface";
+import { httpClient } from "@/lib/http/client";
 
 export async function searchCustomers(
     search: string
 ): Promise<ApiResponse<ICustomerInfo>> {
-    const res = await fetch("/api/customers/search", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ search }),
-    });
+    const { data } = await httpClient.post<ApiResponse<ICustomerInfo>>(
+        "/api/customers/search",
+        { search }
+    );
 
-    const data: ApiResponse<ICustomerInfo> = await res.json();
-
-    if (!res.ok) {
-        throw new Error(data.message ?? "Failed to fetch customers");
-    }
-
-    if (!data.success) {
+    if (!data?.success) {
         throw new Error(data.message ?? "Failed to fetch customers");
     }
 

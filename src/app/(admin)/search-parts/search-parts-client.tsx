@@ -2,8 +2,6 @@
 
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useRef, useState } from "react";
-import { searchCustomers } from "@/app/lib/api/customers";
-import { requestStockQuantity, searchItems, searchItemsByTrdr } from "@/app/lib/api/items";
 import { Plus, Loader2, ChevronDown, Minus, ShoppingCart, BadgePercent, Send } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
 import { ICustomerInfo, IItem, IBasket, IBasketItem, StockRequestStatus } from "@/app/lib/interface";
@@ -15,7 +13,6 @@ import {
     normalizeBasket,
 } from "@/app/lib/basket";
 import { useModal } from "@/hooks/useModal";
-import { fetchBasketItems, addItemToBasket, requestDiscount, submitBasketOrder } from "@/app/lib/api/basket";
 import OrderSummary from "@/components/basket/order-summary";
 import { useRouter, useSearchParams } from "next/navigation";
 import CustomerInfoContainer from "../../../components/customer/customer-info-container";
@@ -23,6 +20,16 @@ import PartsSearchModal from "../../../components/parts/parts-search-modal";
 import PartStockQuantityContainer from "../../../components/parts/part-stock-quantity-container";
 import CustomerSearchModal from "../../../components/customer/customer-search-modal";
 import SearchBar from "@/components/search/search-bar";
+import {
+    useAddItemToBasketMutation,
+    useFetchBasketItemsMutation,
+    useRequestDiscountMutation,
+    useRequestStockQuantityMutation,
+    useSearchCustomersMutation,
+    useSearchItemsByTrdrMutation,
+    useSearchItemsMutation,
+    useSubmitBasketOrderMutation,
+} from "@/hooks/queries/useApiMutations";
 
 const DEFAULT_STOCK_REQUEST_BRANCH = "1001";
 type ReceiptType = "receipt" | "invoice";
@@ -79,6 +86,14 @@ export default function SearchPartsClient() {
     const resultsContainerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const customerSyncCheckedRef = useRef(false);
+    const { mutateAsync: searchItems } = useSearchItemsMutation();
+    const { mutateAsync: searchItemsByTrdr } = useSearchItemsByTrdrMutation();
+    const { mutateAsync: searchCustomers } = useSearchCustomersMutation();
+    const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
+    const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
+    const { mutateAsync: addItemToBasket } = useAddItemToBasketMutation();
+    const { mutateAsync: requestDiscount } = useRequestDiscountMutation();
+    const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
 
     const handleOpenSearchModal = useCallback(() => {
         setModalSearch("");
@@ -188,7 +203,10 @@ export default function SearchPartsClient() {
 
         try {
             const data = customer?.TRDR
-                ? await searchItemsByTrdr(trimmedSearch, customer.TRDR)
+                ? await searchItemsByTrdr({
+                    search: trimmedSearch,
+                    trdr: customer.TRDR,
+                })
                 : await searchItems(trimmedSearch);
             setSearch(trimmedSearch);
 
@@ -282,7 +300,7 @@ export default function SearchPartsClient() {
         } finally {
             setBasketLoading(false);
         }
-    }, []);
+    }, [fetchBasketItems]);
 
     useEffect(() => {
         if (customer?.TRDR) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import type {
     StockRequestInsertPayload,
     StockRequestInsertResponse,
@@ -58,9 +58,8 @@ async function parseJsonWithEncodingFallback(response: Response) {
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await getSession();
-
-        if (!session) {
+        const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+        if (!sessionCookie?.trim()) {
             return NextResponse.json(
                 { success: false, message: "Unauthorized" },
                 { status: 401 }

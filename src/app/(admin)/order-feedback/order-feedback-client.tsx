@@ -20,10 +20,13 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { fetchCatalogProducts } from "@/app/lib/api/catalogs";
-import { searchItems, fetchBatchStock } from "@/app/lib/api/items";
 import type { StockInfo } from "@/app/lib/interface";
 import type { IProduct, IItem } from "@/app/lib/interface";
+import {
+    useFetchBatchStockMutation,
+    useFetchCatalogProductsMutation,
+    useSearchItemsMutation,
+} from "@/hooks/queries/useApiMutations";
 
 const BRANCHES = [
     { id: "1001", label: "Κασομούλη" },
@@ -82,6 +85,9 @@ export default function OrderFeedbackClient() {
     const [restockList, setRestockList] = useState<RestockEntry[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const { mutateAsync: fetchCatalogProducts } = useFetchCatalogProductsMutation();
+    const { mutateAsync: fetchBatchStock } = useFetchBatchStockMutation();
+    const { mutateAsync: searchItems } = useSearchItemsMutation();
 
     // ── Load catalog page ──────────────────────────────────
     const loadPage = useCallback(async (targetPage: number) => {
@@ -89,7 +95,10 @@ export default function OrderFeedbackClient() {
         setCatalogError(null);
 
         try {
-            const res = await fetchCatalogProducts(targetPage, PAGE_SIZE);
+            const res = await fetchCatalogProducts({
+                page: targetPage,
+                pageSize: PAGE_SIZE,
+            });
             setProducts(res.data);
             setPage(res.page);
             setTotalPages(res.totalPages);
@@ -99,7 +108,7 @@ export default function OrderFeedbackClient() {
         } finally {
             setCatalogLoading(false);
         }
-    }, []);
+    }, [fetchCatalogProducts]);
 
     useEffect(() => {
         loadPage(1);
@@ -126,7 +135,7 @@ export default function OrderFeedbackClient() {
 
         enrichStock();
         return () => { cancelled = true; };
-    }, [products]);
+    }, [fetchBatchStock, products]);
 
     // ── Search handler ─────────────────────────────────────
     async function handleSearch(e: React.FormEvent) {

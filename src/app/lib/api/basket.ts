@@ -4,17 +4,14 @@ import type {
     BasketRequestPriceRoutePayload,
     BasketResponse,
 } from "../interface";
+import { httpClient } from "@/lib/http/client";
 
 export async function fetchBasketItems(trdr: string): Promise<BasketResponse> {
-    const res = await fetch("/api/basket/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trdr }),
+    const { data } = await httpClient.post<BasketResponse>("/api/basket/items", {
+        trdr,
     });
 
-    const data = await res.json() as BasketResponse;
-
-    if (!res.ok || !data.success) {
+    if (!data.success) {
         throw new Error(data.message ?? "Failed to fetch basket items");
     }
 
@@ -24,15 +21,12 @@ export async function fetchBasketItems(trdr: string): Promise<BasketResponse> {
 export async function addItemToBasket(
     params: BasketInRoutePayload
 ): Promise<BasketActionResponse> {
-    const res = await fetch("/api/basket/add-item", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params),
-    });
+    const { data } = await httpClient.post<BasketActionResponse>(
+        "/api/basket/add-item",
+        params
+    );
 
-    const data = await res.json() as BasketActionResponse;
-
-    if (!res.ok || !data.success) {
+    if (!data.success) {
         throw new Error(data.message ?? "Failed to add item to basket");
     }
 
@@ -48,15 +42,12 @@ export async function requestDiscount(
 export async function submitBasketOrder(
     trdr: string
 ): Promise<BasketActionResponse> {
-    const res = await fetch("/api/basket/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trdr }),
-    });
+    const { data } = await httpClient.post<BasketActionResponse>(
+        "/api/basket/submit",
+        { trdr }
+    );
 
-    const data = await res.json() as BasketActionResponse;
-
-    if (!res.ok || !data.success) {
+    if (!data.success) {
         throw new Error(data.message ?? "Failed to submit order");
     }
 
