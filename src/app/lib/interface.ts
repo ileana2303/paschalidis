@@ -97,6 +97,32 @@ export interface BasketResponse {
     rows: IBasketItem[];
 }
 
+export interface BasketAllRoutePayload {
+    search?: string;
+    page?: number;
+    pageSize?: number;
+}
+
+export interface BasketAllCustomerGroup {
+    TRDR?: string | number;
+    CODE?: string;
+    NAME?: string;
+    CUST_NAME?: string;
+    totalcount?: number;
+    basketTotal?: string | number;
+    rows?: IItemPerCustItemRow[];
+    items?: IItemPerCustItemRow[];
+}
+
+export interface BasketAllResponse {
+    success: boolean;
+    message?: string;
+    totalcount: number;
+    page?: number;
+    pageSize?: number;
+    rows: BasketAllCustomerGroup[] | IItemPerCustItemRow[];
+}
+
 export interface IItemPerCustItemRow {
     BASKETID?: string | number;
     TRDR?: string | number;

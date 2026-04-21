@@ -17,6 +17,7 @@ import {
   PackageSearch,
   Search,
   Settings,
+  Users,
   type LucideIcon,
 } from "@/app/lib/lucide";
 import { useSidebar } from "../context/SidebarContext";
@@ -46,6 +47,11 @@ const navItems: NavItem[] = [
     icon: PackageSearch,
     name: "Αναζήτηση Ανταλλακτικών",
     path: "/search-parts",
+  },
+  {
+    icon: Users,
+    name: "Καλάθια Πελατών",
+    path: "/all-baskets",
   },
   {
     icon: ClipboardList,

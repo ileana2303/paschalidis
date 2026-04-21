@@ -2,6 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import type {
+    BasketAllRoutePayload,
     BasketInRoutePayload,
     BasketRequestPriceRoutePayload,
     StockRequestListRoutePayload,
@@ -11,6 +12,7 @@ import type {
 } from "@/app/lib/interface";
 import {
     addItemToBasket,
+    fetchAllClientBaskets,
     fetchBasketItems,
     requestDiscount,
     submitBasketOrder,
@@ -77,6 +79,12 @@ export const useFetchBasketItemsMutation = () =>
         mutationFn: (trdr: string) => fetchBasketItems(trdr),
     });
 
+export const useFetchAllClientBasketsMutation = () =>
+    useMutation({
+        mutationFn: (payload: BasketAllRoutePayload) =>
+            fetchAllClientBaskets(payload),
+    });
+
 export const useAddItemToBasketMutation = () =>
     useMutation({
         mutationFn: (payload: BasketInRoutePayload) => addItemToBasket(payload),
@@ -98,4 +106,3 @@ export const useFetchCatalogProductsMutation = () =>
         mutationFn: ({ page, pageSize }: { page: number; pageSize: number }) =>
             fetchCatalogProducts(page, pageSize),
     });
-

@@ -30,6 +30,8 @@ import {
     useSearchItemsMutation,
     useSubmitBasketOrderMutation,
 } from "@/hooks/queries/useApiMutations";
+import { useAuthStore } from "@/stores/authStore";
+import { isAxiosError } from "axios";
 
 const DEFAULT_STOCK_REQUEST_BRANCH = "1001";
 type ReceiptType = "receipt" | "invoice";
@@ -69,6 +71,7 @@ export default function SearchPartsClient() {
     const customer = useCustomerStore((state) => state.customer);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const clearCustomer = useCustomerStore((state) => state.clearCustomer);
+    const user = useAuthStore((state) => state.user);
     const router = useRouter();
     const searchParams = useSearchParams();
     const {
@@ -407,12 +410,23 @@ export default function SearchPartsClient() {
                 QTY: getQuantity(item.ITEM_CODE),
                 PRICE_ERP: Number(item.PRICE_WHOLE),
                 PRICE_REQ: Number(item.PRICE_WHOLE),
+                APPUSER_ID: user?.uid,
             });
 
             setQuantities((prev) => ({ ...prev, [item.ITEM_CODE]: 1 }));
             await loadBasket(customer.TRDR);
         } catch (err) {
-            console.error("Failed to add item to basket:", err);
+            if (isAxiosError(err)) {
+                const responseMessage =
+                    typeof err.response?.data?.message === "string"
+                        ? err.response.data.message
+                        : undefined;
+                setBasketError(responseMessage ?? err.message);
+            } else {
+                setBasketError(
+                    err instanceof Error ? err.message : "Αποτυχία προσθήκης στο καλάθι"
+                );
+            }
         } finally {
             setAddingToBasket((prev) => {
                 const next = new Set(prev);
@@ -483,17 +497,26 @@ export default function SearchPartsClient() {
                 QTY: getQuantity(item.ITEM_CODE),
                 PRICE_ERP: Number(item.PRICE_WHOLE),
                 PRICE_REQ: requestedPrice,
+                APPUSER_ID: user?.uid,
             });
 
             setDiscountPrices((prev) => ({ ...prev, [item.ITEM_CODE]: "" }));
             setQuantities((prev) => ({ ...prev, [item.ITEM_CODE]: 1 }));
             await loadBasket(customer.TRDR);
         } catch (error) {
-            setBasketError(
-                error instanceof Error
-                    ? error.message
-                    : "Αποτυχία αιτήματος τιμής"
-            );
+            if (isAxiosError(error)) {
+                const responseMessage =
+                    typeof error.response?.data?.message === "string"
+                        ? error.response.data.message
+                        : undefined;
+                setBasketError(responseMessage ?? error.message);
+            } else {
+                setBasketError(
+                    error instanceof Error
+                        ? error.message
+                        : "Αποτυχία αιτήματος τιμής"
+                );
+            }
         } finally {
             setSubmittingDiscount((prev) => {
                 const next = new Set(prev);

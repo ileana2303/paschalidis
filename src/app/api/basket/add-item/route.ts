@@ -11,6 +11,7 @@ const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
 const DEFAULT_BRANCH = 1006;
 const DEFAULT_TRD_BRANCH = 1000;
 const DEFAULT_COMPANY = 1001;
+const ZERO_GUID = "00000000-0000-0000-0000-000000000000";
 
 function getClientID() {
     return process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
             body.TRD_BRANCH != null ? Number(body.TRD_BRANCH) : DEFAULT_TRD_BRANCH;
         const normalizedCompany =
             body.COMPANY != null ? Number(body.COMPANY) : DEFAULT_COMPANY;
-        const normalizedAppUserId = String(body.APPUSER_ID ?? "").trim();
+        const normalizedAppUserId = String(body.APPUSER_ID ?? "").trim() || ZERO_GUID;
         const clientID = getClientID();
 
         if (!clientID) {
@@ -126,13 +127,6 @@ export async function POST(req: NextRequest) {
         if (!Number.isFinite(normalizedPriceReq) || normalizedPriceReq < 0) {
             return NextResponse.json(
                 { success: false, message: "PRICE_REQ is invalid" },
-                { status: 400 }
-            );
-        }
-
-        if (!normalizedAppUserId) {
-            return NextResponse.json(
-                { success: false, message: "APPUSER_ID is required" },
                 { status: 400 }
             );
         }

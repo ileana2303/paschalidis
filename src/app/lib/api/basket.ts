@@ -1,5 +1,7 @@
 import type {
     BasketActionResponse,
+    BasketAllResponse,
+    BasketAllRoutePayload,
     BasketInRoutePayload,
     BasketRequestPriceRoutePayload,
     BasketResponse,
@@ -37,6 +39,21 @@ export async function requestDiscount(
     params: BasketRequestPriceRoutePayload
 ): Promise<BasketActionResponse> {
     return addItemToBasket(params);
+}
+
+export async function fetchAllClientBaskets(
+    params: BasketAllRoutePayload
+): Promise<BasketAllResponse> {
+    const { data } = await httpClient.post<BasketAllResponse>(
+        "/api/basket/all",
+        params
+    );
+
+    if (!data.success) {
+        throw new Error(data.message ?? "Failed to fetch all client baskets");
+    }
+
+    return data;
 }
 
 export async function submitBasketOrder(
