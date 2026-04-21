@@ -5,7 +5,6 @@ import type {
     BasketItemsRoutePayload,
     BasketResponse,
     IBasketItem,
-    IItemPerCustItemRow,
 } from "@/app/lib/interface";
 
 const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
@@ -80,7 +79,7 @@ function asString(value: unknown, fallback = ""): string {
 }
 
 function mapRowToBasketItem(
-    row: IItemPerCustItemRow,
+    row: Partial<IBasketItem>,
     trdr: string,
     index: number
 ): IBasketItem {
@@ -188,7 +187,7 @@ export async function POST(req: NextRequest) {
             success?: boolean;
             message?: string;
             totalcount?: number;
-            rows?: IItemPerCustItemRow[];
+            rows?: Array<Partial<IBasketItem>>;
         };
 
         if (upstreamData?.success === false) {

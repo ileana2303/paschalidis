@@ -83,6 +83,12 @@ export interface IBasketItem {
     NAME: string;
     CODE2: string;
     CUST_NAME: string;
+    BASKET_QTY?: string | number;
+    BASKET_ERP_PRICE?: string | number;
+    BASKET_REQ_PRICE?: string | number;
+    BargainStatus?: string | number;
+    ITEM_CODE?: string;
+    ITEM_DESCR?: string;
 }
 
 export interface IBasket {
@@ -110,8 +116,8 @@ export interface BasketAllCustomerGroup {
     CUST_NAME?: string;
     totalcount?: number;
     basketTotal?: string | number;
-    rows?: IItemPerCustItemRow[];
-    items?: IItemPerCustItemRow[];
+    rows?: Array<Partial<IBasketItem>>;
+    items?: Array<Partial<IBasketItem>>;
 }
 
 export interface BasketAllResponse {
@@ -120,35 +126,7 @@ export interface BasketAllResponse {
     totalcount: number;
     page?: number;
     pageSize?: number;
-    rows: BasketAllCustomerGroup[] | IItemPerCustItemRow[];
-}
-
-export interface IItemPerCustItemRow {
-    BASKETID?: string | number;
-    TRDR?: string | number;
-    MTRL?: string | number;
-    QTY?: string | number;
-    TOTAL_QTY?: string | number;
-    BASKET_QTY?: string | number;
-    PRICE_ERP?: string | number;
-    PRICE_REQ?: string | number;
-    BASKET_ERP_PRICE?: string | number;
-    BASKET_REQ_PRICE?: string | number;
-    BRANCH?: string | number;
-    TRD_BRANCH?: string | number;
-    IS_APROVED?: string | number;
-    BargainStatus?: string | number;
-    APPUSER_ID?: string;
-    BASKET_DATE?: string;
-    INS_DATE?: string;
-    MAX_INS_DATE?: string;
-    COMPANY?: string | number;
-    CODE?: string;
-    ITEM_CODE?: string;
-    NAME?: string;
-    ITEM_DESCR?: string;
-    CODE2?: string;
-    CUST_NAME?: string;
+    rows: BasketAllCustomerGroup[] | Array<Partial<IBasketItem>>;
 }
 
 export interface BasketItemsRoutePayload {

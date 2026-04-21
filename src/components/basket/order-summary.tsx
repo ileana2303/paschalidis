@@ -19,7 +19,6 @@ import {
 import {
     getBasketItemApprovalStatus,
     getBasketItemBasePrice,
-    getBasketItemEffectivePrice,
     getBasketItemId,
     getBasketItemLineTotal,
     getBasketItemQty,
@@ -388,30 +387,24 @@ function BasketLineItem({
                 )}
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                        MTRL: {item.MTRL || "-"}
+                        MTRL: {item.MTRL || "-"} 
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
                         <span>
-                            TOTAL_QTY:{" "}
+                            ΠΟΣΟΤΗΤΑ:{" "}
                             <span className="font-medium text-gray-700 dark:text-white/90">
                                 {item.TOTAL_QTY ?? getBasketItemQty(item)}
                             </span>
                         </span>
                         <span>
-                            PRICE_ERP:{" "}
+                            ΤΙΜΗ:{" "}
                             <span className="font-medium text-gray-700 dark:text-white/90">
                                 {formatPrice(getBasketItemBasePrice(item))}
                             </span>
                         </span>
-                        <span>
-                            PRICE_REQ:{" "}
-                            <span className="font-medium text-gray-700 dark:text-white/90">
-                                {formatPrice(getBasketItemRequestedPrice(item))}
-                            </span>
-                        </span>
                     </div>
                     <p className="mt-1 text-xs text-gray-500">
-                        MAX_INS_DATE: {item.MAX_INS_DATE || item.INS_DATE || "-"}
+                        ΗΜ.ΠΡΟΣΘΗΚΗΣ: {item.MAX_INS_DATE || "-"}
                     </p>
                 
                     {hasBasketItemDiscount(item) && (
