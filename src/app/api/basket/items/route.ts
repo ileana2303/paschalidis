@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
             service: "SqlData",
             clientID,
             appId: "1305",
-            SqlName: "ITEM_PER_CUST_ITEM",
+            SqlName: "BASKET_OUT",
             TRDR: normalizedTrdr,
         };
 

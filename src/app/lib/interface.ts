@@ -137,7 +137,7 @@ export interface BasketItemsPayload {
     service: "SqlData";
     clientID: string;
     appId: "1305";
-    SqlName: "ITEM_PER_CUST_ITEM";
+    SqlName: "BASKET_OUT";
     TRDR: string;
 }
 
@@ -173,6 +173,20 @@ export interface BasketInPayload {
     COMPANY: number;
 }
 
+export interface BasketUpdateRoutePayload {
+    BASKETID: string | number;
+    QTY: number;
+}
+
+export interface BasketUpdatePayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "BASKET_UPDATE";
+    QTY: number;
+    BASKETID: number;
+}
+
 export interface BasketOutRoutePayload {
     trdr: string;
 }
@@ -188,6 +202,7 @@ export interface BasketOutPayload {
 export interface BasketActionResponse {
     success: boolean;
     message?: string;
+    id?: string;
 }
 
 export interface ApiResponse<T> {

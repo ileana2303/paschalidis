@@ -4,14 +4,109 @@ import type {
     BasketActionResponse,
     BasketOutPayload,
     BasketOutRoutePayload,
+    IBasketItem,
 } from "@/app/lib/interface";
 
 const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
 const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
 
-function getClientID() {
-    return process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
-}
+const DEFAULT_ORDER_SERIES = "17002";
+const DEFAULT_ORDER_TAX_SERIES = "\u03c0\u0394";
+const DEFAULT_ORDER_PAYMENT = 1006;
+const DEFAULT_ORDER_SHIPKIND = 1000;
+const DEFAULT_ORDER_SOCASH = 1005;
+const DEFAULT_ORDER_TRUCKS = 2;
+const DEFAULT_ORDER_BRANCH = 1006;
+const DEFAULT_ORDER_TRD_BRANCH = 1000;
+const DEFAULT_DELETE_TABLE_ACTION = "USRCUST";
+const DEFAULT_DELETE_METHOD = "LINK_S1";
+const ZERO_GUID = "00000000-0000-0000-0000-000000000000";
+
+type BasketSubmitRequestBody = BasketOutRoutePayload & {
+    TRDR?: string;
+    branch?: string | number;
+    BRANCH?: string | number;
+    trdBranch?: string | number;
+    trdrBranch?: string | number;
+    TRDBRANCH?: string | number;
+    payment?: string | number;
+    PAYMENT?: string | number;
+    shipkind?: string | number;
+    SHIPKIND?: string | number;
+    socash?: string | number;
+    SOCASH?: string | number;
+    trucks?: string | number;
+    TRUCKS?: string | number;
+    deliveryDate?: string;
+    delivDate?: string;
+    DELIVDATE?: string;
+    series?: string | number;
+    SERIES?: string | number;
+    seriesNum?: string | number;
+    SERIESNUM?: string | number;
+    taxSeries?: string;
+    TAXSERIES?: string;
+    comments?: string;
+    COMMENTS?: string;
+    notes?: string;
+    NOTES?: string;
+    remarks?: string;
+    REMARKS?: string;
+    tableAction?: string;
+    TABLE_ACTION?: string;
+    method?: string;
+    METHOD?: string;
+    appUserId?: string;
+    APPUSER_ID?: string;
+};
+
+type SetDataOrderPayload = {
+    service: "setData";
+    clientID: string;
+    appId: "1305";
+    OBJECT: "SALDOC";
+    KEY: "";
+    data: {
+        SALDOC: Array<{
+            SERIES: string;
+            TAXSERIES: string;
+            TRDR: number;
+            TRDBRANCH: number;
+            PAYMENT: number;
+            SERIESNUM: string;
+            TRUCKS: number;
+            DELIVDATE: string;
+            COMMENTS: string;
+            REMARKS: string;
+            SHIPKIND: number;
+            SOCASH: number;
+        }>;
+        MTRDOC: Array<{
+            TRUCKS: number;
+            DELIVDATE: string;
+            DEPTRDR_CUSTOMER_CODE: string;
+            BILLTRDR_CUSTOMER_CODE: string;
+            BRANCHSEC: number;
+            WHOUSESEC: number;
+        }>;
+        ITELINES: Array<{
+            MTRL: number;
+            QTY1: number;
+        }>;
+    };
+};
+
+type MassDeletePayload = {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "MASS_DELETE";
+    BASKET_IDS: string;
+    TABLE_ACTION: string;
+    METHOD: string;
+    S1_KEY: string;
+    APPUSER_ID: string;
+};
 
 function getCharset(contentType: string | null) {
     if (!contentType) {
@@ -59,6 +154,111 @@ async function parseJsonWithEncodingFallback(response: Response) {
     throw lastError ?? new Error("Failed to decode upstream response");
 }
 
+function firstDefined<T>(...values: Array<T | null | undefined>): T | undefined {
+    for (const value of values) {
+        if (value !== null && value !== undefined) {
+            return value;
+        }
+    }
+
+    return undefined;
+}
+
+function asString(value: unknown, fallback = ""): string {
+    if (value === null || value === undefined) {
+        return fallback;
+    }
+
+    return String(value);
+}
+
+function asPositiveNumber(value: unknown): number | undefined {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return undefined;
+    }
+
+    return parsed;
+}
+
+function sanitizeEnvValue(value: string | undefined) {
+    return value?.trim().replace(/^['"]|['"]$/g, "") ?? "";
+}
+
+function getEnvString(name: string) {
+    return sanitizeEnvValue(process.env[name]);
+}
+
+function getEnvPositiveNumber(name: string, fallback: number) {
+    const parsed = asPositiveNumber(getEnvString(name));
+    return parsed ?? fallback;
+}
+
+function getSqlClientID() {
+    return getEnvString("S1_CLIENT_ID");
+}
+
+function getSetDataClientID(branchCode: string) {
+    const normalizedBranchCode = branchCode.trim();
+    const fromSetDataBranch = normalizedBranchCode
+        ? getEnvString(`S1_SETDATA_CLIENT_ID_${normalizedBranchCode}`)
+        : "";
+    const fromSetDataDefault = getEnvString("S1_SETDATA_CLIENT_ID");
+    const fromSqlBranch = normalizedBranchCode
+        ? getEnvString(`S1_CLIENT_ID_${normalizedBranchCode}`)
+        : "";
+    const fromSqlDefault = getSqlClientID();
+
+    return fromSetDataBranch || fromSetDataDefault || fromSqlBranch || fromSqlDefault;
+}
+
+function resolveIsoDate(value: unknown) {
+    const rawValue = asString(value).trim();
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
+        return rawValue;
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}T/.test(rawValue)) {
+        return rawValue.slice(0, 10);
+    }
+
+    return new Date().toISOString().slice(0, 10);
+}
+
+function buildOrderLines(rows: Array<Partial<IBasketItem>>) {
+    const aggregatedByMtrl = new Map<number, number>();
+
+    for (const row of rows) {
+        const mtrl = asPositiveNumber(row.MTRL);
+        const qty = asPositiveNumber(firstDefined(row.QTY, row.TOTAL_QTY, row.BASKET_QTY));
+
+        if (!mtrl || !qty) {
+            continue;
+        }
+
+        aggregatedByMtrl.set(mtrl, (aggregatedByMtrl.get(mtrl) ?? 0) + qty);
+    }
+
+    return Array.from(aggregatedByMtrl.entries()).map(([MTRL, QTY1]) => ({
+        MTRL,
+        QTY1,
+    }));
+}
+
+function buildBasketIds(rows: Array<Partial<IBasketItem>>) {
+    const ids = new Set<string>();
+
+    for (const row of rows) {
+        const basketId = asString(row.BASKETID).trim();
+        if (basketId) {
+            ids.add(basketId);
+        }
+    }
+
+    return Array.from(ids);
+}
+
 export async function POST(req: NextRequest) {
     try {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
@@ -69,9 +269,9 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const body = await req.json() as BasketOutRoutePayload & { TRDR?: string };
-        const normalizedTrdr = String(body.trdr ?? body.TRDR ?? "").trim();
-        const clientID = getClientID();
+        const body = await req.json() as BasketSubmitRequestBody;
+        const normalizedTrdr = asString(firstDefined(body.trdr, body.TRDR)).trim();
+        const sqlClientID = getSqlClientID();
 
         if (!normalizedTrdr || !Number.isFinite(Number(normalizedTrdr))) {
             return NextResponse.json(
@@ -80,74 +280,314 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (!clientID) {
+        if (!sqlClientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured" },
+                { success: false, message: "S1 SQL client is not configured" },
                 { status: 500 }
             );
         }
 
-        const payload: BasketOutPayload = {
+        const basketOutPayload: BasketOutPayload = {
             service: "SqlData",
-            clientID,
+            clientID: sqlClientID,
             appId: "1305",
             SqlName: "BASKET_OUT",
             TRDR: normalizedTrdr,
         };
 
-        const response = await fetch(S1_ENDPOINT, {
+        const basketOutResponse = await fetch(S1_ENDPOINT, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(basketOutPayload),
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("[basket/submit] Upstream error body:", errorText);
+        if (!basketOutResponse.ok) {
+            const errorText = await basketOutResponse.text();
+            console.error("[basket/submit] Basket lookup error body:", errorText);
 
             return NextResponse.json(
-                { success: false, message: "Upstream request failed" },
-                { status: response.status }
+                { success: false, message: "Upstream basket lookup failed" },
+                { status: basketOutResponse.status }
             );
         }
 
-        const upstreamData = await parseJsonWithEncodingFallback(response) as {
+        const basketOutData = await parseJsonWithEncodingFallback(basketOutResponse) as {
             success?: boolean;
             message?: string;
-            totalcount?: number;
-            rows?: Array<{ MESSAGE_TO_CALLER?: string } | Record<string, unknown>>;
+            rows?: Array<Partial<IBasketItem>>;
         };
 
-        if (upstreamData?.success === false) {
+        if (basketOutData?.success === false) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: upstreamData.message ?? "Upstream basket submit failed",
+                    message: basketOutData.message ?? "Upstream basket lookup failed",
                 },
                 { status: 502 }
             );
         }
 
-        const firstRow = upstreamData?.rows?.[0];
-        const callerMessage =
-            firstRow &&
-                typeof firstRow === "object" &&
-                "MESSAGE_TO_CALLER" in firstRow &&
-                typeof firstRow.MESSAGE_TO_CALLER === "string"
-                ? firstRow.MESSAGE_TO_CALLER
-                : undefined;
+        const basketRows = Array.isArray(basketOutData?.rows) ? basketOutData.rows : [];
+        const orderLines = buildOrderLines(basketRows);
+        const basketIds = buildBasketIds(basketRows);
 
-        const data: BasketActionResponse = {
-            success: true,
-            message:
-                upstreamData?.message ??
-                callerMessage ??
-                "Order submitted",
+        if (orderLines.length === 0) {
+            return NextResponse.json(
+                { success: false, message: "Basket is empty. Add items before submitting order." },
+                { status: 400 }
+            );
+        }
+
+        if (basketIds.length === 0) {
+            return NextResponse.json(
+                { success: false, message: "Unable to resolve basket ids for cleanup." },
+                { status: 400 }
+            );
+        }
+
+        const firstRow = basketRows[0] ?? {};
+        const firstAppUserId = basketRows
+            .map((row) => asString(row.APPUSER_ID).trim())
+            .find(Boolean);
+        const fallbackBranch = getEnvPositiveNumber("S1_ORDER_BRANCH", DEFAULT_ORDER_BRANCH);
+        const fallbackTrdBranch = getEnvPositiveNumber("S1_ORDER_TRDBRANCH", DEFAULT_ORDER_TRD_BRANCH);
+        const fallbackPayment = getEnvPositiveNumber("S1_ORDER_PAYMENT", DEFAULT_ORDER_PAYMENT);
+        const fallbackShipkind = getEnvPositiveNumber("S1_ORDER_SHIPKIND", DEFAULT_ORDER_SHIPKIND);
+        const fallbackSocash = getEnvPositiveNumber("S1_ORDER_SOCASH", DEFAULT_ORDER_SOCASH);
+        const fallbackTrucks = getEnvPositiveNumber("S1_ORDER_TRUCKS", DEFAULT_ORDER_TRUCKS);
+        const tableAction =
+            asString(
+                firstDefined(body.tableAction, body.TABLE_ACTION),
+                getEnvString("S1_MASS_DELETE_TABLE_ACTION") || DEFAULT_DELETE_TABLE_ACTION
+            ).trim() || DEFAULT_DELETE_TABLE_ACTION;
+        const deleteMethod =
+            asString(
+                firstDefined(body.method, body.METHOD),
+                getEnvString("S1_MASS_DELETE_METHOD") || DEFAULT_DELETE_METHOD
+            ).trim() || DEFAULT_DELETE_METHOD;
+        const deleteAppUserId =
+            asString(
+                firstDefined(body.appUserId, body.APPUSER_ID, firstAppUserId),
+                getEnvString("S1_MASS_DELETE_APPUSER_ID") || ZERO_GUID
+            ).trim() || ZERO_GUID;
+
+        const orderBranch =
+            asPositiveNumber(firstDefined(body.branch, body.BRANCH, firstRow.BRANCH)) ??
+            fallbackBranch;
+        const orderTrdBranch =
+            asPositiveNumber(
+                firstDefined(body.trdBranch, body.trdrBranch, body.TRDBRANCH, firstRow.TRD_BRANCH)
+            ) ?? fallbackTrdBranch;
+        const orderPayment =
+            asPositiveNumber(firstDefined(body.payment, body.PAYMENT)) ??
+            fallbackPayment;
+        const orderShipkind =
+            asPositiveNumber(firstDefined(body.shipkind, body.SHIPKIND)) ??
+            fallbackShipkind;
+        const orderSocash =
+            asPositiveNumber(firstDefined(body.socash, body.SOCASH)) ??
+            fallbackSocash;
+        const orderTrucks =
+            asPositiveNumber(firstDefined(body.trucks, body.TRUCKS)) ??
+            fallbackTrucks;
+
+        const orderSeries =
+            asString(
+                firstDefined(body.series, body.SERIES),
+                getEnvString("S1_ORDER_SERIES") || DEFAULT_ORDER_SERIES
+            ).trim() || DEFAULT_ORDER_SERIES;
+        const orderTaxSeries =
+            asString(
+                firstDefined(body.taxSeries, body.TAXSERIES),
+                getEnvString("S1_ORDER_TAXSERIES") || DEFAULT_ORDER_TAX_SERIES
+            ).trim() || DEFAULT_ORDER_TAX_SERIES;
+        const orderSeriesNum = asString(
+            firstDefined(body.seriesNum, body.SERIESNUM),
+            getEnvString("S1_ORDER_SERIESNUM")
+        ).trim();
+
+        const deliveryDate = resolveIsoDate(
+            firstDefined(body.deliveryDate, body.delivDate, body.DELIVDATE)
+        );
+
+        const comments =
+            asString(
+                firstDefined(body.comments, body.COMMENTS, body.notes, body.NOTES)
+            ).trim() || `Web order submission for TRDR ${normalizedTrdr}`;
+        const remarks =
+            asString(
+                firstDefined(body.remarks, body.REMARKS),
+                getEnvString("S1_ORDER_REMARKS") || "JSON COPY FOR MONITORING"
+            ).trim();
+
+        const setDataClientID = getSetDataClientID(String(orderBranch));
+        if (!setDataClientID) {
+            return NextResponse.json(
+                { success: false, message: "S1 setData client is not configured" },
+                { status: 500 }
+            );
+        }
+
+        const setDataPayload: SetDataOrderPayload = {
+            service: "setData",
+            clientID: setDataClientID,
+            appId: "1305",
+            OBJECT: "SALDOC",
+            KEY: "",
+            data: {
+                SALDOC: [
+                    {
+                        SERIES: orderSeries,
+                        TAXSERIES: orderTaxSeries,
+                        TRDR: Number(normalizedTrdr),
+                        TRDBRANCH: orderTrdBranch,
+                        PAYMENT: orderPayment,
+                        SERIESNUM: orderSeriesNum,
+                        TRUCKS: orderTrucks,
+                        DELIVDATE: deliveryDate,
+                        COMMENTS: comments,
+                        REMARKS: remarks,
+                        SHIPKIND: orderShipkind,
+                        SOCASH: orderSocash,
+                    },
+                ],
+                MTRDOC: [
+                    {
+                        TRUCKS: orderTrucks,
+                        DELIVDATE: deliveryDate,
+                        DEPTRDR_CUSTOMER_CODE: "",
+                        BILLTRDR_CUSTOMER_CODE: "",
+                        BRANCHSEC: orderBranch,
+                        WHOUSESEC: orderBranch,
+                    },
+                ],
+                ITELINES: orderLines,
+            },
         };
 
-        return NextResponse.json(data);
+        const setDataResponse = await fetch(S1_ENDPOINT, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(setDataPayload),
+        });
+
+        if (!setDataResponse.ok) {
+            const errorText = await setDataResponse.text();
+            console.error("[basket/submit] setData error body:", errorText);
+
+            return NextResponse.json(
+                { success: false, message: "Upstream order submission failed" },
+                { status: setDataResponse.status }
+            );
+        }
+
+        const setDataResult = await parseJsonWithEncodingFallback(setDataResponse) as {
+            success?: boolean;
+            message?: string;
+            id?: string | number;
+        };
+
+        if (setDataResult?.success === false) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: setDataResult.message ?? "Upstream order submission failed",
+                },
+                { status: 502 }
+            );
+        }
+
+        const orderId = asString(setDataResult?.id).trim();
+        if (!orderId) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "Order submitted but response id is missing. Basket cleanup was not executed.",
+                },
+                { status: 502 }
+            );
+        }
+
+        const massDeletePayload: MassDeletePayload = {
+            service: "SqlData",
+            clientID: sqlClientID,
+            appId: "1305",
+            SqlName: "MASS_DELETE",
+            BASKET_IDS: basketIds.join(","),
+            TABLE_ACTION: tableAction,
+            METHOD: deleteMethod,
+            S1_KEY: orderId,
+            APPUSER_ID: deleteAppUserId,
+        };
+
+        const massDeleteResponse = await fetch(S1_ENDPOINT, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(massDeletePayload),
+        });
+
+        if (!massDeleteResponse.ok) {
+            const errorText = await massDeleteResponse.text();
+            console.error("[basket/submit] mass-delete error body:", errorText);
+
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        `Order submitted (${orderId}) but basket cleanup failed`,
+                },
+                { status: massDeleteResponse.status }
+            );
+        }
+
+        const massDeleteResult = await parseJsonWithEncodingFallback(massDeleteResponse) as {
+            success?: boolean;
+            message?: string;
+            rows?: Array<{ MESSAGE_TO_CALLER?: string } | Record<string, unknown>>;
+        };
+
+        if (massDeleteResult?.success === false) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        massDeleteResult.message ??
+                        `Order submitted (${orderId}) but basket cleanup failed`,
+                },
+                { status: 502 }
+            );
+        }
+
+        const massDeleteMessage =
+            massDeleteResult?.message ??
+            (
+                massDeleteResult?.rows?.[0] &&
+                typeof massDeleteResult.rows[0] === "object" &&
+                "MESSAGE_TO_CALLER" in massDeleteResult.rows[0] &&
+                typeof massDeleteResult.rows[0].MESSAGE_TO_CALLER === "string"
+            ? massDeleteResult.rows[0].MESSAGE_TO_CALLER
+            : undefined
+            );
+
+        const submittedMessage =
+            setDataResult?.message ?? `Order submitted (${orderId})`;
+        const responseData: BasketActionResponse = {
+            success: true,
+            message:
+                massDeleteMessage
+                    ? `${submittedMessage}. ${massDeleteMessage}`
+                    : `${submittedMessage}. Basket cleared`,
+            id: orderId || undefined,
+        };
+
+        return NextResponse.json(responseData);
     } catch (error) {
         console.error("[basket/submit] Server error", error);
 

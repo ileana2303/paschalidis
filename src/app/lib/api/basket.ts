@@ -5,6 +5,7 @@ import type {
     BasketInRoutePayload,
     BasketRequestPriceRoutePayload,
     BasketResponse,
+    BasketUpdateRoutePayload,
 } from "../interface";
 import { httpClient } from "@/lib/http/client";
 
@@ -30,6 +31,21 @@ export async function addItemToBasket(
 
     if (!data.success) {
         throw new Error(data.message ?? "Failed to add item to basket");
+    }
+
+    return data;
+}
+
+export async function updateBasketItemQty(
+    params: BasketUpdateRoutePayload
+): Promise<BasketActionResponse> {
+    const { data } = await httpClient.post<BasketActionResponse>(
+        "/api/basket/update-item",
+        params
+    );
+
+    if (!data.success) {
+        throw new Error(data.message ?? "Failed to update basket item quantity");
     }
 
     return data;

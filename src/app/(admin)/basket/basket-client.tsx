@@ -1,7 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     Loader2,
@@ -38,6 +38,10 @@ export default function BasketClient() {
     const [pickupPoint, setPickupPoint] = useState("");
     const [notes, setNotes] = useState("");
     const [sendingOrder, setSendingOrder] = useState(false);
+    const basketLoadInFlightRef = useRef<Promise<void> | null>(null);
+    const basketLoadInFlightTrdrRef = useRef<string | null>(null);
+    const basketLoadInFlightIdRef = useRef<number | null>(null);
+    const basketRequestIdRef = useRef(0);
     const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
 
@@ -47,35 +51,76 @@ export default function BasketClient() {
     };
 
     const loadBasket = useCallback(async () => {
-        if (!customer) return;
+        const normalizedTrdr = String(customer?.TRDR ?? "").trim();
+        if (!normalizedTrdr) {
+            return;
+        }
 
+        if (
+            basketLoadInFlightRef.current &&
+            basketLoadInFlightTrdrRef.current === normalizedTrdr
+        ) {
+            return basketLoadInFlightRef.current;
+        }
+
+        const requestId = ++basketRequestIdRef.current;
         setLoading(true);
         setError("");
 
-        try {
-            const data = await fetchBasketItems(customer.TRDR);
-            const nextBasket = normalizeBasket(data);
-            setBasket(nextBasket);
-            setSelectedItems(new Set(nextBasket.items.map((item) => getBasketItemId(item))));
-        } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Αποτυχία φόρτωσης καλαθιού"
-            );
-            setBasket(null);
-            setSelectedItems(new Set());
-        } finally {
-            setLoading(false);
-        }
-    }, [customer, fetchBasketItems]);
+        const requestPromise = (async () => {
+            try {
+                const data = await fetchBasketItems(normalizedTrdr);
+
+                if (basketRequestIdRef.current !== requestId) {
+                    return;
+                }
+
+                const nextBasket = normalizeBasket(data);
+                setBasket(nextBasket);
+                setSelectedItems(new Set(nextBasket.items.map((item) => getBasketItemId(item))));
+            } catch (err) {
+                if (basketRequestIdRef.current !== requestId) {
+                    return;
+                }
+
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Αποτυχία φόρτωσης καλαθιού"
+                );
+                setBasket(null);
+                setSelectedItems(new Set());
+            } finally {
+                if (basketRequestIdRef.current === requestId) {
+                    setLoading(false);
+                }
+
+                if (basketLoadInFlightIdRef.current === requestId) {
+                    basketLoadInFlightRef.current = null;
+                    basketLoadInFlightTrdrRef.current = null;
+                    basketLoadInFlightIdRef.current = null;
+                }
+            }
+        })();
+
+        basketLoadInFlightRef.current = requestPromise;
+        basketLoadInFlightTrdrRef.current = normalizedTrdr;
+        basketLoadInFlightIdRef.current = requestId;
+
+        return requestPromise;
+    }, [customer?.TRDR, fetchBasketItems]);
 
     useEffect(() => {
         if (!customer) {
+            basketRequestIdRef.current += 1;
+            basketLoadInFlightRef.current = null;
+            basketLoadInFlightTrdrRef.current = null;
+            basketLoadInFlightIdRef.current = null;
             setBasket(null);
             setError("");
             setSuccessMessage("");
             setSelectedItems(new Set());
+            setLoading(false);
             return;
         }
 

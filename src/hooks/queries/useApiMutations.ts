@@ -5,6 +5,7 @@ import type {
     BasketAllRoutePayload,
     BasketInRoutePayload,
     BasketRequestPriceRoutePayload,
+    BasketUpdateRoutePayload,
     StockRequestListRoutePayload,
     StockRequestMassDeleteRoutePayload,
     StockRequestRoutePayload,
@@ -16,6 +17,7 @@ import {
     fetchBasketItems,
     requestDiscount,
     submitBasketOrder,
+    updateBasketItemQty,
 } from "@/app/lib/api/basket";
 import { fetchCatalogProducts } from "@/app/lib/api/catalogs";
 import { searchCustomers } from "@/app/lib/api/customers";
@@ -88,6 +90,12 @@ export const useFetchAllClientBasketsMutation = () =>
 export const useAddItemToBasketMutation = () =>
     useMutation({
         mutationFn: (payload: BasketInRoutePayload) => addItemToBasket(payload),
+    });
+
+export const useUpdateBasketItemQtyMutation = () =>
+    useMutation({
+        mutationFn: (payload: BasketUpdateRoutePayload) =>
+            updateBasketItemQty(payload),
     });
 
 export const useRequestDiscountMutation = () =>

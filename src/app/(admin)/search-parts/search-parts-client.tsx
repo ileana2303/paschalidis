@@ -8,6 +8,7 @@ import { ICustomerInfo, IItem, IBasket, IBasketItem, StockRequestStatus } from "
 import {
     getBasketItemId,
     getBasketItemLineTotal,
+    getBasketItemQty,
     normalizeBasket,
 } from "@/app/lib/basket";
 import { useModal } from "@/hooks/useModal";
@@ -27,6 +28,7 @@ import {
     useSearchItemsByTrdrMutation,
     useSearchItemsMutation,
     useSubmitBasketOrderMutation,
+    useUpdateBasketItemQtyMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
 import { isAxiosError } from "axios";
@@ -87,6 +89,10 @@ export default function SearchPartsClient() {
     const resultsContainerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const customerSyncCheckedRef = useRef(false);
+    const basketLoadInFlightRef = useRef<Promise<void> | null>(null);
+    const basketLoadInFlightTrdrRef = useRef<string | null>(null);
+    const basketLoadInFlightIdRef = useRef<number | null>(null);
+    const basketRequestIdRef = useRef(0);
     const { mutateAsync: searchItems } = useSearchItemsMutation();
     const { mutateAsync: searchItemsByTrdr } = useSearchItemsByTrdrMutation();
     const { mutateAsync: searchCustomers } = useSearchCustomersMutation();
@@ -95,6 +101,7 @@ export default function SearchPartsClient() {
     const { mutateAsync: addItemToBasket } = useAddItemToBasketMutation();
     const { mutateAsync: requestDiscount } = useRequestDiscountMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
+    const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
 
     const handleOpenSearchModal = useCallback(() => {
         setModalSearch("");
@@ -282,34 +289,77 @@ export default function SearchPartsClient() {
     };
 
     const loadBasket = useCallback(async (trdr: string) => {
+        const normalizedTrdr = String(trdr).trim();
+
+        if (!normalizedTrdr) {
+            return;
+        }
+
+        if (
+            basketLoadInFlightRef.current &&
+            basketLoadInFlightTrdrRef.current === normalizedTrdr
+        ) {
+            return basketLoadInFlightRef.current;
+        }
+
+        const requestId = ++basketRequestIdRef.current;
         setBasketLoading(true);
         setBasketError("");
 
-        try {
-            const data = await fetchBasketItems(trdr);
+        const requestPromise = (async () => {
+            try {
+                const data = await fetchBasketItems(normalizedTrdr);
 
-            const nextBasket = normalizeBasket(data);
-            setBasket(nextBasket);
-            setSelectedItems(new Set(nextBasket.items.map((item) => getBasketItemId(item))));
-        } catch (error) {
-            setBasketError(
-                error instanceof Error
-                    ? error.message
-                    : "Αποτυχία φόρτωσης καλαθιού"
-            );
-            setSelectedItems(new Set());
-        } finally {
-            setBasketLoading(false);
-        }
+                if (basketRequestIdRef.current !== requestId) {
+                    return;
+                }
+
+                const nextBasket = normalizeBasket(data);
+                setBasket(nextBasket);
+                setSelectedItems(new Set(nextBasket.items.map((item) => getBasketItemId(item))));
+            } catch (error) {
+                if (basketRequestIdRef.current !== requestId) {
+                    return;
+                }
+
+                setBasketError(
+                    error instanceof Error
+                        ? error.message
+                        : "Αποτυχία φόρτωσης καλαθιού"
+                );
+                setSelectedItems(new Set());
+            } finally {
+                if (basketRequestIdRef.current === requestId) {
+                    setBasketLoading(false);
+                }
+
+                if (basketLoadInFlightIdRef.current === requestId) {
+                    basketLoadInFlightRef.current = null;
+                    basketLoadInFlightTrdrRef.current = null;
+                    basketLoadInFlightIdRef.current = null;
+                }
+            }
+        })();
+
+        basketLoadInFlightRef.current = requestPromise;
+        basketLoadInFlightTrdrRef.current = normalizedTrdr;
+        basketLoadInFlightIdRef.current = requestId;
+
+        return requestPromise;
     }, [fetchBasketItems]);
 
     useEffect(() => {
         if (customer?.TRDR) {
             loadBasket(customer.TRDR);
         } else {
+            basketRequestIdRef.current += 1;
+            basketLoadInFlightRef.current = null;
+            basketLoadInFlightTrdrRef.current = null;
+            basketLoadInFlightIdRef.current = null;
             setBasket(null);
             setBasketError("");
             setSelectedItems(new Set());
+            setBasketLoading(false);
         }
     }, [customer?.TRDR, loadBasket]);
 
@@ -322,11 +372,24 @@ export default function SearchPartsClient() {
         });
     };
 
-    const getQuantity = (itemCode: string) => quantities[itemCode] ?? 1;
+    const getQuantity = (itemCode: string, fallback = 1) =>
+        quantities[itemCode] ?? fallback;
 
     const setQuantity = (itemCode: string, qty: number) => {
         if (qty < 1) qty = 1;
         setQuantities((prev) => ({ ...prev, [itemCode]: qty }));
+    };
+
+    const clearQuantityOverride = (itemCode: string) => {
+        setQuantities((prev) => {
+            if (!(itemCode in prev)) {
+                return prev;
+            }
+
+            const next = { ...prev };
+            delete next[itemCode];
+            return next;
+        });
     };
 
     const getStoreStock = (item: IItem) => {
@@ -399,19 +462,30 @@ export default function SearchPartsClient() {
     const handleAddToBasket = async (item: IItem) => {
         if (!customer) return;
 
+        const basketItem = findBasketItem(item);
+        const basketQtyFallback = basketItem ? Math.max(1, getBasketItemQty(basketItem)) : 1;
+        const requestedQty = Math.max(1, getQuantity(item.ITEM_CODE, basketQtyFallback));
+
         setAddingToBasket((prev) => new Set(prev).add(item.ITEM_CODE));
 
         try {
-            await addItemToBasket({
-                TRDR: customer.TRDR,
-                MTRL: Number(item.MTRL),
-                QTY: getQuantity(item.ITEM_CODE),
-                PRICE_ERP: Number(item.PRICE_WHOLE),
-                PRICE_REQ: Number(item.PRICE_WHOLE),
-                APPUSER_ID: user?.uid,
-            });
+            if (basketItem) {
+                await updateBasketItemQty({
+                    BASKETID: basketItem.BASKETID,
+                    QTY: requestedQty,
+                });
+            } else {
+                await addItemToBasket({
+                    TRDR: customer.TRDR,
+                    MTRL: Number(item.MTRL),
+                    QTY: requestedQty,
+                    PRICE_ERP: Number(item.PRICE_WHOLE),
+                    PRICE_REQ: Number(item.PRICE_WHOLE),
+                    APPUSER_ID: user?.uid,
+                });
+            }
 
-            setQuantities((prev) => ({ ...prev, [item.ITEM_CODE]: 1 }));
+            clearQuantityOverride(item.ITEM_CODE);
             await loadBasket(customer.TRDR);
         } catch (err) {
             if (isAxiosError(err)) {
@@ -599,9 +673,12 @@ export default function SearchPartsClient() {
                                 <div className="space-y-2">
                                     {items.map((item) => {
                                         const isExpanded = expandedItems.has(item.ITEM_CODE);
-                                        const qty = getQuantity(item.ITEM_CODE);
-                                        const isAdding = addingToBasket.has(item.ITEM_CODE);
                                         const basketItem = findBasketItem(item);
+                                        const qty = getQuantity(
+                                            item.ITEM_CODE,
+                                            basketItem ? Math.max(1, getBasketItemQty(basketItem)) : 1
+                                        );
+                                        const isAdding = addingToBasket.has(item.ITEM_CODE);
                                         const isInBasket = basketItem != null;
                                         const mtrlKey = String(item.MTRL);
                                         const storeStock = getStoreStock(item);
