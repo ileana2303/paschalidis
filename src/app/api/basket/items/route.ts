@@ -78,6 +78,61 @@ function asString(value: unknown, fallback = ""): string {
     return String(value);
 }
 
+function toFiniteNumber(value: unknown): number | null {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    const raw = String(value).trim();
+    if (!raw) {
+        return null;
+    }
+
+    const parsed = Number(raw.replace(",", "."));
+    if (!Number.isFinite(parsed)) {
+        return null;
+    }
+
+    return parsed;
+}
+
+function resolveErpPrice(row: Partial<IBasketItem>) {
+    const primary = toFiniteNumber(row.PRICE_ERP);
+    if (primary !== null) {
+        return String(primary);
+    }
+
+    const secondary = toFiniteNumber(row.BASKET_ERP_PRICE);
+    if (secondary !== null) {
+        return String(secondary);
+    }
+
+    return "0";
+}
+
+function resolveRequestedPrice(row: Partial<IBasketItem>, fallbackPrice: string) {
+    const primary = toFiniteNumber(row.PRICE_REQ);
+    const secondary = toFiniteNumber(row.BASKET_REQ_PRICE);
+
+    if (primary !== null && primary > 0) {
+        return String(primary);
+    }
+
+    if (secondary !== null && secondary > 0) {
+        return String(secondary);
+    }
+
+    if (primary !== null) {
+        return String(primary);
+    }
+
+    if (secondary !== null) {
+        return String(secondary);
+    }
+
+    return fallbackPrice;
+}
+
 function mapRowToBasketItem(
     row: Partial<IBasketItem>,
     trdr: string,
@@ -96,14 +151,8 @@ function mapRowToBasketItem(
         fallbackUid || String(index)
     );
 
-    const priceErp = asString(
-        firstDefined(row.PRICE_ERP, row.BASKET_ERP_PRICE),
-        "0"
-    );
-    const priceReq = asString(
-        firstDefined(row.PRICE_REQ, row.BASKET_REQ_PRICE),
-        priceErp
-    );
+    const priceErp = resolveErpPrice(row);
+    const priceReq = resolveRequestedPrice(row, priceErp);
 
     return {
         BASKETID: basketId,
@@ -125,6 +174,8 @@ function mapRowToBasketItem(
         NAME: asString(firstDefined(row.NAME, row.ITEM_DESCR), ""),
         CODE2: asString(firstDefined(row.CODE2), ""),
         CUST_NAME: asString(firstDefined(row.CUST_NAME), ""),
+        BASKET_ERP_PRICE: asString(firstDefined(row.BASKET_ERP_PRICE), ""),
+        BASKET_REQ_PRICE: asString(firstDefined(row.BASKET_REQ_PRICE), ""),
     };
 }
 

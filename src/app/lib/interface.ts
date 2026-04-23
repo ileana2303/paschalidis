@@ -176,6 +176,8 @@ export interface BasketInPayload {
 export interface BasketUpdateRoutePayload {
     BASKETID: string | number;
     QTY: number;
+    PRICE_ERP?: number;
+    PRICE_REQ?: number;
 }
 
 export interface BasketUpdatePayload {
@@ -185,6 +187,8 @@ export interface BasketUpdatePayload {
     SqlName: "BASKET_UPDATE";
     QTY: number;
     BASKETID: number;
+    PRICE_ERP?: number;
+    PRICE_REQ?: number;
 }
 
 export interface BasketOutRoutePayload {

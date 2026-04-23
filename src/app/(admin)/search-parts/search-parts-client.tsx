@@ -555,6 +555,9 @@ export default function SearchPartsClient() {
 
         const discountValue = discountPrices[item.ITEM_CODE] ?? "";
         const requestedPrice = Number(discountValue);
+        const basketItem = findBasketItem(item);
+        const basketQty = basketItem ? Math.max(1, getBasketItemQty(basketItem)) : 1;
+        const requestedQty = Math.max(1, getQuantity(item.ITEM_CODE, basketQty));
 
         if (!discountValue || !Number.isFinite(requestedPrice) || requestedPrice <= 0) {
             return;
@@ -563,17 +566,26 @@ export default function SearchPartsClient() {
         setSubmittingDiscount((prev) => new Set(prev).add(item.ITEM_CODE));
 
         try {
-            await requestDiscount({
-                TRDR: customer.TRDR,
-                MTRL: Number(item.MTRL),
-                QTY: getQuantity(item.ITEM_CODE),
-                PRICE_ERP: Number(item.PRICE_WHOLE),
-                PRICE_REQ: requestedPrice,
-                APPUSER_ID: user?.uid,
-            });
+            if (basketItem) {
+                await updateBasketItemQty({
+                    BASKETID: basketItem.BASKETID,
+                    QTY: requestedQty,
+                    PRICE_ERP: Number(item.PRICE_WHOLE),
+                    PRICE_REQ: requestedPrice,
+                });
+            } else {
+                await requestDiscount({
+                    TRDR: customer.TRDR,
+                    MTRL: Number(item.MTRL),
+                    QTY: requestedQty,
+                    PRICE_ERP: Number(item.PRICE_WHOLE),
+                    PRICE_REQ: requestedPrice,
+                    APPUSER_ID: user?.uid,
+                });
+            }
 
             setDiscountPrices((prev) => ({ ...prev, [item.ITEM_CODE]: "" }));
-            setQuantities((prev) => ({ ...prev, [item.ITEM_CODE]: 1 }));
+            clearQuantityOverride(item.ITEM_CODE);
             await loadBasket(customer.TRDR);
         } catch (error) {
             if (isAxiosError(error)) {

@@ -33,14 +33,59 @@ export function getBasketItemQty(item: IBasketItem): number {
     return Number.isFinite(qty) ? qty : 0;
 }
 
+function getFiniteNumber(value: unknown): number | null {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    const raw = String(value).trim();
+    if (!raw) {
+        return null;
+    }
+
+    const parsed = Number(raw.replace(",", "."));
+    if (!Number.isFinite(parsed)) {
+        return null;
+    }
+
+    return parsed;
+}
+
 export function getBasketItemBasePrice(item: IBasketItem): number {
-    const price = Number(item.PRICE_ERP ?? 0);
-    return Number.isFinite(price) ? price : 0;
+    const primary = getFiniteNumber(item.PRICE_ERP);
+    if (primary !== null) {
+        return primary;
+    }
+
+    const secondary = getFiniteNumber(item.BASKET_ERP_PRICE);
+    if (secondary !== null) {
+        return secondary;
+    }
+
+    return 0;
 }
 
 export function getBasketItemRequestedPrice(item: IBasketItem): number {
-    const price = Number(item.PRICE_REQ ?? 0);
-    return Number.isFinite(price) ? price : 0;
+    const primary = getFiniteNumber(item.PRICE_REQ);
+    const secondary = getFiniteNumber(item.BASKET_REQ_PRICE);
+
+    if (primary !== null && primary > 0) {
+        return primary;
+    }
+
+    if (secondary !== null && secondary > 0) {
+        return secondary;
+    }
+
+    if (primary !== null) {
+        return primary;
+    }
+
+    if (secondary !== null) {
+        return secondary;
+    }
+
+    return 0;
 }
 
 export function getBasketItemEffectivePrice(item: IBasketItem): number {
@@ -73,8 +118,20 @@ export function getBasketItemApprovalStatus(
 }
 
 export function hasBasketItemDiscount(item: IBasketItem): boolean {
+    const approvalStatus = getBasketItemApprovalStatus(item);
+    const requestedPrice = getBasketItemRequestedPrice(item);
+    const basePrice = getBasketItemBasePrice(item);
+
+    if (approvalStatus === "approved" || approvalStatus === "rejected") {
+        return true;
+    }
+
+    if (requestedPrice <= 0) {
+        return false;
+    }
+
     return (
-        getBasketItemApprovalStatus(item) !== null ||
-        getBasketItemRequestedPrice(item) !== getBasketItemBasePrice(item)
+        requestedPrice !== basePrice ||
+        approvalStatus === "pending"
     );
 }

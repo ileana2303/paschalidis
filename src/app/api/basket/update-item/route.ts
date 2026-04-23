@@ -72,6 +72,10 @@ export async function POST(req: NextRequest) {
         const body = await req.json() as BasketUpdateRoutePayload;
         const normalizedBasketId = Number(body.BASKETID);
         const normalizedQty = Number(body.QTY);
+        const normalizedPriceErp =
+            body.PRICE_ERP != null ? Number(body.PRICE_ERP) : undefined;
+        const normalizedPriceReq =
+            body.PRICE_REQ != null ? Number(body.PRICE_REQ) : undefined;
         const clientID = getClientID();
 
         if (!clientID) {
@@ -95,6 +99,20 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        if (normalizedPriceErp != null && (!Number.isFinite(normalizedPriceErp) || normalizedPriceErp < 0)) {
+            return NextResponse.json(
+                { success: false, message: "PRICE_ERP is invalid" },
+                { status: 400 }
+            );
+        }
+
+        if (normalizedPriceReq != null && (!Number.isFinite(normalizedPriceReq) || normalizedPriceReq < 0)) {
+            return NextResponse.json(
+                { success: false, message: "PRICE_REQ is invalid" },
+                { status: 400 }
+            );
+        }
+
         const payload: BasketUpdatePayload = {
             service: "SqlData",
             clientID,
@@ -102,6 +120,8 @@ export async function POST(req: NextRequest) {
             SqlName: "BASKET_UPDATE",
             QTY: normalizedQty,
             BASKETID: normalizedBasketId,
+            ...(normalizedPriceErp != null ? { PRICE_ERP: normalizedPriceErp } : {}),
+            ...(normalizedPriceReq != null ? { PRICE_REQ: normalizedPriceReq } : {}),
         };
 
         const response = await fetch(S1_ENDPOINT, {
