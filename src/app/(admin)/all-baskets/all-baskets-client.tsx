@@ -43,7 +43,10 @@ type ClientBasketGroup = {
     customerName: string;
     customerCode: string;
     itemCount: number;
+    totalQty: number;
     totalValue: number;
+    minDate: string;
+    maxDate: string;
     items: ClientBasketLine[];
 };
 
@@ -110,7 +113,13 @@ function normalizeLine(
         "—"
     );
     const qty = asNumber(
-        firstDefined(rowInput.QTY, rowInput.TOTAL_QTY, rowInput.BASKET_QTY, rowInput.qty),
+        firstDefined(
+            rowInput.QTY,
+            rowInput.TOTAL_QTY,
+            rowInput.BASKET_QTY,
+            rowInput.TOT_QTY,
+            rowInput.qty
+        ),
         0
     );
     const basePrice = asNumber(
@@ -133,7 +142,7 @@ function normalizeLine(
     );
     const effectivePrice = requestedPrice > 0 ? requestedPrice : basePrice;
     const rawLineTotal = asNumber(
-        firstDefined(rowInput.LINE_TOTAL, rowInput.lineTotal),
+        firstDefined(rowInput.LINE_TOTAL, rowInput.TOTAL_VALUE, rowInput.lineTotal),
         Number.NaN
     );
     const lineTotal =
@@ -209,14 +218,34 @@ function normalizeGroupedRows(rows: unknown[]) {
             firstDefined(rowInput.basketTotal, rowInput.totalValue),
             Number.NaN
         );
+        const providedTotalQty = asNumber(
+            firstDefined(rowInput.TOT_QTY, rowInput.totalQty),
+            Number.NaN
+        );
         const calculatedTotal = items.reduce(
             (sum, item) => sum + item.lineTotal,
+            0
+        );
+        const calculatedTotalQty = items.reduce(
+            (sum, item) => sum + item.qty,
             0
         );
         const totalValue =
             Number.isFinite(providedTotal) && providedTotal >= 0
                 ? providedTotal
                 : calculatedTotal;
+        const totalQty =
+            Number.isFinite(providedTotalQty) && providedTotalQty >= 0
+                ? providedTotalQty
+                : calculatedTotalQty;
+        const minDate = asString(
+            firstDefined(rowInput.MINDATE, rowInput.minDate),
+            ""
+        );
+        const maxDate = asString(
+            firstDefined(rowInput.MAXDATE, rowInput.maxDate),
+            ""
+        );
 
         groups.push({
             key: trdr || `group-${rowIndex}`,
@@ -224,8 +253,76 @@ function normalizeGroupedRows(rows: unknown[]) {
             customerName,
             customerCode,
             itemCount: itemCount > 0 ? itemCount : items.length,
+            totalQty,
             totalValue,
+            minDate,
+            maxDate,
             items,
+        });
+    });
+
+    return groups;
+}
+
+function normalizeSummaryRows(rows: unknown[]) {
+    const groups: ClientBasketGroup[] = [];
+
+    rows.forEach((rowInput, rowIndex) => {
+        if (!isRecord(rowInput)) {
+            return;
+        }
+
+        const trdr = asString(firstDefined(rowInput.TRDR, rowInput.trdr), "");
+        const customerName = asString(
+            firstDefined(
+                rowInput.CUSTOMER_NAME,
+                rowInput.CUST_NAME,
+                rowInput.customerName,
+                rowInput.NAME,
+                rowInput.name
+            ),
+            trdr ? `Πελάτης ${trdr}` : `Πελάτης ${rowIndex + 1}`
+        );
+        const customerCode = asString(
+            firstDefined(rowInput.CODE, rowInput.customerCode),
+            "—"
+        );
+        const itemCount = asNumber(
+            firstDefined(
+                rowInput.BASKETROWS,
+                rowInput.totalcount,
+                rowInput.totalCount
+            ),
+            0
+        );
+        const totalQty = asNumber(
+            firstDefined(rowInput.TOT_QTY, rowInput.totalQty),
+            0
+        );
+        const totalValue = asNumber(
+            firstDefined(rowInput.TOTAL_VALUE, rowInput.basketTotal, rowInput.totalValue),
+            0
+        );
+        const minDate = asString(
+            firstDefined(rowInput.MINDATE, rowInput.minDate),
+            ""
+        );
+        const maxDate = asString(
+            firstDefined(rowInput.MAXDATE, rowInput.maxDate),
+            ""
+        );
+
+        groups.push({
+            key: trdr || `group-${rowIndex}`,
+            trdr,
+            customerName,
+            customerCode,
+            itemCount,
+            totalQty,
+            totalValue,
+            minDate,
+            maxDate,
+            items: [],
         });
     });
 
@@ -245,7 +342,7 @@ function normalizeFlatRows(rows: unknown[]) {
         const trdr = asString(firstDefined(row.TRDR, row.trdr), line.trdr);
         const key = trdr || `group-${index}`;
         const customerName = asString(
-            firstDefined(row.CUST_NAME, row.customerName),
+            firstDefined(row.CUSTOMER_NAME, row.CUST_NAME, row.customerName),
             trdr ? `Πελάτης ${trdr}` : `Πελάτης ${index + 1}`
         );
 
@@ -256,7 +353,10 @@ function normalizeFlatRows(rows: unknown[]) {
                 customerName,
                 customerCode: "—",
                 itemCount: 0,
+                totalQty: 0,
                 totalValue: 0,
+                minDate: "",
+                maxDate: "",
                 items: [],
             });
         }
@@ -268,6 +368,7 @@ function normalizeFlatRows(rows: unknown[]) {
 
         group.items.push(line);
         group.itemCount += 1;
+        group.totalQty += line.qty;
         group.totalValue += line.lineTotal;
     });
 
@@ -287,10 +388,17 @@ function normalizeAllBasketsResponse(data: BasketAllResponse) {
     }
 
     const firstRow = rows[0];
+    const hasSummaryRows =
+        isRecord(firstRow) &&
+        ("CUSTOMER_NAME" in firstRow ||
+            "BASKETROWS" in firstRow ||
+            "TOT_QTY" in firstRow);
     const hasNestedRows = isRecord(firstRow) && getNestedRows(firstRow).length > 0;
-    const groups = hasNestedRows
-        ? normalizeGroupedRows(rows)
-        : normalizeFlatRows(rows);
+    const groups = hasSummaryRows
+        ? normalizeSummaryRows(rows)
+        : hasNestedRows
+            ? normalizeGroupedRows(rows)
+            : normalizeFlatRows(rows);
 
     const totalcount = Number.isFinite(Number(data.totalcount))
         ? Number(data.totalcount)
@@ -312,6 +420,42 @@ function normalizeAllBasketsResponse(data: BasketAllResponse) {
 
 function formatPrice(value: number) {
     return `${value.toFixed(2)} €`;
+}
+
+function formatDate(value: string) {
+    if (!value) {
+        return "—";
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return value;
+    }
+
+    return parsed.toLocaleDateString("el-GR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    });
+}
+
+function formatDateRange(minDate: string, maxDate: string) {
+    const from = formatDate(minDate);
+    const to = formatDate(maxDate);
+
+    if (from === "—" && to === "—") {
+        return "—";
+    }
+
+    if (from === "—") {
+        return to;
+    }
+
+    if (to === "—") {
+        return from;
+    }
+
+    return `${from} - ${to}`;
 }
 
 function formatDateTime(value: string) {
@@ -400,6 +544,10 @@ export default function AllBasketsClient() {
         () => groups.reduce((sum, group) => sum + group.itemCount, 0),
         [groups]
     );
+    const totalQty = useMemo(
+        () => groups.reduce((sum, group) => sum + group.totalQty, 0),
+        [groups]
+    );
     const totalValue = useMemo(
         () => groups.reduce((sum, group) => sum + group.totalValue, 0),
         [groups]
@@ -477,7 +625,7 @@ export default function AllBasketsClient() {
                 </form>
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="mt-5 grid gap-3 sm:grid-cols-4">
                 <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.02]">
                     <p className="text-xs uppercase tracking-[0.1em] text-gray-500">
                         Πελάτες με καλάθι
@@ -492,6 +640,14 @@ export default function AllBasketsClient() {
                     </p>
                     <p className="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
                         {totalItems}
+                    </p>
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.02]">
+                    <p className="text-xs uppercase tracking-[0.1em] text-gray-500">
+                        Συνολικά τεμάχια
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                        {totalQty}
                     </p>
                 </div>
                 <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.02]">
@@ -564,6 +720,12 @@ export default function AllBasketsClient() {
                                                     </div>
                                                     <div className="mt-0.5 text-xs text-gray-500">
                                                         Κωδικός: {group.customerCode}
+                                                    </div>
+                                                    <div className="mt-0.5 text-xs text-gray-500">
+                                                        Τεμάχια: {group.totalQty}
+                                                    </div>
+                                                    <div className="mt-0.5 text-xs text-gray-500">
+                                                        Διάστημα: {formatDateRange(group.minDate, group.maxDate)}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">

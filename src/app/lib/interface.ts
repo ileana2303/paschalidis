@@ -111,6 +111,12 @@ export interface BasketAllRoutePayload {
 
 export interface BasketAllCustomerGroup {
     TRDR?: string | number;
+    CUSTOMER_NAME?: string;
+    TOT_QTY?: string | number;
+    TOTAL_VALUE?: string | number;
+    BASKETROWS?: string | number;
+    MINDATE?: string;
+    MAXDATE?: string;
     CODE?: string;
     NAME?: string;
     CUST_NAME?: string;

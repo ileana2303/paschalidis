@@ -1,21 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { backend } from "@/lib/http/backend";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import type { BasketAllResponse, BasketAllRoutePayload } from "@/app/lib/interface";
 
-const DEFAULT_BACKEND_PATH = "/Api/Basket/AllClients";
+const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
+const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
+const S1_APP_ID = "1305";
 
-function getAllBasketsBackendPath() {
-    const configuredPath = process.env.BACKEND_ALL_BASKETS_PATH?.trim();
-
-    if (!configuredPath) {
-        return DEFAULT_BACKEND_PATH;
-    }
-
-    return configuredPath.startsWith("/") ? configuredPath : `/${configuredPath}`;
+function getClientID() {
+    return process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
 }
 
 function toPositiveInt(value: unknown, fallback: number, max?: number) {
@@ -43,20 +38,50 @@ function normalizeSearch(value: unknown) {
     return trimmed.length > 0 ? trimmed : "*";
 }
 
-function extractRows(data: Record<string, unknown> | null): BasketAllResponse["rows"] {
-    if (!data) {
-        return [];
+function getCharset(contentType: string | null) {
+    if (!contentType) {
+        return null;
     }
 
-    if (Array.isArray(data.rows)) {
-        return data.rows as BasketAllResponse["rows"];
+    const match = contentType.match(/charset=([^;]+)/i);
+    return match?.[1]?.trim().toLowerCase() ?? null;
+}
+
+async function parseJsonWithEncodingFallback(response: Response) {
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const candidateEncodings = new Set<string>();
+    const declaredCharset = getCharset(response.headers.get("content-type"));
+
+    if (declaredCharset) {
+        candidateEncodings.add(declaredCharset);
     }
 
-    if (Array.isArray(data.data)) {
-        return data.data as BasketAllResponse["rows"];
+    candidateEncodings.add("utf-8");
+
+    for (const encoding of GREEK_FALLBACK_ENCODINGS) {
+        candidateEncodings.add(encoding);
     }
 
-    return [];
+    let lastError: Error | null = null;
+
+    for (const encoding of candidateEncodings) {
+        try {
+            const text = new TextDecoder(encoding).decode(bytes);
+
+            if (encoding === "utf-8" && text.includes("\uFFFD")) {
+                continue;
+            }
+
+            return JSON.parse(text);
+        } catch (error) {
+            lastError =
+                error instanceof Error
+                    ? error
+                    : new Error("Failed to decode upstream response");
+        }
+    }
+
+    throw lastError ?? new Error("Failed to decode upstream response");
 }
 
 function extractMessage(data: Record<string, unknown> | null, fallback: string) {
@@ -79,20 +104,18 @@ function extractMessage(data: Record<string, unknown> | null, fallback: string) 
     return fallback;
 }
 
-function extractTotalcount(
-    data: Record<string, unknown> | null,
-    fallback: number
-) {
-    if (!data) {
-        return fallback;
+function matchesSearch(row: Record<string, unknown>, search: string) {
+    if (search === "*") {
+        return true;
     }
 
-    const totalcount = Number(data.totalcount);
-    if (Number.isFinite(totalcount) && totalcount >= 0) {
-        return totalcount;
-    }
+    const normalizedSearch = search.toLocaleLowerCase("el-GR");
+    const trdr = String(row.TRDR ?? "").toLocaleLowerCase("el-GR");
+    const customerName = String(
+        row.CUSTOMER_NAME ?? row.CUST_NAME ?? row.NAME ?? ""
+    ).toLocaleLowerCase("el-GR");
 
-    return fallback;
+    return trdr.includes(normalizedSearch) || customerName.includes(normalizedSearch);
 }
 
 export async function POST(req: NextRequest) {
@@ -110,38 +133,46 @@ export async function POST(req: NextRequest) {
         const page = toPositiveInt(body.page, DEFAULT_PAGE);
         const pageSize = toPositiveInt(body.pageSize, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
         const search = normalizeSearch(body.search);
-        const backendPath = getAllBasketsBackendPath();
+        const clientID = getClientID();
 
-        const upstreamResponse = await backend.post(backendPath, {
-            search,
-            page,
-            pageSize,
+        if (!clientID) {
+            return NextResponse.json(
+                { success: false, message: "S1 client is not configured", totalcount: 0, rows: [] },
+                { status: 500 }
+            );
+        }
+
+        const response = await fetch(S1_ENDPOINT, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                service: "SqlData",
+                clientID,
+                appId: S1_APP_ID,
+                SqlName: "BASKET_LIST",
+            }),
         });
 
-        const upstreamData =
-            upstreamResponse.data && typeof upstreamResponse.data === "object"
-                ? (upstreamResponse.data as Record<string, unknown>)
-                : null;
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[basket/all] Upstream error body:", errorText);
 
-        if (upstreamResponse.status < 200 || upstreamResponse.status >= 300) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: extractMessage(
-                        upstreamData,
-                        `All-clients baskets endpoint failed (${upstreamResponse.status})`
-                    ),
+                    message: `All-clients baskets endpoint failed (${response.status})`,
                     totalcount: 0,
                     rows: [],
                 },
-                {
-                    status:
-                        upstreamResponse.status >= 400 && upstreamResponse.status < 500
-                            ? upstreamResponse.status
-                            : 502,
-                }
+                { status: response.status }
             );
         }
+
+        const upstreamData = (await parseJsonWithEncodingFallback(response)) as
+            | Record<string, unknown>
+            | null;
 
         if (upstreamData?.success === false) {
             return NextResponse.json(
@@ -158,26 +189,26 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const rows = extractRows(upstreamData);
-        const response: BasketAllResponse = {
+        const rawRows = Array.isArray(upstreamData?.rows)
+            ? (upstreamData.rows as Record<string, unknown>[])
+            : [];
+        const filteredRows = rawRows.filter((row) => matchesSearch(row, search));
+        const offset = (page - 1) * pageSize;
+        const pagedRows = filteredRows.slice(offset, offset + pageSize);
+
+        const apiResponse: BasketAllResponse = {
             success: true,
             message:
                 upstreamData && typeof upstreamData.message === "string"
                     ? upstreamData.message
                     : undefined,
-            totalcount: extractTotalcount(upstreamData, rows.length),
-            page:
-                upstreamData && Number.isFinite(Number(upstreamData.page))
-                    ? Number(upstreamData.page)
-                    : page,
-            pageSize:
-                upstreamData && Number.isFinite(Number(upstreamData.pageSize))
-                    ? Number(upstreamData.pageSize)
-                    : pageSize,
-            rows,
+            totalcount: filteredRows.length,
+            page,
+            pageSize,
+            rows: pagedRows,
         };
 
-        return NextResponse.json(response);
+        return NextResponse.json(apiResponse);
     } catch (error) {
         return NextResponse.json(
             {
