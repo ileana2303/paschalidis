@@ -1,7 +1,6 @@
 import { Loader2, Minus, Plus, Send } from "@/app/lib/lucide";
 import type { StockRequestProps } from "@/app/lib/interface";
 
-
 export default function StockRequest({
     mtrl,
     stock,
