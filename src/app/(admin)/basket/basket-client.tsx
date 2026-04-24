@@ -179,7 +179,7 @@ export default function BasketClient() {
             <div className="shrink-0">
                 <PageBreadcrumb
                     pageTitle={`Καλάθι ${customerName}`}
-                    backHref="/search-parts"
+                    backHref={customer ? `/search-parts?trdr=${customer.TRDR}` : "/search-parts"}
                     backLabel="Επιστροφή στην αναζήτηση ανταλλακτικών"
                 />
             </div>

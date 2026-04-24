@@ -2,8 +2,9 @@
 
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Plus } from "@/app/lib/lucide";
+import { ChevronDown, Plus } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
+import { useSearchPartsStore } from "@/stores/searchPartsStore";
 import { ICustomerInfo, IItem, IBasket, IBasketItem, StockRequestStatus } from "@/app/lib/interface";
 import {
     getBasketItemId,
@@ -37,14 +38,11 @@ const DEFAULT_STOCK_REQUEST_BRANCH = "1001";
 type ReceiptType = "receipt" | "invoice";
 
 export default function SearchPartsClient() {
-    const [search, setSearch] = useState("");
     const [modalSearch, setModalSearch] = useState("");
     const [customerModalSearch, setCustomerModalSearch] = useState("");
     const [customerResults, setCustomerResults] = useState<ICustomerInfo[]>([]);
-    const [items, setItems] = useState<IItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [customerModalLoading, setCustomerModalLoading] = useState(false);
-    const [hasSearched, setHasSearched] = useState(false);
     const [customerModalHasSearched, setCustomerModalHasSearched] = useState(false);
     const [hasScrolledResults, setHasScrolledResults] = useState(false);
     const [hasMounted, setHasMounted] = useState(false);
@@ -68,6 +66,15 @@ export default function SearchPartsClient() {
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
     const [discountPrices, setDiscountPrices] = useState<Record<string, string>>({});
     const [submittingDiscount, setSubmittingDiscount] = useState<Set<string>>(new Set());
+    const search = useSearchPartsStore((state) => state.searchTerm);
+    const setSearch = useSearchPartsStore((state) => state.setSearchTerm);
+    const items = useSearchPartsStore((state) => state.items);
+    const setItems = useSearchPartsStore((state) => state.setItems);
+    const hasSearched = useSearchPartsStore((state) => state.hasSearched);
+    const setHasSearched = useSearchPartsStore((state) => state.setHasSearched);
+    const searchStateTrdr = useSearchPartsStore((state) => state.trdr);
+    const setSearchStateTrdr = useSearchPartsStore((state) => state.setTrdr);
+    const clearSearchPartsState = useSearchPartsStore((state) => state.clearState);
     const customer = useCustomerStore((state) => state.customer);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const clearCustomer = useCustomerStore((state) => state.clearCustomer);
@@ -88,7 +95,6 @@ export default function SearchPartsClient() {
     const customerModalInputRef = useRef<HTMLInputElement>(null);
     const resultsContainerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const customerSyncCheckedRef = useRef(false);
     const basketLoadInFlightRef = useRef<Promise<void> | null>(null);
     const basketLoadInFlightTrdrRef = useRef<string | null>(null);
     const basketLoadInFlightIdRef = useRef<number | null>(null);
@@ -121,18 +127,33 @@ export default function SearchPartsClient() {
     }, []);
 
     useEffect(() => {
-        if (!hasMounted || customerSyncCheckedRef.current) return;
-        customerSyncCheckedRef.current = true;
+        if (!hasMounted) return;
 
-        const urlTrdr = searchParams.get("trdr");
+        const urlTrdr = String(searchParams.get("trdr") ?? "").trim();
+        const customerTrdr = String(customer?.TRDR ?? "").trim();
 
-        if (urlTrdr && customer?.TRDR !== urlTrdr) {
-            router.replace("/search-parts");
-            clearCustomer();
-        } else if (!urlTrdr && customer) {
-            clearCustomer();
+        if (customerTrdr && urlTrdr !== customerTrdr) {
+            router.replace(`/search-parts?trdr=${customerTrdr}`);
+            return;
         }
-    }, [clearCustomer, customer, hasMounted, router, searchParams]);
+
+        if (!customerTrdr && urlTrdr) {
+            router.replace("/search-parts");
+        }
+    }, [customer?.TRDR, hasMounted, router, searchParams]);
+
+    useEffect(() => {
+        const customerTrdr = String(customer?.TRDR ?? "").trim() || null;
+        const snapshotTrdr = String(searchStateTrdr ?? "").trim() || null;
+
+        if (snapshotTrdr === customerTrdr) {
+            return;
+        }
+
+        clearSearchPartsState();
+        setExpandedItems(new Set());
+        setSearchStateTrdr(customerTrdr);
+    }, [clearSearchPartsState, customer?.TRDR, searchStateTrdr, setSearchStateTrdr]);
 
     useEffect(() => {
         if (hasMounted) {
@@ -206,6 +227,7 @@ export default function SearchPartsClient() {
 
         if (!trimmedSearch) return false;
 
+        setSearchStateTrdr(String(customer?.TRDR ?? "").trim() || null);
         setHasSearched(true);
         setLoading(true);
 
@@ -279,10 +301,10 @@ export default function SearchPartsClient() {
 
     const handleCustomerSelect = (selectedCustomer: ICustomerInfo) => {
         setCustomer(selectedCustomer);
-        setSearch("");
+        clearSearchPartsState();
+        setSearchStateTrdr(String(selectedCustomer.TRDR).trim() || null);
         setModalSearch("");
-        setItems([]);
-        setHasSearched(false);
+        setExpandedItems(new Set());
         setHasScrolledResults(false);
         closeCustomerModal();
         router.replace(`/search-parts?trdr=${selectedCustomer.TRDR}`);
@@ -368,6 +390,23 @@ export default function SearchPartsClient() {
             const next = new Set(prev);
             if (next.has(itemCode)) next.delete(itemCode);
             else next.add(itemCode);
+            return next;
+        });
+    };
+
+    const areAllResultsExpanded =
+        items.length > 0 && items.every((item) => expandedItems.has(item.ITEM_CODE));
+
+    const toggleAllExpanded = () => {
+        setExpandedItems((prev) => {
+            const next = new Set(prev);
+
+            if (areAllResultsExpanded) {
+                items.forEach((item) => next.delete(item.ITEM_CODE));
+            } else {
+                items.forEach((item) => next.add(item.ITEM_CODE));
+            }
+
             return next;
         });
     };
@@ -634,9 +673,8 @@ export default function SearchPartsClient() {
                 customer={customer}
                 onClearCustomer={() => {
                     clearCustomer();
-                    setItems([]);
-                    setHasSearched(false);
-                    setSearch("");
+                    clearSearchPartsState();
+                    setExpandedItems(new Set());
                     router.replace("/search-parts");
                 }}
                 onOpenCustomerModal={handleOpenCustomerModal}
@@ -677,9 +715,23 @@ export default function SearchPartsClient() {
                         <div className="px-5 pb-2 xl:px-10 xl:pb-2">
                             <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
                                 {items.length > 0 && (
-                                    <p className="mb-2 text-sm text-gray-500">
-                                        Βρέθηκαν {items.length} αποτελέσματα
-                                    </p>
+                                    <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <p className="text-sm text-gray-500">
+                                            Βρέθηκαν {items.length} αποτελέσματα
+                                        </p>
+
+                                        <button
+                                            type="button"
+                                            onClick={toggleAllExpanded}
+                                            aria-label={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
+                                            title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
+                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                                        >
+                                            <ChevronDown
+                                                className={`h-4 w-4 transition-transform duration-200 ${areAllResultsExpanded ? "rotate-180" : ""}`}
+                                            />
+                                        </button>
+                                    </div>
                                 )}
 
                                 <div className="space-y-2">

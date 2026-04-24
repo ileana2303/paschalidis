@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
     Check,
+    ChevronDown,
     Circle,
     Loader2,
     MapPin,
@@ -266,23 +268,23 @@ export default function OrderSummary({
                         <div className="flex gap-2">
                             <button
                                 type="button"
-                                onClick={() => onReceiptTypeChange?.("receipt")}
+                                onClick={() => onReceiptTypeChange?.("invoice")}
                                 className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition ${receiptType === "receipt"
                                     ? "border-brand-500 bg-brand-50 text-brand-600 dark:border-brand-500 dark:bg-brand-500/10 dark:text-brand-400"
                                     : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                                     }`}
                             >
-                                Απόδειξη
+                                Τιμολόγιο
                             </button>
                             <button
                                 type="button"
-                                onClick={() => onReceiptTypeChange?.("invoice")}
+                                onClick={() => onReceiptTypeChange?.("receipt")}
                                 className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition ${receiptType === "invoice"
                                     ? "border-brand-500 bg-brand-50 text-brand-600 dark:border-brand-500 dark:bg-brand-500/10 dark:text-brand-400"
                                     : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                                     }`}
                             >
-                                Τιμολόγιο
+                                Απόδειξη
                             </button>
                         </div>
                     </div>
@@ -361,6 +363,7 @@ function BasketLineItem({
     onRemove?: (uid: string) => void;
 }) {
     const selected = isSelected ?? true;
+    const [isExpanded, setIsExpanded] = useState(false);
 
     return (
         <div className={`group rounded-xl border p-3 transition-all ${selected
@@ -387,9 +390,12 @@ function BasketLineItem({
                 )}
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                        MTRL: {item.MTRL || "-"} 
+                        {item.ITEM_CODE || item.CODE || item.CODE || "-"}
                     </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-gray-500">
+                        {item.ITEM_DESCR || item.NAME || "-"}
+                    </p>
+                    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-500">
                         <span>
                             ΠΟΣΟΤΗΤΑ:{" "}
                             <span className="font-medium text-gray-700 dark:text-white/90">
@@ -397,16 +403,26 @@ function BasketLineItem({
                             </span>
                         </span>
                         <span>
-                            ΤΙΜΗ:{" "}
+                            ΤΙΜΗ ERP:{" "}
                             <span className="font-medium text-gray-700 dark:text-white/90">
                                 {formatPrice(getBasketItemBasePrice(item))}
                             </span>
                         </span>
+                        <span>
+                            ΖΗΤΟΥΜΕΝΗ ΤΙΜΗ:{" "}
+                            <span className="font-medium text-gray-700 dark:text-white/90">
+                                {formatPrice(getBasketItemRequestedPrice(item))}
+                            </span>
+                        </span>
+                        <span>
+                            ΣΥΝΟΛΟ:{" "}
+                            <span className="font-medium text-gray-700 dark:text-white/90">
+                                {formatPrice(getBasketItemLineTotal(item))}
+                            </span>
+                        </span>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                        ΗΜ.ΠΡΟΣΘΗΚΗΣ: {item.MAX_INS_DATE || "-"}
-                    </p>
-                
+
+
                     {hasBasketItemDiscount(item) && (
                         <div className="mt-1.5">
                             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getBasketItemApprovalStatus(item) === "approved"
@@ -421,6 +437,42 @@ function BasketLineItem({
                                         ? "Αίτημα απορρίφθηκε"
                                         : `Αίτημα: ${formatPrice(getBasketItemRequestedPrice(item))}`}
                             </span>
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={() => setIsExpanded((prev) => !prev)}
+                        aria-expanded={isExpanded}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                        {isExpanded ? "Απόκρυψη στοιχείων" : "Περισσότερα στοιχεία"}
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {isExpanded && (
+                        <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-2 rounded-lg border border-gray-200 bg-white/70 p-3 sm:grid-cols-2 dark:border-gray-800 dark:bg-gray-900/60">
+
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">MTRL:</span> {item.MTRL || "-"}</p>
+
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">PRICE_ERP:</span> {item.PRICE_ERP || "-"}</p>
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">PRICE_REQ:</span> {item.PRICE_REQ || "-"}</p>
+
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">IS_APROVED:</span> {item.IS_APROVED || "-"}</p>
+
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">ADDED:</span> {item.BASKET_DATE || "-"}</p>
+                            
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">COMPANY:</span> {item.COMPANY || "-"}</p>
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">CODE:</span> {item.CODE || "-"}</p>
+
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">CODE2:</span> {item.CODE2 || "-"}</p>
+
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">BASKET_QTY:</span> {item.BASKET_QTY ?? "-"}</p>
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">BASKET_ERP_PRICE:</span> {item.BASKET_ERP_PRICE ?? "-"}</p>
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">BASKET_REQ_PRICE:</span> {item.BASKET_REQ_PRICE ?? "-"}</p>
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">BargainStatus:</span> {item.BargainStatus ?? "-"}</p>
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">ITEM_CODE:</span> {item.ITEM_CODE || "-"}</p>
+                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">ITEM_DESCR:</span> {item.ITEM_DESCR || "-"}</p>
                         </div>
                     )}
                 </div>

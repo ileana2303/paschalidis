@@ -1,3 +1,4 @@
+// sqlCustomerSEARCH :: Search customers for customer selection in search parts page.
 export interface ICustomerInfo {
     TRDR: string;
     CODE: string;
@@ -12,6 +13,7 @@ export interface ICustomerInfo {
     INDEX_SEARCH: string;
 }
 
+// SEARCH ITEM :: Search items without customer - no basket info.
 export interface IItem {
     MTRL: string;
     ITEM_CODE: string;
@@ -55,6 +57,7 @@ export interface IItem {
     BASKET_ERP_PRICE: string;
 }
 
+// SEARCH_PARTS_TRDR :: Search items with selected customer - includes basket info. 
 export interface IItemTRDR extends IItem {
     BasketReserved: string;
     BASKET_QTY: string;
@@ -63,6 +66,7 @@ export interface IItemTRDR extends IItem {
     BASKET_ERP_PRICE: string;
 }
 
+// BASKET_OUT :: Basket items for a selected customer.
 export interface IBasketItem {
     BASKETID: string;
     TRDR: string;
@@ -109,6 +113,7 @@ export interface BasketAllRoutePayload {
     pageSize?: number;
 }
 
+//BASKET_OUT LIST :: List of customers with basket info.
 export interface BasketAllCustomerGroup {
     TRDR?: string | number;
     CUSTOMER_NAME?: string;
@@ -163,6 +168,7 @@ export interface BasketRequestPriceRoutePayload extends BasketInRoutePayload {
     PRICE_REQ: number;
 }
 
+// BASKET_IN :: Payload for adding an item to the basket.
 export interface BasketInPayload {
     service: "SqlData";
     clientID: string;
@@ -186,6 +192,7 @@ export interface BasketUpdateRoutePayload {
     PRICE_REQ?: number;
 }
 
+// BASKET_UPDATE_QTY :: Payload for updating item quantity or price in the basket.
 export interface BasketUpdatePayload {
     service: "SqlData";
     clientID: string;

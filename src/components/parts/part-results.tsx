@@ -2,6 +2,7 @@ import { BadgePercent, ChevronDown, Loader2, Minus, Plus, Send, ShoppingCart } f
 import { getBasketItemQty, getBasketItemRequestedPrice } from "@/app/lib/basket";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/app/lib/interface";
 import PartStockQuantityContainer from "./part-stock-quantity-container";
+import { useEffect, useState } from "react";
 
 interface PartResultsProps {
     item: IItem;
@@ -52,10 +53,33 @@ export default function PartResults({
     onSubmitStockRequest,
     formatPrice,
 }: PartResultsProps) {
+    const [quantityInput, setQuantityInput] = useState(String(qty));
     const requestedPrice =
         basketItem != null
             ? getBasketItemRequestedPrice(basketItem)
             : null;
+
+    useEffect(() => {
+        setQuantityInput(String(qty));
+    }, [qty]);
+
+    const handleQuantityInputChange = (value: string) => {
+        const nextValue = value.replace(/\D/g, "");
+        setQuantityInput(nextValue);
+
+        if (nextValue === "") {
+            return;
+        }
+
+        onQuantityChange(Math.max(1, Number(nextValue)));
+    };
+
+    const handleQuantityInputBlur = () => {
+        if (quantityInput === "") {
+            setQuantityInput("1");
+            onQuantityChange(1);
+        }
+    };
 
     return (
         <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_228px]">
@@ -401,23 +425,13 @@ export default function PartResults({
                                     <Minus className="h-4 w-4" />
                                 </button>
                                 <input
-                                    type="number"
-                                    min={1}
-                                    value={qty === 1 ? "" : qty}
-                                    placeholder="1"
-                                    onChange={(e) => {
-                                        const rawValue = e.target.value;
-                                        if (rawValue === "") {
-                                            onQuantityChange(1);
-                                            return;
-                                        }
-
-                                        const val = parseInt(rawValue, 10);
-                                        if (!isNaN(val)) onQuantityChange(val);
-                                    }}
-                                    onBlur={() => {
-                                        if (qty < 1) onQuantityChange(1);
-                                    }}
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    value={quantityInput}
+                                    onChange={(e) => handleQuantityInputChange(e.target.value)}
+                                    onBlur={handleQuantityInputBlur}
+                                    onFocus={(e) => e.target.select()}
                                     className="h-10 w-14 border-x border-gray-200 bg-gray-50/70 text-center text-sm font-semibold text-gray-800 outline-none transition-colors focus:bg-white focus:ring-2 focus:ring-inset focus:ring-brand-500/40 dark:border-gray-700 dark:bg-gray-800/70 dark:text-white dark:focus:bg-gray-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                 />
                                 <button
