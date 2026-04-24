@@ -23,7 +23,6 @@ import SearchBar from "@/components/search/search-bar";
 import {
     useAddItemToBasketMutation,
     useFetchBasketItemsMutation,
-    useRequestDiscountMutation,
     useRequestStockQuantityMutation,
     useSearchCustomersMutation,
     useSearchItemsByTrdrMutation,
@@ -105,7 +104,6 @@ export default function SearchPartsClient() {
     const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
     const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
     const { mutateAsync: addItemToBasket } = useAddItemToBasketMutation();
-    const { mutateAsync: requestDiscount } = useRequestDiscountMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
 
@@ -554,6 +552,20 @@ export default function SearchPartsClient() {
         return num.toFixed(2) + " €";
     };
 
+    const parseNumericValue = (value: unknown): number | null => {
+        const raw = String(value ?? "").trim();
+        if (!raw) {
+            return null;
+        }
+
+        const parsed = Number(raw.replace(",", "."));
+        if (!Number.isFinite(parsed)) {
+            return null;
+        }
+
+        return parsed;
+    };
+
     const findBasketItem = (item: IItem): IBasketItem | undefined => {
         return basket?.items.find((basketItem) =>
             basketItem.MTRL === item.MTRL || basketItem.CODE === item.ITEM_CODE
@@ -593,35 +605,31 @@ export default function SearchPartsClient() {
         if (!customer) return;
 
         const discountValue = discountPrices[item.ITEM_CODE] ?? "";
-        const requestedPrice = Number(discountValue);
+        const requestedPrice = parseNumericValue(discountValue);
         const basketItem = findBasketItem(item);
-        const basketQty = basketItem ? Math.max(1, getBasketItemQty(basketItem)) : 1;
+        if (!basketItem) return;
+        const basketQty = Math.max(1, getBasketItemQty(basketItem));
         const requestedQty = Math.max(1, getQuantity(item.ITEM_CODE, basketQty));
 
-        if (!discountValue || !Number.isFinite(requestedPrice) || requestedPrice <= 0) {
+        if (!discountValue || requestedPrice == null || requestedPrice <= 0) {
             return;
         }
+
+        const basketErpPrice = parseNumericValue(
+            String(basketItem.PRICE_ERP ?? basketItem.BASKET_ERP_PRICE ?? "")
+        );
+        const fallbackErpPrice = parseNumericValue(item.PRICE_WHOLE);
+        const priceErpForUpdate = basketErpPrice ?? fallbackErpPrice;
 
         setSubmittingDiscount((prev) => new Set(prev).add(item.ITEM_CODE));
 
         try {
-            if (basketItem) {
-                await updateBasketItemQty({
-                    BASKETID: basketItem.BASKETID,
-                    QTY: requestedQty,
-                    PRICE_ERP: Number(item.PRICE_WHOLE),
-                    PRICE_REQ: requestedPrice,
-                });
-            } else {
-                await requestDiscount({
-                    TRDR: customer.TRDR,
-                    MTRL: Number(item.MTRL),
-                    QTY: requestedQty,
-                    PRICE_ERP: Number(item.PRICE_WHOLE),
-                    PRICE_REQ: requestedPrice,
-                    APPUSER_ID: user?.uid,
-                });
-            }
+            await updateBasketItemQty({
+                BASKETID: basketItem.BASKETID,
+                QTY: requestedQty,
+                ...(priceErpForUpdate != null ? { PRICE_ERP: priceErpForUpdate } : {}),
+                PRICE_REQ: requestedPrice,
+            });
 
             setDiscountPrices((prev) => ({ ...prev, [item.ITEM_CODE]: "" }));
             clearQuantityOverride(item.ITEM_CODE);

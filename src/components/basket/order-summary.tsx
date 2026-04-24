@@ -364,6 +364,21 @@ function BasketLineItem({
 }) {
     const selected = isSelected ?? true;
     const [isExpanded, setIsExpanded] = useState(false);
+    const approvalStatus = getBasketItemApprovalStatus(item);
+    const hasPriceRequest = hasBasketItemDiscount(item);
+    const requestedPrice = hasPriceRequest ? getBasketItemRequestedPrice(item) : null;
+    const requestStatusLabel =
+        approvalStatus === "approved"
+            ? "Accepted"
+            : approvalStatus === "rejected"
+                ? "Rejected"
+                : "Pending";
+    const requestStatusClassName =
+        approvalStatus === "approved"
+            ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+            : approvalStatus === "rejected"
+                ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400";
 
     return (
         <div className={`group rounded-xl border p-3 transition-all ${selected
@@ -390,7 +405,7 @@ function BasketLineItem({
                 )}
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                        {item.ITEM_CODE || item.CODE || item.CODE || "-"}
+                        {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
                         {item.ITEM_DESCR || item.NAME || "-"}
@@ -410,8 +425,13 @@ function BasketLineItem({
                         </span>
                         <span>
                             ΖΗΤΟΥΜΕΝΗ ΤΙΜΗ:{" "}
-                            <span className="font-medium text-gray-700 dark:text-white/90">
-                                {formatPrice(getBasketItemRequestedPrice(item))}
+                            <span className="inline-flex items-center gap-1 font-medium text-gray-700 dark:text-white/90">
+                                {formatPrice(requestedPrice)}
+                                {hasPriceRequest && (
+                                    <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${requestStatusClassName}`}>
+                                        {requestStatusLabel}
+                                    </span>
+                                )}
                             </span>
                         </span>
                         <span>
@@ -422,23 +442,6 @@ function BasketLineItem({
                         </span>
                     </div>
 
-
-                    {hasBasketItemDiscount(item) && (
-                        <div className="mt-1.5">
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getBasketItemApprovalStatus(item) === "approved"
-                                ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                                : getBasketItemApprovalStatus(item) === "rejected"
-                                    ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                                    : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
-                                }`}>
-                                {getBasketItemApprovalStatus(item) === "approved"
-                                    ? `Έκπτωση: ${formatPrice(getBasketItemRequestedPrice(item))}`
-                                    : getBasketItemApprovalStatus(item) === "rejected"
-                                        ? "Αίτημα απορρίφθηκε"
-                                        : `Αίτημα: ${formatPrice(getBasketItemRequestedPrice(item))}`}
-                            </span>
-                        </div>
-                    )}
 
                     <button
                         type="button"

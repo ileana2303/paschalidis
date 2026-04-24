@@ -1,5 +1,10 @@
 import { BadgePercent, ChevronDown, Loader2, Minus, Plus, Send, ShoppingCart } from "@/app/lib/lucide";
-import { getBasketItemQty, getBasketItemRequestedPrice } from "@/app/lib/basket";
+import {
+    getBasketItemApprovalStatus,
+    getBasketItemQty,
+    getBasketItemRequestedPrice,
+    hasBasketItemDiscount,
+} from "@/app/lib/basket";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/app/lib/interface";
 import PartStockQuantityContainer from "./part-stock-quantity-container";
 import { useEffect, useState } from "react";
@@ -58,6 +63,26 @@ export default function PartResults({
         basketItem != null
             ? getBasketItemRequestedPrice(basketItem)
             : null;
+    const requestStatus =
+        basketItem != null
+            ? getBasketItemApprovalStatus(basketItem)
+            : null;
+    const hasPriceRequest =
+        basketItem != null
+            ? hasBasketItemDiscount(basketItem)
+            : false;
+    const requestStatusLabel =
+        requestStatus === "approved"
+            ? "Accepted"
+            : requestStatus === "rejected"
+                ? "Rejected"
+                : "Pending";
+    const requestStatusClassName =
+        requestStatus === "approved"
+            ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+            : requestStatus === "rejected"
+                ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
 
     useEffect(() => {
         setQuantityInput(String(qty));
@@ -123,6 +148,17 @@ export default function PartResults({
                         <p className="mt-0.5 text-xs text-gray-500">
                             {item.ITEM_DESCR}
                         </p>
+                        {basketItem && hasPriceRequest && (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                                    <BadgePercent className="h-3 w-3" />
+                                    Αίτημα: {formatPrice(requestedPrice)}
+                                </span>
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${requestStatusClassName}`}>
+                                    {requestStatusLabel}
+                                </span>
+                            </div>
+                        )}
 
                         <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-white/[0.02]">
                             <div className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
@@ -370,48 +406,55 @@ export default function PartResults({
 
                 {hasCustomer && (
                     <div className="border-t border-gray-100 dark:border-gray-800">
-                        <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-                            <div className="mb-2 flex items-center gap-2">
-                                <BadgePercent className="h-4 w-4 text-amber-500" />
-                                <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                                    Αίτημα Τιμής
-                                </p>
-                                {requestedPrice != null && requestedPrice > 0 && (
-                                    <span className="ml-auto text-xs font-medium text-amber-700 dark:text-amber-400">
-                                        Τρέχον: {formatPrice(requestedPrice)}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    min={0}
-                                    step="0.01"
-                                    value={discountValue}
-                                    onChange={(e) => onDiscountValueChange(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            onRequestDiscount();
-                                        }
-                                    }}
-                                    placeholder="Νέα τιμή..."
-                                    className="h-9 w-36 rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={onRequestDiscount}
-                                    disabled={isSubmittingRequestPrice || !discountValue || Number(discountValue) <= 0}
-                                    className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:bg-amber-600 disabled:opacity-40"
-                                >
-                                    {isSubmittingRequestPrice ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    ) : (
-                                        <Send className="h-3.5 w-3.5" />
+                        {basketItem && (
+                            <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+                                <div className="mb-2 flex items-center gap-2">
+                                    <BadgePercent className="h-4 w-4 text-amber-500" />
+                                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                        Αίτημα Τιμής
+                                    </p>
+                                    {hasPriceRequest && requestedPrice != null && requestedPrice > 0 && (
+                                        <span className="ml-auto text-xs font-medium text-amber-700 dark:text-amber-400">
+                                            Αίτημα: {formatPrice(requestedPrice)}
+                                        </span>
                                     )}
-                                    <span>Αίτημα</span>
-                                </button>
+                                    {hasPriceRequest && (
+                                        <span className={`text-[10px] font-semibold ${requestStatusClassName}`}>
+                                            {requestStatusLabel}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step="0.01"
+                                        value={discountValue}
+                                        onChange={(e) => onDiscountValueChange(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                onRequestDiscount();
+                                            }
+                                        }}
+                                        placeholder="Νέα τιμή..."
+                                        className="h-9 w-36 rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={onRequestDiscount}
+                                        disabled={isSubmittingRequestPrice || !discountValue || Number(discountValue) <= 0}
+                                        className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:bg-amber-600 disabled:opacity-40"
+                                    >
+                                        {isSubmittingRequestPrice ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                            <Send className="h-3.5 w-3.5" />
+                                        )}
+                                        <span>Αίτημα</span>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="flex items-center gap-3 px-4 py-3">
                             <div className="inline-flex items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900/40">

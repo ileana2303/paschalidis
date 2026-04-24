@@ -100,21 +100,37 @@ export function getBasketItemLineTotal(item: IBasketItem): number {
 export function getBasketItemApprovalStatus(
     item: IBasketItem
 ): "approved" | "rejected" | "pending" | null {
-    const rawStatus = String(item.IS_APROVED ?? "").trim().toLowerCase();
+    const rawCandidates = [item.IS_APROVED, item.BargainStatus];
 
-    if (!rawStatus) {
-        return null;
+    for (const candidate of rawCandidates) {
+        const rawStatus = String(candidate ?? "").trim().toLowerCase();
+
+        if (!rawStatus) {
+            continue;
+        }
+
+        if (
+            rawStatus === "0" ||
+            rawStatus === "none" ||
+            rawStatus === "null" ||
+            rawStatus === "undefined" ||
+            rawStatus === "-"
+        ) {
+            continue;
+        }
+
+        if (rawStatus === "200" || rawStatus === "approved" || rawStatus === "1" || rawStatus === "true") {
+            return "approved";
+        }
+
+        if (rawStatus === "500" || rawStatus === "rejected" || rawStatus === "-1" || rawStatus === "false") {
+            return "rejected";
+        }
+
+        return "pending";
     }
 
-    if (rawStatus === "200" || rawStatus === "approved" || rawStatus === "1" || rawStatus === "true") {
-        return "approved";
-    }
-
-    if (rawStatus === "500" || rawStatus === "rejected" || rawStatus === "-1" || rawStatus === "false") {
-        return "rejected";
-    }
-
-    return "pending";
+    return null;
 }
 
 export function hasBasketItemDiscount(item: IBasketItem): boolean {
@@ -122,7 +138,7 @@ export function hasBasketItemDiscount(item: IBasketItem): boolean {
     const requestedPrice = getBasketItemRequestedPrice(item);
     const basePrice = getBasketItemBasePrice(item);
 
-    if (approvalStatus === "approved" || approvalStatus === "rejected") {
+    if (approvalStatus === "approved" || approvalStatus === "rejected" || approvalStatus === "pending") {
         return true;
     }
 
@@ -130,8 +146,5 @@ export function hasBasketItemDiscount(item: IBasketItem): boolean {
         return false;
     }
 
-    return (
-        requestedPrice !== basePrice ||
-        approvalStatus === "pending"
-    );
+    return requestedPrice !== basePrice;
 }
