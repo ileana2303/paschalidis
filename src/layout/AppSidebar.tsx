@@ -18,6 +18,7 @@ import {
   Search,
   Settings,
   Users,
+  GitCompareArrows,
   type LucideIcon,
 } from "@/app/lib/lucide";
 import { useSidebar } from "../context/SidebarContext";
@@ -47,6 +48,11 @@ const navItems: NavItem[] = [
     icon: PackageSearch,
     name: "Αναζήτηση Ανταλλακτικών",
     path: "/search-parts",
+  },
+  {
+    icon: GitCompareArrows,
+    name: "Ενδοδιακίνηση Ανταλλακτικών",
+    path: "/endo-parts",
   },
   {
     icon: Users,

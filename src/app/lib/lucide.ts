@@ -17,6 +17,7 @@ export {
   EyeOff,
   FileText,
   FolderOpen,
+  GitCompareArrows,
   LayoutDashboard,
   Loader2,
   Mail,

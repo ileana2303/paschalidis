@@ -362,3 +362,51 @@ export interface StockRequestProps {
     isSubmittingRequest: boolean;
     requestError: string;
 }
+
+export interface EndoBasketAddRoutePayload {
+    MTRL: number;
+    QTY: number;
+    BRANCH: number;
+    TO_BRANCH: number;
+    APPUSER_ID?: string;
+    ITEM_CODE?: string;
+    ITEM_DESCR?: string;
+    MNF_DESCR?: string;
+}
+
+export interface EndoBasketAddPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "NOW_ENDO_INSERT";
+    MTRL: number;
+    QTY: number;
+    BRANCH: number;
+    TO_BRANCH: number;
+    APPUSER_ID: string;
+}
+
+export interface EndoBasketActionResponse {
+    success: boolean;
+    message?: string;
+    basketId?: string;
+    id?: string;
+    orderIds?: string[];
+}
+
+export interface EndoBasketSubmitLineRoutePayload {
+    basketIds: string[];
+    mtrl: number;
+    qty: number;
+    branch: number;
+    toBranch: number;
+    itemCode?: string;
+    itemDescr?: string;
+}
+
+export interface EndoBasketSubmitRoutePayload {
+    items: EndoBasketSubmitLineRoutePayload[];
+    appUserId?: string;
+    deliveryDate?: string;
+    notes?: string;
+}

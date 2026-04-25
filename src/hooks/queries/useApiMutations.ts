@@ -6,6 +6,8 @@ import type {
     BasketInRoutePayload,
     BasketRequestPriceRoutePayload,
     BasketUpdateRoutePayload,
+    EndoBasketAddRoutePayload,
+    EndoBasketSubmitRoutePayload,
     StockRequestListRoutePayload,
     StockRequestMassDeleteRoutePayload,
     StockRequestRoutePayload,
@@ -19,6 +21,10 @@ import {
     submitBasketOrder,
     updateBasketItemQty,
 } from "@/app/lib/api/basket";
+import {
+    addItemToEndoBasket,
+    submitEndoBasketOrder,
+} from "@/app/lib/api/endo";
 import { fetchCatalogProducts } from "@/app/lib/api/catalogs";
 import { searchCustomers } from "@/app/lib/api/customers";
 import {
@@ -107,6 +113,18 @@ export const useRequestDiscountMutation = () =>
 export const useSubmitBasketOrderMutation = () =>
     useMutation({
         mutationFn: (trdr: string) => submitBasketOrder(trdr),
+    });
+
+export const useAddItemToEndoBasketMutation = () =>
+    useMutation({
+        mutationFn: (payload: EndoBasketAddRoutePayload) =>
+            addItemToEndoBasket(payload),
+    });
+
+export const useSubmitEndoBasketOrderMutation = () =>
+    useMutation({
+        mutationFn: (payload: EndoBasketSubmitRoutePayload) =>
+            submitEndoBasketOrder(payload),
     });
 
 export const useFetchCatalogProductsMutation = () =>
