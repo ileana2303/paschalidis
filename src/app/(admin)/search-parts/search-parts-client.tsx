@@ -33,7 +33,42 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import { isAxiosError } from "axios";
 
-const DEFAULT_STOCK_REQUEST_BRANCH = "1001";
+type SupportedStockBranch = "1001" | "1006" | "1007";
+
+const DEFAULT_STOCK_REQUEST_BRANCH: SupportedStockBranch = "1006";
+const STOCK_FIELD_BY_BRANCH: Record<
+    SupportedStockBranch,
+    keyof Pick<IItem, "YP1001" | "YP1006" | "YP1007">
+> = {
+    "1001": "YP1001",
+    "1006": "YP1006",
+    "1007": "YP1007",
+};
+
+function isSupportedStockBranch(branchCode: string): branchCode is SupportedStockBranch {
+    return branchCode === "1001" || branchCode === "1006" || branchCode === "1007";
+}
+
+function resolveStockRequestBranchCode(
+    userBranchCode: string | undefined
+): SupportedStockBranch {
+    const normalizedUserBranch = String(userBranchCode ?? "").trim();
+    if (isSupportedStockBranch(normalizedUserBranch)) {
+        return normalizedUserBranch;
+    }
+
+    return DEFAULT_STOCK_REQUEST_BRANCH;
+}
+
+function parseStockValue(value: unknown) {
+    const parsed = Number(String(value ?? "").trim().replace(",", "."));
+    if (!Number.isFinite(parsed)) {
+        return 0;
+    }
+
+    return parsed;
+}
+
 type ReceiptType = "receipt" | "invoice";
 
 export default function SearchPartsClient() {
@@ -106,6 +141,8 @@ export default function SearchPartsClient() {
     const { mutateAsync: addItemToBasket } = useAddItemToBasketMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
+    const stockRequestBranch = resolveStockRequestBranchCode(user?.s1code);
+    const stockField = STOCK_FIELD_BY_BRANCH[stockRequestBranch] ?? "YP1006";
 
     const handleOpenSearchModal = useCallback(() => {
         setModalSearch("");
@@ -430,21 +467,7 @@ export default function SearchPartsClient() {
     };
 
     const getStoreStock = (item: IItem) => {
-        const netAvailable = Number(item.NET_QTY_AVAILABLE);
-        if (Number.isFinite(netAvailable)) {
-            return netAvailable;
-        }
-
-        const totalAvailable = Number(item.TOTAL_AVAIL);
-        if (Number.isFinite(totalAvailable)) {
-            return totalAvailable;
-        }
-
-        const branchStocks = [item.YP1001, item.YP1006, item.YP1007]
-            .map((value) => Number(value))
-            .filter((value) => Number.isFinite(value) && value > 0);
-
-        return branchStocks.reduce((sum, value) => sum + value, 0);
+        return parseStockValue(item[stockField]);
     };
 
     const getStoreOrderQuantity = (mtrl: string) => storeOrderQuantities[mtrl] ?? 0;
@@ -472,7 +495,7 @@ export default function SearchPartsClient() {
             await requestStockQuantity({
                 mtrl: Number(item.MTRL),
                 qty,
-                branch: DEFAULT_STOCK_REQUEST_BRANCH,
+                branch: stockRequestBranch,
             });
 
             setStockRequestStatuses((prev) => ({
