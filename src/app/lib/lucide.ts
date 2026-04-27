@@ -29,6 +29,7 @@ export {
   PackageSearch,
   PanelRightClose,
   PanelRightOpen,
+  Pencil,
   Plus,
   Receipt,
   RefreshCw,

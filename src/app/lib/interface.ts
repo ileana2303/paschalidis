@@ -311,7 +311,7 @@ export interface IStockRequestListRow {
 
 export interface StockRequestListResponse extends ApiResponse<IStockRequestListRow> { }
 
-export type StockRequestUpdateAction = "APPROVE" | "DECLINE";
+export type StockRequestUpdateAction = "APPROVE" | "DECLINE" | "UPDATE";
 
 export interface StockRequestUpdateRoutePayload {
     action: StockRequestUpdateAction;

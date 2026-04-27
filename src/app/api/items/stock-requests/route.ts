@@ -193,8 +193,12 @@ export async function PATCH(req: NextRequest) {
             );
         }
 
-        if (
-            (normalizedAction !== "APPROVE" && normalizedAction !== "DECLINE") ||
+        const isValidAction =
+            normalizedAction === "APPROVE" ||
+            normalizedAction === "DECLINE" ||
+            normalizedAction === "UPDATE";
+
+        if (!isValidAction ||
             !Number.isFinite(normalizedBasketId) ||
             normalizedBasketId <= 0 ||
             !mtrl ||
