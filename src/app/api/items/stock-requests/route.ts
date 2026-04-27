@@ -15,6 +15,7 @@ import type {
 const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
 const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
 const APPROVAL_APPUSER_ID = "00000001-0001-0001-0001-000000000001";
+const STOCK_REQUEST_BRANCHES = ["1001", "1006", "1007"] as const;
 
 function getCharset(contentType: string | null) {
     if (!contentType) {
@@ -100,7 +101,12 @@ export async function POST(req: NextRequest) {
 
         const { branch } = (await req.json()) as StockRequestListRoutePayload;
         const normalizedBranch =
-            typeof branch === "string" && branch.trim() ? branch.trim() : "1001";
+            typeof branch === "string" && branch.trim() ? branch.trim() : "";
+        const shouldQueryAllBranches =
+            normalizedBranch.length === 0 || normalizedBranch.toUpperCase() === "ALL";
+        const branchesToQuery = shouldQueryAllBranches
+            ? [...STOCK_REQUEST_BRANCHES]
+            : [normalizedBranch];
         const clientID = getClientID();
 
         if (!clientID) {
@@ -110,29 +116,49 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const payload: StockRequestListPayload = {
-            service: "SqlData",
-            clientID,
-            appId: "1305",
-            SqlName: "ANTROF_LIST",
-            BRANCH: normalizedBranch,
-        };
+        const branchResponses: StockRequestListResponse[] = [];
 
-        const responseOrError = await callSoftOne(
-            payload,
-            "[items/stock-requests:list]"
-        );
+        for (const branchCode of branchesToQuery) {
+            const payload: StockRequestListPayload = {
+                service: "SqlData",
+                clientID,
+                appId: "1305",
+                SqlName: "ANTROF_LIST",
+                BRANCH: branchCode,
+            };
 
-        if (responseOrError instanceof NextResponse) {
-            return responseOrError;
+            const responseOrError = await callSoftOne(
+                payload,
+                "[items/stock-requests:list]"
+            );
+
+            if (responseOrError instanceof NextResponse) {
+                return responseOrError;
+            }
+
+            const data =
+                (await parseJsonWithEncodingFallback(
+                    responseOrError
+                )) as StockRequestListResponse;
+
+            branchResponses.push(data);
         }
 
-        const data =
-            (await parseJsonWithEncodingFallback(
-                responseOrError
-            )) as StockRequestListResponse;
+        if (!shouldQueryAllBranches) {
+            return NextResponse.json(branchResponses[0]);
+        }
 
-        return NextResponse.json(data);
+        const mergedRows = branchResponses.flatMap((response) =>
+            Array.isArray(response.rows) ? response.rows : []
+        );
+
+        const mergedResponse: StockRequestListResponse = {
+            success: true,
+            totalcount: mergedRows.length,
+            rows: mergedRows,
+        };
+
+        return NextResponse.json(mergedResponse);
     } catch (error) {
         console.error("[items/stock-requests:list] Server error", error);
 

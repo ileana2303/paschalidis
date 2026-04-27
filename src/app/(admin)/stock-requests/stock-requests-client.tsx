@@ -10,8 +10,6 @@ import {
     useUpdateStockRequestMutation,
 } from "@/hooks/queries/useApiMutations";
 
-const DEFAULT_BRANCH = "1001";
-
 function getStatusStyle(status: string) {
     const normalized = status.toUpperCase();
 
@@ -91,9 +89,7 @@ export default function StockRequestsClient() {
         setError("");
 
         try {
-            const data = await fetchStockRequests({
-                branch: DEFAULT_BRANCH,
-            });
+            const data = await fetchStockRequests({});
             setRows(sortStockRequestRows(data.rows ?? []));
             setSelectedIds(new Set());
             setEditedQty({});

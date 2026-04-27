@@ -285,7 +285,7 @@ export interface IStockRequestInsertRow {
 export interface StockRequestInsertResponse extends ApiResponse<IStockRequestInsertRow> { }
 
 export interface StockRequestListRoutePayload {
-    branch: string;
+    branch?: string;
 }
 
 export interface StockRequestListPayload {

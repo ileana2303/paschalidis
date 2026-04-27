@@ -49,7 +49,7 @@ function isSupportedStockBranch(branchCode: string): branchCode is SupportedStoc
     return branchCode === "1001" || branchCode === "1006" || branchCode === "1007";
 }
 
-function resolveStockRequestBranchCode(
+function getCurrentStockBranchCode(
     userBranchCode: string | undefined
 ): SupportedStockBranch {
     const normalizedUserBranch = String(userBranchCode ?? "").trim();
@@ -141,7 +141,7 @@ export default function SearchPartsClient() {
     const { mutateAsync: addItemToBasket } = useAddItemToBasketMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
-    const stockRequestBranch = resolveStockRequestBranchCode(user?.s1code);
+    const stockRequestBranch = getCurrentStockBranchCode(user?.s1code);
     const stockField = STOCK_FIELD_BY_BRANCH[stockRequestBranch] ?? "YP1006";
 
     const handleOpenSearchModal = useCallback(() => {
