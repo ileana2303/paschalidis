@@ -255,6 +255,7 @@ export interface StockInfo {
     totalAvail: number;
     ongoing: number;
     netAvail: number;
+    soReserved?: number;
 }
 
 export type StockRequestStatus = "approved" | "pending" | "declined";
@@ -409,4 +410,63 @@ export interface EndoBasketSubmitRoutePayload {
     appUserId?: string;
     deliveryDate?: string;
     notes?: string;
+}
+
+export interface IEndoListRow {
+    [key: string]: string;
+}
+
+export interface EndoListRoutePayload {
+    branch: string;
+    scope?: "requested" | "received" | "both";
+}
+
+export interface EndoListEsoPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ENDO_LIST_ESO";
+    TO_BRANCH: string;
+}
+
+export interface EndoListExoPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ENDO_LIST_EXO";
+    BRANCH: string;
+}
+
+export interface EndoListUpdateQtyRoutePayload {
+    basketId: string | number;
+    qty: string | number;
+    mtrl: string | number;
+    toBranch: string | number;
+    branch: string;
+    appUserId?: string;
+}
+
+export interface EndoListUpdateQtyPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "NOW_ENDO_UPD_QTY";
+    BASKETID: string;
+    QTY: string;
+    MTRL: string;
+    TO_BRANCH: string;
+    ACTION: "UPDATE";
+    APPUSER_ID: string;
+}
+
+export interface EndoListSection {
+    totalcount: number;
+    rows: IEndoListRow[];
+}
+
+export interface EndoListsResponse {
+    success: boolean;
+    message?: string;
+    requested: EndoListSection;
+    received: EndoListSection;
 }

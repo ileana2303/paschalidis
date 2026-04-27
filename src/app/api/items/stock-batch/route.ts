@@ -41,6 +41,16 @@ interface StockInfo {
     totalAvail: number;
     ongoing: number;
     netAvail: number;
+    soReserved: number;
+}
+
+function toNumeric(value: unknown) {
+    const parsed = Number(String(value ?? "").trim().replace(",", "."));
+    if (!Number.isFinite(parsed)) {
+        return 0;
+    }
+
+    return parsed;
 }
 
 async function fetchStockForCode(
@@ -66,22 +76,25 @@ async function fetchStockForCode(
 
         if (!data?.rows || !Array.isArray(data.rows)) return null;
 
-        // Find exact match by code
+        // Find exact match by code or by MTRL fallback.
         const match = data.rows.find(
-            (r: { ITEM_CODE?: string }) => r.ITEM_CODE === code
-        );
+            (r: { ITEM_CODE?: string; MTRL?: string | number }) =>
+                String(r.ITEM_CODE ?? "").trim() === code ||
+                String(r.MTRL ?? "").trim() === code
+        ) ?? data.rows[0];
 
         if (!match) return null;
 
         return {
             code,
             stock: {
-                stock1001: match.YP1001 ?? 0,
-                stock1006: match.YP1006 ?? 0,
-                stock1007: match.YP1007 ?? 0,
-                totalAvail: match.TOTAL_AVAIL ?? 0,
-                ongoing: match.ONGOING ?? 0,
-                netAvail: match.NET_QTY_AVAILABLE ?? 0,
+                stock1001: toNumeric(match.YP1001),
+                stock1006: toNumeric(match.YP1006),
+                stock1007: toNumeric(match.YP1007),
+                totalAvail: toNumeric(match.TOTAL_AVAIL),
+                ongoing: toNumeric(match.ONGOING),
+                netAvail: toNumeric(match.NET_QTY_AVAILABLE),
+                soReserved: toNumeric(match.SoReserved),
             },
         };
     } catch {

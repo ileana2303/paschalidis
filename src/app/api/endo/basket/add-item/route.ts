@@ -14,6 +14,17 @@ function getClientID() {
     return process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
 }
 
+function getClientIDForBranch(branch: string) {
+    const normalizedBranch = branch.trim();
+    const fromBranch =
+        process.env[`S1_CLIENT_ID_${normalizedBranch}`]
+            ?.trim()
+            .replace(/^['"]|['"]$/g, "") ?? "";
+    const fallback = getClientID();
+
+    return fromBranch || fallback;
+}
+
 function getCharset(contentType: string | null) {
     if (!contentType) {
         return null;
@@ -81,7 +92,7 @@ export async function POST(req: NextRequest) {
         const normalizedBranch = Number(body.BRANCH);
         const normalizedToBranch = Number(body.TO_BRANCH);
         const normalizedAppUserId = String(body.APPUSER_ID ?? "").trim() || ZERO_GUID;
-        const clientID = getClientID();
+        const clientID = getClientIDForBranch(String(normalizedBranch));
 
         if (!clientID) {
             return NextResponse.json(

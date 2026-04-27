@@ -8,6 +8,8 @@ import type {
     BasketUpdateRoutePayload,
     EndoBasketAddRoutePayload,
     EndoBasketSubmitRoutePayload,
+    EndoListRoutePayload,
+    EndoListUpdateQtyRoutePayload,
     StockRequestListRoutePayload,
     StockRequestMassDeleteRoutePayload,
     StockRequestRoutePayload,
@@ -23,7 +25,9 @@ import {
 } from "@/app/lib/api/basket";
 import {
     addItemToEndoBasket,
+    fetchEndoLists,
     submitEndoBasketOrder,
+    updateEndoListQty,
 } from "@/app/lib/api/endo";
 import { fetchCatalogProducts } from "@/app/lib/api/catalogs";
 import { searchCustomers } from "@/app/lib/api/customers";
@@ -125,6 +129,17 @@ export const useSubmitEndoBasketOrderMutation = () =>
     useMutation({
         mutationFn: (payload: EndoBasketSubmitRoutePayload) =>
             submitEndoBasketOrder(payload),
+    });
+
+export const useFetchEndoListsMutation = () =>
+    useMutation({
+        mutationFn: (payload: EndoListRoutePayload) => fetchEndoLists(payload),
+    });
+
+export const useUpdateEndoListQtyMutation = () =>
+    useMutation({
+        mutationFn: (payload: EndoListUpdateQtyRoutePayload) =>
+            updateEndoListQty(payload),
     });
 
 export const useFetchCatalogProductsMutation = () =>

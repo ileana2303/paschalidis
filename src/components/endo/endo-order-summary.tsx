@@ -28,14 +28,22 @@ interface EndoOrderSummaryProps {
     currentBranchCode: string;
     currentBranchName: string;
     basketItems: EndoBasketUiItem[];
-    selectedItems: Set<string>;
+    selectedItems?: Set<string>;
     loading: boolean;
     error: string;
     successMessage: string;
-    sendingOrder: boolean;
-    onToggleItem: (uid: string) => void;
-    onRemoveItem: (uid: string) => void;
-    onSendOrder: () => void;
+    sendingOrder?: boolean;
+    summaryLabel?: string;
+    summaryTitle?: string;
+    branchCardLabel?: string;
+    linesLabel?: string;
+    sendButtonLabel?: string;
+    emptyStateLabel?: string;
+    onToggleItem?: (uid: string) => void;
+    onRemoveItem?: (uid: string) => void;
+    onSendOrder?: () => void;
+    onClearSelection?: () => void;
+    clearButtonLabel?: string;
     collapsible?: boolean;
     collapsed?: boolean;
     onToggleCollapse?: () => void;
@@ -49,15 +57,28 @@ export default function EndoOrderSummary({
     loading,
     error,
     successMessage,
-    sendingOrder,
+    sendingOrder = false,
+    summaryLabel = "Σύνοψη Ενδοδιακίνησης",
+    summaryTitle = "Καλάθι Ενδοπαραγγελίας",
+    branchCardLabel = "Κατάστημα Παραλαβής",
+    linesLabel = "Γραμμές Καλαθιού",
+    sendButtonLabel = "Αποστολή Ενδοπαραγγελίας",
+    emptyStateLabel = "Το καλάθι είναι κενό",
     onToggleItem,
     onRemoveItem,
     onSendOrder,
+    onClearSelection,
+    clearButtonLabel = "Καθαρισμός",
     collapsible = false,
     collapsed = false,
     onToggleCollapse,
 }: EndoOrderSummaryProps) {
-    const selectedLines = basketItems.filter((item) => selectedItems.has(item.uid));
+    const isSelectable = Boolean(onToggleItem);
+    const isRemovable = Boolean(onRemoveItem);
+    const selectedSet = selectedItems ?? new Set(basketItems.map((item) => item.uid));
+    const selectedLines = isSelectable
+        ? basketItems.filter((item) => selectedSet.has(item.uid))
+        : basketItems;
     const selectedQty = selectedLines.reduce((sum, item) => sum + item.qty, 0);
 
     if (collapsible && collapsed) {
@@ -82,10 +103,10 @@ export default function EndoOrderSummary({
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-500">
-                                Σύνοψη Ενδοδιακίνησης
+                                {summaryLabel}
                             </p>
                             <h3 className="mt-2 text-lg font-semibold text-gray-800 dark:text-white/90">
-                                Καλάθι Ενδοπαραγγελίας
+                                {summaryTitle}
                             </h3>
                         </div>
 
@@ -106,7 +127,7 @@ export default function EndoOrderSummary({
                 <div className="flex-1 overflow-y-auto px-5 py-5">
                     <div className="rounded-2xl border border-brand-100 bg-brand-50/70 p-4 dark:border-brand-500/20 dark:bg-brand-500/5">
                         <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand-500">
-                            Κατάστημα Παραλαβής
+                            {branchCardLabel}
                         </p>
                         <p className="mt-2 font-semibold text-gray-800 dark:text-white/90">
                             {currentBranchName || "—"}
@@ -123,9 +144,11 @@ export default function EndoOrderSummary({
                             </p>
                             <p className="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
                                 {selectedLines.length}
-                                <span className="text-sm font-normal text-gray-400">
-                                    {" "}/ {basketItems.length}
-                                </span>
+                                {isSelectable && (
+                                    <span className="text-sm font-normal text-gray-400">
+                                        {" "}/ {basketItems.length}
+                                    </span>
+                                )}
                             </p>
                         </div>
                         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40">
@@ -164,7 +187,7 @@ export default function EndoOrderSummary({
                         <div className="mt-5">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                                    Γραμμές Καλαθιού
+                                    {linesLabel}
                                 </p>
                                 {basketItems.length > 0 && (
                                     <span className="text-xs text-gray-400">
@@ -176,7 +199,7 @@ export default function EndoOrderSummary({
                             {basketItems.length === 0 ? (
                                 <div className="mt-4 rounded-2xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
                                     <ShoppingCart className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
-                                    <p className="mt-3 text-sm text-gray-400">Το καλάθι είναι κενό</p>
+                                    <p className="mt-3 text-sm text-gray-400">{emptyStateLabel}</p>
                                 </div>
                             ) : (
                                 <div className="mt-4 space-y-3">
@@ -184,7 +207,9 @@ export default function EndoOrderSummary({
                                         <EndoBasketLineItem
                                             key={item.uid}
                                             item={item}
-                                            isSelected={selectedItems.has(item.uid)}
+                                            isSelected={selectedSet.has(item.uid)}
+                                            isSelectable={isSelectable}
+                                            isRemovable={isRemovable}
                                             onToggle={onToggleItem}
                                             onRemove={onRemoveItem}
                                         />
@@ -195,21 +220,36 @@ export default function EndoOrderSummary({
                     )}
                 </div>
 
-                <div className="shrink-0 border-t border-gray-100 px-5 py-5 dark:border-gray-800">
-                    <button
-                        type="button"
-                        onClick={onSendOrder}
-                        disabled={sendingOrder || selectedItems.size === 0}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-brand-300"
-                    >
-                        {sendingOrder ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <Send className="h-4 w-4" />
-                        )}
-                        Αποστολή Ενδοπαραγγελίας
-                    </button>
-                </div>
+                {onSendOrder && (
+                    <div className="shrink-0 border-t border-gray-100 px-5 py-5 dark:border-gray-800">
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={onSendOrder}
+                                disabled={sendingOrder || selectedLines.length === 0}
+                                className={`flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-brand-300 ${onClearSelection ? "flex-1" : "w-full"}`}
+                            >
+                                {sendingOrder ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Send className="h-4 w-4" />
+                                )}
+                                {sendButtonLabel}
+                            </button>
+
+                            {onClearSelection && (
+                                <button
+                                    type="button"
+                                    onClick={onClearSelection}
+                                    disabled={sendingOrder || selectedLines.length === 0}
+                                    className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-3 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                                >
+                                    {clearButtonLabel}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </aside>
     );
@@ -218,13 +258,17 @@ export default function EndoOrderSummary({
 function EndoBasketLineItem({
     item,
     isSelected,
+    isSelectable,
+    isRemovable,
     onToggle,
     onRemove,
 }: {
     item: EndoBasketUiItem;
     isSelected: boolean;
-    onToggle: (uid: string) => void;
-    onRemove: (uid: string) => void;
+    isSelectable: boolean;
+    isRemovable: boolean;
+    onToggle?: (uid: string) => void;
+    onRemove?: (uid: string) => void;
 }) {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -234,21 +278,25 @@ function EndoBasketLineItem({
             : "border-gray-200 bg-gray-50/50 opacity-60 dark:border-gray-800 dark:bg-gray-900/40"
             }`}>
             <div className="flex items-start gap-2">
-                <button
-                    type="button"
-                    onClick={() => onToggle(item.uid)}
-                    aria-label={isSelected ? "Αποεπιλογή" : "Επιλογή"}
-                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition ${isSelected
-                        ? "border-brand-500 bg-brand-500 text-white"
-                        : "border-gray-300 text-transparent hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
-                        }`}
-                >
-                    {isSelected ? (
-                        <Check className="h-3 w-3" />
-                    ) : (
-                        <Circle className="h-3 w-3" />
-                    )}
-                </button>
+                {isSelectable && onToggle ? (
+                    <button
+                        type="button"
+                        onClick={() => onToggle(item.uid)}
+                        aria-label={isSelected ? "Αποεπιλογή" : "Επιλογή"}
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition ${isSelected
+                            ? "border-brand-500 bg-brand-500 text-white"
+                            : "border-gray-300 text-transparent hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
+                            }`}
+                    >
+                        {isSelected ? (
+                            <Check className="h-3 w-3" />
+                        ) : (
+                            <Circle className="h-3 w-3" />
+                        )}
+                    </button>
+                ) : (
+                    <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-brand-500/70" />
+                )}
 
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-700 dark:text-white/90">
@@ -310,14 +358,16 @@ function EndoBasketLineItem({
                     )}
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => onRemove(item.uid)}
-                    aria-label="Αφαίρεση"
-                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                >
-                    <Trash2 className="h-3 w-3" />
-                </button>
+                {isRemovable && onRemove && (
+                    <button
+                        type="button"
+                        onClick={() => onRemove(item.uid)}
+                        aria-label="Αφαίρεση"
+                        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                    >
+                        <Trash2 className="h-3 w-3" />
+                    </button>
+                )}
             </div>
         </div>
     );

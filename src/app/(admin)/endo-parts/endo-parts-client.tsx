@@ -3,15 +3,15 @@
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Plus } from "@/app/lib/lucide";
-import type { IItem } from "@/app/lib/interface";
+import type { IEndoListRow, IItem } from "@/app/lib/interface";
 import { useSearchEndoStore } from "@/stores/searchEndoStore";
 import { useModal } from "@/hooks/useModal";
 import PartsSearchModal from "@/components/parts/parts-search-modal";
 import SearchBar from "@/components/search/search-bar";
 import {
     useAddItemToEndoBasketMutation,
+    useFetchEndoListsMutation,
     useSearchItemsMutation,
-    useSubmitEndoBasketOrderMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
 import { isAxiosError } from "axios";
@@ -57,6 +57,58 @@ function getQtyKey(mtrl: string | number, sourceBranch: string) {
     return `${mtrl}:${sourceBranch}`;
 }
 
+function parsePositiveInt(value: unknown) {
+    const parsed = Number(String(value ?? "").trim().replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return 0;
+    }
+
+    return Math.floor(parsed);
+}
+
+function mapEndoRequestedRows(
+    rows: IEndoListRow[],
+    currentBranchCode: string
+): EndoBasketUiItem[] {
+    return rows
+        .map((row, index) => {
+            const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
+            const mtrl = parsePositiveInt(row.MTRL);
+            const qty = parsePositiveInt(row.QTY || row.QTY_REQUESTED);
+            const rowBranch = String(row.BRANCH ?? "").trim();
+            const rowToBranch = String(row.TO_BRANCH ?? "").trim();
+            let fromBranch = rowBranch || rowToBranch;
+            let toBranch = rowToBranch || currentBranchCode;
+
+            if (rowBranch === currentBranchCode && rowToBranch) {
+                fromBranch = rowToBranch;
+                toBranch = rowBranch;
+            } else if (rowToBranch === currentBranchCode && rowBranch) {
+                fromBranch = rowBranch;
+                toBranch = rowToBranch;
+            }
+
+            if (!fromBranch) {
+                fromBranch = "-";
+            }
+
+            return {
+                uid: basketId ? `endo-${basketId}` : `endo-row-${index}`,
+                basketIds: basketId ? [basketId] : [],
+                mtrl,
+                qty,
+                fromBranch,
+                toBranch,
+                itemCode: String(row.ITEM_CODE ?? row.CODE ?? mtrl ?? "").trim(),
+                itemDescr: String(
+                    row.ITEM_DESCR ?? row.ITEM_NAME ?? row.NAME ?? "—"
+                ).trim(),
+                manufacturer: String(row.MNF_DESCR ?? row.MANUFACTURER ?? "").trim(),
+            } as EndoBasketUiItem;
+        })
+        .filter((row) => row.mtrl > 0 && row.qty > 0);
+}
+
 export default function EndoPartsClient() {
     const [modalSearch, setModalSearch] = useState("");
     const [loading, setLoading] = useState(false);
@@ -67,11 +119,10 @@ export default function EndoPartsClient() {
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const [quantities, setQuantities] = useState<Record<string, number>>({});
     const [basketItems, setBasketItems] = useState<EndoBasketUiItem[]>([]);
-    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
+    const [summaryLoading, setSummaryLoading] = useState(true);
     const [basketError, setBasketError] = useState("");
     const [basketSuccess, setBasketSuccess] = useState("");
-    const [sendingOrder, setSendingOrder] = useState(false);
     const search = useSearchEndoStore((state) => state.searchTerm);
     const setSearch = useSearchEndoStore((state) => state.setSearchTerm);
     const items = useSearchEndoStore((state) => state.items);
@@ -89,7 +140,7 @@ export default function EndoPartsClient() {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const { mutateAsync: searchItems } = useSearchItemsMutation();
     const { mutateAsync: addItemToEndoBasket } = useAddItemToEndoBasketMutation();
-    const { mutateAsync: submitEndoBasketOrder } = useSubmitEndoBasketOrderMutation();
+    const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
 
     const currentBranchCode = useMemo(
         () => resolveCurrentBranchCode(user?.s1code, user?.listBranches),
@@ -109,6 +160,35 @@ export default function EndoPartsClient() {
 
         return BRANCH_CONFIG[normalizedCurrent] ?? normalizedCurrent;
     }, [currentBranchCode, user?.listBranches]);
+
+    const loadRequestedEndoLines = useCallback(async () => {
+        setSummaryLoading(true);
+
+        try {
+            const data = await fetchEndoLists({
+                branch: currentBranchCode,
+                scope: "requested",
+            });
+            setBasketItems(
+                mapEndoRequestedRows(data.requested.rows ?? [], currentBranchCode)
+            );
+
+            if (String(data.message ?? "").trim()) {
+                setBasketError(String(data.message).trim());
+            } else {
+                setBasketError("");
+            }
+        } catch (error) {
+            setBasketItems([]);
+            setBasketError(
+                error instanceof Error
+                    ? error.message
+                    : "Αποτυχία φόρτωσης ENDO_LIST_ESO"
+            );
+        } finally {
+            setSummaryLoading(false);
+        }
+    }, [currentBranchCode, fetchEndoLists]);
 
     const handleOpenSearchModal = useCallback(() => {
         setModalSearch("");
@@ -148,6 +228,10 @@ export default function EndoPartsClient() {
             modalInputRef.current?.focus();
         }
     }, [isSearchModalOpen]);
+
+    useEffect(() => {
+        void loadRequestedEndoLines();
+    }, [loadRequestedEndoLines]);
 
     useEffect(() => {
         const handleEnterShortcut = (event: KeyboardEvent) => {
@@ -347,57 +431,8 @@ export default function EndoPartsClient() {
                 MNF_DESCR: item.MNF_DESCR,
             });
 
-            let selectedUid = "";
-
-            setBasketItems((prev) => {
-                const existingIndex = prev.findIndex(
-                    (entry) =>
-                        entry.mtrl === Number(item.MTRL) &&
-                        entry.fromBranch === sourceBranchCode &&
-                        entry.toBranch === currentBranchCode
-                );
-
-                if (existingIndex >= 0) {
-                    const existing = prev[existingIndex];
-                    const updated: EndoBasketUiItem = {
-                        ...existing,
-                        qty: existing.qty + requestedQty,
-                        basketIds: response.basketId
-                            ? Array.from(new Set([...existing.basketIds, response.basketId]))
-                            : existing.basketIds,
-                    };
-                    selectedUid = existing.uid;
-                    return [
-                        ...prev.slice(0, existingIndex),
-                        updated,
-                        ...prev.slice(existingIndex + 1),
-                    ];
-                }
-
-                const lineUid =
-                    response.basketId?.trim()
-                        ? `endo-${response.basketId.trim()}`
-                        : `endo-${item.MTRL}-${sourceBranchCode}-${Date.now()}`;
-                const created: EndoBasketUiItem = {
-                    uid: lineUid,
-                    basketIds: response.basketId?.trim() ? [response.basketId.trim()] : [],
-                    mtrl: Number(item.MTRL),
-                    qty: requestedQty,
-                    fromBranch: sourceBranchCode,
-                    toBranch: currentBranchCode,
-                    itemCode: item.ITEM_CODE,
-                    itemDescr: item.ITEM_DESCR,
-                    manufacturer: item.MNF_DESCR,
-                };
-                selectedUid = lineUid;
-                return [...prev, created];
-            });
-
-            if (selectedUid) {
-                setSelectedItems((prev) => new Set(prev).add(selectedUid));
-            }
-
             setRequestedQty(item.MTRL, sourceBranchCode, 0);
+            await loadRequestedEndoLines();
             setBasketSuccess(response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης");
         } catch (error) {
             if (isAxiosError(error)) {
@@ -420,72 +455,6 @@ export default function EndoPartsClient() {
                 return next;
             });
         }
-    };
-
-    const handleSendOrder = async () => {
-        const selectedLines = basketItems.filter((item) => selectedItems.has(item.uid));
-
-        if (selectedLines.length === 0) {
-            return;
-        }
-
-        setSendingOrder(true);
-        setBasketError("");
-        setBasketSuccess("");
-
-        try {
-            const result = await submitEndoBasketOrder({
-                appUserId: user?.uid,
-                items: selectedLines.map((line) => ({
-                    basketIds: line.basketIds,
-                    mtrl: line.mtrl,
-                    qty: line.qty,
-                    branch: Number(line.toBranch),
-                    toBranch: Number(line.fromBranch),
-                    itemCode: line.itemCode,
-                    itemDescr: line.itemDescr,
-                })),
-            });
-
-            const selectedUidSet = new Set(selectedLines.map((item) => item.uid));
-            setBasketItems((prev) => prev.filter((item) => !selectedUidSet.has(item.uid)));
-            setSelectedItems((prev) => {
-                const next = new Set(prev);
-                selectedUidSet.forEach((uid) => next.delete(uid));
-                return next;
-            });
-
-            setBasketSuccess(result.message ?? "Η ενδοπαραγγελία καταχωρήθηκε");
-        } catch (error) {
-            setBasketError(
-                error instanceof Error
-                    ? error.message
-                    : "Αποτυχία αποστολής ενδοπαραγγελίας"
-            );
-        } finally {
-            setSendingOrder(false);
-        }
-    };
-
-    const handleRemoveItem = (uid: string) => {
-        setBasketItems((prev) => prev.filter((item) => item.uid !== uid));
-        setSelectedItems((prev) => {
-            const next = new Set(prev);
-            next.delete(uid);
-            return next;
-        });
-    };
-
-    const handleToggleItem = (uid: string) => {
-        setSelectedItems((prev) => {
-            const next = new Set(prev);
-            if (next.has(uid)) {
-                next.delete(uid);
-            } else {
-                next.add(uid);
-            }
-            return next;
-        });
     };
 
     const handleResultsScroll = (event: UIEvent<HTMLDivElement>) => {
@@ -629,14 +598,9 @@ export default function EndoPartsClient() {
                     currentBranchCode={currentBranchCode}
                     currentBranchName={currentBranchName}
                     basketItems={basketItems}
-                    selectedItems={selectedItems}
-                    loading={false}
+                    loading={summaryLoading}
                     error={basketError}
                     successMessage={basketSuccess}
-                    sendingOrder={sendingOrder}
-                    onToggleItem={handleToggleItem}
-                    onRemoveItem={handleRemoveItem}
-                    onSendOrder={handleSendOrder}
                     collapsible
                     collapsed={!sidebarVisible}
                     onToggleCollapse={() => setSidebarVisible((prev) => !prev)}

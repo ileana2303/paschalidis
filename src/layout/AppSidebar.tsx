@@ -55,6 +55,16 @@ const navItems: NavItem[] = [
     path: "/endo-parts",
   },
   {
+    icon: ClipboardList,
+    name: "Ενδολίστα Παραλαβών",
+    path: "/endo-lists-requested",
+  },
+  {
+    icon: ClipboardList,
+    name: "Ενδολίστα Αποστολών",
+    path: "/endo-lists-received",
+  },
+  {
     icon: Users,
     name: "Καλάθια Πελατών",
     path: "/all-baskets",
