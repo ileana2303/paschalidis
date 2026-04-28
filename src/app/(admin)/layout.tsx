@@ -20,16 +20,12 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen xl:flex">
-      {/* Sidebar and Backdrop */}
       <AppSidebar />
       <Backdrop />
-      {/* Main Content Area */}
       <div
         className={`flex-1 transition-all  duration-300 ease-in-out ${mainContentMargin}`}
       >
-        {/* Header */}
         <AppHeader />
-        {/* Page Content */}
         <div className="mx-auto w-full max-w-[1800px] p-4 md:p-6 xl:max-w-none xl:px-8 2xl:px-10">{children}</div>
       </div>
     </div>

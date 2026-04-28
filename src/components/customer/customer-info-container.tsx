@@ -18,6 +18,7 @@ export default function CustomerInfoContainer({
     onOpenCustomerModal,
 }: CustomerInfoContainerProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const toggleExpanded = () => setIsExpanded((prev) => !prev);
 
     if (!hasMounted) {
         return null;
@@ -26,7 +27,10 @@ export default function CustomerInfoContainer({
     if (customer) {
         return (
             <div className="mb-4 shrink-0">
-                <div className={`border-2 border-brand-500 bg-brand-50 p-4 text-sm text-gray-700 ${isExpanded ? "rounded-2xl" : "rounded-full"}`}>
+                <div
+                    onClick={toggleExpanded}
+                    className={`border-1 border-brand-500 bg-brand-50 p-4 text-sm text-gray-700 cursor-pointer ${isExpanded ? "rounded-2xl" : "rounded-full"}`}
+                >
                     <div className="flex items-center gap-3">
                         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 sm:gap-8">
                             <span className="font-semibold text-gray-800">
@@ -44,31 +48,28 @@ export default function CustomerInfoContainer({
                             )}
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={() => setIsExpanded((prev) => !prev)}
-                            aria-expanded={isExpanded}
-                            title={isExpanded ? "Απόκρυψη στοιχείων πελάτη" : "Εμφάνιση στοιχείων πελάτη"}
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-white text-brand-500 shadow-sm transition-all duration-200 hover:bg-brand-500 hover:text-white dark:border-brand-500 dark:bg-gray-900 dark:text-brand-400 dark:hover:bg-brand-500 dark:hover:text-white"
+                        <div
+                            aria-hidden="true"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-white text-brand-500 shadow-sm transition-all duration-200 hover:bg-brand-500 hover:text-white dark:border-brand-500 dark:bg-gray-900 dark:text-brand-400 dark:hover:bg-brand-500 dark:hover:text-white"
                         >
-                            <span className="sr-only">
-                                {isExpanded ? "Απόκρυψη στοιχείων πελάτη" : "Εμφάνιση στοιχείων πελάτη"}
-                            </span>
                             <ChevronDown className={`h-5 w-5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                        </button>
+                        </div>
 
                         <button
                             type="button"
-                            onClick={onClearCustomer}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onClearCustomer();
+                            }}
                             aria-label="Αφαίρεση επιλογής πελάτη"
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-error-500 bg-white text-error-500 shadow-sm transition-all duration-200 hover:bg-error-500 hover:text-white dark:border-error-500 dark:bg-gray-900 dark:text-error-400 dark:hover:bg-error-500 dark:hover:text-white"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-error-500 bg-white text-error-500 shadow-sm transition-all duration-200 hover:bg-error-500 hover:text-white dark:border-error-500 dark:bg-gray-900 dark:text-error-400 dark:hover:bg-error-500 dark:hover:text-white"
                         >
                             <X className="h-5 w-5" />
                         </button>
                     </div>
 
                     {isExpanded && (
-                        <div className="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-brand-200 bg-white/80 p-4 sm:grid-cols-2 lg:grid-cols-4 dark:border-brand-500/30 dark:bg-gray-900/70">
+                        <div className="mt-4 grid grid-flow-col auto-cols-[minmax(180px,1fr)] gap-3 overflow-x-auto rounded-xl border border-brand-200 bg-white/80 p-4 dark:border-brand-500/30 dark:bg-gray-900/70">
                             <div className="min-w-0">
                                 <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
                                     TRDR
@@ -123,10 +124,10 @@ export default function CustomerInfoContainer({
                                 <div className="mt-1 break-words text-sm font-medium text-gray-700 dark:text-gray-200">
                                     {customer.MAIN_CITY || "-"}
                                 </div>
-                                
+
                             </div>
 
-                            
+
                         </div>
                     )}
                 </div>

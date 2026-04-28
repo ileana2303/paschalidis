@@ -230,6 +230,17 @@ export async function POST(req: NextRequest) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error("[basket/items] Upstream error body:", errorText);
+            
+            if (response.status === 404) {
+                const emptyData: BasketResponse = {
+                    success: true,
+                    message: "Δεν βρέθηκαν στοιχεία καλαθιού για τον συγκεκριμένο πελάτη",
+                    totalcount: 0,
+                    rows: [],
+                };
+
+                return NextResponse.json(emptyData);
+            }
 
             return NextResponse.json(
                 { success: false, message: "Upstream request failed", totalcount: 0, rows: [] },
