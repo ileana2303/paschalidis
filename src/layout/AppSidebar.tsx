@@ -1,4 +1,5 @@
 "use client";
+
 import React, {
   useEffect,
   useRef,
@@ -111,13 +112,15 @@ const AppSidebar: React.FC = () => {
           return (
             <li key={nav.name}>
               {(isExpanded || isHovered || isMobileOpen) ? (
-                <div className="rounded-2xl border border-brand-200 dark:border-brand-800 bg-white/70 dark:bg-white/[0.03] p-4 shadow-sm">
-                  <div className="-mx-4 -mt-4 mb-3 rounded-t-2xl border-b border-brand-200/80 bg-brand-100/60 px-4 py-2 dark:border-brand-700/70 dark:bg-brand-900/20">
+                <div className="rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-gray-200/60 dark:border-gray-800/60 shadow-sm backdrop-blur-sm p-4">
+
+                  <div className="-mx-4 -mt-4 mb-3 px-4 py-2 rounded-t-2xl border-b border-gray-200/60 dark:border-gray-800/60 bg-brand-100/40 dark:bg-brand-900/20">
                     <div className="flex items-center gap-2">
                       <div className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-500/10 dark:bg-brand-500/20">
                         <Icon className="h-4 w-4 text-brand-600 dark:text-brand-300" />
                       </div>
-                      <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-700 dark:text-brand-200">
+
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-200">
                         {nav.name}
                       </h3>
                     </div>
@@ -131,16 +134,22 @@ const AppSidebar: React.FC = () => {
                         <Link
                           key={subItem.name}
                           href={subItem.path}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all
-                          ${isActive(subItem.path)
-                              ? "bg-brand-500 text-white"
-                              : "hover:bg-brand-100 dark:hover:bg-white/[0.05]"
-                            }`}
+                          className={`
+            group flex items-center gap-2 px-3 py-2 rounded-lg text-sm
+            transition-all duration-200 active:scale-[0.98]
+
+            ${isActive(subItem.path)
+                              ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-white/70 dark:hover:bg-white/[0.05]"}
+          `}
                         >
                           {SubItemIcon && (
-                            <SubItemIcon className="w-4 h-4 shrink-0" />
+                            <SubItemIcon className="h-4 w-4 shrink-0" />
                           )}
-                          {subItem.name}
+
+                          <span className="font-medium tracking-tight">
+                            {subItem.name}
+                          </span>
                         </Link>
                       );
                     })}
@@ -161,8 +170,8 @@ const AppSidebar: React.FC = () => {
               <button
                 onClick={() => handleSubmenuToggle(index)}
                 className={`menu-item group ${openSubmenu === index
-                    ? "menu-item-active"
-                    : "menu-item-inactive"
+                  ? "menu-item-active"
+                  : "menu-item-inactive"
                   } cursor-pointer ${!isExpanded && !isHovered
                     ? "lg:justify-center"
                     : "lg:justify-start"
@@ -170,8 +179,8 @@ const AppSidebar: React.FC = () => {
               >
                 <span
                   className={`${openSubmenu === index
-                      ? "menu-item-icon-active"
-                      : "menu-item-icon-inactive"
+                    ? "menu-item-icon-active"
+                    : "menu-item-icon-inactive"
                     }`}
                 >
                   <Icon className="h-5 w-5" />
@@ -192,18 +201,17 @@ const AppSidebar: React.FC = () => {
               nav.path && (
                 <Link
                   href={nav.path}
-                  className={`menu-item group ${isActive(nav.path)
-                      ? "menu-item-active"
-                      : "menu-item-inactive"
-                    }`}
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 
+                    ${isActive(nav.path!)
+                      ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/[0.05] hover:shadow-sm"} hover:translate-x-[2px]`}
                 >
-                  <span
-                    className={`${isActive(nav.path)
-                        ? "menu-item-icon-active"
-                        : "menu-item-icon-inactive"
-                      }`}
-                  >
-                    <Icon className="h-5 w-5" />
+                  <span className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all
+                  ${isActive(nav.path!)
+                      ? "bg-white/20 text-white"
+                      : "text-gray-500 group-hover:text-brand-600 group-hover:bg-brand-50"}
+                      `}>
+                    <Icon className="h-4 w-4" />
                   </span>
 
                   {(isExpanded || isHovered || isMobileOpen) && (
@@ -213,7 +221,6 @@ const AppSidebar: React.FC = () => {
               )
             )}
 
-            {/* keep dropdown ONLY for other items */}
             {nav.subItems &&
               nav.name !== "Διαχείριση Καταστημάτων" &&
               (isExpanded || isHovered || isMobileOpen) && (
@@ -238,8 +245,8 @@ const AppSidebar: React.FC = () => {
                           <Link
                             href={subItem.path}
                             className={`menu-dropdown-item ${isActive(subItem.path)
-                                ? "menu-dropdown-item-active"
-                                : "menu-dropdown-item-inactive"
+                              ? "menu-dropdown-item-active"
+                              : "menu-dropdown-item-inactive"
                               }`}
                           >
                             {SubItemIcon && (
@@ -317,7 +324,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-4 px-5 left-4 bg-brand-50 rounded-2xl  dark:border-gray-800 dark:bg-white/[0.03] text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-4 px-5 left-4 bg-brand-100/40 dark:bg-gray-900/80 rounded-2xl shadow-sm dark:shadow-none dark:border-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-gray-100 h-screen transition-all duration-300 ease-in-out z-50
         ${isExpanded || isMobileOpen
           ? "w-[290px]"
           : isHovered
