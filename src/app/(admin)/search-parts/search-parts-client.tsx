@@ -1,11 +1,11 @@
 "use client";
 
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
-import { type UIEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, Plus } from "@/app/lib/lucide";
+import { type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, GitCompareArrows, Plus } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useSearchPartsStore } from "@/stores/searchPartsStore";
-import { ICustomerInfo, IItem, IBasket, IBasketItem, StockRequestStatus } from "@/app/lib/interface";
+import { ICustomerInfo, IEndoListRow, IItem, IBasket, IBasketItem, StockRequestStatus } from "@/app/lib/interface";
 import {
     getBasketItemId,
     getBasketItemLineTotal,
@@ -19,11 +19,15 @@ import CustomerInfoContainer from "../../../components/customer/customer-info-co
 import PartsSearchModal from "../../../components/parts/parts-search-modal";
 import PartResults from "../../../components/parts/part-results";
 import CustomerSearchModal from "../../../components/customer/customer-search-modal";
+import EndoOrderSummary, { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
+import EndoPartResults, { EndoBranchOption } from "@/components/endo/endo-part-results";
 import SearchBar from "@/components/search/search-bar";
 import {
     useAddItemToBasketMutation,
+    useAddItemToEndoBasketMutation,
     useDeleteBasketItemsMutation,
     useFetchBasketItemsMutation,
+    useFetchEndoListsMutation,
     useRequestStockQuantityMutation,
     useSearchCustomersMutation,
     useSearchItemsByTrdrMutation,
@@ -37,6 +41,11 @@ import { isAxiosError } from "axios";
 type SupportedStockBranch = "1001" | "1006" | "1007";
 
 const DEFAULT_STOCK_REQUEST_BRANCH: SupportedStockBranch = "1006";
+const BRANCH_CONFIG: Record<SupportedStockBranch, string> = {
+    "1001": "Ν. Κόσμος",
+    "1006": "Λ. Αθηνών",
+    "1007": "Λ. Μεσογείων",
+};
 const STOCK_FIELD_BY_BRANCH: Record<
     SupportedStockBranch,
     keyof Pick<IItem, "YP1001" | "YP1006" | "YP1007">
@@ -70,6 +79,91 @@ function parseStockValue(value: unknown) {
     return parsed;
 }
 
+function parseAvailableStock(value: unknown) {
+    const parsed = Number(String(value ?? "").trim().replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return 0;
+    }
+
+    return Math.floor(parsed);
+}
+
+function resolveCurrentBranchCode(
+    s1Code: string | undefined,
+    listBranches: Array<{ s1Code?: string }> | undefined
+) {
+    const preferred = String(s1Code ?? "").trim();
+    if (/^\d+$/.test(preferred)) {
+        return preferred;
+    }
+
+    const firstBranch = listBranches
+        ?.map((entry) => String(entry.s1Code ?? "").trim())
+        .find((entry) => /^\d+$/.test(entry));
+
+    return firstBranch || "1001";
+}
+
+function getEndoItemKey(item: IItem) {
+    return `${item.ITEM_CODE}-${item.MTRL}`;
+}
+
+function getEndoQtyKey(mtrl: string | number, sourceBranch: string) {
+    return `${mtrl}:${sourceBranch}`;
+}
+
+function parsePositiveInt(value: unknown) {
+    const parsed = Number(String(value ?? "").trim().replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return 0;
+    }
+
+    return Math.floor(parsed);
+}
+
+function mapEndoRequestedRows(
+    rows: IEndoListRow[],
+    currentBranchCode: string
+): EndoBasketUiItem[] {
+    return rows
+        .map((row, index) => {
+            const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
+            const mtrl = parsePositiveInt(row.MTRL);
+            const qty = parsePositiveInt(row.QTY || row.QTY_REQUESTED);
+            const rowBranch = String(row.BRANCH ?? "").trim();
+            const rowToBranch = String(row.TO_BRANCH ?? "").trim();
+            let fromBranch = rowBranch || rowToBranch;
+            let toBranch = rowToBranch || currentBranchCode;
+
+            if (rowBranch === currentBranchCode && rowToBranch) {
+                fromBranch = rowToBranch;
+                toBranch = rowBranch;
+            } else if (rowToBranch === currentBranchCode && rowBranch) {
+                fromBranch = rowBranch;
+                toBranch = rowToBranch;
+            }
+
+            if (!fromBranch) {
+                fromBranch = "-";
+            }
+
+            return {
+                uid: basketId ? `endo-${basketId}` : `endo-row-${index}`,
+                basketIds: basketId ? [basketId] : [],
+                mtrl,
+                qty,
+                fromBranch,
+                toBranch,
+                itemCode: String(row.ITEM_CODE ?? row.CODE ?? mtrl ?? "").trim(),
+                itemDescr: String(
+                    row.ITEM_DESCR ?? row.ITEM_NAME ?? row.NAME ?? "—"
+                ).trim(),
+                manufacturer: String(row.MNF_DESCR ?? row.MANUFACTURER ?? "").trim(),
+            } as EndoBasketUiItem;
+        })
+        .filter((row) => row.mtrl > 0 && row.qty > 0);
+}
+
 type ReceiptType = "receipt" | "invoice";
 
 export default function SearchPartsClient() {
@@ -92,6 +186,7 @@ export default function SearchPartsClient() {
     const [notes, setNotes] = useState("");
     const [sendingOrder, setSendingOrder] = useState(false);
     const [sidebarVisible, setSidebarVisible] = useState(true);
+    const [isEndoMode, setIsEndoMode] = useState(false);
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const [quantities, setQuantities] = useState<Record<string, number>>({});
     const [storeOrderQuantities, setStoreOrderQuantities] = useState<Record<string, number>>({});
@@ -99,6 +194,12 @@ export default function SearchPartsClient() {
     const [stockRequestErrors, setStockRequestErrors] = useState<Record<string, string>>({});
     const [submittingStockRequests, setSubmittingStockRequests] = useState<Set<string>>(new Set());
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
+    const [endoQuantities, setEndoQuantities] = useState<Record<string, number>>({});
+    const [endoBasketItems, setEndoBasketItems] = useState<EndoBasketUiItem[]>([]);
+    const [addingToEndoBasket, setAddingToEndoBasket] = useState<Set<string>>(new Set());
+    const [endoSummaryLoading, setEndoSummaryLoading] = useState(false);
+    const [endoBasketError, setEndoBasketError] = useState("");
+    const [endoBasketSuccess, setEndoBasketSuccess] = useState("");
     const [discountPrices, setDiscountPrices] = useState<Record<string, string>>({});
     const [submittingDiscount, setSubmittingDiscount] = useState<Set<string>>(new Set());
     const [removingBasketItems, setRemovingBasketItems] = useState<Set<string>>(new Set());
@@ -142,11 +243,59 @@ export default function SearchPartsClient() {
     const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
     const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
     const { mutateAsync: addItemToBasket } = useAddItemToBasketMutation();
+    const { mutateAsync: addItemToEndoBasket } = useAddItemToEndoBasketMutation();
+    const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
     const stockRequestBranch = getCurrentStockBranchCode(user?.s1code);
     const stockField = STOCK_FIELD_BY_BRANCH[stockRequestBranch] ?? "YP1006";
+    const currentBranchCode = useMemo(
+        () => resolveCurrentBranchCode(user?.s1code, user?.listBranches),
+        [user?.listBranches, user?.s1code]
+    );
+    const currentBranchName = useMemo(() => {
+        const normalizedCurrent = String(currentBranchCode).trim();
+        const fromProfile = user?.listBranches?.find(
+            (branch) => String(branch.s1Code ?? "").trim() === normalizedCurrent
+        )?.name;
+        const normalizedProfileName = String(fromProfile ?? "").trim();
+
+        if (normalizedProfileName) {
+            return normalizedProfileName;
+        }
+
+        return BRANCH_CONFIG[normalizedCurrent as SupportedStockBranch] ?? normalizedCurrent;
+    }, [currentBranchCode, user?.listBranches]);
+
+    const loadRequestedEndoLines = useCallback(async () => {
+        setEndoSummaryLoading(true);
+
+        try {
+            const data = await fetchEndoLists({
+                branch: currentBranchCode,
+                scope: "requested",
+            });
+            setEndoBasketItems(
+                mapEndoRequestedRows(data.requested.rows ?? [], currentBranchCode)
+            );
+
+            if (String(data.message ?? "").trim()) {
+                setEndoBasketError(String(data.message).trim());
+            } else {
+                setEndoBasketError("");
+            }
+        } catch (error) {
+            setEndoBasketItems([]);
+            setEndoBasketError(
+                error instanceof Error
+                    ? error.message
+                    : "Αποτυχία φόρτωσης ENDO_LIST_ESO"
+            );
+        } finally {
+            setEndoSummaryLoading(false);
+        }
+    }, [currentBranchCode, fetchEndoLists]);
 
     const handleOpenSearchModal = useCallback(() => {
         setModalSearch("");
@@ -191,6 +340,11 @@ export default function SearchPartsClient() {
 
         clearSearchPartsState();
         setExpandedItems(new Set());
+        setIsEndoMode(false);
+        setEndoQuantities({});
+        setEndoBasketItems([]);
+        setEndoBasketError("");
+        setEndoBasketSuccess("");
         setSearchStateTrdr(customerTrdr);
     }, [clearSearchPartsState, customer?.TRDR, searchStateTrdr, setSearchStateTrdr]);
 
@@ -217,7 +371,7 @@ export default function SearchPartsClient() {
         return () => {
             window.removeEventListener("resize", updateScrollability);
         };
-    }, [hasMounted, items.length]);
+    }, [hasMounted, isEndoMode, items.length]);
 
     useEffect(() => {
         if (isSearchModalOpen) {
@@ -230,6 +384,14 @@ export default function SearchPartsClient() {
             customerModalInputRef.current?.focus();
         }
     }, [isCustomerModalOpen]);
+
+    useEffect(() => {
+        if (!isEndoMode || !customer?.TRDR) {
+            return;
+        }
+
+        void loadRequestedEndoLines();
+    }, [customer?.TRDR, isEndoMode, loadRequestedEndoLines]);
 
     useEffect(() => {
         const handleEnterShortcut = (event: KeyboardEvent) => {
@@ -269,6 +431,8 @@ export default function SearchPartsClient() {
         setSearchStateTrdr(String(customer?.TRDR ?? "").trim() || null);
         setHasSearched(true);
         setLoading(true);
+        setEndoBasketSuccess("");
+        setEndoQuantities({});
 
         try {
             const data = customer?.TRDR
@@ -344,6 +508,11 @@ export default function SearchPartsClient() {
         setSearchStateTrdr(String(selectedCustomer.TRDR).trim() || null);
         setModalSearch("");
         setExpandedItems(new Set());
+        setIsEndoMode(false);
+        setEndoQuantities({});
+        setEndoBasketItems([]);
+        setEndoBasketError("");
+        setEndoBasketSuccess("");
         setHasScrolledResults(false);
         closeCustomerModal();
         router.replace(`/search-parts?trdr=${selectedCustomer.TRDR}`);
@@ -424,26 +593,29 @@ export default function SearchPartsClient() {
         }
     }, [customer?.TRDR, loadBasket]);
 
-    const toggleExpanded = (itemCode: string) => {
+    const getExpandedItemKey = (item: IItem) =>
+        isEndoMode ? getEndoItemKey(item) : item.ITEM_CODE;
+
+    const toggleExpanded = (itemKey: string) => {
         setExpandedItems((prev) => {
             const next = new Set(prev);
-            if (next.has(itemCode)) next.delete(itemCode);
-            else next.add(itemCode);
+            if (next.has(itemKey)) next.delete(itemKey);
+            else next.add(itemKey);
             return next;
         });
     };
 
     const areAllResultsExpanded =
-        items.length > 0 && items.every((item) => expandedItems.has(item.ITEM_CODE));
+        items.length > 0 && items.every((item) => expandedItems.has(getExpandedItemKey(item)));
 
     const toggleAllExpanded = () => {
         setExpandedItems((prev) => {
             const next = new Set(prev);
 
             if (areAllResultsExpanded) {
-                items.forEach((item) => next.delete(item.ITEM_CODE));
+                items.forEach((item) => next.delete(getExpandedItemKey(item)));
             } else {
-                items.forEach((item) => next.add(item.ITEM_CODE));
+                items.forEach((item) => next.add(getExpandedItemKey(item)));
             }
 
             return next;
@@ -478,6 +650,137 @@ export default function SearchPartsClient() {
 
     const setStoreOrderQuantity = (mtrl: string, qty: number) => {
         setStoreOrderQuantities((prev) => ({ ...prev, [mtrl]: qty }));
+    };
+
+    const getEndoRequestedQty = (mtrl: string | number, sourceBranch: string) =>
+        endoQuantities[getEndoQtyKey(mtrl, sourceBranch)] ?? 0;
+
+    const setEndoRequestedQty = (
+        mtrl: string | number,
+        sourceBranch: string,
+        next: number
+    ) => {
+        const qtyKey = getEndoQtyKey(mtrl, sourceBranch);
+        const normalizedQty = Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0;
+
+        setEndoQuantities((prev) => {
+            if (normalizedQty <= 0) {
+                if (!(qtyKey in prev)) {
+                    return prev;
+                }
+
+                const copy = { ...prev };
+                delete copy[qtyKey];
+                return copy;
+            }
+
+            return {
+                ...prev,
+                [qtyKey]: normalizedQty,
+            };
+        });
+    };
+
+    const getEndoBranchOptions = (item: IItem): EndoBranchOption[] => {
+        return [
+            {
+                code: "1001",
+                label: BRANCH_CONFIG["1001"],
+                stock: parseAvailableStock(item.YP1001),
+                location: item.THESI1001 || "-",
+                isCurrent: currentBranchCode === "1001",
+            },
+            {
+                code: "1006",
+                label: BRANCH_CONFIG["1006"],
+                stock: parseAvailableStock(item.YP1006),
+                location: item.THESI1006 || "-",
+                isCurrent: currentBranchCode === "1006",
+            },
+            {
+                code: "1007",
+                label: BRANCH_CONFIG["1007"],
+                stock: parseAvailableStock(item.YP1007),
+                location: item.THESI1007 || "-",
+                isCurrent: currentBranchCode === "1007",
+            },
+        ];
+    };
+
+    const handleAddToEndoBasket = async (item: IItem, sourceBranchCode: string) => {
+        const normalizedDestinationBranch = Number(currentBranchCode);
+        const normalizedSourceBranch = Number(sourceBranchCode);
+        const requestedQty = getEndoRequestedQty(item.MTRL, sourceBranchCode);
+        const sourceBranchStock = getEndoBranchOptions(item).find(
+            (branch) => branch.code === sourceBranchCode
+        )?.stock ?? 0;
+
+        if (!Number.isFinite(normalizedDestinationBranch) || normalizedDestinationBranch <= 0) {
+            setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα χρήστη");
+            return;
+        }
+
+        if (!Number.isFinite(normalizedSourceBranch) || normalizedSourceBranch <= 0) {
+            setEndoBasketError("Μη έγκυρο κατάστημα αποστολής");
+            return;
+        }
+
+        if (normalizedDestinationBranch === normalizedSourceBranch) {
+            setEndoBasketError("Η ενδοδιακίνηση πρέπει να αφορά διαφορετικά καταστήματα");
+            return;
+        }
+
+        if (!Number.isFinite(requestedQty) || requestedQty <= 0) {
+            setEndoBasketError("Η ποσότητα πρέπει να είναι μεγαλύτερη από 0");
+            return;
+        }
+
+        if (requestedQty > sourceBranchStock) {
+            setEndoBasketError("Η ζητούμενη ποσότητα υπερβαίνει το διαθέσιμο απόθεμα");
+            return;
+        }
+
+        const requestKey = getEndoQtyKey(item.MTRL, sourceBranchCode);
+        setAddingToEndoBasket((prev) => new Set(prev).add(requestKey));
+        setEndoBasketError("");
+        setEndoBasketSuccess("");
+
+        try {
+            const response = await addItemToEndoBasket({
+                MTRL: Number(item.MTRL),
+                QTY: requestedQty,
+                BRANCH: normalizedDestinationBranch,
+                TO_BRANCH: normalizedSourceBranch,
+                APPUSER_ID: user?.uid,
+                ITEM_CODE: item.ITEM_CODE,
+                ITEM_DESCR: item.ITEM_DESCR,
+                MNF_DESCR: item.MNF_DESCR,
+            });
+
+            setEndoRequestedQty(item.MTRL, sourceBranchCode, 0);
+            await loadRequestedEndoLines();
+            setEndoBasketSuccess(response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης");
+        } catch (error) {
+            if (isAxiosError(error)) {
+                const responseMessage =
+                    typeof error.response?.data?.message === "string"
+                        ? error.response.data.message
+                        : undefined;
+                setEndoBasketError(responseMessage ?? error.message);
+            } else {
+                setEndoBasketError(
+                    error instanceof Error
+                        ? error.message
+                        : "Αποτυχία προσθήκης στο καλάθι ενδοδιακίνησης"
+                );
+            }
+        } finally {
+            setAddingToEndoBasket((prev) => {
+                const next = new Set(prev);
+                next.delete(requestKey);
+                return next;
+            });
+        }
     };
 
     const handleSubmitStockRequest = async (item: IItem) => {
@@ -749,6 +1052,18 @@ export default function SearchPartsClient() {
         }
     };
 
+    const handleToggleEndoMode = () => {
+        if (!customer) {
+            handleOpenCustomerModal();
+            return;
+        }
+
+        setExpandedItems(new Set());
+        setEndoBasketSuccess("");
+        setEndoBasketError("");
+        setIsEndoMode((prev) => !prev);
+    };
+
     const handleResultsScroll = (event: UIEvent<HTMLDivElement>) => {
         const scrollTop = event.currentTarget.scrollTop;
 
@@ -775,6 +1090,11 @@ export default function SearchPartsClient() {
                     clearCustomer();
                     clearSearchPartsState();
                     setExpandedItems(new Set());
+                    setIsEndoMode(false);
+                    setEndoQuantities({});
+                    setEndoBasketItems([]);
+                    setEndoBasketError("");
+                    setEndoBasketSuccess("");
                     router.replace("/search-parts");
                 }}
                 onOpenCustomerModal={handleOpenCustomerModal}
@@ -815,28 +1135,82 @@ export default function SearchPartsClient() {
                         <div className="px-5 pb-2 xl:px-10 xl:pb-2">
                             <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
                                 {items.length > 0 && (
-                                    <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="sticky top-[100px] z-10 mb-2 flex flex-col gap-2 border-b border-gray-100 bg-white/95 py-2 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-[#0f172a]/95 xl:top-[140px]">
                                         <p className="text-sm text-gray-500">
                                             Βρέθηκαν {items.length} αποτελέσματα
                                         </p>
 
-                                        <button
-                                            type="button"
-                                            onClick={toggleAllExpanded}
-                                            aria-label={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                            title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
-                                        >
-                                            <ChevronDown
-                                                className={`h-4 w-4 transition-transform duration-200 ${areAllResultsExpanded ? "rotate-180" : ""}`}
-                                            />
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            {customer && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleToggleEndoMode}
+                                                    aria-pressed={isEndoMode}
+                                                    className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-semibold shadow-sm transition ${isEndoMode
+                                                        ? "border-brand-500 bg-brand-500 text-white hover:bg-brand-600"
+                                                        : "border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                                                        }`}
+                                                >
+                                                    <GitCompareArrows className="h-3.5 w-3.5" />
+                                                    <span>{isEndoMode ? "Κανονικό καλάθι" : "Ενδοδιακίνηση"}</span>
+                                                </button>
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                onClick={toggleAllExpanded}
+                                                aria-label={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
+                                                title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                                            >
+                                                <ChevronDown
+                                                    className={`h-4 w-4 transition-transform duration-200 ${areAllResultsExpanded ? "rotate-180" : ""}`}
+                                                />
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 
                                 <div className="space-y-2">
                                     {items.map((item) => {
-                                        const isExpanded = expandedItems.has(item.ITEM_CODE);
+                                        const mtrlKey = String(item.MTRL);
+                                        const expandedItemKey = getExpandedItemKey(item);
+                                        const isExpanded = expandedItems.has(expandedItemKey);
+
+                                        if (isEndoMode) {
+                                            const endoBranches = getEndoBranchOptions(item);
+                                            const inEndoBasketQtyByBranch = endoBasketItems
+                                                .filter((basketItem) => basketItem.mtrl === Number(item.MTRL))
+                                                .reduce<Record<string, number>>((acc, basketItem) => {
+                                                    acc[basketItem.fromBranch] =
+                                                        (acc[basketItem.fromBranch] ?? 0) + basketItem.qty;
+                                                    return acc;
+                                                }, {});
+
+                                            return (
+                                                <EndoPartResults
+                                                    key={getEndoItemKey(item)}
+                                                    item={item}
+                                                    isExpanded={isExpanded}
+                                                    branches={endoBranches}
+                                                    getRequestedQty={(branchCode) =>
+                                                        getEndoRequestedQty(item.MTRL, branchCode)
+                                                    }
+                                                    onRequestedQtyChange={(branchCode, nextQty) =>
+                                                        setEndoRequestedQty(item.MTRL, branchCode, nextQty)
+                                                    }
+                                                    onAddToBasket={(branchCode) =>
+                                                        handleAddToEndoBasket(item, branchCode)
+                                                    }
+                                                    isAdding={(branchCode) =>
+                                                        addingToEndoBasket.has(getEndoQtyKey(item.MTRL, branchCode))
+                                                    }
+                                                    inBasketQtyByBranch={inEndoBasketQtyByBranch}
+                                                    onToggleExpanded={() => toggleExpanded(expandedItemKey)}
+                                                />
+                                            );
+                                        }
+
                                         const basketItem = findBasketItem(item);
                                         const qty = getQuantity(
                                             item.ITEM_CODE,
@@ -844,7 +1218,6 @@ export default function SearchPartsClient() {
                                         );
                                         const isAdding = addingToBasket.has(item.ITEM_CODE);
                                         const isInBasket = basketItem != null;
-                                        const mtrlKey = String(item.MTRL);
                                         const storeStock = getStoreStock(item);
                                         const storeOrderQty = getStoreOrderQuantity(mtrlKey);
                                         const stockRequestStatus = stockRequestStatuses[mtrlKey] ?? null;
@@ -870,7 +1243,7 @@ export default function SearchPartsClient() {
                                                 isSubmittingStockRequest={isSubmittingStockRequest}
                                                 discountValue={discountValue}
                                                 isSubmittingRequestPrice={isSubmittingRequestPrice}
-                                                onToggleExpanded={() => toggleExpanded(item.ITEM_CODE)}
+                                                onToggleExpanded={() => toggleExpanded(expandedItemKey)}
                                                 onQuantityChange={(nextQty) => setQuantity(item.ITEM_CODE, nextQty)}
                                                 onAddToBasket={() => handleAddToBasket(item)}
                                                 onDiscountValueChange={(value) =>
@@ -912,39 +1285,53 @@ export default function SearchPartsClient() {
                 </div>
 
                 {customer && (
-                    <OrderSummary
-                        customer={customer}
-                        basket={basket}
-                        loading={basketLoading}
-                        error={basketError}
-                        onRefresh={() => customer && loadBasket(customer.TRDR)}
-                        selectedItems={selectedItems}
-                        selectedCount={selectedItemsList.length}
-                        selectedTotal={selectedTotal}
-                        receiptType={receiptType}
-                        onReceiptTypeChange={setReceiptType}
-                        pickupPoint={pickupPoint}
-                        onPickupPointChange={setPickupPoint}
-                        notes={notes}
-                        onNotesChange={setNotes}
-                        onSendOrder={handleSendOrder}
-                        sendingOrder={sendingOrder}
-                        onToggleItem={(uid) => {
-                            setSelectedItems((prev) => {
-                                const next = new Set(prev);
-                                if (next.has(uid)) next.delete(uid);
-                                else next.add(uid);
-                                return next;
-                            });
-                        }}
-                        onRemoveItem={handleRemoveItem}
-                        removingItems={removingBasketItems}
-                        onRemoveSelectedItems={handleRemoveSelectedItems}
-                        removingSelectedItems={removingSelectedBasketItems}
-                        collapsible
-                        collapsed={!sidebarVisible}
-                        onToggleCollapse={() => setSidebarVisible((v) => !v)}
-                    />
+                    isEndoMode ? (
+                        <EndoOrderSummary
+                            currentBranchCode={currentBranchCode}
+                            currentBranchName={currentBranchName}
+                            basketItems={endoBasketItems}
+                            loading={endoSummaryLoading}
+                            error={endoBasketError}
+                            successMessage={endoBasketSuccess}
+                            collapsible
+                            collapsed={!sidebarVisible}
+                            onToggleCollapse={() => setSidebarVisible((v) => !v)}
+                        />
+                    ) : (
+                        <OrderSummary
+                            customer={customer}
+                            basket={basket}
+                            loading={basketLoading}
+                            error={basketError}
+                            onRefresh={() => customer && loadBasket(customer.TRDR)}
+                            selectedItems={selectedItems}
+                            selectedCount={selectedItemsList.length}
+                            selectedTotal={selectedTotal}
+                            receiptType={receiptType}
+                            onReceiptTypeChange={setReceiptType}
+                            pickupPoint={pickupPoint}
+                            onPickupPointChange={setPickupPoint}
+                            notes={notes}
+                            onNotesChange={setNotes}
+                            onSendOrder={handleSendOrder}
+                            sendingOrder={sendingOrder}
+                            onToggleItem={(uid) => {
+                                setSelectedItems((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(uid)) next.delete(uid);
+                                    else next.add(uid);
+                                    return next;
+                                });
+                            }}
+                            onRemoveItem={handleRemoveItem}
+                            removingItems={removingBasketItems}
+                            onRemoveSelectedItems={handleRemoveSelectedItems}
+                            removingSelectedItems={removingSelectedBasketItems}
+                            collapsible
+                            collapsed={!sidebarVisible}
+                            onToggleCollapse={() => setSidebarVisible((v) => !v)}
+                        />
+                    )
                 )}
             </div>
 
