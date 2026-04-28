@@ -6,6 +6,7 @@ import type {
     BasketOutRoutePayload,
     IBasketItem,
 } from "@/app/lib/interface";
+import { callMassDelete, MassDeleteError } from "@/app/api/_lib/mass-delete";
 
 const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
 const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
@@ -94,18 +95,6 @@ type SetDataOrderPayload = {
             QTY1: number;
         }>;
     };
-};
-
-type MassDeletePayload = {
-    service: "SqlData";
-    clientID: string;
-    appId: "1305";
-    SqlName: "MASS_DELETE";
-    BASKET_IDS: string;
-    TABLE_ACTION: string;
-    METHOD: string;
-    S1_KEY: string;
-    APPUSER_ID: string;
 };
 
 function getCharset(contentType: string | null) {
@@ -513,68 +502,32 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const massDeletePayload: MassDeletePayload = {
-            service: "SqlData",
-            clientID: sqlClientID,
-            appId: "1305",
-            SqlName: "MASS_DELETE",
-            BASKET_IDS: basketIds.join(","),
-            TABLE_ACTION: tableAction,
-            METHOD: deleteMethod,
-            S1_KEY: orderId,
-            APPUSER_ID: deleteAppUserId,
-        };
+        let massDeleteMessage: string | undefined;
+        try {
+            const massDeleteResult = await callMassDelete({
+                clientID: sqlClientID,
+                basketIds,
+                tableAction,
+                method: deleteMethod,
+                s1Key: orderId,
+                appUserId: deleteAppUserId,
+                logLabel: "[basket/submit]",
+            });
+            massDeleteMessage = massDeleteResult.message;
+        } catch (error) {
+            if (error instanceof MassDeleteError) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message:
+                            `Order submitted (${orderId}) but basket cleanup failed`,
+                    },
+                    { status: error.status }
+                );
+            }
 
-        const massDeleteResponse = await fetch(S1_ENDPOINT, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(massDeletePayload),
-        });
-
-        if (!massDeleteResponse.ok) {
-            const errorText = await massDeleteResponse.text();
-            console.error("[basket/submit] mass-delete error body:", errorText);
-
-            return NextResponse.json(
-                {
-                    success: false,
-                    message:
-                        `Order submitted (${orderId}) but basket cleanup failed`,
-                },
-                { status: massDeleteResponse.status }
-            );
+            throw error;
         }
-
-        const massDeleteResult = await parseJsonWithEncodingFallback(massDeleteResponse) as {
-            success?: boolean;
-            message?: string;
-            rows?: Array<{ MESSAGE_TO_CALLER?: string } | Record<string, unknown>>;
-        };
-
-        if (massDeleteResult?.success === false) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message:
-                        massDeleteResult.message ??
-                        `Order submitted (${orderId}) but basket cleanup failed`,
-                },
-                { status: 502 }
-            );
-        }
-
-        const massDeleteMessage =
-            massDeleteResult?.message ??
-            (
-                massDeleteResult?.rows?.[0] &&
-                typeof massDeleteResult.rows[0] === "object" &&
-                "MESSAGE_TO_CALLER" in massDeleteResult.rows[0] &&
-                typeof massDeleteResult.rows[0].MESSAGE_TO_CALLER === "string"
-            ? massDeleteResult.rows[0].MESSAGE_TO_CALLER
-            : undefined
-            );
 
         const submittedMessage =
             setDataResult?.message ?? `Order submitted (${orderId})`;

@@ -89,8 +89,14 @@ export function getBasketItemRequestedPrice(item: IBasketItem): number {
 }
 
 export function getBasketItemEffectivePrice(item: IBasketItem): number {
+    const approvalStatus = getBasketItemApprovalStatus(item);
     const requestedPrice = getBasketItemRequestedPrice(item);
-    return requestedPrice > 0 ? requestedPrice : getBasketItemBasePrice(item);
+
+    if (approvalStatus === "approved" && requestedPrice > 0) {
+        return requestedPrice;
+    }
+
+    return getBasketItemBasePrice(item);
 }
 
 export function getBasketItemLineTotal(item: IBasketItem): number {

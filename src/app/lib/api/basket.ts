@@ -3,6 +3,7 @@ import type {
     BasketAllResponse,
     BasketAllRoutePayload,
     BasketInRoutePayload,
+    BasketMassDeleteRoutePayload,
     BasketRequestPriceRoutePayload,
     BasketResponse,
     BasketUpdateRoutePayload,
@@ -46,6 +47,21 @@ export async function updateBasketItemQty(
 
     if (!data.success) {
         throw new Error(data.message ?? "Failed to update basket item quantity");
+    }
+
+    return data;
+}
+
+export async function deleteBasketItems(
+    params: BasketMassDeleteRoutePayload
+): Promise<BasketActionResponse> {
+    const { data } = await httpClient.delete<BasketActionResponse>(
+        "/api/basket/delete-items",
+        { data: params }
+    );
+
+    if (!data.success) {
+        throw new Error(data.message ?? "Failed to delete basket items");
     }
 
     return data;

@@ -20,6 +20,7 @@ import {
 } from "@/app/lib/basket";
 import OrderSummary from "@/components/basket/order-summary";
 import {
+    useDeleteBasketItemsMutation,
     useFetchBasketItemsMutation,
     useSubmitBasketOrderMutation,
 } from "@/hooks/queries/useApiMutations";
@@ -38,12 +39,15 @@ export default function BasketClient() {
     const [pickupPoint, setPickupPoint] = useState("");
     const [notes, setNotes] = useState("");
     const [sendingOrder, setSendingOrder] = useState(false);
+    const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
+    const [removingSelectedItems, setRemovingSelectedItems] = useState(false);
     const basketLoadInFlightRef = useRef<Promise<void> | null>(null);
     const basketLoadInFlightTrdrRef = useRef<string | null>(null);
     const basketLoadInFlightIdRef = useRef<number | null>(null);
     const basketRequestIdRef = useRef(0);
     const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
+    const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
 
     const formatPrice = (price: number | null) => {
         if (price == null) return "--";
@@ -171,6 +175,73 @@ export default function BasketClient() {
         (sum, item) => sum + getBasketItemLineTotal(item),
         0
     );
+
+    const handleRemoveItems = async (
+        itemsToRemove: IBasket["items"],
+        fallbackErrorMessage: string
+    ) => {
+        const basketIds = itemsToRemove
+            .map((item) => String(item.BASKETID ?? "").trim())
+            .filter(Boolean);
+
+        if (!customer || basketIds.length === 0) {
+            setError("Δεν βρέθηκαν BASKET IDs για διαγραφή");
+            return;
+        }
+
+        setError("");
+        setSuccessMessage("");
+
+        try {
+            const result = await deleteBasketItems({
+                basketIds,
+                tableAction: "USRCUST",
+                method: "DELETE",
+                s1Key: "1305",
+            });
+            setSuccessMessage(result.message ?? "Οι επιλεγμένες γραμμές αφαιρέθηκαν");
+            await loadBasket();
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : fallbackErrorMessage
+            );
+        }
+    };
+
+    const handleRemoveSelectedItems = async () => {
+        if (selectedItemsList.length === 0) return;
+
+        setRemovingSelectedItems(true);
+        try {
+            await handleRemoveItems(
+                selectedItemsList,
+                "Αποτυχία διαγραφής επιλεγμένων γραμμών"
+            );
+        } finally {
+            setRemovingSelectedItems(false);
+        }
+    };
+
+    const handleRemoveItem = async (uid: string) => {
+        const item = basket?.items.find((basketItem) => getBasketItemId(basketItem) === uid);
+        if (!item) {
+            setError("Δεν βρέθηκε η γραμμή για διαγραφή");
+            return;
+        }
+
+        setRemovingItems((prev) => new Set(prev).add(uid));
+        try {
+            await handleRemoveItems([item], "Αποτυχία διαγραφής γραμμής");
+        } finally {
+            setRemovingItems((prev) => {
+                const next = new Set(prev);
+                next.delete(uid);
+                return next;
+            });
+        }
+    };
 
     const customerName = customer?.NAME ?? "—";
 
@@ -319,6 +390,10 @@ export default function BasketClient() {
                     onSendOrder={handleSendOrder}
                     sendingOrder={sendingOrder}
                     onToggleItem={toggleItem}
+                    onRemoveItem={handleRemoveItem}
+                    removingItems={removingItems}
+                    onRemoveSelectedItems={handleRemoveSelectedItems}
+                    removingSelectedItems={removingSelectedItems}
                 />
             </div>
         </div>

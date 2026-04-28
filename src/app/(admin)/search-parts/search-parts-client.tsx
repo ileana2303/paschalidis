@@ -22,6 +22,7 @@ import CustomerSearchModal from "../../../components/customer/customer-search-mo
 import SearchBar from "@/components/search/search-bar";
 import {
     useAddItemToBasketMutation,
+    useDeleteBasketItemsMutation,
     useFetchBasketItemsMutation,
     useRequestStockQuantityMutation,
     useSearchCustomersMutation,
@@ -100,6 +101,8 @@ export default function SearchPartsClient() {
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
     const [discountPrices, setDiscountPrices] = useState<Record<string, string>>({});
     const [submittingDiscount, setSubmittingDiscount] = useState<Set<string>>(new Set());
+    const [removingBasketItems, setRemovingBasketItems] = useState<Set<string>>(new Set());
+    const [removingSelectedBasketItems, setRemovingSelectedBasketItems] = useState(false);
     const search = useSearchPartsStore((state) => state.searchTerm);
     const setSearch = useSearchPartsStore((state) => state.setSearchTerm);
     const items = useSearchPartsStore((state) => state.items);
@@ -141,6 +144,7 @@ export default function SearchPartsClient() {
     const { mutateAsync: addItemToBasket } = useAddItemToBasketMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
+    const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
     const stockRequestBranch = getCurrentStockBranchCode(user?.s1code);
     const stockField = STOCK_FIELD_BY_BRANCH[stockRequestBranch] ?? "YP1006";
 
@@ -624,6 +628,71 @@ export default function SearchPartsClient() {
         0
     );
 
+    const handleRemoveItems = async (
+        itemsToRemove: IBasket["items"],
+        fallbackErrorMessage: string
+    ) => {
+        const basketIds = itemsToRemove
+            .map((item) => String(item.BASKETID ?? "").trim())
+            .filter(Boolean);
+
+        if (!customer || basketIds.length === 0) {
+            setBasketError("Δεν βρέθηκαν BASKET IDs για διαγραφή");
+            return;
+        }
+
+        setBasketError("");
+
+        try {
+            await deleteBasketItems({
+                basketIds,
+                tableAction: "USRCUST",
+                method: "DELETE",
+                s1Key: "1305",
+            });
+            await loadBasket(customer.TRDR);
+        } catch (error) {
+            setBasketError(
+                error instanceof Error
+                    ? error.message
+                    : fallbackErrorMessage
+            );
+        }
+    };
+
+    const handleRemoveSelectedItems = async () => {
+        if (selectedItemsList.length === 0) return;
+
+        setRemovingSelectedBasketItems(true);
+        try {
+            await handleRemoveItems(
+                selectedItemsList,
+                "Αποτυχία διαγραφής επιλεγμένων γραμμών"
+            );
+        } finally {
+            setRemovingSelectedBasketItems(false);
+        }
+    };
+
+    const handleRemoveItem = async (uid: string) => {
+        const item = basket?.items.find((basketItem) => getBasketItemId(basketItem) === uid);
+        if (!item) {
+            setBasketError("Δεν βρέθηκε η γραμμή για διαγραφή");
+            return;
+        }
+
+        setRemovingBasketItems((prev) => new Set(prev).add(uid));
+        try {
+            await handleRemoveItems([item], "Αποτυχία διαγραφής γραμμής");
+        } finally {
+            setRemovingBasketItems((prev) => {
+                const next = new Set(prev);
+                next.delete(uid);
+                return next;
+            });
+        }
+    };
+
     const handleRequestDiscount = async (item: IItem) => {
         if (!customer) return;
 
@@ -868,6 +937,10 @@ export default function SearchPartsClient() {
                                 return next;
                             });
                         }}
+                        onRemoveItem={handleRemoveItem}
+                        removingItems={removingBasketItems}
+                        onRemoveSelectedItems={handleRemoveSelectedItems}
+                        removingSelectedItems={removingSelectedBasketItems}
                         collapsible
                         collapsed={!sidebarVisible}
                         onToggleCollapse={() => setSidebarVisible((v) => !v)}

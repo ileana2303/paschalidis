@@ -23,7 +23,6 @@ import {
     getBasketItemBasePrice,
     getBasketItemId,
     getBasketItemLineTotal,
-    getBasketItemQty,
     getBasketItemRequestedPrice,
     hasBasketItemDiscount,
 } from "@/app/lib/basket";
@@ -50,7 +49,9 @@ interface OrderSummaryProps {
     sendingOrder?: boolean;
     onToggleItem?: (uid: string) => void;
     onRemoveItem?: (uid: string) => void;
+    onRemoveSelectedItems?: () => void;
     removingItems?: Set<string>;
+    removingSelectedItems?: boolean;
     collapsible?: boolean;
     collapsed?: boolean;
     onToggleCollapse?: () => void;
@@ -60,6 +61,9 @@ const formatPrice = (price: number | null) => {
     if (price == null) return "--";
     return price.toFixed(2) + " €";
 };
+
+const getBasketItemsTotal = (items: IBasketItem[]) =>
+    items.reduce((sum, item) => sum + getBasketItemLineTotal(item), 0);
 
 export default function OrderSummary({
     customer,
@@ -80,14 +84,44 @@ export default function OrderSummary({
     sendingOrder = false,
     onToggleItem,
     onRemoveItem,
+    onRemoveSelectedItems,
     removingItems,
+    removingSelectedItems = false,
     collapsible = false,
     collapsed = false,
     onToggleCollapse,
 }: OrderSummaryProps) {
     const pathname = usePathname();
     const isOnBasketPage = pathname === "/basket";
-    const basketTotal = basket?.items.reduce((sum, item) => sum + getBasketItemLineTotal(item), 0) ?? 0;
+    const basketItems = basket?.items ?? [];
+    const selectedBasketItems =
+        selectedItems != null
+            ? basketItems.filter((item) => selectedItems.has(getBasketItemId(item)))
+            : basketItems;
+    const summaryTotal =
+        selectedItems == null && selectedTotal != null
+            ? selectedTotal
+            : getBasketItemsTotal(selectedBasketItems);
+    const canToggleAllBasketItems = selectedItems != null && onToggleItem != null && basketItems.length > 0;
+    const areAllBasketItemsSelected =
+        canToggleAllBasketItems && basketItems.every((item) => selectedItems.has(getBasketItemId(item)));
+    const canRemoveSelectedBasketItems =
+        onRemoveSelectedItems != null && selectedBasketItems.length > 0;
+
+    const handleToggleAllBasketItems = () => {
+        if (!canToggleAllBasketItems) {
+            return;
+        }
+
+        basketItems.forEach((item) => {
+            const itemId = getBasketItemId(item);
+            const isSelected = selectedItems.has(itemId);
+
+            if (areAllBasketItemsSelected ? isSelected : !isSelected) {
+                onToggleItem(itemId);
+            }
+        });
+    };
 
     if (collapsible && collapsed) {
         return (
@@ -194,9 +228,7 @@ export default function OrderSummary({
                                 Σύνολο
                             </p>
                             <p className="mt-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-                                {selectedTotal != null
-                                    ? formatPrice(selectedTotal || null)
-                                    : formatPrice(basketTotal || null)}
+                                {formatPrice(summaryTotal)}
                             </p>
                         </div>
                     </div>
@@ -221,11 +253,38 @@ export default function OrderSummary({
                                 <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
                                     Γραμμές Καλαθιού
                                 </p>
-                                {basket?.items && basket.items.length > 0 && (
-                                    <span className="text-xs text-gray-400">
-                                        {basket.items.length} {basket.items.length === 1 ? "προϊόν" : "προϊόντα"}
-                                    </span>
-                                )}
+                                <div className="flex shrink-0 items-center gap-2">
+                                    {canToggleAllBasketItems && (
+                                        <button
+                                            type="button"
+                                            onClick={handleToggleAllBasketItems}
+                                            className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-500/30 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
+                                        >
+                                            {areAllBasketItemsSelected ? "Αποεπιλογή όλων" : "Επιλογή όλων"}
+                                        </button>
+                                    )}
+                                    {onRemoveSelectedItems && basketItems.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={onRemoveSelectedItems}
+                                            disabled={!canRemoveSelectedBasketItems || removingSelectedItems}
+                                            title="Διαγραφή επιλεγμένων"
+                                            aria-label="Διαγραφή επιλεγμένων γραμμών"
+                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-200 bg-white text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 dark:border-red-500/30 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
+                                        >
+                                            {removingSelectedItems ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            )}
+                                        </button>
+                                    )}
+                                    {basket?.items && basket.items.length > 0 && (
+                                        <span className="text-xs text-gray-400">
+                                            {basket.items.length} {basket.items.length === 1 ? "προϊόν" : "προϊόντα"}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             {(!basket || basket.items.length === 0) ? (
@@ -237,16 +296,20 @@ export default function OrderSummary({
                                 </div>
                             ) : (
                                 <div className="mt-4 space-y-3">
-                                    {basket.items.map((item) => (
-                                        <BasketLineItem
-                                            key={item.BASKETID}
-                                            item={item}
-                                            isSelected={selectedItems?.has(item.BASKETID)}
-                                            isRemoving={removingItems?.has(item.BASKETID)}
-                                            onToggle={onToggleItem}
-                                            onRemove={onRemoveItem}
-                                        />
-                                    ))}
+                                    {basket.items.map((item) => {
+                                        const itemId = getBasketItemId(item);
+
+                                        return (
+                                            <BasketLineItem
+                                                key={itemId}
+                                                item={item}
+                                                isSelected={selectedItems?.has(itemId)}
+                                                isRemoving={removingItems?.has(itemId)}
+                                                onToggle={onToggleItem}
+                                                onRemove={onRemoveItem}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -367,12 +430,13 @@ function BasketLineItem({
     const approvalStatus = getBasketItemApprovalStatus(item);
     const hasPriceRequest = hasBasketItemDiscount(item);
     const requestedPrice = hasPriceRequest ? getBasketItemRequestedPrice(item) : null;
+    const lineTotal = getBasketItemLineTotal(item);
     const requestStatusLabel =
         approvalStatus === "approved"
-            ? "Accepted"
+            ? "Εγκρίθηκε"
             : approvalStatus === "rejected"
-                ? "Rejected"
-                : "Pending";
+                ? "Απορρίφθηκε"
+                : "Σε αναμονή";
     const requestStatusClassName =
         approvalStatus === "approved"
             ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
@@ -404,17 +468,25 @@ function BasketLineItem({
                     </button>
                 )}
                 <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                        {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                        {item.ITEM_DESCR || item.NAME || "-"}
-                    </p>
-                    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-500">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-700 dark:text-white/90">
+                                {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500">
+                                {item.ITEM_DESCR || item.NAME || "-"}
+                            </p>
+                        </div>
+                        <span className="inline-flex shrink-0 items-center rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-sm font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
+                            {formatPrice(lineTotal)}
+                        </span>
+                    </div>
+
+                    <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 text-xs text-gray-500">
                         <span>
                             ΠΟΣΟΤΗΤΑ:{" "}
                             <span className="font-medium text-gray-700 dark:text-white/90">
-                                {item.TOTAL_QTY ?? getBasketItemQty(item)}
+                                {item.QTY ?? "-"}
                             </span>
                         </span>
                         <span>
@@ -432,12 +504,6 @@ function BasketLineItem({
                                         {requestStatusLabel}
                                     </span>
                                 )}
-                            </span>
-                        </span>
-                        <span>
-                            ΣΥΝΟΛΟ:{" "}
-                            <span className="font-medium text-gray-700 dark:text-white/90">
-                                {formatPrice(getBasketItemLineTotal(item))}
                             </span>
                         </span>
                     </div>
@@ -475,7 +541,6 @@ function BasketLineItem({
                             <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">BASKET_REQ_PRICE:</span> {item.BASKET_REQ_PRICE ?? "-"}</p>
                             <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">BargainStatus:</span> {item.BargainStatus ?? "-"}</p>
                             <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">ITEM_CODE:</span> {item.ITEM_CODE || "-"}</p>
-                            <p className="min-w-0 text-xs text-gray-700 dark:text-gray-200"><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">ITEM_DESCR:</span> {item.ITEM_DESCR || "-"}</p>
                         </div>
                     )}
                 </div>

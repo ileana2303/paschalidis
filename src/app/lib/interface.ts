@@ -204,6 +204,26 @@ export interface BasketUpdatePayload {
     PRICE_REQ?: number;
 }
 
+export interface BasketMassDeleteRoutePayload {
+    basketIds: Array<string | number>;
+    tableAction?: string;
+    method?: string;
+    s1Key?: string | number;
+    appUserId?: string;
+}
+
+export interface BasketMassDeletePayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "MASS_DELETE";
+    BASKET_IDS: string;
+    TABLE_ACTION: string;
+    METHOD: string;
+    S1_KEY: string;
+    APPUSER_ID: string;
+}
+
 export interface BasketOutRoutePayload {
     trdr: string;
 }

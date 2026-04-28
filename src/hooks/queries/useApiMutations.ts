@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import type {
     BasketAllRoutePayload,
     BasketInRoutePayload,
+    BasketMassDeleteRoutePayload,
     BasketRequestPriceRoutePayload,
     BasketUpdateRoutePayload,
     EndoBasketAddRoutePayload,
@@ -17,6 +18,7 @@ import type {
 } from "@/app/lib/interface";
 import {
     addItemToBasket,
+    deleteBasketItems,
     fetchAllClientBaskets,
     fetchBasketItems,
     requestDiscount,
@@ -106,6 +108,12 @@ export const useUpdateBasketItemQtyMutation = () =>
     useMutation({
         mutationFn: (payload: BasketUpdateRoutePayload) =>
             updateBasketItemQty(payload),
+    });
+
+export const useDeleteBasketItemsMutation = () =>
+    useMutation({
+        mutationFn: (payload: BasketMassDeleteRoutePayload) =>
+            deleteBasketItems(payload),
     });
 
 export const useRequestDiscountMutation = () =>

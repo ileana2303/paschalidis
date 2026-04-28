@@ -5,6 +5,7 @@ import type {
     EndoBasketSubmitLineRoutePayload,
     EndoBasketSubmitRoutePayload,
 } from "@/app/lib/interface";
+import { callMassDelete, MassDeleteError } from "@/app/api/_lib/mass-delete";
 
 const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
 const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
@@ -53,18 +54,6 @@ type SetDataOrderPayload = {
             QTY1: number;
         }>;
     };
-};
-
-type MassDeletePayload = {
-    service: "SqlData";
-    clientID: string;
-    appId: "1305";
-    SqlName: "MASS_DELETE";
-    BASKET_IDS: string;
-    TABLE_ACTION: string;
-    METHOD: string;
-    S1_KEY: string;
-    APPUSER_ID: string;
 };
 
 type EndoGroup = {
@@ -448,55 +437,29 @@ export async function POST(req: NextRequest) {
                 );
             }
 
-            const massDeletePayload: MassDeletePayload = {
-                service: "SqlData",
-                clientID: sqlClientID,
-                appId: "1305",
-                SqlName: "MASS_DELETE",
-                BASKET_IDS: Array.from(group.basketIds).join(","),
-                TABLE_ACTION: tableAction,
-                METHOD: deleteMethod,
-                S1_KEY: orderId,
-                APPUSER_ID: deleteAppUserId,
-            };
+            try {
+                await callMassDelete({
+                    clientID: sqlClientID,
+                    basketIds: Array.from(group.basketIds),
+                    tableAction,
+                    method: deleteMethod,
+                    s1Key: orderId,
+                    appUserId: deleteAppUserId,
+                    logLabel: "[endo/basket/submit]",
+                });
+            } catch (error) {
+                if (error instanceof MassDeleteError) {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            message:
+                                `Endo order submitted (${orderId}) but basket cleanup failed`,
+                        },
+                        { status: error.status }
+                    );
+                }
 
-            const massDeleteResponse = await fetch(S1_ENDPOINT, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(massDeletePayload),
-            });
-
-            if (!massDeleteResponse.ok) {
-                const errorText = await massDeleteResponse.text();
-                console.error("[endo/basket/submit] mass-delete error body:", errorText);
-
-                return NextResponse.json(
-                    {
-                        success: false,
-                        message:
-                            `Endo order submitted (${orderId}) but basket cleanup failed`,
-                    },
-                    { status: massDeleteResponse.status }
-                );
-            }
-
-            const massDeleteResult = await parseJsonWithEncodingFallback(massDeleteResponse) as {
-                success?: boolean;
-                message?: string;
-            };
-
-            if (massDeleteResult?.success === false) {
-                return NextResponse.json(
-                    {
-                        success: false,
-                        message:
-                            massDeleteResult.message ??
-                            `Endo order submitted (${orderId}) but basket cleanup failed`,
-                    },
-                    { status: 502 }
-                );
+                throw error;
             }
 
             orderIds.push(orderId);
