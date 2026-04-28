@@ -42,8 +42,8 @@ export default function PartsSearchModal({
                             }}
                             onKeyDown={(e) => e.key === "Enter" && onSearch()}
                             placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
-                            className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-500 focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${searchValue.trim()
-                                ? "border-brand-500 ring-1 ring-brand-500"
+                            className={`w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-brand-50 dark:bg-gray-900 dark:text-white ${searchValue.trim()
+                                ? "border-1 border-brand-500"
                                 : "border-gray-300 dark:border-gray-700"
                                 }`}
                         />

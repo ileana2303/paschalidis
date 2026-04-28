@@ -233,6 +233,7 @@ export default function SearchPartsClient() {
     const customerModalInputRef = useRef<HTMLInputElement>(null);
     const resultsContainerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const pendingScopedNavigationRef = useRef(false);
     const basketLoadInFlightRef = useRef<Promise<void> | null>(null);
     const basketLoadInFlightTrdrRef = useRef<string | null>(null);
     const basketLoadInFlightIdRef = useRef<number | null>(null);
@@ -318,17 +319,40 @@ export default function SearchPartsClient() {
         if (!hasMounted) return;
 
         const urlTrdr = String(searchParams.get("trdr") ?? "").trim();
-        const customerTrdr = String(customer?.TRDR ?? "").trim();
-
-        if (customerTrdr && urlTrdr !== customerTrdr) {
-            router.replace(`/search-parts?trdr=${customerTrdr}`);
+        if (urlTrdr) {
+            pendingScopedNavigationRef.current = false;
             return;
         }
 
-        if (!customerTrdr && urlTrdr) {
-            router.replace("/search-parts");
+        if (pendingScopedNavigationRef.current) {
+            return;
         }
-    }, [customer?.TRDR, hasMounted, router, searchParams]);
+
+        const hasScopedContext =
+            Boolean(String(customer?.TRDR ?? "").trim()) ||
+            Boolean(String(searchStateTrdr ?? "").trim());
+
+        if (!hasScopedContext) {
+            return;
+        }
+
+        clearCustomer();
+        clearSearchPartsState();
+        setExpandedItems(new Set());
+        setIsEndoMode(false);
+        setEndoQuantities({});
+        setEndoBasketItems([]);
+        setEndoBasketError("");
+        setEndoBasketSuccess("");
+        setHasScrolledResults(false);
+    }, [
+        clearCustomer,
+        clearSearchPartsState,
+        customer?.TRDR,
+        hasMounted,
+        searchParams,
+        searchStateTrdr,
+    ]);
 
     useEffect(() => {
         const customerTrdr = String(customer?.TRDR ?? "").trim() || null;
@@ -503,6 +527,7 @@ export default function SearchPartsClient() {
     };
 
     const handleCustomerSelect = (selectedCustomer: ICustomerInfo) => {
+        pendingScopedNavigationRef.current = true;
         setCustomer(selectedCustomer);
         clearSearchPartsState();
         setSearchStateTrdr(String(selectedCustomer.TRDR).trim() || null);
@@ -1087,6 +1112,7 @@ export default function SearchPartsClient() {
                 hasMounted={hasMounted}
                 customer={customer}
                 onClearCustomer={() => {
+                    pendingScopedNavigationRef.current = false;
                     clearCustomer();
                     clearSearchPartsState();
                     setExpandedItems(new Set());

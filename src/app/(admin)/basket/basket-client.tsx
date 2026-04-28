@@ -2,7 +2,7 @@
 
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
     Loader2,
     Plus,
@@ -29,7 +29,10 @@ type ReceiptType = "receipt" | "invoice";
 
 export default function BasketClient() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const urlTrdr = String(searchParams.get("trdr") ?? "").trim();
     const customer = useCustomerStore((state) => state.customer);
+    const clearCustomer = useCustomerStore((state) => state.clearCustomer);
     const [basket, setBasket] = useState<IBasket | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -54,8 +57,8 @@ export default function BasketClient() {
         return price.toFixed(2) + " €";
     };
 
-    const loadBasket = useCallback(async () => {
-        const normalizedTrdr = String(customer?.TRDR ?? "").trim();
+    const loadBasket = useCallback(async (trdr: string) => {
+        const normalizedTrdr = String(trdr ?? "").trim();
         if (!normalizedTrdr) {
             return;
         }
@@ -112,14 +115,17 @@ export default function BasketClient() {
         basketLoadInFlightIdRef.current = requestId;
 
         return requestPromise;
-    }, [customer?.TRDR, fetchBasketItems]);
+    }, [fetchBasketItems]);
 
     useEffect(() => {
-        if (!customer) {
+        if (!urlTrdr) {
             basketRequestIdRef.current += 1;
             basketLoadInFlightRef.current = null;
             basketLoadInFlightTrdrRef.current = null;
             basketLoadInFlightIdRef.current = null;
+            if (customer) {
+                clearCustomer();
+            }
             setBasket(null);
             setError("");
             setSuccessMessage("");
@@ -128,8 +134,21 @@ export default function BasketClient() {
             return;
         }
 
-        loadBasket();
-    }, [customer, loadBasket]);
+        const customerTrdr = String(customer?.TRDR ?? "").trim();
+        if (customerTrdr && customerTrdr !== urlTrdr) {
+            clearCustomer();
+        }
+
+        loadBasket(urlTrdr);
+    }, [clearCustomer, customer, loadBasket, urlTrdr]);
+
+    const refreshBasket = useCallback(() => {
+        if (!urlTrdr) {
+            return;
+        }
+
+        return loadBasket(urlTrdr);
+    }, [loadBasket, urlTrdr]);
 
     const toggleItem = (uid: string) => {
         setSelectedItems((prev) => {
@@ -146,16 +165,16 @@ export default function BasketClient() {
     };
 
     const handleSendOrder = async () => {
-        if (!customer || !basket || basket.items.length === 0 || selectedItems.size === 0) return;
+        if (!urlTrdr || !basket || basket.items.length === 0 || selectedItems.size === 0) return;
 
         setSendingOrder(true);
         setError("");
         setSuccessMessage("");
 
         try {
-            const result = await submitBasketOrder(customer.TRDR);
+            const result = await submitBasketOrder(urlTrdr);
             setSuccessMessage(result.message ?? "Η παραγγελία καταχωρήθηκε");
-            await loadBasket();
+            await loadBasket(urlTrdr);
         } catch (err) {
             setError(
                 err instanceof Error
@@ -184,7 +203,7 @@ export default function BasketClient() {
             .map((item) => String(item.BASKETID ?? "").trim())
             .filter(Boolean);
 
-        if (!customer || basketIds.length === 0) {
+        if (!urlTrdr || basketIds.length === 0) {
             setError("Δεν βρέθηκαν BASKET IDs για διαγραφή");
             return;
         }
@@ -200,7 +219,7 @@ export default function BasketClient() {
                 s1Key: "1305",
             });
             setSuccessMessage(result.message ?? "Οι επιλεγμένες γραμμές αφαιρέθηκαν");
-            await loadBasket();
+            await loadBasket(urlTrdr);
         } catch (err) {
             setError(
                 err instanceof Error
@@ -243,14 +262,18 @@ export default function BasketClient() {
         }
     };
 
-    const customerName = customer?.NAME ?? "—";
+    const customerMatchesUrl = Boolean(
+        customer?.TRDR && String(customer.TRDR).trim() === urlTrdr
+    );
+    const selectedCustomer = customerMatchesUrl ? customer : null;
+    const customerName = selectedCustomer?.NAME ?? (urlTrdr ? `TRDR ${urlTrdr}` : "—");
 
     return (
         <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
             <div className="shrink-0">
                 <PageBreadcrumb
                     pageTitle={`Καλάθι ${customerName}`}
-                    backHref={customer ? `/search-parts?trdr=${customer.TRDR}` : "/search-parts"}
+                    backHref={urlTrdr ? `/search-parts?trdr=${urlTrdr}` : "/search-parts"}
                     backLabel="Επιστροφή στην αναζήτηση ανταλλακτικών"
                 />
             </div>
@@ -271,7 +294,7 @@ export default function BasketClient() {
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={loadBasket}
+                                    onClick={refreshBasket}
                                     disabled={loading}
                                     aria-label="Ανανέωση καλαθιού"
                                     className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
@@ -364,7 +387,7 @@ export default function BasketClient() {
 
                     <button
                         type="button"
-                        onClick={() => router.push(customer ? `/search-parts?trdr=${customer.TRDR}` : "/search-parts")}
+                        onClick={() => router.push(urlTrdr ? `/search-parts?trdr=${urlTrdr}` : "/search-parts")}
                         aria-label="Νέα αναζήτηση ανταλλακτικού"
                         className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
                     >
@@ -373,11 +396,11 @@ export default function BasketClient() {
                 </div>
 
                 <OrderSummary
-                    customer={customer}
+                    customer={selectedCustomer}
                     basket={basket}
                     loading={loading}
                     error={error}
-                    onRefresh={loadBasket}
+                    onRefresh={refreshBasket}
                     selectedItems={selectedItems}
                     selectedCount={selectedItemsList.length}
                     selectedTotal={selectedTotal}

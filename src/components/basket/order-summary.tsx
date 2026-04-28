@@ -93,6 +93,9 @@ export default function OrderSummary({
 }: OrderSummaryProps) {
     const pathname = usePathname();
     const isOnBasketPage = pathname === "/basket";
+    const basketHref = customer?.TRDR
+        ? `/basket?trdr=${customer.TRDR}`
+        : "/basket";
     const basketItems = basket?.items ?? [];
     const selectedBasketItems =
         selectedItems != null
@@ -154,7 +157,7 @@ export default function OrderSummary({
                                 </h3>
                             </div>
                         ) : (
-                            <Link href="/basket" className="group/link">
+                            <Link href={basketHref} className="group/link">
                                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-500">
                                     Σύνοψη Παραγγελίας
                                 </p>
