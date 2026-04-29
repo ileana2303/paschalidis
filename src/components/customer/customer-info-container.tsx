@@ -29,16 +29,11 @@ export default function CustomerInfoContainer({
             <div className="mb-4">
                 <div
                     onClick={toggleExpanded}
-                    className={`
-      group cursor-pointer transition-all duration-300
-      border border-brand-300/60 bg-gradient-to-b from-white to-brand-50/40
-      shadow-sm hover:shadow-md
-      ${isExpanded ? "rounded-2xl" : "rounded-xl"}
-    `}
+                    className={`group cursor-pointer transition-all duration-300 border border-brand-300/60 bg-linear-to-b from-brand-50/30 to-brand-50/40 shadow-sm hover:shadow-md
+                        ${isExpanded ? "rounded-2xl" : "rounded-xl"}
+                        `}
                 >
-                    {/* HEADER */}
                     <div className="flex items-center gap-4 px-5 py-4">
-                        {/* LEFT INFO */}
                         <div className="flex flex-1 flex-wrap items-center gap-x-6 gap-y-1 min-w-0">
                             <span className="font-semibold text-gray-900 tracking-tight">
                                 {customer.NAME}
@@ -56,9 +51,7 @@ export default function CustomerInfoContainer({
                             )}
                         </div>
 
-                        {/* ACTIONS */}
                         <div className="flex items-center gap-2">
-                            {/* Expand */}
                             <div className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-400 bg-white text-brand-500 shadow-sm transition-all group-hover:bg-brand-500 group-hover:text-white">
                                 <ChevronDown
                                     className={`h-5 w-5 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""
@@ -66,7 +59,6 @@ export default function CustomerInfoContainer({
                                 />
                             </div>
 
-                            {/* Clear */}
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -79,12 +71,10 @@ export default function CustomerInfoContainer({
                         </div>
                     </div>
 
-                    {/* EXPANDED CONTENT */}
                     <div
-                        className={`
-        grid transition-all duration-300 ease-in-out
-        ${isExpanded ? "opacity-100 max-h-[500px] p-5 pt-0" : "opacity-0 max-h-0 overflow-hidden"}
-      `}
+                        className={`grid transition-all duration-300 ease-in-out
+                            ${isExpanded ? "opacity-100 max-h-[500px] p-5 pt-0" : "opacity-0 max-h-0 overflow-hidden"}
+                            `}
                     >
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
@@ -130,7 +120,7 @@ export default function CustomerInfoContainer({
             className="mb-4 w-full shrink-0 flex items-center gap-3 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-left text-sm text-gray-500 transition-colors hover:border-brand-400 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-brand-500/60 dark:hover:bg-gray-900"
         >
             <span className="flex-1">
-                Δεν έχει επιλεγεί πελάτης — Αναζήτηση ανταλλακτικών χωρίς πελάτη
+                Δεν έχει επιλεγεί πελάτης — Αναζήτηση πελάτη (προετικό)
             </span>
 
             <span

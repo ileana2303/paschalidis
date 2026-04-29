@@ -21,7 +21,7 @@ interface SearchBarProps {
 
 const DEFAULT_CONTAINER_CLASSES = "flex items-center gap-2";
 const DEFAULT_INPUT_CLASSES =
-    "w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:border-brand-100 focus:bg-brand-50 focus:outline-none focus:ring-brand-200/40 dark:bg-gray-900 dark:text-white";
+    "w-full rounded-full border bg-gray-50 px-4 py-3 pr-11 text-sm text-gray-800 placeholder-gray-400 focus:border-brand-100 focus:bg-gradient-to-b from-brand-50/10 to-brand-50/40 focus:outline-none focus:ring-brand-200/40 dark:bg-gray-900 dark:text-white";
 const DEFAULT_SEARCH_BUTTON_CLASSES =
     "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white";
 
@@ -44,7 +44,7 @@ export default function SearchBar({
 
     const inputClasses = [
         DEFAULT_INPUT_CLASSES,
-        hasValue ? "border-brand-500 ring-0.5 ring-grey-300" : "border-gray-300",
+        hasValue ? "border-brand-500 ring-0.5 ring-brand-300/60" : "border-gray-300 shadow-sm hover:shadow-md",
         inputClassName,
     ]
         .filter(Boolean)
@@ -106,7 +106,9 @@ export default function SearchBar({
                         className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
                     />
                 ) : (
-                    <Search className="h-5 w-5" />
+                    <>
+                        <Search className="h-5 w-5" />
+                    </>
                 )}
             </button>
         </div>

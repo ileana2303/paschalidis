@@ -2,11 +2,11 @@
 
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { useEffect, useRef, useState } from "react";
-import { ICustomerInfo } from "@/app/lib/interface";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useCustomerSearchStore } from "@/stores/customerSearchStore";
 import { useRouter } from "next/navigation";
 import SearchBar from "@/components/search/search-bar";
+import CustomerResults from "@/components/customer/customer-results";
 import { useSearchCustomersMutation } from "@/hooks/queries/useApiMutations";
 
 export default function SearchCustomerClient() {
@@ -98,23 +98,13 @@ export default function SearchCustomerClient() {
                             </p>
                         )}
 
-                        {customers.map((c: ICustomerInfo) => (
-                            <div
-                                key={c.TRDR}
-                                onClick={() => {
-                                    setCustomer(c);
-
-                                    router.push(`/search-parts?trdr=${c.TRDR}`);
-                                }}
-                                className="rounded-xl border p-4 bg-white cursor-pointer hover:bg-brand-100 hover:border-2 hover:border-brand-500 transition"
-                            >
-                                <p className="font-semibold">{c.NAME}</p>
-                                <p className="text-sm text-gray-500">{c.AFM}</p>
-                                <p className="text-xs">
-                                    {c.MAIN_ADDRESS} - {c.MAIN_CITY}
-                                </p>
-                            </div>
-                        ))}
+                        <CustomerResults
+                            customers={customers}
+                            onSelectCustomer={(customer) => {
+                                setCustomer(customer);
+                                router.push(`/search-parts?trdr=${customer.TRDR}`);
+                            }}
+                        />
 
                         {hasSearched && !loading && customers.length === 0 && (
                             <p className="mt-6 text-center text-sm text-gray-400">

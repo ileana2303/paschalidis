@@ -2,7 +2,7 @@
 
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, GitCompareArrows, Plus } from "@/app/lib/lucide";
+import { ChevronDown, ChevronLeft, GitCompareArrows, Plus } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useSearchPartsStore } from "@/stores/searchPartsStore";
 import { ICustomerInfo, IEndoListRow, IItem, IBasket, IBasketItem, StockRequestStatus } from "@/app/lib/interface";
@@ -15,10 +15,10 @@ import {
 import { useModal } from "@/hooks/useModal";
 import OrderSummary from "@/components/basket/order-summary";
 import { useRouter, useSearchParams } from "next/navigation";
-import CustomerInfoContainer from "../../../components/customer/customer-info-container";
-import PartsSearchModal from "../../../components/parts/parts-search-modal";
-import PartResults from "../../../components/parts/part-results";
-import CustomerSearchModal from "../../../components/customer/customer-search-modal";
+import CustomerInfoContainer from "@/components/customer/customer-info-container";
+import PartsSearchModal from "@/components/parts/parts-search-modal";
+import PartResults from "@/components/parts/part-results";
+import CustomerSearchModal from "@/components/customer/customer-search-modal";
 import EndoOrderSummary, { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 import EndoPartResults, { EndoBranchOption } from "@/components/endo/endo-part-results";
 import SearchBar from "@/components/search/search-bar";
@@ -1161,7 +1161,7 @@ export default function SearchPartsClient() {
                         <div className="px-5 pb-2 xl:px-10 xl:pb-2">
                             <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
                                 {items.length > 0 && (
-                                    <div className="sticky top-[100px] z-10 mb-2 flex flex-col gap-2 border-b border-gray-100 bg-white/95 py-2 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-[#0f172a]/95 xl:top-[140px]">
+                                    <div className="sticky top-[100px] z-10 mb-2 flex flex-col gap-2 border-b border-gray-100 bg-white py-2 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-[#0f172a]/95 xl:top-[140px]">
                                         <p className="text-sm text-gray-500">
                                             Βρέθηκαν {items.length} αποτελέσματα
                                         </p>
@@ -1177,8 +1177,12 @@ export default function SearchPartsClient() {
                                                         : "border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
                                                         }`}
                                                 >
-                                                    <GitCompareArrows className="h-3.5 w-3.5" />
-                                                    <span>{isEndoMode ? "Κανονικό καλάθι" : "Ενδοδιακίνηση"}</span>
+                                                    {isEndoMode ? (
+                                                        <ChevronLeft className="h-3.5 w-3.5" />
+                                                    ) : (
+                                                        <GitCompareArrows className="h-3.5 w-3.5" />
+                                                    )}
+                                                    <span>{isEndoMode ? "Καλάθι Πελάτη" : "Ενδοδιακίνηση"}</span>
                                                 </button>
                                             )}
 
