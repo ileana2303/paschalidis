@@ -271,7 +271,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-4 px-5 left-4 bg-brand-100/40 dark:bg-gray-900/80 rounded-2xl shadow-sm dark:shadow-none dark:border-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-gray-100 h-screen transition-all duration-300 ease-in-out z-50
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-2 px-5 left-2 bg-brand-100/40 dark:bg-gray-900/80 rounded-2xl shadow-sm dark:shadow-none dark:border-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-gray-100 h-screen transition-all duration-300 ease-in-out z-50
         ${isExpanded || isMobileOpen
           ? "w-[290px]"
           : isHovered
