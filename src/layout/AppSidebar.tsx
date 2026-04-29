@@ -135,22 +135,18 @@ const AppSidebar: React.FC = () => {
                         <Link
                           key={subItem.name}
                           href={subItem.path}
-                          className={`
-            group flex items-center gap-2 px-3 py-2 rounded-lg text-sm
-            transition-all duration-200 active:scale-[0.98]
+                          className={`group flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] transition-all duration-200 active:scale-[0.98]
 
             ${isActive(subItem.path)
-                              ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
-                              : "text-gray-600 dark:text-gray-400 hover:bg-white/70 dark:hover:bg-white/[0.05]"}
+                              ? "bg-white text-brand-700 shadow-sm dark:bg-brand-800/40 dark:text-brand-100"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-white/70 hover:text-gray-600 dark:hover:bg-white/[0.05] dark:hover:text-gray-300"}
           `}
                         >
                           {SubItemIcon && (
-                            <SubItemIcon className="h-4 w-4 shrink-0" />
+                            <SubItemIcon className="h-3.5 w-3.5 shrink-0" />
                           )}
 
-                          <span className="font-medium tracking-tight">
-                            {subItem.name}
-                          </span>
+                          <span className="font-normal">{subItem.name}</span>
                         </Link>
                       );
                     })}
@@ -174,7 +170,7 @@ const AppSidebar: React.FC = () => {
                   className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200
                     ${isGroupActive
                       ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/[0.05] hover:shadow-sm"} hover:translate-x-[2px]`}
+                      : "text-gray-600 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/[0.05] hover:shadow-sm"} hover:translate-x-[2px]`}
                 >
                   <span
                     className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all
@@ -195,7 +191,7 @@ const AppSidebar: React.FC = () => {
                   className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm
                     ${isGroupActive
                       ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
-                      : "text-gray-700 dark:text-gray-300"}
+                      : "text-gray-600 dark:text-gray-300"}
                     ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}`}
                 >
                   <span
@@ -220,7 +216,7 @@ const AppSidebar: React.FC = () => {
                   className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 
                     ${isActive(nav.path!)
                       ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/[0.05] hover:shadow-sm"} hover:translate-x-[2px]`}
+                      : "text-gray-600 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/[0.05] hover:shadow-sm"} hover:translate-x-[2px]`}
                 >
                   <span className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all
                   ${isActive(nav.path!)

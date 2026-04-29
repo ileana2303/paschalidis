@@ -1,11 +1,11 @@
-import { Outfit } from 'next/font/google';
+import { Google_Sans } from 'next/font/google';
 import './globals.css';
 import "flatpickr/dist/flatpickr.css";
 import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { QueryProvider } from "@/app/providers/QueryProvider";
 
-const outfit = Outfit({
+const googleSans = Google_Sans({
   subsets: ["latin"],
 });
 
@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${outfit.className} dark:bg-gray-900`}
+        className={`${googleSans.className} dark:bg-gray-900`}
       >
         <QueryProvider>
           <ThemeProvider>
