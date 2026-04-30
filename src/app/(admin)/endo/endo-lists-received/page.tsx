@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import EndoListPageClient from "@/components/endo/endo-list-page-client";
+import EndoListPageClient from "@/app/(admin)/endo/endo-lists/endo-list-page-client";
 
 const title = "Ενδολίστα Αποστολών";
 
