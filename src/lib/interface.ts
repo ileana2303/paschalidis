@@ -278,110 +278,114 @@ export interface StockInfo {
     soReserved?: number;
 }
 
-export type StockRequestStatus = "approved" | "pending" | "declined";
+export type StockRequestStatus = "approved" | "pending" | "deleted";
+
+export type StockRequestUpdateAction = "APPROVE" | "DELETE" | "UPDATE";
 
 export interface StockRequestRoutePayload {
-    mtrl: number;
-    qty: number;
-    branch: string;
+  mtrl: number;
+  qty: number;
+  branch: string;
 }
 
 export interface StockRequestInsertPayload {
-    service: "SqlData";
-    clientID: string;
-    appId: "1305";
-    SqlName: "ANTROF_INSERT";
-    MTRL: string;
-    BRANCH: string;
-    QTY_REQUESTED: number;
-    APPUSER_ID: string;
+  service: "SqlData";
+  clientID: string;
+  appId: "1305";
+  SqlName: "ANTROF_INSERT";
+  MTRL: string;
+  BRANCH: string;
+  QTY_REQUESTED: number;
+  APPUSER_ID: string;
 }
 
 export interface IStockRequestInsertRow {
-    MESSAGE_TO_CALLER: string;
-    NEW_ID: string;
+  MESSAGE_TO_CALLER: string;
+  NEW_ID: string;
 }
 
-export interface StockRequestInsertResponse extends ApiResponse<IStockRequestInsertRow> { }
+export interface StockRequestInsertResponse
+  extends ApiResponse<IStockRequestInsertRow> {}
 
 export interface StockRequestListRoutePayload {
-    branch: string;
+  branch: string;
 }
 
 export interface StockRequestListPayload {
-    service: "SqlData";
-    clientID: string;
-    appId: "1305";
-    SqlName: "ANTROF_LIST";
-    BRANCH: string;
+  service: "SqlData";
+  clientID: string;
+  appId: "1305";
+  SqlName: "ANTROF_LIST";
+  BRANCH: string;
 }
 
 export interface IStockRequestListRow {
-    BASKETID: string;
-    MTRL: string;
-    ITEM_CODE: string;
-    ITEM_NAME: string;
-    QTY: string;
-    QTY_REQUESTED: string;
-    BRANCH: string;
-    INS_DATE: string;
-    APPROVED_TS?: string;
-    STATUS: string;
+  BASKETID: string;
+  MTRL: string;
+  ITEM_CODE: string;
+  ITEM_NAME: string;
+  QTY: string;
+  QTY_REQUESTED: string;
+  BRANCH: string;
+  INS_DATE: string;
+  APPROVED_TS?: string;
+  STATUS: string;
 }
 
-export interface StockRequestListResponse extends ApiResponse<IStockRequestListRow> { }
-
-export type StockRequestUpdateAction = "APPROVE" | "DECLINE" | "UPDATE";
+export interface StockRequestListResponse
+  extends ApiResponse<IStockRequestListRow> {}
 
 export interface StockRequestUpdateRoutePayload {
-    action: StockRequestUpdateAction;
-    basketId: number;
-    mtrl: string;
-    qty: string;
+  action: StockRequestUpdateAction;
+  basketId: number;
+  mtrl: string;
+  qty: string;
 }
 
 export interface StockRequestUpdatePayload {
-    service: "SqlData";
-    clientID: string;
-    appId: "1305";
-    SqlName: "ANATROF_UPDATE";
-    ACTION: StockRequestUpdateAction;
-    BASKETID: number;
-    MTRL: string;
-    QTY: string;
-    APPUSER_ID: string;
+  service: "SqlData";
+  clientID: string;
+  appId: "1305";
+  SqlName: "ANATROF_UPDATE";
+  ACTION: StockRequestUpdateAction;
+  BASKETID: number;
+  MTRL: string;
+  QTY_REQ: string;
+  APPUSER_ID: string;
 }
 
 export interface IStockRequestMessageRow {
-    MESSAGE_TO_CALLER: string;
+  MESSAGE_TO_CALLER: string;
 }
 
-export interface StockRequestUpdateResponse extends ApiResponse<IStockRequestMessageRow> { }
+export interface StockRequestUpdateResponse
+  extends ApiResponse<IStockRequestMessageRow> {}
 
 export interface StockRequestMassDeleteRoutePayload {
-    basketIds: Array<string | number>;
+  basketIds: Array<string | number>;
 }
 
 export interface StockRequestMassDeletePayload {
-    service: "SqlData";
-    clientID: string;
-    appId: "1305";
-    SqlName: "ANTROF_MASS_DELETE";
-    BASKET_IDS: string;
-    APPUSER_ID: string;
+  service: "SqlData";
+  clientID: string;
+  appId: "1305";
+  SqlName: "ANTROF_MASS_DELETE";
+  BASKET_IDS: string;
+  APPUSER_ID: string;
 }
 
-export interface StockRequestMassDeleteResponse extends ApiResponse<IStockRequestMessageRow> { }
+export interface StockRequestMassDeleteResponse
+  extends ApiResponse<IStockRequestMessageRow> {}
 
 export interface StockRequestProps {
-    mtrl: string;
-    stock: number;
-    quantity: number;
-    onQuantityChange: (nextQuantity: number) => void;
-    onSubmitRequest: () => void;
-    requestStatus: StockRequestStatus | null;
-    isSubmittingRequest: boolean;
-    requestError: string;
+  mtrl: string;
+  stock: number;
+  quantity: number;
+  onQuantityChange: (nextQuantity: number) => void;
+  onSubmitRequest: () => void;
+  requestStatus: StockRequestStatus | null;
+  isSubmittingRequest: boolean;
+  requestError: string;
 }
 
 export interface EndoBasketAddRoutePayload {

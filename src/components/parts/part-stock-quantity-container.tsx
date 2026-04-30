@@ -14,15 +14,15 @@ export default function StockRequest({
     const statusClassName =
         requestStatus === "approved"
             ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-            : requestStatus === "declined"
+            : requestStatus === "deleted"
                 ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
                 : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
 
     const statusLabel =
         requestStatus === "approved"
             ? "Approved"
-            : requestStatus === "declined"
-                ? "Declined"
+            : requestStatus === "deleted"
+                ? "Deleted"
                 : "Pending";
 
     return (

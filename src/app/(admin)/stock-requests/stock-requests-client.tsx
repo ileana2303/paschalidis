@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
-import { Check, Loader2, Pencil, RefreshCw, Trash2, X } from "@/lib/icons/lucide";
+import { Check, Loader2, Pencil, RefreshCw, X } from "@/lib/icons/lucide";
 import type {
     IStockRequestListRow,
     StockRequestUpdateAction,
 } from "@/lib/interface";
 import {
     useFetchStockRequestsMutation,
-    useMassDeleteStockRequestsMutation,
     useUpdateStockRequestMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
@@ -21,7 +20,11 @@ function getStatusStyle(status: string) {
         return "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400";
     }
 
-    if (normalized.includes("ΑΠΟΡΡΙ")) {
+    if (
+        normalized.includes("ΔΙΑΓΡ") ||
+        normalized.includes("DELETE") ||
+        normalized.includes("ΑΠΟΡΡΙ")
+    ) {
         return "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
     }
 
@@ -35,25 +38,40 @@ function canUpdate(status: string) {
 function getStatusPriority(status: string) {
     const normalized = status.toUpperCase();
 
-    if (normalized.includes("ΕΚΚΡΕΜ") || normalized.includes("PENDING")) return 0;
-    if (normalized.includes("ΕΓΚΡΙΘ") || normalized.includes("APPROV")) return 1;
-    if (normalized.includes("ΑΠΟΡΡΙ") || normalized.includes("DECLIN")) return 2;
+    if (normalized.includes("ΕΚΚΡΕΜ") || normalized.includes("PENDING")) {
+        return 0;
+    }
+
+    if (normalized.includes("ΕΓΚΡΙΘ") || normalized.includes("APPROV")) {
+        return 1;
+    }
+
+    if (
+        normalized.includes("ΔΙΑΓΡ") ||
+        normalized.includes("DELETE") ||
+        normalized.includes("ΑΠΟΡΡΙ")
+    ) {
+        return 2;
+    }
 
     return 3;
 }
 
 function parseDateValue(value: string) {
     const timestamp = new Date(value).getTime();
-    if (Number.isNaN(timestamp)) return 0;
-    return timestamp;
+
+    return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 function sortStockRequestRows(rows: IStockRequestListRow[]) {
     return [...rows].sort((a, b) => {
-        const statusRankDiff = getStatusPriority(a.STATUS) - getStatusPriority(b.STATUS);
+        const statusRankDiff =
+            getStatusPriority(a.STATUS) - getStatusPriority(b.STATUS);
+
         if (statusRankDiff !== 0) return statusRankDiff;
 
         const statusNameDiff = a.STATUS.localeCompare(b.STATUS, "el-GR");
+
         if (statusNameDiff !== 0) return statusNameDiff;
 
         return parseDateValue(b.INS_DATE) - parseDateValue(a.INS_DATE);
@@ -64,6 +82,7 @@ function formatDateTime(value?: string) {
     if (!value) return "—";
 
     const parsed = new Date(value);
+
     if (Number.isNaN(parsed.getTime())) return value;
 
     return parsed.toLocaleString("el-GR", {
@@ -75,28 +94,79 @@ function formatDateTime(value?: string) {
     });
 }
 
-type RowMode = "view" | "edit";
+function getValidatedQty(value: string) {
+    const parsed = Number(String(value).trim());
+
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        return null;
+    }
+
+    return String(parsed);
+}
+
+/**
+ * ERP quantity meaning:
+ *
+ * QTY:
+ * Original requested quantity from ANTROF_INSERT.
+ * In ANTROF_LIST this is the original requested quantity and does not change.
+ *
+ * QTY_REQUESTED:
+ * Updated/final quantity after ANATROF_UPDATE.
+ * Despite the name, this is the value changed by QTY_REQ.
+ *
+ * Pending table:
+ * Αιτούμενη Ποσότητα = QTY
+ * Τελική Ποσότητα = QTY_REQUESTED || QTY
+ *
+ * Done table:
+ * Ποσότητα = QTY_REQUESTED || QTY
+ */
+function getRequestedQty(row: IStockRequestListRow) {
+    return String(row.QTY ?? "").trim() || "—";
+}
+
+function getFinalQty(row: IStockRequestListRow) {
+    const updatedQty = String(row.QTY_REQUESTED ?? "").trim();
+    const originalQty = String(row.QTY ?? "").trim();
+
+    return updatedQty || originalQty || "—";
+}
+
+function getActionQty(row: IStockRequestListRow) {
+    const finalQty = getValidatedQty(getFinalQty(row));
+
+    if (finalQty) {
+        return finalQty;
+    }
+
+    const requestedQty = getValidatedQty(getRequestedQty(row));
+
+    if (requestedQty) {
+        return requestedQty;
+    }
+
+    return "1";
+}
 
 export default function StockRequestsClient() {
-    const [rows, setRows] = useState<IStockRequestListRow[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
-    const [updatedIds, setUpdatedIds] = useState<Set<string>>(new Set());
-    const [deleting, setDeleting] = useState(false);
-    const [approvingSelected, setApprovingSelected] = useState(false);
-    const [rowModes, setRowModes] = useState<Record<string, RowMode>>({});
-
-    const [editedQty, setEditedQty] = useState<Record<string, string>>({});
     const user = useAuthStore((state) => state.user);
+
     const currentBranchCode = useMemo(
         () => String(user?.s1code ?? "").trim(),
         [user?.s1code]
     );
+
     const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
     const { mutateAsync: updateStockRequest } = useUpdateStockRequestMutation();
-    const { mutateAsync: massDeleteStockRequests } = useMassDeleteStockRequestsMutation();
+
+    const [rows, setRows] = useState<IStockRequestListRow[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    const [updatingId, setUpdatingId] = useState("");
+    const [editingId, setEditingId] = useState("");
+    const [editedQty, setEditedQty] = useState("");
 
     const loadRows = useCallback(async () => {
         setLoading(true);
@@ -110,12 +180,13 @@ export default function StockRequestsClient() {
         }
 
         try {
-            const data = await fetchStockRequests({ branch: currentBranchCode });
+            const data = await fetchStockRequests({
+                branch: currentBranchCode,
+            });
+
             setRows(sortStockRequestRows(data.rows ?? []));
-            setSelectedIds(new Set());
-            setEditedQty({});
-            setUpdatedIds(new Set());
-            setRowModes({});
+            setEditingId("");
+            setEditedQty("");
         } catch (err) {
             setRows([]);
             setError(
@@ -136,120 +207,22 @@ export default function StockRequestsClient() {
         () => rows.filter((row) => canUpdate(row.STATUS)),
         [rows]
     );
+
     const doneRows = useMemo(
         () => rows.filter((row) => !canUpdate(row.STATUS)),
         [rows]
     );
 
-    const allVisibleSelected = useMemo(() => {
-        if (pendingRows.length === 0) return false;
-        return pendingRows.every((row) => selectedIds.has(row.BASKETID));
-    }, [pendingRows, selectedIds]);
-    const selectedPendingRows = useMemo(
-        () => pendingRows.filter((row) => selectedIds.has(row.BASKETID)),
-        [pendingRows, selectedIds]
-    );
-    const hasRowInEditMode = useMemo(
-        () => Object.values(rowModes).some((mode) => mode === "edit"),
-        [rowModes]
-    );
-
-    useEffect(() => {
-        setSelectedIds((prev) => {
-            const pendingIds = new Set(pendingRows.map((row) => row.BASKETID));
-            let changed = false;
-            const next = new Set<string>();
-
-            prev.forEach((id) => {
-                if (pendingIds.has(id)) {
-                    next.add(id);
-                } else {
-                    changed = true;
-                }
-            });
-
-            if (!changed && next.size === prev.size) {
-                return prev;
-            }
-
-            return next;
-        });
-    }, [pendingRows]);
-
-    const toggleRow = (basketId: string) => {
-        setSelectedIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(basketId)) next.delete(basketId);
-            else next.add(basketId);
-            return next;
-        });
-    };
-
-    const toggleAll = () => {
-        setSelectedIds((prev) => {
-            if (
-                pendingRows.length > 0 &&
-                pendingRows.every((row) => prev.has(row.BASKETID))
-            ) {
-                return new Set();
-            }
-            return new Set(pendingRows.map((row) => row.BASKETID));
-        });
-    };
-
-    const handleQtyChange = (basketId: string, value: string) => {
-        setEditedQty((prev) => ({
-            ...prev,
-            [basketId]: value,
-        }));
-    };
-
-    const getRowMode = (basketId: string): RowMode => {
-        return rowModes[basketId] ?? "view";
-    };
+    const hasRowInEditMode = Boolean(editingId);
 
     const handleStartQtyEdit = (row: IStockRequestListRow) => {
-        setRowModes((prev) => ({
-            ...prev,
-            [row.BASKETID]: "edit",
-        }));
-        setEditedQty((prev) => ({
-            ...prev,
-            [row.BASKETID]: row.QTY,
-        }));
+        setEditingId(row.BASKETID);
+        setEditedQty(getFinalQty(row));
     };
 
-    const handleCancelQtyEdit = (row: IStockRequestListRow) => {
-        const nextQtyRaw = editedQty[row.BASKETID] ?? row.QTY;
-        const isDirty = String(nextQtyRaw) !== String(row.QTY);
-
-        if (isDirty && !window.confirm("Discard changes?")) {
-            return;
-        }
-
-        setEditedQty((prev) => {
-            if (!(row.BASKETID in prev)) {
-                return prev;
-            }
-
-            const next = { ...prev };
-            delete next[row.BASKETID];
-            return next;
-        });
-
-        setRowModes((prev) => ({
-            ...prev,
-            [row.BASKETID]: "view",
-        }));
-    };
-
-    const getValidatedQty = (value: string) => {
-        const parsed = Number(String(value).trim());
-        if (!Number.isInteger(parsed) || parsed <= 0) {
-            return null;
-        }
-
-        return String(parsed);
+    const handleCancelQtyEdit = () => {
+        setEditingId("");
+        setEditedQty("");
     };
 
     const handleUpdateAction = async (
@@ -257,7 +230,7 @@ export default function StockRequestsClient() {
         action: StockRequestUpdateAction,
         qty: string
     ) => {
-        setUpdatingIds((prev) => new Set(prev).add(row.BASKETID));
+        setUpdatingId(row.BASKETID);
         setError("");
 
         try {
@@ -268,143 +241,43 @@ export default function StockRequestsClient() {
                 qty,
             });
 
-            if (action === "UPDATE") {
-                setRows((prev) =>
-                    sortStockRequestRows(
-                        prev.map((entry) =>
-                            entry.BASKETID === row.BASKETID
-                                ? { ...entry, QTY: qty }
-                                : entry
-                        )
-                    )
-                );
-                setEditedQty((prev) => {
-                    const next = { ...prev };
-                    delete next[row.BASKETID];
-                    return next;
-                });
-                setRowModes((prev) => ({
-                    ...prev,
-                    [row.BASKETID]: "view",
-                }));
-                setUpdatedIds((prev) => {
-                    const next = new Set(prev);
-                    next.add(row.BASKETID);
-                    return next;
-                });
-            } else {
-                await loadRows();
-            }
+            await loadRows();
         } catch (err) {
             setError(
-                err instanceof Error
-                    ? err.message
-                    : "Αποτυχία ενημέρωσης αιτήματος"
+                err instanceof Error ? err.message : "Αποτυχία ενημέρωσης αιτήματος"
             );
         } finally {
-            setUpdatingIds((prev) => {
-                const next = new Set(prev);
-                next.delete(row.BASKETID);
-                return next;
-            });
+            setUpdatingId("");
         }
     };
 
     const handleUpdateQty = async (row: IStockRequestListRow) => {
-        const nextQtyRaw = editedQty[row.BASKETID] ?? row.QTY;
-        const normalizedQty = getValidatedQty(nextQtyRaw);
+        const normalizedQty = getValidatedQty(editedQty);
 
         if (!normalizedQty) {
             setError("Η τελική ποσότητα πρέπει να είναι θετικός ακέραιος αριθμός.");
             return;
         }
 
+        /**
+         * Frontend sends qty.
+         * Route must map this to SoftOne:
+         *
+         * QTY_REQ: normalizedQty
+         */
         await handleUpdateAction(row, "UPDATE", normalizedQty);
     };
 
-    const handleMassDelete = async () => {
-        if (selectedIds.size === 0) return;
-        if (!window.confirm(`Διαγραφή ${selectedIds.size} αιτημάτων;`)) return;
-
-        setDeleting(true);
-        setError("");
-
-        try {
-            await massDeleteStockRequests({
-                basketIds: Array.from(selectedIds),
-            });
-            await loadRows();
-        } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Αποτυχία μαζικής διαγραφής"
-            );
-        } finally {
-            setDeleting(false);
-        }
+    const handleApproveRow = async (row: IStockRequestListRow) => {
+        await handleUpdateAction(row, "APPROVE", getActionQty(row));
     };
 
-    const handleApproveSelected = async () => {
-        if (selectedPendingRows.length === 0) return;
-        if (
-            !window.confirm(
-                `Έγκριση ${selectedPendingRows.length} αιτημάτων;`
-            )
-        ) {
+    const handleDeleteRow = async (row: IStockRequestListRow) => {
+        if (!window.confirm(`Διαγραφή αιτήματος ID ${row.BASKETID};`)) {
             return;
         }
 
-        const selectedPendingIds = new Set(
-            selectedPendingRows.map((row) => row.BASKETID)
-        );
-
-        setApprovingSelected(true);
-        setError("");
-        setUpdatingIds((prev) => {
-            const next = new Set(prev);
-            selectedPendingIds.forEach((id) => next.add(id));
-            return next;
-        });
-
-        try {
-            await Promise.all(
-                selectedPendingRows.map((row) =>
-                    updateStockRequest({
-                        action: "APPROVE",
-                        basketId: Number(row.BASKETID),
-                        mtrl: row.MTRL,
-                        qty: row.QTY,
-                    })
-                )
-            );
-
-            await loadRows();
-        } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Αποτυχία μαζικής έγκρισης αιτημάτων"
-            );
-        } finally {
-            setApprovingSelected(false);
-            setUpdatingIds((prev) => {
-                const next = new Set(prev);
-                selectedPendingIds.forEach((id) => next.delete(id));
-                return next;
-            });
-        }
-    };
-
-    const isQtyChanged = (row: IStockRequestListRow) => {
-        const edited = editedQty[row.BASKETID];
-        if (edited === undefined) return false;
-
-        return String(edited) !== String(row.QTY);
-    };
-
-    const clearSelection = () => {
-        setSelectedIds(new Set());
+        await handleUpdateAction(row, "DELETE", getActionQty(row));
     };
 
     return (
@@ -435,6 +308,7 @@ export default function StockRequestsClient() {
                                     <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
                                         Pending Requests
                                     </p>
+
                                     <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
                                         {pendingRows.length}
                                     </span>
@@ -443,7 +317,7 @@ export default function StockRequestsClient() {
                                 <button
                                     type="button"
                                     onClick={loadRows}
-                                    disabled={loading}
+                                    disabled={loading || Boolean(updatingId)}
                                     className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-white px-2 py-1 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-50 dark:border-amber-500/40 dark:bg-transparent dark:text-amber-300 dark:hover:bg-amber-500/10"
                                 >
                                     {loading ? (
@@ -464,57 +338,78 @@ export default function StockRequestsClient() {
                                     <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
                                         <thead className="bg-gray-50 dark:bg-white/[0.02]">
                                             <tr>
-                                                <th className="px-4 py-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={allVisibleSelected}
-                                                        onChange={toggleAll}
-                                                    />
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Κατάσταση
                                                 </th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Κατάσταση</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Ημ/νία Αιτήματος</th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Ημ/νία Αιτήματος
+                                                </th>
                                                 <th className="px-4 py-3 text-xs text-gray-500">ID</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">MTRL</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Κωδικός</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Περιγραφή</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Κατάστημα</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500 text-right">Αιτούμενη Ποσότητα</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500 text-right">Τελική Ποσότητα</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500 text-right">Ενέργειες</th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    MTRL
+                                                </th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Κωδικός
+                                                </th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Περιγραφή
+                                                </th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Κατάστημα
+                                                </th>
+                                                <th className="px-4 py-3 text-right text-xs text-gray-500">
+                                                    Αιτούμενη Ποσότητα
+                                                </th>
+                                                <th className="px-4 py-3 text-right text-xs text-gray-500">
+                                                    Τελική Ποσότητα
+                                                </th>
+                                                <th className="px-4 py-3 text-right text-xs text-gray-500">
+                                                    Ενέργειες
+                                                </th>
                                             </tr>
                                         </thead>
 
                                         <tbody>
                                             {pendingRows.map((row) => {
-                                                const rowUpdating = updatingIds.has(row.BASKETID);
-                                                const rowMode = getRowMode(row.BASKETID);
-                                                const rowIsEditing = rowMode === "edit";
+                                                const rowUpdating = updatingId === row.BASKETID;
+                                                const rowIsEditing = editingId === row.BASKETID;
+                                                const currentFinalQty = getFinalQty(row);
+                                                const qtyChanged =
+                                                    String(editedQty) !== String(currentFinalQty);
 
                                                 return (
                                                     <tr
                                                         key={row.BASKETID}
-                                                        className={rowIsEditing ? "bg-blue-50 dark:bg-blue-900/20" : ""}
+                                                        className={
+                                                            rowIsEditing
+                                                                ? "bg-blue-50 dark:bg-blue-900/20"
+                                                                : ""
+                                                        }
                                                     >
                                                         <td className="px-4 py-3">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedIds.has(row.BASKETID)}
-                                                                onChange={() => toggleRow(row.BASKETID)}
-                                                            />
-                                                        </td>
-
-                                                        <td className="px-4 py-3">
-                                                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyle(row.STATUS)}`}>
+                                                            <span
+                                                                className={`rounded-full px-2 py-1 text-xs ${getStatusStyle(
+                                                                    row.STATUS
+                                                                )}`}
+                                                            >
                                                                 {row.STATUS}
                                                             </span>
                                                         </td>
-                                                        <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(row.INS_DATE)}</td>
+
+                                                        <td className="whitespace-nowrap px-4 py-3">
+                                                            {formatDateTime(row.INS_DATE)}
+                                                        </td>
+
                                                         <td className="px-4 py-3">{row.BASKETID}</td>
                                                         <td className="px-4 py-3">{row.MTRL}</td>
                                                         <td className="px-4 py-3">{row.ITEM_CODE}</td>
                                                         <td className="px-4 py-3">{row.ITEM_NAME}</td>
                                                         <td className="px-4 py-3">{row.BRANCH}</td>
-                                                        <td className="px-4 py-3 text-right">{row.QTY_REQUESTED}</td>
+
+                                                        <td className="px-4 py-3 text-right">
+                                                            {getRequestedQty(row)}
+                                                        </td>
+
                                                         <td className="px-4 py-3 text-right">
                                                             {rowIsEditing ? (
                                                                 <input
@@ -523,52 +418,50 @@ export default function StockRequestsClient() {
                                                                     step={1}
                                                                     autoFocus
                                                                     disabled={rowUpdating}
-                                                                    value={editedQty[row.BASKETID] ?? row.QTY}
-                                                                    onChange={(e) =>
-                                                                        handleQtyChange(row.BASKETID, e.target.value)
+                                                                    value={editedQty}
+                                                                    onChange={(event) =>
+                                                                        setEditedQty(event.target.value)
                                                                     }
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === "Enter") {
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === "Enter") {
                                                                             void handleUpdateQty(row);
                                                                         }
-                                                                        if (e.key === "Escape") {
-                                                                            handleCancelQtyEdit(row);
+
+                                                                        if (event.key === "Escape") {
+                                                                            handleCancelQtyEdit();
                                                                         }
                                                                     }}
-                                                                    className={`w-20 rounded-md border px-2 py-1 text-sm text-right transition disabled:cursor-not-allowed disabled:opacity-60
-                ${isQtyChanged(row)
-                                                                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200 dark:bg-blue-500/10 dark:border-blue-400"
-                                                                            : updatedIds.has(row.BASKETID)
-                                                                                ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200 dark:bg-blue-500/10 dark:border-blue-400"
-                                                                                : "border-gray-300 dark:border-gray-700 dark:bg-gray-900"
-                                                                        }
-            `}
+                                                                    className={`w-20 rounded-md border px-2 py-1 text-right text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${qtyChanged
+                                                                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200 dark:border-blue-400 dark:bg-blue-500/10"
+                                                                            : "border-gray-300 dark:border-gray-700 dark:bg-gray-900"
+                                                                        }`}
                                                                 />
                                                             ) : (
-                                                                <span
-                                                                    className={`text-sm font-medium ${updatedIds.has(row.BASKETID)
-                                                                        ? "text-blue-600 dark:text-blue-300"
-                                                                        : "text-gray-800 dark:text-white/90"
-                                                                        }`}
-                                                                >
-                                                                    {row.QTY}
+                                                                <span className="text-sm font-medium text-gray-800 dark:text-white/90">
+                                                                    {currentFinalQty}
                                                                 </span>
                                                             )}
                                                         </td>
+
                                                         <td className="px-4 py-3 text-right">
                                                             {rowIsEditing ? (
                                                                 <div className="flex justify-end gap-2">
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => void handleUpdateQty(row)}
-                                                                        disabled={rowUpdating || !isQtyChanged(row)}
+                                                                        disabled={rowUpdating || !qtyChanged}
                                                                         className="rounded-md bg-blue-500 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-blue-600 disabled:opacity-40"
                                                                     >
-                                                                        Save
+                                                                        {rowUpdating ? (
+                                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                                        ) : (
+                                                                            "Save"
+                                                                        )}
                                                                     </button>
+
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => handleCancelQtyEdit(row)}
+                                                                        onClick={handleCancelQtyEdit}
                                                                         disabled={rowUpdating}
                                                                         className="rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
                                                                     >
@@ -585,26 +478,25 @@ export default function StockRequestsClient() {
                                                                     >
                                                                         <Pencil className="h-3.5 w-3.5" />
                                                                     </button>
+
                                                                     <button
-                                                                        onClick={() =>
-                                                                            handleUpdateAction(row, "APPROVE", row.QTY)
-                                                                        }
+                                                                        type="button"
+                                                                        onClick={() => handleApproveRow(row)}
                                                                         disabled={rowUpdating || hasRowInEditMode}
-                                                                        className="bg-green-500 text-white px-2 py-1 rounded"
+                                                                        className="rounded bg-green-500 px-2 py-1 text-white disabled:opacity-40"
                                                                     >
                                                                         {rowUpdating ? (
-                                                                            <Loader2 className="animate-spin h-4 w-4" />
+                                                                            <Loader2 className="h-4 w-4 animate-spin" />
                                                                         ) : (
                                                                             <Check className="h-4 w-4" />
                                                                         )}
                                                                     </button>
 
                                                                     <button
-                                                                        onClick={() =>
-                                                                            handleUpdateAction(row, "DECLINE", row.QTY)
-                                                                        }
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteRow(row)}
                                                                         disabled={rowUpdating || hasRowInEditMode}
-                                                                        className="bg-red-500 text-white px-2 py-1 rounded"
+                                                                        className="rounded bg-red-500 px-2 py-1 text-white disabled:opacity-40"
                                                                     >
                                                                         <X className="h-4 w-4" />
                                                                     </button>
@@ -626,10 +518,12 @@ export default function StockRequestsClient() {
                                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
                                         DONE
                                     </p>
+
                                     <span className="rounded-full bg-gray-900/10 px-2 py-0.5 text-[10px] font-semibold text-gray-700 dark:bg-gray-100/10 dark:text-gray-200">
-                                        Approved / Declined
+                                        Approved / Deleted
                                     </span>
                                 </div>
+
                                 <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
                                     {doneRows.length}
                                 </span>
@@ -644,16 +538,31 @@ export default function StockRequestsClient() {
                                     <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
                                         <thead className="bg-gray-50 dark:bg-white/[0.02]">
                                             <tr>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Κατάσταση</th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Κατάσταση
+                                                </th>
                                                 <th className="px-4 py-3 text-xs text-gray-500">ID</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">MTRL</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Κωδικός</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Περιγραφή</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Κατάστημα</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500 text-right">Αιτούμενη Ποσότητα</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500 text-right">Τελική Ποσότητα</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Ημ/νία Αιτήματος</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">Ημ/νία Έγκρισης</th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    MTRL
+                                                </th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Κωδικός
+                                                </th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Περιγραφή
+                                                </th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Κατάστημα
+                                                </th>
+                                                <th className="px-4 py-3 text-right text-xs text-gray-500">
+                                                    Ποσότητα
+                                                </th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Ημ/νία Αιτήματος
+                                                </th>
+                                                <th className="px-4 py-3 text-xs text-gray-500">
+                                                    Ημ/νία Έγκρισης
+                                                </th>
                                             </tr>
                                         </thead>
 
@@ -664,19 +573,32 @@ export default function StockRequestsClient() {
                                                     className="bg-gray-50/40 dark:bg-white/[0.01]"
                                                 >
                                                     <td className="px-4 py-3">
-                                                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyle(row.STATUS)}`}>
+                                                        <span
+                                                            className={`rounded-full px-2 py-1 text-xs ${getStatusStyle(
+                                                                row.STATUS
+                                                            )}`}
+                                                        >
                                                             {row.STATUS}
                                                         </span>
                                                     </td>
+
                                                     <td className="px-4 py-3">{row.BASKETID}</td>
                                                     <td className="px-4 py-3">{row.MTRL}</td>
                                                     <td className="px-4 py-3">{row.ITEM_CODE}</td>
                                                     <td className="px-4 py-3">{row.ITEM_NAME}</td>
                                                     <td className="px-4 py-3">{row.BRANCH}</td>
-                                                    <td className="px-4 py-3 text-right">{row.QTY_REQUESTED}</td>
-                                                    <td className="px-4 py-3 text-right">{row.QTY}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(row.INS_DATE)}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(row.APPROVED_TS)}</td>
+
+                                                    <td className="px-4 py-3 text-right">
+                                                        {getFinalQty(row)}
+                                                    </td>
+
+                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                        {formatDateTime(row.INS_DATE)}
+                                                    </td>
+
+                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                        {formatDateTime(row.APPROVED_TS)}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -687,64 +609,6 @@ export default function StockRequestsClient() {
                     </div>
                 )}
             </div>
-
-            {selectedIds.size > 0 && !loading && (
-                <div className="fixed bottom-4 left-1/2 z-30 w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2">
-                    <div className="flex w-full flex-col gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-lg sm:flex-row sm:items-center sm:justify-between dark:border-gray-700 dark:bg-gray-900">
-                        <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                            {selectedIds.size} επιλεγμένα αιτήματα
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={handleApproveSelected}
-                                disabled={
-                                    approvingSelected ||
-                                    deleting ||
-                                    hasRowInEditMode
-                                }
-                                className="inline-flex items-center gap-1 rounded-md bg-green-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-green-600 disabled:opacity-40"
-                            >
-                                {approvingSelected ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                    <Check className="h-3.5 w-3.5" />
-                                )}
-                                Έγκριση
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={handleMassDelete}
-                                disabled={
-                                    deleting ||
-                                    approvingSelected ||
-                                    hasRowInEditMode
-                                }
-                                className="inline-flex items-center gap-1 rounded-md bg-red-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-600 disabled:opacity-40"
-                            >
-                                {deleting ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                )}
-                                Διαγραφή
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={clearSelection}
-                                disabled={approvingSelected || deleting}
-                                className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                            >
-                                <X className="h-3.5 w-3.5" />
-                                Ακύρωση επιλογής
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
