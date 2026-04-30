@@ -38,38 +38,6 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import { isAxiosError } from "axios";
 
-type SupportedStockBranch = "1001" | "1006" | "1007";
-
-const DEFAULT_STOCK_REQUEST_BRANCH: SupportedStockBranch = "1006";
-const BRANCH_CONFIG: Record<SupportedStockBranch, string> = {
-    "1001": "Ν. Κόσμος",
-    "1006": "Λ. Αθηνών",
-    "1007": "Λ. Μεσογείων",
-};
-const STOCK_FIELD_BY_BRANCH: Record<
-    SupportedStockBranch,
-    keyof Pick<IItem, "YP1001" | "YP1006" | "YP1007">
-> = {
-    "1001": "YP1001",
-    "1006": "YP1006",
-    "1007": "YP1007",
-};
-
-function isSupportedStockBranch(branchCode: string): branchCode is SupportedStockBranch {
-    return branchCode === "1001" || branchCode === "1006" || branchCode === "1007";
-}
-
-function getCurrentStockBranchCode(
-    userBranchCode: string | undefined
-): SupportedStockBranch {
-    const normalizedUserBranch = String(userBranchCode ?? "").trim();
-    if (isSupportedStockBranch(normalizedUserBranch)) {
-        return normalizedUserBranch;
-    }
-
-    return DEFAULT_STOCK_REQUEST_BRANCH;
-}
-
 function parseStockValue(value: unknown) {
     const parsed = Number(String(value ?? "").trim().replace(",", "."));
     if (!Number.isFinite(parsed)) {
@@ -88,20 +56,22 @@ function parseAvailableStock(value: unknown) {
     return Math.floor(parsed);
 }
 
-function resolveCurrentBranchCode(
-    s1Code: string | undefined,
-    listBranches: Array<{ s1Code?: string }> | undefined
-) {
-    const preferred = String(s1Code ?? "").trim();
-    if (/^\d+$/.test(preferred)) {
-        return preferred;
-    }
+function getItemFieldValue(item: IItem, key: string) {
+    const value = (item as unknown as Record<string, unknown>)[key];
+    return value;
+}
 
-    const firstBranch = listBranches
-        ?.map((entry) => String(entry.s1Code ?? "").trim())
-        .find((entry) => /^\d+$/.test(entry));
+function getBranchCodesFromItem(item: IItem) {
+    const codes = new Set<string>();
 
-    return firstBranch || "1001";
+    Object.keys(item).forEach((key) => {
+        const match = key.match(/^YP(\d+)$/i);
+        if (match?.[1]) {
+            codes.add(match[1]);
+        }
+    });
+
+    return Array.from(codes);
 }
 
 function getEndoItemKey(item: IItem) {
@@ -249,13 +219,16 @@ export default function SearchPartsClient() {
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
-    const stockRequestBranch = getCurrentStockBranchCode(user?.s1code);
-    const stockField = STOCK_FIELD_BY_BRANCH[stockRequestBranch] ?? "YP1006";
     const currentBranchCode = useMemo(
-        () => resolveCurrentBranchCode(user?.s1code, user?.listBranches),
-        [user?.listBranches, user?.s1code]
+        () => String(user?.s1code ?? "").trim(),
+        [user?.s1code]
     );
+    const hasValidBranch = currentBranchCode.length > 0;
     const currentBranchName = useMemo(() => {
+        if (!hasValidBranch) {
+            return "—";
+        }
+
         const normalizedCurrent = String(currentBranchCode).trim();
         const fromProfile = user?.listBranches?.find(
             (branch) => String(branch.s1Code ?? "").trim() === normalizedCurrent
@@ -266,10 +239,17 @@ export default function SearchPartsClient() {
             return normalizedProfileName;
         }
 
-        return BRANCH_CONFIG[normalizedCurrent as SupportedStockBranch] ?? normalizedCurrent;
-    }, [currentBranchCode, user?.listBranches]);
+        return normalizedCurrent;
+    }, [currentBranchCode, hasValidBranch, user?.listBranches]);
 
     const loadRequestedEndoLines = useCallback(async () => {
+        if (!hasValidBranch) {
+            setEndoBasketItems([]);
+            setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
+            setEndoSummaryLoading(false);
+            return;
+        }
+
         setEndoSummaryLoading(true);
 
         try {
@@ -296,7 +276,7 @@ export default function SearchPartsClient() {
         } finally {
             setEndoSummaryLoading(false);
         }
-    }, [currentBranchCode, fetchEndoLists]);
+    }, [currentBranchCode, fetchEndoLists, hasValidBranch]);
 
     const handleOpenSearchModal = useCallback(() => {
         setModalSearch("");
@@ -668,7 +648,11 @@ export default function SearchPartsClient() {
     };
 
     const getStoreStock = (item: IItem) => {
-        return parseStockValue(item[stockField]);
+        if (!hasValidBranch) {
+            return 0;
+        }
+
+        return parseStockValue(getItemFieldValue(item, `YP${currentBranchCode}`));
     };
 
     const getStoreOrderQuantity = (mtrl: string) => storeOrderQuantities[mtrl] ?? 0;
@@ -707,29 +691,37 @@ export default function SearchPartsClient() {
     };
 
     const getEndoBranchOptions = (item: IItem): EndoBranchOption[] => {
-        return [
-            {
-                code: "1001",
-                label: BRANCH_CONFIG["1001"],
-                stock: parseAvailableStock(item.YP1001),
-                location: item.THESI1001 || "-",
-                isCurrent: currentBranchCode === "1001",
-            },
-            {
-                code: "1006",
-                label: BRANCH_CONFIG["1006"],
-                stock: parseAvailableStock(item.YP1006),
-                location: item.THESI1006 || "-",
-                isCurrent: currentBranchCode === "1006",
-            },
-            {
-                code: "1007",
-                label: BRANCH_CONFIG["1007"],
-                stock: parseAvailableStock(item.YP1007),
-                location: item.THESI1007 || "-",
-                isCurrent: currentBranchCode === "1007",
-            },
-        ];
+        const branchCodes = new Set<string>(getBranchCodesFromItem(item));
+
+        (user?.listBranches ?? []).forEach((branch) => {
+            const code = String(branch.s1Code ?? "").trim();
+            if (code) {
+                branchCodes.add(code);
+            }
+        });
+
+        if (hasValidBranch) {
+            branchCodes.add(currentBranchCode);
+        }
+
+        return Array.from(branchCodes)
+            .sort((a, b) => Number(a) - Number(b))
+            .map((code) => {
+                const labelFromProfile = user?.listBranches?.find(
+                    (branch) => String(branch.s1Code ?? "").trim() === code
+                )?.name;
+                const label = String(labelFromProfile ?? "").trim() || code;
+                const location =
+                    String(getItemFieldValue(item, `THESI${code}`) ?? "").trim() || "-";
+
+                return {
+                    code,
+                    label,
+                    stock: parseAvailableStock(getItemFieldValue(item, `YP${code}`)),
+                    location,
+                    isCurrent: currentBranchCode === code,
+                };
+            });
     };
 
     const handleAddToEndoBasket = async (item: IItem, sourceBranchCode: string) => {
@@ -812,6 +804,14 @@ export default function SearchPartsClient() {
         const mtrlKey = String(item.MTRL);
         const qty = getStoreOrderQuantity(mtrlKey);
 
+        if (!hasValidBranch) {
+            setStockRequestErrors((prev) => ({
+                ...prev,
+                [mtrlKey]: "Δεν βρέθηκε ενεργό κατάστημα χρήστη",
+            }));
+            return;
+        }
+
         if (qty <= 0) {
             setStockRequestErrors((prev) => ({
                 ...prev,
@@ -827,7 +827,7 @@ export default function SearchPartsClient() {
             await requestStockQuantity({
                 mtrl: Number(item.MTRL),
                 qty,
-                branch: stockRequestBranch,
+                branch: currentBranchCode,
             });
 
             setStockRequestStatuses((prev) => ({
@@ -854,6 +854,12 @@ export default function SearchPartsClient() {
     const handleAddToBasket = async (item: IItem) => {
         if (!customer) return;
 
+        const normalizedBranch = Number(currentBranchCode);
+        if (!Number.isFinite(normalizedBranch) || normalizedBranch <= 0) {
+            setBasketError("Δεν βρέθηκε ενεργό κατάστημα χρήστη");
+            return;
+        }
+
         const basketItem = findBasketItem(item);
         const basketQtyFallback = basketItem ? Math.max(1, getBasketItemQty(basketItem)) : 1;
         const requestedQty = Math.max(1, getQuantity(item.ITEM_CODE, basketQtyFallback));
@@ -873,6 +879,7 @@ export default function SearchPartsClient() {
                     QTY: requestedQty,
                     PRICE_ERP: Number(item.PRICE_WHOLE),
                     PRICE_REQ: Number(item.PRICE_WHOLE),
+                    BRANCH: normalizedBranch,
                     APPUSER_ID: user?.uid,
                 });
             }
@@ -1080,6 +1087,11 @@ export default function SearchPartsClient() {
     const handleToggleEndoMode = () => {
         if (!customer) {
             handleOpenCustomerModal();
+            return;
+        }
+
+        if (!hasValidBranch) {
+            setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
             return;
         }
 

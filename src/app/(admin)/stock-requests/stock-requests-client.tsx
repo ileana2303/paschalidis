@@ -12,6 +12,7 @@ import {
     useMassDeleteStockRequestsMutation,
     useUpdateStockRequestMutation,
 } from "@/hooks/queries/useApiMutations";
+import { useAuthStore } from "@/stores/authStore";
 
 function getStatusStyle(status: string) {
     const normalized = status.toUpperCase();
@@ -88,6 +89,11 @@ export default function StockRequestsClient() {
     const [rowModes, setRowModes] = useState<Record<string, RowMode>>({});
 
     const [editedQty, setEditedQty] = useState<Record<string, string>>({});
+    const user = useAuthStore((state) => state.user);
+    const currentBranchCode = useMemo(
+        () => String(user?.s1code ?? "").trim(),
+        [user?.s1code]
+    );
     const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
     const { mutateAsync: updateStockRequest } = useUpdateStockRequestMutation();
     const { mutateAsync: massDeleteStockRequests } = useMassDeleteStockRequestsMutation();
@@ -96,8 +102,15 @@ export default function StockRequestsClient() {
         setLoading(true);
         setError("");
 
+        if (!currentBranchCode) {
+            setRows([]);
+            setLoading(false);
+            setError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
+            return;
+        }
+
         try {
-            const data = await fetchStockRequests({});
+            const data = await fetchStockRequests({ branch: currentBranchCode });
             setRows(sortStockRequestRows(data.rows ?? []));
             setSelectedIds(new Set());
             setEditedQty({});
@@ -113,7 +126,7 @@ export default function StockRequestsClient() {
         } finally {
             setLoading(false);
         }
-    }, [fetchStockRequests]);
+    }, [currentBranchCode, fetchStockRequests]);
 
     useEffect(() => {
         loadRows();

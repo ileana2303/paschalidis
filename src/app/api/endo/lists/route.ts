@@ -203,11 +203,18 @@ export async function POST(req: NextRequest) {
         const normalizedBranch =
             typeof body.branch === "string" && body.branch.trim()
                 ? body.branch.trim()
-                : "1001";
+                : "";
         const normalizedScope =
             body.scope === "requested" || body.scope === "received"
                 ? body.scope
                 : "both";
+        if (!normalizedBranch) {
+            return NextResponse.json(
+                { success: false, message: "Branch is required" },
+                { status: 400 }
+            );
+        }
+
         const clientID = getClientIDForBranch(normalizedBranch);
 
         if (!clientID) {

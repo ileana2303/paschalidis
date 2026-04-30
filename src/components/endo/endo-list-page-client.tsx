@@ -16,6 +16,7 @@ import {
     useSubmitEndoBasketOrderMutation,
     useUpdateEndoListQtyMutation,
 } from "@/hooks/queries/useApiMutations";
+import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
 import type {
     EndoListRoutePayload,
@@ -34,22 +35,6 @@ const NET_RESERVED_COLUMN_KEY = "__NET_RESERVED";
 
 interface EndoListPageClientProps {
     scope: EndoListScope;
-}
-
-function resolveCurrentBranchCode(
-    s1Code: string | undefined,
-    listBranches: Array<{ s1Code?: string }> | undefined
-) {
-    const preferred = String(s1Code ?? "").trim();
-    if (/^\d+$/.test(preferred)) {
-        return preferred;
-    }
-
-    const firstBranch = listBranches
-        ?.map((entry) => String(entry.s1Code ?? "").trim())
-        .find((entry) => /^\d+$/.test(entry));
-
-    return firstBranch || "1001";
 }
 
 function formatColumnLabel(key: string) {
@@ -308,18 +293,23 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
     const isReceivedScope = scope === "received";
 
     const currentBranchCode = useMemo(
-        () => resolveCurrentBranchCode(user?.s1code, user?.listBranches),
-        [user?.listBranches, user?.s1code]
+        () => normalizeBranchCode(user?.s1code),
+        [user?.s1code]
     );
+    const hasValidBranch = currentBranchCode.length > 0;
 
     const currentBranchName = useMemo(() => {
-        const currentCode = String(currentBranchCode).trim();
-        const fromProfile = user?.listBranches.find(
-            (branch) => String(branch.s1Code ?? "").trim() === currentCode
+        if (!hasValidBranch) {
+            return "—";
+        }
+
+        const currentCode = normalizeBranchCode(currentBranchCode);
+        const fromProfile = user?.listBranches?.find(
+            (branch) => normalizeBranchCode(branch.s1Code) === currentCode
         )?.name;
 
-        return String(fromProfile ?? "").trim() || currentCode;
-    }, [currentBranchCode, user?.listBranches]);
+        return resolveBranchName(currentCode, fromProfile);
+    }, [currentBranchCode, hasValidBranch, user?.listBranches]);
 
     const listConfig = useMemo(
         () =>
@@ -349,6 +339,13 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         setSavingRowKeys(new Set());
         setSelectedRowKeys(new Set());
         setApprovingBulk(false);
+
+        if (!hasValidBranch) {
+            setRows([]);
+            setError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
+            setLoading(false);
+            return;
+        }
 
         try {
             const data = await fetchEndoLists({
@@ -402,7 +399,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         } finally {
             setLoading(false);
         }
-    }, [currentBranchCode, fetchBatchStock, fetchEndoLists, scope]);
+    }, [currentBranchCode, fetchBatchStock, fetchEndoLists, hasValidBranch, scope]);
 
     useEffect(() => {
         loadRows();

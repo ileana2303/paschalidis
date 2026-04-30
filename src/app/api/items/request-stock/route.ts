@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         const normalizedMtrl = Number(mtrl);
         const normalizedQty = Number(qty);
         const normalizedBranch =
-            typeof branch === "string" && branch.trim() ? branch.trim() : "1001";
+            typeof branch === "string" && branch.trim() ? branch.trim() : "";
         const clientID = process.env.S1_CLIENT_ID
             ?.trim()
             .replace(/^['"]|['"]$/g, "");
@@ -86,6 +86,13 @@ export async function POST(req: NextRequest) {
         if (!Number.isInteger(normalizedQty) || normalizedQty <= 0) {
             return NextResponse.json(
                 { success: false, message: "Quantity must be a positive integer" },
+                { status: 400 }
+            );
+        }
+
+        if (!normalizedBranch) {
+            return NextResponse.json(
+                { success: false, message: "Branch is required" },
                 { status: 400 }
             );
         }

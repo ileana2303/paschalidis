@@ -8,7 +8,6 @@ import type {
 
 const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
 const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
-const DEFAULT_BRANCH = 1006;
 const DEFAULT_TRD_BRANCH = 1000;
 const DEFAULT_COMPANY = 1001;
 const ZERO_GUID = "00000000-0000-0000-0000-000000000000";
@@ -80,8 +79,7 @@ export async function POST(req: NextRequest) {
         const normalizedPriceErp = Number(body.PRICE_ERP);
         const normalizedPriceReq =
             body.PRICE_REQ != null ? Number(body.PRICE_REQ) : normalizedPriceErp;
-        const normalizedBranch =
-            body.BRANCH != null ? Number(body.BRANCH) : DEFAULT_BRANCH;
+        const normalizedBranch = Number(body.BRANCH);
         const normalizedTrdBranch =
             body.TRD_BRANCH != null ? Number(body.TRD_BRANCH) : DEFAULT_TRD_BRANCH;
         const normalizedCompany =
@@ -127,6 +125,13 @@ export async function POST(req: NextRequest) {
         if (!Number.isFinite(normalizedPriceReq) || normalizedPriceReq < 0) {
             return NextResponse.json(
                 { success: false, message: "PRICE_REQ is invalid" },
+                { status: 400 }
+            );
+        }
+
+        if (!Number.isFinite(normalizedBranch) || normalizedBranch <= 0) {
+            return NextResponse.json(
+                { success: false, message: "Branch is required" },
                 { status: 400 }
             );
         }

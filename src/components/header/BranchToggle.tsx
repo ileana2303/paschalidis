@@ -1,41 +1,23 @@
 "use client";
 
 import { MapPin } from "@/app/lib/lucide";
+import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
 import { useMemo } from "react";
-
-type BranchOption = {
-  name: string;
-  s1Code: string;
-};
 
 export default function BranchToggle() {
   const user = useAuthStore((state) => state.user);
 
   const branchName = useMemo(() => {
     if (!user) return "—";
+    const branchCode = normalizeBranchCode(user.s1code);
+    if (!branchCode) return "—";
 
-    const seenBranchCodes = new Set<string>();
-
-    const branchOptions: BranchOption[] = user.listBranches
-      .map((branch) => ({
-        name: branch.name?.trim() || "",
-        s1Code: branch.s1Code?.trim() || "",
-      }))
-      .filter((branch) => {
-        if (!branch.name || !branch.s1Code || seenBranchCodes.has(branch.s1Code)) {
-          return false;
-        }
-
-        seenBranchCodes.add(branch.s1Code);
-        return true;
-      });
-
-    const preferredBranchName = branchOptions.find(
-      (branch) => branch.s1Code === user.s1code?.trim()
+    const preferredBranchName = user.listBranches.find(
+      (branch) => normalizeBranchCode(branch.s1Code) === branchCode
     )?.name;
 
-    return preferredBranchName || branchOptions[0]?.name || "—";
+    return resolveBranchName(branchCode, preferredBranchName);
   }, [user]);
 
   if (!user) return null;

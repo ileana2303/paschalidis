@@ -13,16 +13,11 @@ import {
     useFetchEndoListsMutation,
     useSearchItemsMutation,
 } from "@/hooks/queries/useApiMutations";
+import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
 import { isAxiosError } from "axios";
 import EndoOrderSummary, { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 import EndoPartResults, { EndoBranchOption } from "@/components/endo/endo-part-results";
-
-const BRANCH_CONFIG: Record<string, string> = {
-    "1001": "Ν. Κόσμος",
-    "1006": "Λ. Αθηνών",
-    "1007": "Λ. Μεσογείων",
-};
 
 function parseStockValue(value: unknown) {
     const parsed = Number(String(value ?? "").trim().replace(",", "."));
@@ -33,20 +28,21 @@ function parseStockValue(value: unknown) {
     return Math.floor(parsed);
 }
 
-function resolveCurrentBranchCode(
-    s1Code: string | undefined,
-    listBranches: Array<{ s1Code?: string }> | undefined
-) {
-    const preferred = String(s1Code ?? "").trim();
-    if (/^\d+$/.test(preferred)) {
-        return preferred;
-    }
+function getItemFieldValue(item: IItem, key: string) {
+    return (item as unknown as Record<string, unknown>)[key];
+}
 
-    const firstBranch = listBranches
-        ?.map((entry) => String(entry.s1Code ?? "").trim())
-        .find((entry) => /^\d+$/.test(entry));
+function getBranchCodesFromItem(item: IItem) {
+    const codes = new Set<string>();
 
-    return firstBranch || "1001";
+    Object.keys(item).forEach((key) => {
+        const match = key.match(/^YP(\d+)$/i);
+        if (match?.[1]) {
+            codes.add(match[1]);
+        }
+    });
+
+    return Array.from(codes);
 }
 
 function getItemKey(item: IItem) {
@@ -143,25 +139,32 @@ export default function EndoPartsClient() {
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
 
     const currentBranchCode = useMemo(
-        () => resolveCurrentBranchCode(user?.s1code, user?.listBranches),
-        [user?.listBranches, user?.s1code]
+        () => normalizeBranchCode(user?.s1code),
+        [user?.s1code]
     );
+    const hasValidBranch = currentBranchCode.length > 0;
 
     const currentBranchName = useMemo(() => {
-        const normalizedCurrent = String(currentBranchCode).trim();
-        const fromProfile = user?.listBranches.find(
-            (branch) => String(branch.s1Code ?? "").trim() === normalizedCurrent
-        )?.name;
-        const normalizedProfileName = String(fromProfile ?? "").trim();
-
-        if (normalizedProfileName) {
-            return normalizedProfileName;
+        if (!hasValidBranch) {
+            return "—";
         }
 
-        return BRANCH_CONFIG[normalizedCurrent] ?? normalizedCurrent;
-    }, [currentBranchCode, user?.listBranches]);
+        const normalizedCurrent = normalizeBranchCode(currentBranchCode);
+        const fromProfile = user?.listBranches?.find(
+            (branch) => normalizeBranchCode(branch.s1Code) === normalizedCurrent
+        )?.name;
+
+        return resolveBranchName(normalizedCurrent, fromProfile);
+    }, [currentBranchCode, hasValidBranch, user?.listBranches]);
 
     const loadRequestedEndoLines = useCallback(async () => {
+        if (!hasValidBranch) {
+            setBasketItems([]);
+            setBasketError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
+            setSummaryLoading(false);
+            return;
+        }
+
         setSummaryLoading(true);
 
         try {
@@ -188,7 +191,7 @@ export default function EndoPartsClient() {
         } finally {
             setSummaryLoading(false);
         }
-    }, [currentBranchCode, fetchEndoLists]);
+    }, [currentBranchCode, fetchEndoLists, hasValidBranch]);
 
     const handleOpenSearchModal = useCallback(() => {
         setModalSearch("");
@@ -356,29 +359,37 @@ export default function EndoPartsClient() {
     };
 
     const getBranchOptions = (item: IItem): EndoBranchOption[] => {
-        return [
-            {
-                code: "1001",
-                label: BRANCH_CONFIG["1001"],
-                stock: parseStockValue(item.YP1001),
-                location: item.THESI1001 || "-",
-                isCurrent: currentBranchCode === "1001",
-            },
-            {
-                code: "1006",
-                label: BRANCH_CONFIG["1006"],
-                stock: parseStockValue(item.YP1006),
-                location: item.THESI1006 || "-",
-                isCurrent: currentBranchCode === "1006",
-            },
-            {
-                code: "1007",
-                label: BRANCH_CONFIG["1007"],
-                stock: parseStockValue(item.YP1007),
-                location: item.THESI1007 || "-",
-                isCurrent: currentBranchCode === "1007",
-            },
-        ];
+        const branchCodes = new Set<string>(getBranchCodesFromItem(item));
+
+        (user?.listBranches ?? []).forEach((branch) => {
+            const code = normalizeBranchCode(branch.s1Code);
+            if (code) {
+                branchCodes.add(code);
+            }
+        });
+
+        if (hasValidBranch) {
+            branchCodes.add(currentBranchCode);
+        }
+
+        return Array.from(branchCodes)
+            .sort((a, b) => Number(a) - Number(b))
+            .map((code) => {
+                const labelFromProfile = user?.listBranches?.find(
+                    (branch) => normalizeBranchCode(branch.s1Code) === code
+                )?.name;
+                const label = resolveBranchName(code, labelFromProfile);
+                const location =
+                    String(getItemFieldValue(item, `THESI${code}`) ?? "").trim() || "-";
+
+                return {
+                    code,
+                    label,
+                    stock: parseStockValue(getItemFieldValue(item, `YP${code}`)),
+                    location,
+                    isCurrent: currentBranchCode === code,
+                };
+            });
     };
 
     const handleAddToBasket = async (item: IItem, sourceBranchCode: string) => {

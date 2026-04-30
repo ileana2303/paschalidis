@@ -30,8 +30,8 @@ import {
 
 const BRANCHES = [
     { id: "1001", label: "Κασομούλη" },
-    { id: "1006", label: "Κεντρικό" },
-    { id: "1007", label: "Μεσογείων" },
+    { id: "1006", label: "Λ. Αθηνών" },
+    { id: "1007", label: "Λ. Μεσογείων" },
 ] as const;
 
 type BranchId = (typeof BRANCHES)[number]["id"];
