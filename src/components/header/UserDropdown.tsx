@@ -92,7 +92,7 @@ export default function UserDropdown() {
             logoutMutation.mutate(undefined, {
               onSettled: () => {
                 setUser(null);
-                window.location.replace(`/signin?logout=${Date.now()}`);
+                window.location.replace(`/auth/signin?logout=${Date.now()}`);
               },
             });
           }}
