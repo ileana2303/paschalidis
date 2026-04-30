@@ -13,18 +13,26 @@ type EndoBasketPreviewItem = {
     qty: number;
 };
 
-interface PartsResultsContainerProps {
+interface PartsResultsLayoutProps {
     hasCustomer: boolean;
     sidebarVisible: boolean;
     resultsContainerRef: RefObject<HTMLDivElement | null>;
-    searchInputRef: RefObject<HTMLInputElement | null>;
     onResultsScroll: (event: UIEvent<HTMLDivElement>) => void;
     hasScrolledResults: boolean;
-    search: string;
-    onSearchChange: (value: string) => void;
+    isResultsScrollable: boolean | null;
+    onOpenSearchModal: () => void;
+}
+
+interface PartsResultsSearchProps {
+    inputRef: RefObject<HTMLInputElement | null>;
+    value: string;
+    onChange: (value: string) => void;
     onSearch: () => void;
     loading: boolean;
     hasSearched: boolean;
+}
+
+interface PartsResultsStateProps {
     items: IItem[];
     isEndoMode: boolean;
     onToggleEndoMode: () => void;
@@ -33,7 +41,10 @@ interface PartsResultsContainerProps {
     expandedItems: Set<string>;
     getExpandedItemKey: (item: IItem) => string;
     toggleExpanded: (itemKey: string) => void;
-    getEndoBranchOptions: (item: IItem) => EndoBranchOption[];
+}
+
+interface PartsResultsEndoProps {
+    getBranchOptions: (item: IItem) => EndoBranchOption[];
     endoBasketItems: EndoBasketPreviewItem[];
     getEndoRequestedQty: (mtrl: string | number, sourceBranch: string) => number;
     setEndoRequestedQty: (
@@ -46,6 +57,9 @@ interface PartsResultsContainerProps {
         mtrl: string | number,
         sourceBranchCode: string
     ) => boolean;
+}
+
+interface PartsResultsBasketProps {
     findBasketItem: (item: IItem) => IBasketItem | undefined;
     getQuantity: (itemCode: string, fallback?: number) => number;
     onQuantityChange: (itemCode: string, qty: number) => void;
@@ -63,56 +77,82 @@ interface PartsResultsContainerProps {
     onStoreOrderQuantityChange: (mtrl: string, qty: number) => void;
     onSubmitStockRequest: (item: IItem) => Promise<void> | void;
     formatPrice: (price: number | string | null | undefined) => string;
-    isResultsScrollable: boolean | null;
-    onOpenSearchModal: () => void;
+}
+
+interface PartsResultsContainerProps {
+    layout: PartsResultsLayoutProps;
+    search: PartsResultsSearchProps;
+    results: PartsResultsStateProps;
+    endo: PartsResultsEndoProps;
+    basket: PartsResultsBasketProps;
 }
 
 export default function PartsResultsContainer({
-    hasCustomer,
-    sidebarVisible,
-    resultsContainerRef,
-    searchInputRef,
-    onResultsScroll,
-    hasScrolledResults,
+    layout,
     search,
-    onSearchChange,
-    onSearch,
-    loading,
-    hasSearched,
-    items,
-    isEndoMode,
-    onToggleEndoMode,
-    onToggleAllExpanded,
-    areAllResultsExpanded,
-    expandedItems,
-    getExpandedItemKey,
-    toggleExpanded,
-    getEndoBranchOptions,
-    endoBasketItems,
-    getEndoRequestedQty,
-    setEndoRequestedQty,
-    onAddToEndoBasket,
-    isAddingToEndoBasket,
-    findBasketItem,
-    getQuantity,
-    onQuantityChange,
-    addingToBasket,
-    getStoreStock,
-    getStoreOrderQuantity,
-    stockRequestStatuses,
-    stockRequestErrors,
-    submittingStockRequests,
-    discountPrices,
-    submittingDiscount,
-    onDiscountValueChange,
-    onAddToBasket,
-    onRequestDiscount,
-    onStoreOrderQuantityChange,
-    onSubmitStockRequest,
-    formatPrice,
-    isResultsScrollable,
-    onOpenSearchModal,
+    results,
+    endo,
+    basket,
 }: PartsResultsContainerProps) {
+    const {
+        hasCustomer,
+        sidebarVisible,
+        resultsContainerRef,
+        onResultsScroll,
+        hasScrolledResults,
+        isResultsScrollable,
+        onOpenSearchModal,
+    } = layout;
+
+    const {
+        inputRef: searchInputRef,
+        value: searchValue,
+        onChange: onSearchChange,
+        onSearch,
+        loading,
+        hasSearched,
+    } = search;
+
+    const {
+        items,
+        isEndoMode,
+        onToggleEndoMode,
+        onToggleAllExpanded,
+        areAllResultsExpanded,
+        expandedItems,
+        getExpandedItemKey,
+        toggleExpanded,
+    } = results;
+
+    const {
+        getBranchOptions: getEndoBranchOptions,
+        endoBasketItems,
+        getEndoRequestedQty,
+        setEndoRequestedQty,
+        onAddToEndoBasket,
+        isAddingToEndoBasket,
+    } = endo;
+
+    const {
+        findBasketItem,
+        getQuantity,
+        onQuantityChange,
+        addingToBasket,
+        getStoreStock,
+        getStoreOrderQuantity,
+        stockRequestStatuses,
+        stockRequestErrors,
+        submittingStockRequests,
+        discountPrices,
+        submittingDiscount,
+        onDiscountValueChange,
+        onAddToBasket,
+        onRequestDiscount,
+        onStoreOrderQuantityChange,
+        onSubmitStockRequest,
+        formatPrice,
+    } = basket;
+
     return (
         <div
             className={`relative min-h-0 w-full xl:min-w-0 ${hasCustomer && sidebarVisible ? "xl:basis-2/3" : ""} transition-all duration-300`}
@@ -135,7 +175,7 @@ export default function PartsResultsContainer({
 
                         <SearchBar
                             inputRef={searchInputRef}
-                            value={search}
+                            value={searchValue}
                             onChange={onSearchChange}
                             onSearch={onSearch}
                             onClear={() => onSearchChange("")}
