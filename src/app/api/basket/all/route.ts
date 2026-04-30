@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
-import type { BasketAllResponse, BasketAllRoutePayload } from "@/app/lib/interface";
+import type {
+    BasketAllResponse,
+    BasketAllRoutePayload,
+} from "@/app/lib/interface";
 
 const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
 const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
+
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
 const S1_APP_ID = "1305";
+const S1_SQL_NAME = "BASKET_LIST";
+
+type BasketListRow = {
+    TRDR?: string;
+    MAXDATE?: string;
+    MINDATE?: string;
+    CUSTOMER_NAME?: string;
+    TOT_QTY?: string;
+    TOTAL_VALUE?: string;
+    BASKETROWS?: string;
+};
 
 function getClientID() {
     return process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
@@ -22,11 +37,7 @@ function toPositiveInt(value: unknown, fallback: number, max?: number) {
 
     const integerValue = Math.floor(parsed);
 
-    if (max != null) {
-        return Math.min(integerValue, max);
-    }
-
-    return integerValue;
+    return max == null ? integerValue : Math.min(integerValue, max);
 }
 
 function normalizeSearch(value: unknown) {
@@ -35,6 +46,7 @@ function normalizeSearch(value: unknown) {
     }
 
     const trimmed = value.trim();
+
     return trimmed.length > 0 ? trimmed : "*";
 }
 
@@ -44,6 +56,7 @@ function getCharset(contentType: string | null) {
     }
 
     const match = contentType.match(/charset=([^;]+)/i);
+
     return match?.[1]?.trim().toLowerCase() ?? null;
 }
 
@@ -84,36 +97,34 @@ async function parseJsonWithEncodingFallback(response: Response) {
     throw lastError ?? new Error("Failed to decode upstream response");
 }
 
-function extractMessage(data: Record<string, unknown> | null, fallback: string) {
-    if (!data) {
+function getErrorMessage(data: unknown, fallback: string) {
+    if (!data || typeof data !== "object") {
         return fallback;
     }
 
-    if (typeof data.message === "string" && data.message.trim().length > 0) {
-        return data.message;
-    }
+    const record = data as Record<string, unknown>;
 
-    if (typeof data.error === "string" && data.error.trim().length > 0) {
-        return data.error;
-    }
+    const message =
+        typeof record.message === "string"
+            ? record.message
+            : typeof record.error === "string"
+                ? record.error
+                : typeof record.errorcode === "string"
+                    ? record.errorcode
+                    : "";
 
-    if (typeof data.errorcode === "string" && data.errorcode.trim().length > 0) {
-        return data.errorcode;
-    }
-
-    return fallback;
+    return message.trim() || fallback;
 }
 
-function matchesSearch(row: Record<string, unknown>, search: string) {
+function matchesSearch(row: BasketListRow, search: string) {
     if (search === "*") {
         return true;
     }
 
     const normalizedSearch = search.toLocaleLowerCase("el-GR");
+
     const trdr = String(row.TRDR ?? "").toLocaleLowerCase("el-GR");
-    const customerName = String(
-        row.CUSTOMER_NAME ?? row.CUST_NAME ?? row.NAME ?? ""
-    ).toLocaleLowerCase("el-GR");
+    const customerName = String(row.CUSTOMER_NAME ?? "").toLocaleLowerCase("el-GR");
 
     return trdr.includes(normalizedSearch) || customerName.includes(normalizedSearch);
 }
@@ -121,15 +132,21 @@ function matchesSearch(row: Record<string, unknown>, search: string) {
 export async function POST(req: NextRequest) {
     try {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+
         if (!sessionCookie?.trim()) {
             return NextResponse.json(
-                { success: false, message: "Unauthorized", totalcount: 0, rows: [] },
+                {
+                    success: false,
+                    message: "Unauthorized",
+                    totalcount: 0,
+                    rows: [],
+                },
                 { status: 401 }
             );
         }
 
-        const body =
-            (await req.json().catch(() => ({}))) as BasketAllRoutePayload;
+        const body = (await req.json().catch(() => ({}))) as BasketAllRoutePayload;
+
         const page = toPositiveInt(body.page, DEFAULT_PAGE);
         const pageSize = toPositiveInt(body.pageSize, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
         const search = normalizeSearch(body.search);
@@ -137,12 +154,17 @@ export async function POST(req: NextRequest) {
 
         if (!clientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured", totalcount: 0, rows: [] },
+                {
+                    success: false,
+                    message: "S1 client is not configured",
+                    totalcount: 0,
+                    rows: [],
+                },
                 { status: 500 }
             );
         }
 
-        const response = await fetch(S1_ENDPOINT, {
+        const upstreamResponse = await fetch(S1_ENDPOINT, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -151,34 +173,35 @@ export async function POST(req: NextRequest) {
                 service: "SqlData",
                 clientID,
                 appId: S1_APP_ID,
-                SqlName: "BASKET_LIST",
+                SqlName: S1_SQL_NAME,
             }),
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("[basket/all] Upstream error body:", errorText);
-
+        if (!upstreamResponse.ok) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: `All-clients baskets endpoint failed (${response.status})`,
+                    message: `All-clients baskets endpoint failed (${upstreamResponse.status})`,
                     totalcount: 0,
                     rows: [],
                 },
-                { status: response.status }
+                { status: upstreamResponse.status }
             );
         }
 
-        const upstreamData = (await parseJsonWithEncodingFallback(response)) as
-            | Record<string, unknown>
-            | null;
+        const upstreamData = (await parseJsonWithEncodingFallback(
+            upstreamResponse
+        )) as {
+            success?: boolean;
+            message?: string;
+            rows?: BasketListRow[];
+        } | null;
 
         if (upstreamData?.success === false) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: extractMessage(
+                    message: getErrorMessage(
                         upstreamData,
                         "All-clients baskets request failed"
                     ),
@@ -189,34 +212,27 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const rawRows = Array.isArray(upstreamData?.rows)
-            ? (upstreamData.rows as Record<string, unknown>[])
-            : [];
-        const filteredRows = rawRows.filter((row) => matchesSearch(row, search));
+        const rows = Array.isArray(upstreamData?.rows) ? upstreamData.rows : [];
+        const filteredRows = rows.filter((row) => matchesSearch(row, search));
+
         const offset = (page - 1) * pageSize;
         const pagedRows = filteredRows.slice(offset, offset + pageSize);
 
-        const apiResponse: BasketAllResponse = {
+        const response: BasketAllResponse = {
             success: true,
-            message:
-                upstreamData && typeof upstreamData.message === "string"
-                    ? upstreamData.message
-                    : undefined,
+            message: upstreamData?.message,
             totalcount: filteredRows.length,
             page,
             pageSize,
             rows: pagedRows,
         };
 
-        return NextResponse.json(apiResponse);
+        return NextResponse.json(response);
     } catch (error) {
         return NextResponse.json(
             {
                 success: false,
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : "Server error",
+                message: error instanceof Error ? error.message : "Server error",
                 totalcount: 0,
                 rows: [],
             },

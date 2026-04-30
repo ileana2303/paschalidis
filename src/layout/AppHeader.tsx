@@ -4,8 +4,6 @@ import UserDropdown from "@/components/header/UserDropdown";
 import BranchToggle from "@/components/header/BranchToggle";
 import { useSidebar } from "@/context/SidebarContext";
 import { Ellipsis, Menu, X } from "@/app/lib/lucide";
-import Image from "next/image";
-import Link from "next/link";
 import React, { useState } from "react";
 
 const AppHeader: React.FC = () => {
@@ -36,25 +34,6 @@ const AppHeader: React.FC = () => {
           >
             {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-4 w-4" />}
           </button>
-
-          <Link href="/" className="lg:hidden">
-            <Image
-              width={154}
-              height={32}
-              className="dark:hidden"
-              src="/images/logo/logo.png"
-              alt="Logo"
-              style={{ height: "auto" }}
-            />
-            <Image
-              width={154}
-              height={32}
-              className="hidden dark:block"
-              src="/images/logo/logo-dark.png"
-              alt="Logo"
-              style={{ height: "auto" }}
-            />
-          </Link>
 
           <button
             onClick={toggleApplicationMenu}

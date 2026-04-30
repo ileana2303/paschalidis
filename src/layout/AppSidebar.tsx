@@ -299,6 +299,7 @@ const AppSidebar: React.FC = () => {
               alt="Logo"
               width={154}
               height={32}
+              loading="eager"
               style={{ width: "150px", height: "auto" }}
             />
             <Image

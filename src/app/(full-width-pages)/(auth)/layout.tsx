@@ -1,7 +1,5 @@
 import GridShape from "@/components/template components/common/GridShape";
 import ThemeTogglerTwo from "@/components/template components/common/ThemeTogglerTwo";
-import Image from "next/image";
-import Link from "next/link";
 import React from "react";
 
 export default function AuthLayout({
@@ -17,14 +15,7 @@ export default function AuthLayout({
           <div className="relative items-center justify-center flex z-1">
             <GridShape />
             <div className="flex flex-col items-center max-w-xs">
-              <Link href="/" className="block mb-4">
-                <Image
-                  width={231}
-                  height={48}
-                  src="/images/logo/logo.png"
-                  alt="Logo"
-                />
-              </Link>
+             
             </div>
           </div>
         </div>
