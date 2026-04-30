@@ -3,16 +3,9 @@
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-    Loader2,
-    Plus,
-    RefreshCw,
-    ShoppingCart,
-} from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
 import { IBasket } from "@/app/lib/interface";
 import {
-    getBasketItemEffectivePrice,
     getBasketItemId,
     getBasketItemLineTotal,
     getBasketItemQty,
@@ -23,7 +16,9 @@ import {
     useDeleteBasketItemsMutation,
     useFetchBasketItemsMutation,
     useSubmitBasketOrderMutation,
+    useUpdateBasketItemQtyMutation,
 } from "@/hooks/queries/useApiMutations";
+import BasketTable from "@/components/basket/basket-table";
 
 type ReceiptType = "receipt" | "invoice";
 
@@ -44,6 +39,8 @@ export default function BasketClient() {
     const [sendingOrder, setSendingOrder] = useState(false);
     const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
     const [removingSelectedItems, setRemovingSelectedItems] = useState(false);
+    const [updatingQtyItems, setUpdatingQtyItems] = useState<Set<string>>(new Set());
+    const [clearingBasket, setClearingBasket] = useState(false);
     const basketLoadInFlightRef = useRef<Promise<void> | null>(null);
     const basketLoadInFlightTrdrRef = useRef<string | null>(null);
     const basketLoadInFlightIdRef = useRef<number | null>(null);
@@ -51,11 +48,7 @@ export default function BasketClient() {
     const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
-
-    const formatPrice = (price: number | null) => {
-        if (price == null) return "--";
-        return price.toFixed(2) + " €";
-    };
+    const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
 
     const loadBasket = useCallback(async (trdr: string) => {
         const normalizedTrdr = String(trdr ?? "").trim();
@@ -130,6 +123,10 @@ export default function BasketClient() {
             setError("");
             setSuccessMessage("");
             setSelectedItems(new Set());
+            setRemovingItems(new Set());
+            setRemovingSelectedItems(false);
+            setUpdatingQtyItems(new Set());
+            setClearingBasket(false);
             setLoading(false);
             return;
         }
@@ -164,6 +161,82 @@ export default function BasketClient() {
         });
     };
 
+    const setBasketItemQty = (uid: string, qty: number) => {
+        const normalizedQty = Math.max(1, Math.floor(qty));
+        const qtyString = String(normalizedQty);
+
+        setBasket((prev) => {
+            if (!prev) {
+                return prev;
+            }
+
+            let changed = false;
+            const nextItems = prev.items.map((item) => {
+                if (getBasketItemId(item) !== uid) {
+                    return item;
+                }
+
+                changed = true;
+                return {
+                    ...item,
+                    QTY: qtyString,
+                    TOTAL_QTY: qtyString,
+                    BASKET_QTY: qtyString,
+                };
+            });
+
+            if (!changed) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                items: nextItems,
+            };
+        });
+    };
+
+    const handleUpdateQty = async (uid: string, qty: number) => {
+        const normalizedQty = Math.max(1, Math.floor(qty));
+        const item = basket?.items.find((basketItem) => getBasketItemId(basketItem) === uid);
+
+        if (!item) {
+            setError("Δεν βρέθηκε η γραμμή για ενημέρωση ποσότητας");
+            return;
+        }
+
+        const previousQty = Math.max(1, getBasketItemQty(item));
+        if (previousQty === normalizedQty) {
+            return;
+        }
+
+        setError("");
+        setSuccessMessage("");
+        setBasketItemQty(uid, normalizedQty);
+        setUpdatingQtyItems((prev) => new Set(prev).add(uid));
+
+        try {
+            const result = await updateBasketItemQty({
+                BASKETID: item.BASKETID,
+                QTY: normalizedQty,
+            });
+            setSuccessMessage(result.message ?? "Η ποσότητα ενημερώθηκε");
+        } catch (err) {
+            setBasketItemQty(uid, previousQty);
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Αποτυχία ενημέρωσης ποσότητας"
+            );
+        } finally {
+            setUpdatingQtyItems((prev) => {
+                const next = new Set(prev);
+                next.delete(uid);
+                return next;
+            });
+        }
+    };
+
     const handleSendOrder = async () => {
         if (!urlTrdr || !basket || basket.items.length === 0 || selectedItems.size === 0) return;
 
@@ -189,6 +262,7 @@ export default function BasketClient() {
     const selectedItemsList = basket?.items.filter((item) =>
         selectedItems.has(getBasketItemId(item))
     ) ?? [];
+    const basketItems = basket?.items ?? [];
 
     const selectedTotal = selectedItemsList.reduce(
         (sum, item) => sum + getBasketItemLineTotal(item),
@@ -229,13 +303,21 @@ export default function BasketClient() {
         }
     };
 
-    const handleRemoveSelectedItems = async () => {
-        if (selectedItemsList.length === 0) return;
+    const handleRemoveSelectedItems = async (itemIds: string[]) => {
+        if (itemIds.length === 0) return;
+        const idsSet = new Set(itemIds);
+        const itemsToRemove = basketItems.filter((item) =>
+            idsSet.has(getBasketItemId(item))
+        );
+
+        if (itemsToRemove.length === 0) {
+            return;
+        }
 
         setRemovingSelectedItems(true);
         try {
             await handleRemoveItems(
-                selectedItemsList,
+                itemsToRemove,
                 "Αποτυχία διαγραφής επιλεγμένων γραμμών"
             );
         } finally {
@@ -262,6 +344,38 @@ export default function BasketClient() {
         }
     };
 
+    const handleClearBasket = async () => {
+        if (basketItems.length === 0) {
+            return;
+        }
+
+        setClearingBasket(true);
+        try {
+            await handleRemoveItems(
+                basketItems,
+                "Αποτυχία εκκαθάρισης καλαθιού"
+            );
+        } finally {
+            setClearingBasket(false);
+        }
+    };
+
+    const handleToggleAllItems = () => {
+        if (basketItems.length === 0) {
+            return;
+        }
+
+        setSelectedItems((prev) => {
+            const allIds = basketItems.map((item) => getBasketItemId(item));
+            const allSelected = allIds.every((id) => prev.has(id));
+            return allSelected ? new Set() : new Set(allIds);
+        });
+    };
+
+    const handleAddMoreProducts = () => {
+        router.push(urlTrdr ? `/search-parts?trdr=${urlTrdr}` : "/search-parts");
+    };
+
     const customerMatchesUrl = Boolean(
         customer?.TRDR && String(customer.TRDR).trim() === urlTrdr
     );
@@ -279,121 +393,24 @@ export default function BasketClient() {
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-5 xl:flex-row">
-                <div className="relative flex min-h-0 flex-1 flex-col xl:basis-2/3">
-                    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-
-                        <div className="shrink-0 border-b border-gray-100 px-5 py-5 dark:border-gray-800">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-500">
-                                        Προϊόντα στο καλάθι
-                                    </p>
-                                    <h3 className="mt-1 text-lg font-semibold text-gray-800 dark:text-white/90">
-                                        Λίστα Ανταλλακτικών
-                                    </h3>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={refreshBasket}
-                                    disabled={loading}
-                                    aria-label="Ανανέωση καλαθιού"
-                                    className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                                >
-                                    <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto px-5 py-5">
-                            {loading && (
-                                <div className="flex items-center justify-center py-16">
-                                    <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
-                                </div>
-                            )}
-
-                            {!loading && error && (
-                                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-500/30 dark:bg-red-500/10">
-                                    <p className="text-sm text-red-600 dark:text-red-400">
-                                        {error}
-                                    </p>
-                                </div>
-                            )}
-
-                            {!loading && !error && successMessage && (
-                                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-500/30 dark:bg-green-500/10">
-                                    <p className="text-sm text-green-700 dark:text-green-400">
-                                        {successMessage}
-                                    </p>
-                                </div>
-                            )}
-
-                            {!loading && !error && (!basket || basket.items.length === 0) && (
-                                <div className="flex flex-col items-center justify-center py-16">
-                                    <ShoppingCart className="h-12 w-12 text-gray-300 dark:text-gray-600" />
-                                    <p className="mt-4 text-sm text-gray-400">
-                                        Το καλάθι είναι κενό
-                                    </p>
-                                </div>
-                            )}
-
-                            {!loading && !error && basket && basket.items.length > 0 && (
-                                <div className="space-y-3">
-                                    {basket.items.map((item) => (
-                                        <div
-                                            key={item.BASKETID}
-                                            className="rounded-xl border border-brand-300 bg-brand-50/50 p-4 transition-all dark:border-brand-500/30 dark:bg-brand-500/5"
-                                        >
-                                            <div className="flex items-start gap-4">
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                                                                {item.CODE ?? "—"}
-                                                            </p>
-                                                            <p className="mt-0.5 truncate text-xs text-gray-500">
-                                                                {item.NAME ?? "—"}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                                                        <span>
-                                                            Ποσότητα:{" "}
-                                                            <span className="font-medium text-gray-700 dark:text-white/90">
-                                                                {getBasketItemQty(item)}
-                                                            </span>
-                                                        </span>
-                                                        <span>
-                                                            Τιμή:{" "}
-                                                            <span className="font-medium text-gray-700 dark:text-white/90">
-                                                                {formatPrice(getBasketItemEffectivePrice(item))}
-                                                            </span>
-                                                        </span>
-                                                        <span>
-                                                            Σύνολο:{" "}
-                                                            <span className="font-semibold text-gray-800 dark:text-white/90">
-                                                                {formatPrice(getBasketItemLineTotal(item))}
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => router.push(urlTrdr ? `/search-parts?trdr=${urlTrdr}` : "/search-parts")}
-                        aria-label="Νέα αναζήτηση ανταλλακτικού"
-                        className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
-                    >
-                        <Plus className="h-5 w-5" />
-                    </button>
-                </div>
+                <BasketTable
+                    items={basketItems}
+                    selectedItems={selectedItems}
+                    onToggleItem={toggleItem}
+                    onToggleAll={handleToggleAllItems}
+                    onUpdateQty={handleUpdateQty}
+                    onRemove={handleRemoveItem}
+                    onRemoveSelected={handleRemoveSelectedItems}
+                    onClearAll={handleClearBasket}
+                    onAddMore={handleAddMoreProducts}
+                    loading={loading}
+                    updatingQtyItems={updatingQtyItems}
+                    removingItems={removingItems}
+                    removingSelectedItems={removingSelectedItems}
+                    clearingAll={clearingBasket}
+                    error={error}
+                    successMessage={successMessage}
+                />
 
                 <OrderSummary
                     customer={selectedCustomer}
@@ -415,7 +432,11 @@ export default function BasketClient() {
                     onToggleItem={toggleItem}
                     onRemoveItem={handleRemoveItem}
                     removingItems={removingItems}
-                    onRemoveSelectedItems={handleRemoveSelectedItems}
+                    onRemoveSelectedItems={() =>
+                        handleRemoveSelectedItems(
+                            selectedItemsList.map((item) => getBasketItemId(item))
+                        )
+                    }
                     removingSelectedItems={removingSelectedItems}
                 />
             </div>

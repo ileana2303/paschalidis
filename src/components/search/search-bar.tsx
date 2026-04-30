@@ -44,7 +44,7 @@ export default function SearchBar({
 
     const inputClasses = [
         DEFAULT_INPUT_CLASSES,
-        hasValue ? "border-brand-500 ring-0.5 ring-brand-300/60" : "border-gray-300 shadow-sm hover:shadow-md",
+        hasValue ? "border-brand-200 ring-0.5 ring-brand-300/60" : "border-gray-300 shadow-sm hover:shadow-md",
         inputClassName,
     ]
         .filter(Boolean)

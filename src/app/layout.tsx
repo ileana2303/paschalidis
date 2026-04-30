@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { QueryProvider } from "@/app/providers/QueryProvider";
 
 const googleSans = Google_Sans({
-  subsets: ["latin"],
+  subsets: ["latin", "greek"],
 });
 
 export default function RootLayout({
@@ -15,14 +15,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="el-GR" suppressHydrationWarning>
       <body
         suppressHydrationWarning
         className={`${googleSans.className} dark:bg-gray-900`}
       >
         <QueryProvider>
           <ThemeProvider>
-              <SidebarProvider>{children}</SidebarProvider>
+            <SidebarProvider>{children}</SidebarProvider>
           </ThemeProvider>
         </QueryProvider>
       </body>
