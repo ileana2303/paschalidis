@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ICustomerInfo } from "@/app/lib/interface";
+import { ICustomerInfo } from "@/lib/interface";
 
 type CustomerSearchStore = {
     search: string;

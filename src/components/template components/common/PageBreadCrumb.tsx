@@ -1,6 +1,6 @@
 import Link from "next/link";
 import React from "react";
-import { ChevronLeft } from "@/app/lib/lucide";
+import { ChevronLeft } from "@/lib/icons/lucide";
 
 interface BreadcrumbProps {
   pageTitle: string;

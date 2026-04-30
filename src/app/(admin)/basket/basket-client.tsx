@@ -4,13 +4,13 @@ import PageBreadcrumb from "@/components/template components/common/PageBreadCru
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomerStore } from "@/stores/customerStore";
-import { IBasket } from "@/app/lib/interface";
+import { IBasket } from "@/lib/interface";
 import {
     getBasketItemId,
     getBasketItemLineTotal,
     getBasketItemQty,
     normalizeBasket,
-} from "@/app/lib/basket";
+} from "@/lib/utils/basket-helpers";
 import OrderSummary from "@/components/basket/order-summary";
 import {
     useDeleteBasketItemsMutation,

@@ -10,7 +10,7 @@ import {
     Send,
     ShoppingCart,
     Trash2,
-} from "@/app/lib/lucide";
+} from "@/lib/icons/lucide";
 
 export interface EndoBasketUiItem {
     uid: string;

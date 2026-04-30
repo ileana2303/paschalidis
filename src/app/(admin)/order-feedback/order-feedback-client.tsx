@@ -20,8 +20,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import type { StockInfo } from "@/app/lib/interface";
-import type { IProduct, IItem } from "@/app/lib/interface";
+import type { StockInfo } from "@/lib/interface";
+import type { IProduct, IItem } from "@/lib/interface";
 import {
     useFetchBatchStockMutation,
     useFetchCatalogProductsMutation,

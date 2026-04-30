@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Plus, X } from "@/app/lib/lucide";
-import type { ICustomerInfo } from "@/app/lib/interface";
+import { ChevronDown, Plus, X } from "@/lib/icons/lucide";
+import type { ICustomerInfo } from "@/lib/interface";
 
 interface CustomerInfoContainerProps {
     hasMounted: boolean;

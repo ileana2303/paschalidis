@@ -7,7 +7,7 @@ import type {
     BasketRequestPriceRoutePayload,
     BasketResponse,
     BasketUpdateRoutePayload,
-} from "../interface";
+} from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
 
 export async function fetchBasketItems(trdr: string): Promise<BasketResponse> {

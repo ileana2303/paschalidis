@@ -11,12 +11,12 @@ import {
     RefreshCw,
     Send,
     StickyNote,
-} from "@/app/lib/lucide";
+} from "@/lib/icons/lucide";
 import {
     getBasketItemId,
     getBasketItemLineTotal,
-} from "@/app/lib/basket";
-import { IBasket, IBasketItem, ICustomerInfo } from "@/app/lib/interface";
+} from "@/lib/utils/basket-helpers";
+import { IBasket, IBasketItem, ICustomerInfo } from "@/lib/interface";
 import BasketLines from "./basket-lines";
 
 type ReceiptType = "receipt" | "invoice";

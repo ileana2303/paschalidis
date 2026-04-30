@@ -1,11 +1,11 @@
-import { BadgePercent, ChevronDown, Loader2, Minus, Plus, Send, ShoppingCart } from "@/app/lib/lucide";
+import { BadgePercent, ChevronDown, Loader2, Minus, Plus, Send, ShoppingCart } from "@/lib/icons/lucide";
 import {
     getBasketItemApprovalStatus,
     getBasketItemQty,
     getBasketItemRequestedPrice,
     hasBasketItemDiscount,
-} from "@/app/lib/basket";
-import type { IBasketItem, IItem, StockRequestStatus } from "@/app/lib/interface";
+} from "@/lib/utils/basket-helpers";
+import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
 import PartStockQuantityContainer from "./part-stock-quantity-container";
 import { useEffect, useState } from "react";
 

@@ -1,5 +1,5 @@
 "use client";
-import { Mail } from "@/app/lib/lucide";
+import { Mail } from "@/lib/icons/lucide";
 import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
 import Input from "../input/InputField";

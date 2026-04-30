@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { IItem } from "@/app/lib/interface";
+import { IItem } from "@/lib/interface";
 
 type SearchPartsStore = {
     trdr: string | null;

@@ -8,8 +8,8 @@ import {
   Loader2,
   RefreshCw,
   ShoppingCart,
-} from "@/app/lib/lucide";
-import type { BasketAllResponse } from "@/app/lib/interface";
+} from "@/lib/icons/lucide";
+import type { BasketAllResponse } from "@/lib/interface";
 import { useFetchAllClientBasketsMutation } from "@/hooks/queries/useApiMutations";
 
 const DEFAULT_SEARCH = "*";

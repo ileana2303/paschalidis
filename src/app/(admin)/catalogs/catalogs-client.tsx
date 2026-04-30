@@ -12,7 +12,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import type { IProduct } from "@/app/lib/interface";
+import type { IProduct } from "@/lib/interface";
 import { useFetchCatalogProductsMutation } from "@/hooks/queries/useApiMutations";
 
 const PAGE_SIZE = 100;

@@ -1,4 +1,4 @@
-import { BasketResponse, IBasket, IBasketItem } from "./interface";
+import type { BasketResponse, IBasket, IBasketItem } from "@/lib/interface";
 
 export function normalizeBasket(data: BasketResponse): IBasket {
     return {

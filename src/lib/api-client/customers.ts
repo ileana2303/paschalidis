@@ -1,4 +1,4 @@
-import { ICustomerInfo, ApiResponse } from "../interface";
+import { ICustomerInfo, ApiResponse } from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
 
 export async function searchCustomers(

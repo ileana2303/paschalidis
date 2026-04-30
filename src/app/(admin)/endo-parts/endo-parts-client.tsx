@@ -2,8 +2,8 @@
 
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Plus } from "@/app/lib/lucide";
-import type { IEndoListRow, IItem } from "@/app/lib/interface";
+import { ChevronDown, Plus } from "@/lib/icons/lucide";
+import type { IEndoListRow, IItem } from "@/lib/interface";
 import { useSearchEndoStore } from "@/stores/searchEndoStore";
 import { useModal } from "@/hooks/useModal";
 import PartsSearchModal from "@/components/parts/parts-search-modal";

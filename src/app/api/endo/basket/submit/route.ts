@@ -4,8 +4,8 @@ import type {
     EndoBasketActionResponse,
     EndoBasketSubmitLineRoutePayload,
     EndoBasketSubmitRoutePayload,
-} from "@/app/lib/interface";
-import { callMassDelete, MassDeleteError } from "@/app/api/_lib/mass-delete";
+} from "@/lib/interface";
+import { callMassDelete, MassDeleteError } from "@/app/api/mass-delete/mass-delete";
 
 const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
 const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;

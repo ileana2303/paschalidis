@@ -1,6 +1,6 @@
-import { ChevronDown, ChevronLeft, GitCompareArrows, Plus } from "@/app/lib/lucide";
-import { getBasketItemQty } from "@/app/lib/basket";
-import type { IBasketItem, IItem, StockRequestStatus } from "@/app/lib/interface";
+import { ChevronDown, ChevronLeft, GitCompareArrows, Plus } from "@/lib/icons/lucide";
+import { getBasketItemQty } from "@/lib/utils/basket-helpers";
+import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
 import EndoPartResults from "@/components/endo/endo-part-results";
 import type { EndoBranchOption } from "@/components/endo/endo-part-results";
 import PartResults from "@/components/parts/part-results";

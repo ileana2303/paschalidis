@@ -1,4 +1,4 @@
-import type { IEndoListRow, IItem } from "@/app/lib/interface";
+import type { IEndoListRow, IItem } from "@/lib/interface";
 import type { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 
 export function getBranchCodesFromItem(item: IItem) {

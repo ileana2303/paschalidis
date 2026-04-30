@@ -3,7 +3,7 @@ import { ThemeToggleButton } from "@/components/template components/common/Theme
 import UserDropdown from "@/components/header/UserDropdown";
 import BranchToggle from "@/components/header/BranchToggle";
 import { useSidebar } from "@/context/SidebarContext";
-import { Ellipsis, Menu, X } from "@/app/lib/lucide";
+import { Ellipsis, Menu, X } from "@/lib/icons/lucide";
 import React, { useState } from "react";
 
 const AppHeader: React.FC = () => {

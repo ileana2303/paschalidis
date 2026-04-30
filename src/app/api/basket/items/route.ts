@@ -5,7 +5,7 @@ import type {
     BasketItemsRoutePayload,
     BasketResponse,
     IBasketItem,
-} from "@/app/lib/interface";
+} from "@/lib/interface";
 
 const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
 const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;

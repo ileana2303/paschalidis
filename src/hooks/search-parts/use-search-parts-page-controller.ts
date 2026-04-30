@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { ICustomerInfo, IItem } from "@/app/lib/interface";
+import type { ICustomerInfo, IItem } from "@/lib/interface";
 import { useModal } from "@/hooks/useModal";
 import {
     useSearchCustomersMutation,

@@ -1,4 +1,4 @@
-import type { IItem } from "@/app/lib/interface";
+import type { IItem } from "@/lib/interface";
 
 export function parseStockValue(value: unknown) {
     const parsed = Number(String(value ?? "").trim().replace(",", "."));

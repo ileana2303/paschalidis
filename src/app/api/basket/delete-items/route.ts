@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
-import type { BasketActionResponse, BasketMassDeleteRoutePayload } from "@/app/lib/interface";
-import { callMassDelete, MassDeleteError } from "@/app/api/_lib/mass-delete";
+import type { BasketActionResponse, BasketMassDeleteRoutePayload } from "@/lib/interface";
+import { callMassDelete, MassDeleteError } from "@/app/api/mass-delete/mass-delete";
 
 const DEFAULT_DELETE_TABLE_ACTION = "USRCUST";
 const DEFAULT_DELETE_METHOD = "DELETE";

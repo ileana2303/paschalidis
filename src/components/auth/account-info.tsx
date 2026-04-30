@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, MapPin, Shield, UserRound } from "@/app/lib/lucide";
+import { Mail, MapPin, Shield, UserRound } from "@/lib/icons/lucide";
 import { formatBranchLabel, normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
 import { type ReactNode, useMemo } from "react";
@@ -40,7 +40,7 @@ function DetailItem({ label, value, icon }: DetailItemProps) {
   );
 }
 
-export default function UserProfileCard() {
+export default function AccountInfo() {
   const user = useAuthStore((state) => state.user);
 
   const profileData = useMemo(() => {

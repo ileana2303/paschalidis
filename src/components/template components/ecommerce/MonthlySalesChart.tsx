@@ -1,7 +1,7 @@
 "use client";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
-import { MoreHorizontal } from "@/app/lib/lucide";
+import { MoreHorizontal } from "@/lib/icons/lucide";
 import { DropdownItem } from "../../ui/dropdown/DropdownItem";
 import { useState } from "react";
 import { Dropdown } from "../../ui/dropdown/Dropdown";

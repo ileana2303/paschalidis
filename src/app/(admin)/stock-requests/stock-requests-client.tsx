@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
-import { Check, Loader2, Pencil, RefreshCw, Trash2, X } from "@/app/lib/lucide";
+import { Check, Loader2, Pencil, RefreshCw, Trash2, X } from "@/lib/icons/lucide";
 import type {
     IStockRequestListRow,
     StockRequestUpdateAction,
-} from "@/app/lib/interface";
+} from "@/lib/interface";
 import {
     useFetchStockRequestsMutation,
     useMassDeleteStockRequestsMutation,

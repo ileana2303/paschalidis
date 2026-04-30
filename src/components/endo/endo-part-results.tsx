@@ -1,5 +1,5 @@
-import { ChevronDown, Loader2, Minus, Plus, ShoppingCart } from "@/app/lib/lucide";
-import type { IItem } from "@/app/lib/interface";
+import { ChevronDown, Loader2, Minus, Plus, ShoppingCart } from "@/lib/icons/lucide";
+import type { IItem } from "@/lib/interface";
 
 export type EndoBranchOption = {
     code: string;

@@ -1,4 +1,4 @@
-import type { IBasket, ICustomerInfo } from "@/app/lib/interface";
+import type { IBasket, ICustomerInfo } from "@/lib/interface";
 import OrderSummary from "@/components/basket/order-summary";
 import EndoOrderSummary, { type EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import type { KeyboardEvent, RefObject } from "react";
-import { Search, X } from "@/app/lib/lucide";
+import { Search, X } from "@/lib/icons/lucide";
 
 interface SearchBarProps {
     value: string;

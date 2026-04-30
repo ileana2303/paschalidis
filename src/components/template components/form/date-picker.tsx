@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
-import { Calendar } from "@/app/lib/lucide";
+import { Calendar } from "@/lib/icons/lucide";
 import Label from './Label';
 import Hook = flatpickr.Options.Hook;
 import DateOption = flatpickr.Options.DateOption;

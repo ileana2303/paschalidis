@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { ICustomerInfo } from "@/app/lib/interface";
+import { ICustomerInfo } from "@/lib/interface";
 
 type CustomerStore = {
     customer: ICustomerInfo | null;

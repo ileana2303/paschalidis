@@ -1,4 +1,4 @@
-import { ProductsResponse } from "../interface";
+import { ProductsResponse } from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
 
 export async function fetchCatalogProducts(

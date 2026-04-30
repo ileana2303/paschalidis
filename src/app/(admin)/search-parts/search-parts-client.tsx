@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSearchPartsStore } from "@/stores/searchPartsStore";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useAuthStore } from "@/stores/authStore";
-import type { ICustomerInfo } from "@/app/lib/interface";
+import type { ICustomerInfo } from "@/lib/interface";
 import CustomerInfoContainer from "@/components/customer/customer-info-container";
 import PartsSearchModal from "@/components/parts/parts-search-modal";
 import CustomerSearchModal from "@/components/customer/customer-search-modal";

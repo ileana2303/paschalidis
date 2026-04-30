@@ -1,4 +1,4 @@
-import type { ICustomerInfo } from "@/app/lib/interface";
+import type { ICustomerInfo } from "@/lib/interface";
 import CustomerResults from "@/components/customer/customer-results";
 import SearchModal from "@/components/search/search-modal";
 import type { RefObject } from "react";

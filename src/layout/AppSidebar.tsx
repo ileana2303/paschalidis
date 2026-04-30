@@ -15,7 +15,7 @@ import {
   Users,
   GitCompareArrows,
   type LucideIcon,
-} from "@/app/lib/lucide";
+} from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
 
 type NavSubItem = {

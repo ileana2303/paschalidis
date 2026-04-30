@@ -15,7 +15,7 @@ import type {
     StockRequestMassDeleteRoutePayload,
     StockRequestRoutePayload,
     StockRequestUpdateRoutePayload,
-} from "@/app/lib/interface";
+} from "@/lib/interface";
 import {
     addItemToBasket,
     deleteBasketItems,
@@ -24,15 +24,15 @@ import {
     requestDiscount,
     submitBasketOrder,
     updateBasketItemQty,
-} from "@/app/lib/api/basket";
+} from "@/lib/api-client/basket";
 import {
     addItemToEndoBasket,
     fetchEndoLists,
     submitEndoBasketOrder,
     updateEndoListQty,
-} from "@/app/lib/api/endo";
-import { fetchCatalogProducts } from "@/app/lib/api/catalogs";
-import { searchCustomers } from "@/app/lib/api/customers";
+} from "@/lib/api-client/endo";
+import { fetchCatalogProducts } from "@/lib/api-client/catalogs";
+import { searchCustomers } from "@/lib/api-client/customers";
 import {
     fetchBatchStock,
     fetchStockRequests,
@@ -41,7 +41,7 @@ import {
     searchItems,
     searchItemsByTrdr,
     updateStockRequest,
-} from "@/app/lib/api/items";
+} from "@/lib/api-client/items";
 
 export const useSearchCustomersMutation = () =>
     useMutation({

@@ -6,7 +6,7 @@ import type {
     EndoListUpdateQtyRoutePayload,
     EndoListsResponse,
     EndoBasketSubmitRoutePayload,
-} from "../interface";
+} from "@/lib/interface";
 
 export async function addItemToEndoBasket(
     payload: EndoBasketAddRoutePayload

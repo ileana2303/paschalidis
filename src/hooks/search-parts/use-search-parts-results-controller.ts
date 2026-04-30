@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import type { ExternalLoginUserAccount } from "@/lib/auth/types";
-import type { ICustomerInfo, IItem } from "@/app/lib/interface";
+import type { ICustomerInfo, IItem } from "@/lib/interface";
 import { useSearchPartsResultsState } from "@/hooks/search-parts/use-search-parts-results-state";
 import { useSearchPartsResultsActions } from "@/hooks/search-parts/use-search-parts-results-actions";
 

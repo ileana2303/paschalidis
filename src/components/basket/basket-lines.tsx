@@ -8,7 +8,7 @@ import {
     Loader2,
     ShoppingCart,
     Trash2,
-} from "@/app/lib/lucide";
+} from "@/lib/icons/lucide";
 import {
     getBasketItemApprovalStatus,
     getBasketItemBasePrice,
@@ -16,8 +16,8 @@ import {
     getBasketItemLineTotal,
     getBasketItemRequestedPrice,
     hasBasketItemDiscount,
-} from "@/app/lib/basket";
-import { IBasketItem } from "@/app/lib/interface";
+} from "@/lib/utils/basket-helpers";
+import { IBasketItem } from "@/lib/interface";
 
 interface BasketLinesProps {
     items: IBasketItem[];

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { ChevronDown, Clock3, Eye, EyeOff } from "@/app/lib/lucide";
+import { ChevronDown, Clock3, Eye, EyeOff } from "@/lib/icons/lucide";
 import ComponentCard from '../../common/ComponentCard';
 import Label from '../Label';
 import Input from '../input/InputField';

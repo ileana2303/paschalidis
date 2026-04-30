@@ -9,7 +9,7 @@ import {
     Plus,
     RefreshCw,
     Search,
-} from "@/app/lib/lucide";
+} from "@/lib/icons/lucide";
 import {
     useFetchBatchStockMutation,
     useFetchEndoListsMutation,
@@ -22,7 +22,7 @@ import type {
     EndoListRoutePayload,
     IEndoListRow,
     StockInfo,
-} from "@/app/lib/interface";
+} from "@/lib/interface";
 import EndoOrderSummary, {
     type EndoBasketUiItem,
 } from "@/components/endo/endo-order-summary";

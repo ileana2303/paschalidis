@@ -1,5 +1,5 @@
-import { Loader2, Minus, Plus, Send } from "@/app/lib/lucide";
-import type { StockRequestProps } from "@/app/lib/interface";
+import { Loader2, Minus, Plus, Send } from "@/lib/icons/lucide";
+import type { StockRequestProps } from "@/lib/interface";
 
 export default function StockRequest({
     mtrl,

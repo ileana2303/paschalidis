@@ -3,7 +3,7 @@
 import { isAxiosError } from "axios";
 import { useCallback, useEffect } from "react";
 import type { ExternalLoginUserAccount } from "@/lib/auth/types";
-import type { ICustomerInfo, IItem } from "@/app/lib/interface";
+import type { ICustomerInfo, IItem } from "@/lib/interface";
 import {
     useAddItemToEndoBasketMutation,
     useFetchEndoListsMutation,

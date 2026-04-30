@@ -11,7 +11,7 @@ import {
     StockRequestRoutePayload,
     StockRequestUpdateResponse,
     StockRequestUpdateRoutePayload,
-} from "../interface";
+} from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
 
 export async function searchItems(

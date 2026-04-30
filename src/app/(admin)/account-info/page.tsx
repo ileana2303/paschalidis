@@ -1,4 +1,4 @@
-import UserProfileCard from "@/components/ui/user-profile";
+import UserProfileCard from "@/components/auth/account-info";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

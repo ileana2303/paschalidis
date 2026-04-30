@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Dispatch, RefObject, SetStateAction, UIEvent } from "react";
 import type { ExternalLoginUserAccount } from "@/lib/auth/types";
-import type { IItem, StockRequestStatus } from "@/app/lib/interface";
+import type { IItem, StockRequestStatus } from "@/lib/interface";
 import type { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 import type { EndoBranchOption } from "@/components/endo/endo-part-results";
 import {

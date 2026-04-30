@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin } from "@/app/lib/lucide";
+import { MapPin } from "@/lib/icons/lucide";
 import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
 import { useMemo } from "react";

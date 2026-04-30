@@ -1,4 +1,4 @@
-import type { ICustomerInfo } from "@/app/lib/interface";
+import type { ICustomerInfo } from "@/lib/interface";
 
 interface CustomerResultsProps {
     customers: ICustomerInfo[];

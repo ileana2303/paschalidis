@@ -7,8 +7,8 @@ import {
     getBasketItemLineTotal,
     getBasketItemQty,
     normalizeBasket,
-} from "@/app/lib/basket";
-import type { IBasket, IBasketItem, ICustomerInfo, IItem } from "@/app/lib/interface";
+} from "@/lib/utils/basket-helpers";
+import type { IBasket, IBasketItem, ICustomerInfo, IItem } from "@/lib/interface";
 import {
     useAddItemToBasketMutation,
     useDeleteBasketItemsMutation,
