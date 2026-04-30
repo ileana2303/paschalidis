@@ -12,14 +12,14 @@ import {
     normalizeBasket,
 } from "@/app/lib/basket";
 import { useModal } from "@/hooks/useModal";
-import OrderSummary from "@/components/basket/order-summary";
 import { useRouter, useSearchParams } from "next/navigation";
 import CustomerInfoContainer from "@/components/customer/customer-info-container";
 import PartsSearchModal from "@/components/parts/parts-search-modal";
 import CustomerSearchModal from "@/components/customer/customer-search-modal";
-import EndoOrderSummary, { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
+import type { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 import type { EndoBranchOption } from "@/components/endo/endo-part-results";
 import PartsResultsContainer from "@/components/parts/parts-results-container";
+import PartsSummarySidebar from "@/components/parts/parts-summary-sidebar";
 import {
     useAddItemToBasketMutation,
     useAddItemToEndoBasketMutation,
@@ -961,6 +961,27 @@ export default function SearchPartsClient() {
         0
     );
 
+    const handleRefreshBasket = () => {
+        if (!customer) {
+            return;
+        }
+
+        void loadBasket(customer.TRDR);
+    };
+
+    const handleToggleSelectedItem = (uid: string) => {
+        setSelectedItems((prev) => {
+            const next = new Set(prev);
+            if (next.has(uid)) next.delete(uid);
+            else next.add(uid);
+            return next;
+        });
+    };
+
+    const handleToggleSidebarVisibility = () => {
+        setSidebarVisible((visible) => !visible);
+    };
+
     const handleRemoveItems = async (
         itemsToRemove: IBasket["items"],
         fallbackErrorMessage: string
@@ -1191,55 +1212,38 @@ export default function SearchPartsClient() {
                     onOpenSearchModal={handleOpenSearchModal}
                 />
 
-                {customer && (
-                    isEndoMode ? (
-                        <EndoOrderSummary
-                            currentBranchCode={currentBranchCode}
-                            currentBranchName={currentBranchName}
-                            basketItems={endoBasketItems}
-                            loading={endoSummaryLoading}
-                            error={endoBasketError}
-                            successMessage={endoBasketSuccess}
-                            collapsible
-                            collapsed={!sidebarVisible}
-                            onToggleCollapse={() => setSidebarVisible((v) => !v)}
-                        />
-                    ) : (
-                        <OrderSummary
-                            customer={customer}
-                            basket={basket}
-                            loading={basketLoading}
-                            error={basketError}
-                            onRefresh={() => customer && loadBasket(customer.TRDR)}
-                            selectedItems={selectedItems}
-                            selectedCount={selectedItemsList.length}
-                            selectedTotal={selectedTotal}
-                            receiptType={receiptType}
-                            onReceiptTypeChange={setReceiptType}
-                            pickupPoint={pickupPoint}
-                            onPickupPointChange={setPickupPoint}
-                            notes={notes}
-                            onNotesChange={setNotes}
-                            onSendOrder={handleSendOrder}
-                            sendingOrder={sendingOrder}
-                            onToggleItem={(uid) => {
-                                setSelectedItems((prev) => {
-                                    const next = new Set(prev);
-                                    if (next.has(uid)) next.delete(uid);
-                                    else next.add(uid);
-                                    return next;
-                                });
-                            }}
-                            onRemoveItem={handleRemoveItem}
-                            removingItems={removingBasketItems}
-                            onRemoveSelectedItems={handleRemoveSelectedItems}
-                            removingSelectedItems={removingSelectedBasketItems}
-                            collapsible
-                            collapsed={!sidebarVisible}
-                            onToggleCollapse={() => setSidebarVisible((v) => !v)}
-                        />
-                    )
-                )}
+                <PartsSummarySidebar
+                    customer={customer}
+                    isEndoMode={isEndoMode}
+                    currentBranchCode={currentBranchCode}
+                    currentBranchName={currentBranchName}
+                    endoBasketItems={endoBasketItems}
+                    endoSummaryLoading={endoSummaryLoading}
+                    endoBasketError={endoBasketError}
+                    endoBasketSuccess={endoBasketSuccess}
+                    sidebarVisible={sidebarVisible}
+                    onToggleSidebar={handleToggleSidebarVisibility}
+                    basket={basket}
+                    basketLoading={basketLoading}
+                    basketError={basketError}
+                    onRefreshBasket={handleRefreshBasket}
+                    selectedItems={selectedItems}
+                    selectedCount={selectedItemsList.length}
+                    selectedTotal={selectedTotal}
+                    receiptType={receiptType}
+                    onReceiptTypeChange={setReceiptType}
+                    pickupPoint={pickupPoint}
+                    onPickupPointChange={setPickupPoint}
+                    notes={notes}
+                    onNotesChange={setNotes}
+                    onSendOrder={handleSendOrder}
+                    sendingOrder={sendingOrder}
+                    onToggleSelectedItem={handleToggleSelectedItem}
+                    onRemoveItem={handleRemoveItem}
+                    removingBasketItems={removingBasketItems}
+                    onRemoveSelectedItems={handleRemoveSelectedItems}
+                    removingSelectedBasketItems={removingSelectedBasketItems}
+                />
             </div>
 
             <PartsSearchModal
