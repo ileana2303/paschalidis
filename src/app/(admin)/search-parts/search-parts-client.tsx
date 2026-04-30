@@ -2,7 +2,6 @@
 
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, GitCompareArrows, Plus } from "@/app/lib/lucide";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useSearchPartsStore } from "@/stores/searchPartsStore";
 import { ICustomerInfo, IEndoListRow, IItem, IBasket, IBasketItem, StockRequestStatus } from "@/app/lib/interface";
@@ -17,11 +16,10 @@ import OrderSummary from "@/components/basket/order-summary";
 import { useRouter, useSearchParams } from "next/navigation";
 import CustomerInfoContainer from "@/components/customer/customer-info-container";
 import PartsSearchModal from "@/components/parts/parts-search-modal";
-import PartResults from "@/components/parts/part-results";
 import CustomerSearchModal from "@/components/customer/customer-search-modal";
 import EndoOrderSummary, { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
-import EndoPartResults, { EndoBranchOption } from "@/components/endo/endo-part-results";
-import SearchBar from "@/components/search/search-bar";
+import type { EndoBranchOption } from "@/components/endo/endo-part-results";
+import PartsResultsContainer from "@/components/parts/parts-results-container";
 import {
     useAddItemToBasketMutation,
     useAddItemToEndoBasketMutation,
@@ -1139,192 +1137,59 @@ export default function SearchPartsClient() {
             />
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
-                <div className={`relative min-h-0 w-full xl:min-w-0 ${customer && sidebarVisible ? "xl:basis-2/3" : ""} transition-all duration-300`}>
-                    <div
-                        ref={resultsContainerRef}
-                        className="h-full overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-                        onScroll={handleResultsScroll}
-                    >
-                        <div className="sticky top-0 z-10 overflow-hidden bg-white px-5 py-7 transition-all duration-300 dark:bg-[#0f172a] xl:px-10 xl:py-12">
-                            <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
-                                <h3
-                                    className={`overflow-hidden text-theme-xl font-semibold text-gray-800 transition-all duration-300 dark:text-white/90 sm:text-2xl ${hasScrolledResults
-                                        ? "mb-0 max-h-0 opacity-0"
-                                        : "mb-4 max-h-16 opacity-100"
-                                        }`}
-                                >
-                                    Βρείτε το ανταλλακτικό που ψάχνετε
-                                </h3>
-
-                                <SearchBar
-                                    inputRef={searchInputRef}
-                                    value={search}
-                                    onChange={setSearch}
-                                    onSearch={handleSearch}
-                                    onClear={() => setSearch("")}
-                                    placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
-                                    loading={loading}
-                                    containerClassName={hasScrolledResults ? "mt-0" : "mt-6"}
-                                    searchButtonClassName="font-medium shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="px-5 pb-2 xl:px-10 xl:pb-2">
-                            <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
-                                {items.length > 0 && (
-                                    <div className="sticky top-[100px] z-10 mb-2 flex flex-col gap-2 border-b border-gray-100 bg-white py-2 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-[#0f172a]/95 xl:top-[140px]">
-                                        <p className="text-sm text-gray-500">
-                                            Βρέθηκαν {items.length} αποτελέσματα
-                                        </p>
-
-                                        <div className="flex items-center gap-2">
-                                            {customer && (
-                                                <button
-                                                    type="button"
-                                                    onClick={handleToggleEndoMode}
-                                                    aria-pressed={isEndoMode}
-                                                    className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-semibold shadow-sm transition ${isEndoMode
-                                                        ? "border-brand-500 bg-brand-500 text-white hover:bg-brand-600"
-                                                        : "border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
-                                                        }`}
-                                                >
-                                                    {isEndoMode ? (
-                                                        <ChevronLeft className="h-3.5 w-3.5" />
-                                                    ) : (
-                                                        <GitCompareArrows className="h-3.5 w-3.5" />
-                                                    )}
-                                                    <span>{isEndoMode ? "Καλάθι Πελάτη" : "Ενδοδιακίνηση"}</span>
-                                                </button>
-                                            )}
-
-                                            <button
-                                                type="button"
-                                                onClick={toggleAllExpanded}
-                                                aria-label={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                                title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
-                                            >
-                                                <ChevronDown
-                                                    className={`h-4 w-4 transition-transform duration-200 ${areAllResultsExpanded ? "rotate-180" : ""}`}
-                                                />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="space-y-2">
-                                    {items.map((item) => {
-                                        const mtrlKey = String(item.MTRL);
-                                        const expandedItemKey = getExpandedItemKey(item);
-                                        const isExpanded = expandedItems.has(expandedItemKey);
-
-                                        if (isEndoMode) {
-                                            const endoBranches = getEndoBranchOptions(item);
-                                            const inEndoBasketQtyByBranch = endoBasketItems
-                                                .filter((basketItem) => basketItem.mtrl === Number(item.MTRL))
-                                                .reduce<Record<string, number>>((acc, basketItem) => {
-                                                    acc[basketItem.fromBranch] =
-                                                        (acc[basketItem.fromBranch] ?? 0) + basketItem.qty;
-                                                    return acc;
-                                                }, {});
-
-                                            return (
-                                                <EndoPartResults
-                                                    key={getEndoItemKey(item)}
-                                                    item={item}
-                                                    isExpanded={isExpanded}
-                                                    branches={endoBranches}
-                                                    getRequestedQty={(branchCode) =>
-                                                        getEndoRequestedQty(item.MTRL, branchCode)
-                                                    }
-                                                    onRequestedQtyChange={(branchCode, nextQty) =>
-                                                        setEndoRequestedQty(item.MTRL, branchCode, nextQty)
-                                                    }
-                                                    onAddToBasket={(branchCode) =>
-                                                        handleAddToEndoBasket(item, branchCode)
-                                                    }
-                                                    isAdding={(branchCode) =>
-                                                        addingToEndoBasket.has(getEndoQtyKey(item.MTRL, branchCode))
-                                                    }
-                                                    inBasketQtyByBranch={inEndoBasketQtyByBranch}
-                                                    onToggleExpanded={() => toggleExpanded(expandedItemKey)}
-                                                />
-                                            );
-                                        }
-
-                                        const basketItem = findBasketItem(item);
-                                        const qty = getQuantity(
-                                            item.ITEM_CODE,
-                                            basketItem ? Math.max(1, getBasketItemQty(basketItem)) : 1
-                                        );
-                                        const isAdding = addingToBasket.has(item.ITEM_CODE);
-                                        const isInBasket = basketItem != null;
-                                        const storeStock = getStoreStock(item);
-                                        const storeOrderQty = getStoreOrderQuantity(mtrlKey);
-                                        const stockRequestStatus = stockRequestStatuses[mtrlKey] ?? null;
-                                        const stockRequestError = stockRequestErrors[mtrlKey] ?? "";
-                                        const isSubmittingStockRequest = submittingStockRequests.has(mtrlKey);
-                                        const discountValue = discountPrices[item.ITEM_CODE] ?? "";
-                                        const isSubmittingRequestPrice = submittingDiscount.has(item.ITEM_CODE);
-
-                                        return (
-                                            <PartResults
-                                                key={`${item.ITEM_CODE}-${mtrlKey}`}
-                                                item={item}
-                                                isExpanded={isExpanded}
-                                                qty={qty}
-                                                isAdding={isAdding}
-                                                isInBasket={isInBasket}
-                                                basketItem={basketItem}
-                                                hasCustomer={customer != null}
-                                                storeStock={storeStock}
-                                                storeOrderQty={storeOrderQty}
-                                                stockRequestStatus={stockRequestStatus}
-                                                stockRequestError={stockRequestError}
-                                                isSubmittingStockRequest={isSubmittingStockRequest}
-                                                discountValue={discountValue}
-                                                isSubmittingRequestPrice={isSubmittingRequestPrice}
-                                                onToggleExpanded={() => toggleExpanded(expandedItemKey)}
-                                                onQuantityChange={(nextQty) => setQuantity(item.ITEM_CODE, nextQty)}
-                                                onAddToBasket={() => handleAddToBasket(item)}
-                                                onDiscountValueChange={(value) =>
-                                                    setDiscountPrices((prev) => ({
-                                                        ...prev,
-                                                        [item.ITEM_CODE]: value,
-                                                    }))
-                                                }
-                                                onRequestDiscount={() => handleRequestDiscount(item)}
-                                                onStoreOrderQuantityChange={(nextQuantity) =>
-                                                    setStoreOrderQuantity(mtrlKey, nextQuantity)
-                                                }
-                                                onSubmitStockRequest={() => handleSubmitStockRequest(item)}
-                                                formatPrice={formatPrice}
-                                            />
-                                        );
-                                    })}
-                                </div>
-
-                                {hasSearched && !loading && items.length === 0 && (
-                                    <p className="mt-6 text-center text-sm text-gray-400">
-                                        Δεν βρέθηκαν ανταλλακτικά
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {items.length > 0 && (hasScrolledResults || isResultsScrollable === false) && (
-                        <button
-                            type="button"
-                            onClick={handleOpenSearchModal}
-                            aria-label="Νέα αναζήτηση ανταλλακτικού"
-                            className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
-                        >
-                            <Plus className="h-5 w-5" />
-                        </button>
-                    )}
-                </div>
+                <PartsResultsContainer
+                    hasCustomer={customer != null}
+                    sidebarVisible={sidebarVisible}
+                    resultsContainerRef={resultsContainerRef}
+                    searchInputRef={searchInputRef}
+                    onResultsScroll={handleResultsScroll}
+                    hasScrolledResults={hasScrolledResults}
+                    search={search}
+                    onSearchChange={setSearch}
+                    onSearch={handleSearch}
+                    loading={loading}
+                    hasSearched={hasSearched}
+                    items={items}
+                    isEndoMode={isEndoMode}
+                    onToggleEndoMode={handleToggleEndoMode}
+                    onToggleAllExpanded={toggleAllExpanded}
+                    areAllResultsExpanded={areAllResultsExpanded}
+                    expandedItems={expandedItems}
+                    getExpandedItemKey={getExpandedItemKey}
+                    toggleExpanded={toggleExpanded}
+                    getEndoBranchOptions={getEndoBranchOptions}
+                    endoBasketItems={endoBasketItems}
+                    getEndoRequestedQty={getEndoRequestedQty}
+                    setEndoRequestedQty={setEndoRequestedQty}
+                    onAddToEndoBasket={handleAddToEndoBasket}
+                    isAddingToEndoBasket={(mtrl, sourceBranchCode) =>
+                        addingToEndoBasket.has(getEndoQtyKey(mtrl, sourceBranchCode))
+                    }
+                    findBasketItem={findBasketItem}
+                    getQuantity={getQuantity}
+                    onQuantityChange={setQuantity}
+                    addingToBasket={addingToBasket}
+                    getStoreStock={getStoreStock}
+                    getStoreOrderQuantity={getStoreOrderQuantity}
+                    stockRequestStatuses={stockRequestStatuses}
+                    stockRequestErrors={stockRequestErrors}
+                    submittingStockRequests={submittingStockRequests}
+                    discountPrices={discountPrices}
+                    submittingDiscount={submittingDiscount}
+                    onDiscountValueChange={(itemCode, value) =>
+                        setDiscountPrices((prev) => ({
+                            ...prev,
+                            [itemCode]: value,
+                        }))
+                    }
+                    onAddToBasket={handleAddToBasket}
+                    onRequestDiscount={handleRequestDiscount}
+                    onStoreOrderQuantityChange={setStoreOrderQuantity}
+                    onSubmitStockRequest={handleSubmitStockRequest}
+                    formatPrice={formatPrice}
+                    isResultsScrollable={isResultsScrollable}
+                    onOpenSearchModal={handleOpenSearchModal}
+                />
 
                 {customer && (
                     isEndoMode ? (
