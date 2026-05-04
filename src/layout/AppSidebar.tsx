@@ -47,17 +47,17 @@ const navItems: NavItem[] = [
   {
     icon: GitCompareArrows,
     name: "Ενδοδιακίνηση Ανταλλακτικών",
-    path: "/endo-parts",
+    path: "/endo/endo-parts",
     subItems: [
       {
         icon: ClipboardList,
         name: "Ενδολίστα Παραλαβών",
-        path: "/endo-lists-requested",
+        path: "/endo/endo-lists-requested",
       },
       {
         icon: ClipboardList,
         name: "Ενδολίστα Αποστολών",
-        path: "/endo-lists-received",
+        path: "/endo/endo-lists-received",
       },
     ],
   },

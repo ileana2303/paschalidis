@@ -1,16 +1,19 @@
 import UserProfileCard from "@/components/auth/account-info";
+import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Πληροφορίες Λογαριασμού | Paschalidis"
 };
 
-export default function Profile() {
+export default function AccountPage() {
   return (
     <>
-      <h3 className="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-7">
-        Πληροφορίες Λογαριασμού
-      </h3>
+      <PageBreadcrumb
+        pageTitle="Πληροφορίες Λογαριασμού"
+        backHref="/"
+        backLabel="Επιστροφή στην αρχική"
+      />
       <UserProfileCard />
     </>
   );

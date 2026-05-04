@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function EndoListsPage() {
-    redirect("/endo-lists-requested");
+    redirect("/endo/endo-lists-requested");
 }
