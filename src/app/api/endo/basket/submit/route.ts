@@ -7,19 +7,6 @@ import type {
 } from "@/lib/interface";
 import { callMassDelete, MassDeleteError } from "@/app/api/mass-delete/mass-delete";
 
-const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
-const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
-
-const DEFAULT_ENDO_ORDER_SERIES = "7004|\u03c0\u0394";
-const DEFAULT_ENDO_ORDER_TAX_SERIES = "\u03c0\u0394";
-const DEFAULT_ENDO_TRDR = 8674;
-const DEFAULT_ENDO_TRDBRANCH = 13;
-const DEFAULT_ENDO_TRUCKS = 2;
-const DEFAULT_ENDO_SOCASH = 3800;
-const DEFAULT_ENDO_DELETE_TABLE_ACTION = "ENDO";
-const DEFAULT_ENDO_DELETE_METHOD = "LINK_S1";
-const ZERO_GUID = "00000000-0000-0000-0000-000000000000";
-
 type SetDataOrderPayload = {
     service: "setData";
     clientID: string;
@@ -64,12 +51,35 @@ type EndoGroup = {
     basketIds: Set<string>;
 };
 
+type BuildSetDataPayloadParams = {
+    group: EndoGroup;
+    setDataClientID: string;
+    orderSeries: string;
+    orderTaxSeries: string;
+    orderSeriesNum: string;
+    orderTrdr: number;
+    orderTrdBranch: number;
+    orderSocash: number;
+    orderTrucks: number;
+    deliveryDate: string;
+    comments: string;
+    remarks: string;
+    orderLines: Array<{
+        MTRL: number;
+        QTY1: number;
+    }>;
+};
+
 function sanitizeEnvValue(value: string | undefined) {
     return value?.trim().replace(/^['"]|['"]$/g, "") ?? "";
 }
 
 function getEnvString(name: string) {
     return sanitizeEnvValue(process.env[name]);
+}
+
+function jsonError(message: string, status = 500) {
+    return NextResponse.json({ success: false, message }, { status });
 }
 
 function asPositiveNumber(value: unknown): number | undefined {
@@ -100,10 +110,6 @@ async function parseJsonWithEncodingFallback(response: Response) {
     }
 
     candidateEncodings.add("utf-8");
-
-    for (const encoding of GREEK_FALLBACK_ENCODINGS) {
-        candidateEncodings.add(encoding);
-    }
 
     let lastError: Error | null = null;
 
@@ -162,7 +168,7 @@ function getSetDataClientID(sourceBranch: string) {
     return endoBranch || setDataBranch || setDataDefault || sqlBranch || sqlDefault;
 }
 
-function getPerBranchNumericEnv(baseKey: string, branchCode: number, fallback: number) {
+function getPerBranchNumericEnv(baseKey: string, branchCode: number) {
     const fromBranchSpecific = asPositiveNumber(getEnvString(`${baseKey}_${branchCode}`));
     if (fromBranchSpecific != null) {
         return fromBranchSpecific;
@@ -172,8 +178,6 @@ function getPerBranchNumericEnv(baseKey: string, branchCode: number, fallback: n
     if (fromDefault != null) {
         return fromDefault;
     }
-
-    return fallback;
 }
 
 function getPerBranchStringEnv(baseKey: string, branchCode: number) {
@@ -228,165 +232,214 @@ function groupEndoLines(items: EndoBasketSubmitLineRoutePayload[]) {
     return Array.from(groups.values());
 }
 
+function buildSetDataPayload({
+    group,
+    setDataClientID,
+    orderSeries,
+    orderTaxSeries,
+    orderSeriesNum,
+    orderTrdr,
+    orderTrdBranch,
+    orderSocash,
+    orderTrucks,
+    deliveryDate,
+    comments,
+    remarks,
+    orderLines,
+}: BuildSetDataPayloadParams): SetDataOrderPayload {
+    return {
+        service: "setData",
+        clientID: setDataClientID,
+        appId: "1305",
+        OBJECT: "SALDOC",
+        KEY: "",
+        data: {
+            SALDOC: [
+                {
+                    SERIES: orderSeries,
+                    TAXSERIES: orderTaxSeries,
+                    TRDR: orderTrdr,
+                    TRDBRANCH: orderTrdBranch,
+                    PAYMENT: group.destinationBranch,
+                    SERIESNUM: orderSeriesNum,
+                    TRUCKS: orderTrucks,
+                    DELIVDATE: deliveryDate,
+                    COMMENTS: comments,
+                    REMARKS: remarks,
+                    SHIPKIND: group.sourceBranch,
+                    SOCASH: orderSocash,
+                },
+            ],
+            MTRDOC: [
+                {
+                    TRUCKS: orderTrucks,
+                    DELIVDATE: deliveryDate,
+                    DEPTRDR_CUSTOMER_CODE: "",
+                    BILLTRDR_CUSTOMER_CODE: "",
+                    BRANCHSEC: group.destinationBranch,
+                    WHOUSESEC: group.destinationBranch,
+                },
+            ],
+            ITELINES: orderLines,
+        },
+    };
+}
+
 export async function POST(req: NextRequest) {
     try {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
         if (!sessionCookie?.trim()) {
-            return NextResponse.json(
-                { success: false, message: "Unauthorized" },
-                { status: 401 }
-            );
+            return jsonError("Unauthorized", 401);
         }
 
         const body = await req.json() as EndoBasketSubmitRoutePayload;
         const items = Array.isArray(body.items) ? body.items : [];
 
         if (items.length === 0) {
-            return NextResponse.json(
-                { success: false, message: "Endo basket is empty. Add items before submitting." },
-                { status: 400 }
+            return jsonError(
+                "Endo basket is empty. Add items before submitting.",
+                400
             );
         }
 
         const sqlClientID = getSqlClientID();
         if (!sqlClientID) {
-            return NextResponse.json(
-                { success: false, message: "S1 SQL client is not configured" },
-                { status: 500 }
-            );
+            return jsonError("S1 SQL client is not configured");
         }
 
-        const appUserId = String(body.appUserId ?? "").trim() || ZERO_GUID;
+        const appUserId = String(body.appUserId ?? "").trim();
+        if (!appUserId) {
+            return jsonError("App user id is required", 400);
+        }
+
         const deliveryDate = resolveIsoDate(body.deliveryDate);
         const userNotes = String(body.notes ?? "").trim();
         const groups = groupEndoLines(items);
 
         if (groups.length === 0) {
-            return NextResponse.json(
-                { success: false, message: "No valid endo lines to submit." },
-                { status: 400 }
-            );
+            return jsonError("No valid endo lines to submit.", 400);
         }
 
         const orderIds: string[] = [];
         const submittedGroups: string[] = [];
-        const tableAction =
-            getEnvString("S1_ENDO_MASS_DELETE_TABLE_ACTION") ||
-            DEFAULT_ENDO_DELETE_TABLE_ACTION;
-        const deleteMethod =
-            getEnvString("S1_ENDO_MASS_DELETE_METHOD") ||
-            DEFAULT_ENDO_DELETE_METHOD;
+        const s1Endpoint =
+            getEnvString("S1_ENDO_ENDPOINT") || getEnvString("S1_ENDPOINT");
+        if (!s1Endpoint) {
+            return jsonError("S1 endpoint is not configured");
+        }
+
+        const tableAction = getEnvString("S1_ENDO_MASS_DELETE_TABLE_ACTION");
+        if (!tableAction) {
+            return jsonError("S1 endo mass delete table action is not configured");
+        }
+
+        const deleteMethod = getEnvString("S1_ENDO_MASS_DELETE_METHOD");
+        if (!deleteMethod) {
+            return jsonError("S1 endo mass delete method is not configured");
+        }
+
         const deleteAppUserId =
-            getEnvString("S1_ENDO_MASS_DELETE_APPUSER_ID") ||
-            appUserId ||
-            ZERO_GUID;
+            getEnvString("S1_ENDO_MASS_DELETE_APPUSER_ID") || appUserId;
 
         for (const group of groups) {
             const setDataClientID = getSetDataClientID(String(group.sourceBranch));
             if (!setDataClientID) {
-                return NextResponse.json(
-                    {
-                        success: false,
-                        message: `S1 setData client is not configured for source branch ${group.sourceBranch}`,
-                    },
-                    { status: 500 }
+                return jsonError(
+                    `S1 setData client is not configured for source branch ${group.sourceBranch}`
                 );
             }
 
-            const orderSeries =
-                getEnvString("S1_ENDO_ORDER_SERIES") || DEFAULT_ENDO_ORDER_SERIES;
-            const orderTaxSeries =
-                getEnvString("S1_ENDO_ORDER_TAXSERIES") || DEFAULT_ENDO_ORDER_TAX_SERIES;
+            const orderSeries = getEnvString("S1_ENDO_ORDER_SERIES");
+            if (!orderSeries) {
+                return jsonError("S1 endo order series is not configured");
+            }
+
+            const orderTaxSeries = getEnvString("S1_ENDO_ORDER_TAXSERIES");
+            if (!orderTaxSeries) {
+                return jsonError("S1 endo order tax series is not configured");
+            }
+
             const orderSeriesNum = getPerBranchStringEnv(
                 "S1_ENDO_ORDER_SERIESNUM",
                 group.sourceBranch
             );
             const orderTrdr = getPerBranchNumericEnv(
                 "S1_ENDO_TRDR",
-                group.destinationBranch,
-                DEFAULT_ENDO_TRDR
+                group.destinationBranch
             );
+            if (orderTrdr == null) {
+                return jsonError(
+                    `S1_ENDO_TRDR is not configured for destination branch ${group.destinationBranch}`
+                );
+            }
+
             const orderTrdBranch = getPerBranchNumericEnv(
                 "S1_ENDO_TRDBRANCH",
-                group.destinationBranch,
-                DEFAULT_ENDO_TRDBRANCH
+                group.destinationBranch
             );
+            if (orderTrdBranch == null) {
+                return jsonError(
+                    `S1_ENDO_TRDBRANCH is not configured for destination branch ${group.destinationBranch}`
+                );
+            }
+
             const orderSocash = getPerBranchNumericEnv(
                 "S1_ENDO_SOCASH",
-                group.destinationBranch,
-                DEFAULT_ENDO_SOCASH
+                group.destinationBranch
             );
+            if (orderSocash == null) {
+                return jsonError(
+                    `S1_ENDO_SOCASH is not configured for destination branch ${group.destinationBranch}`
+                );
+            }
+
             const orderTrucks = getPerBranchNumericEnv(
                 "S1_ENDO_TRUCKS",
-                group.sourceBranch,
-                DEFAULT_ENDO_TRUCKS
+                group.sourceBranch
             );
+            if (orderTrucks == null) {
+                return jsonError(
+                    `S1_ENDO_TRUCKS is not configured for source branch ${group.sourceBranch}`
+                );
+            }
 
             const comments =
                 userNotes ||
                 `ΕΝΔΟ ${group.sourceBranch} -> ${group.destinationBranch}`;
-            const remarks =
-                getEnvString("S1_ENDO_ORDER_REMARKS") || "JSON COPY FOR MONITORING";
+            const remarks = getEnvString("S1_ENDO_ORDER_REMARKS");
 
             const orderLines = Array.from(group.linesByMtrl.entries()).map(
                 ([MTRL, QTY1]) => ({ MTRL, QTY1 })
             );
 
             if (orderLines.length === 0) {
-                return NextResponse.json(
-                    { success: false, message: `No valid lines for group ${group.key}` },
-                    { status: 400 }
-                );
+                return jsonError(`No valid lines for group ${group.key}`, 400);
             }
 
             if (group.basketIds.size === 0) {
-                return NextResponse.json(
-                    {
-                        success: false,
-                        message: `Unable to resolve basket ids for group ${group.key}`,
-                    },
-                    { status: 400 }
+                return jsonError(
+                    `Unable to resolve basket ids for group ${group.key}`,
+                    400
                 );
             }
 
-            const setDataPayload: SetDataOrderPayload = {
-                service: "setData",
-                clientID: setDataClientID,
-                appId: "1305",
-                OBJECT: "SALDOC",
-                KEY: "",
-                data: {
-                    SALDOC: [
-                        {
-                            SERIES: orderSeries,
-                            TAXSERIES: orderTaxSeries,
-                            TRDR: orderTrdr,
-                            TRDBRANCH: orderTrdBranch,
-                            PAYMENT: group.destinationBranch,
-                            SERIESNUM: orderSeriesNum,
-                            TRUCKS: orderTrucks,
-                            DELIVDATE: deliveryDate,
-                            COMMENTS: comments,
-                            REMARKS: remarks,
-                            SHIPKIND: group.sourceBranch,
-                            SOCASH: orderSocash,
-                        },
-                    ],
-                    MTRDOC: [
-                        {
-                            TRUCKS: orderTrucks,
-                            DELIVDATE: deliveryDate,
-                            DEPTRDR_CUSTOMER_CODE: "",
-                            BILLTRDR_CUSTOMER_CODE: "",
-                            BRANCHSEC: group.destinationBranch,
-                            WHOUSESEC: group.destinationBranch,
-                        },
-                    ],
-                    ITELINES: orderLines,
-                },
-            };
+            const setDataPayload = buildSetDataPayload({
+                group,
+                setDataClientID,
+                orderSeries,
+                orderTaxSeries,
+                orderSeriesNum,
+                orderTrdr,
+                orderTrdBranch,
+                orderSocash,
+                orderTrucks,
+                deliveryDate,
+                comments,
+                remarks,
+                orderLines,
+            });
 
-            const setDataResponse = await fetch(S1_ENDPOINT, {
+            const setDataResponse = await fetch(s1Endpoint, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -398,12 +451,9 @@ export async function POST(req: NextRequest) {
                 const errorText = await setDataResponse.text();
                 console.error("[endo/basket/submit] setData error body:", errorText);
 
-                return NextResponse.json(
-                    {
-                        success: false,
-                        message: `Upstream endo order submission failed for ${group.key}`,
-                    },
-                    { status: setDataResponse.status }
+                return jsonError(
+                    `Upstream endo order submission failed for ${group.key}`,
+                    setDataResponse.status
                 );
             }
 
@@ -414,26 +464,18 @@ export async function POST(req: NextRequest) {
             };
 
             if (setDataResult?.success === false) {
-                return NextResponse.json(
-                    {
-                        success: false,
-                        message:
-                            setDataResult.message ??
-                            `Upstream endo order submission failed for ${group.key}`,
-                    },
-                    { status: 502 }
+                return jsonError(
+                    setDataResult.message ??
+                        `Upstream endo order submission failed for ${group.key}`,
+                    502
                 );
             }
 
             const orderId = String(setDataResult?.id ?? "").trim();
             if (!orderId) {
-                return NextResponse.json(
-                    {
-                        success: false,
-                        message:
-                            `Endo order submitted for ${group.key} but response id is missing`,
-                    },
-                    { status: 502 }
+                return jsonError(
+                    `Endo order submitted for ${group.key} but response id is missing`,
+                    502
                 );
             }
 
@@ -449,13 +491,9 @@ export async function POST(req: NextRequest) {
                 });
             } catch (error) {
                 if (error instanceof MassDeleteError) {
-                    return NextResponse.json(
-                        {
-                            success: false,
-                            message:
-                                `Endo order submitted (${orderId}) but basket cleanup failed`,
-                        },
-                        { status: error.status }
+                    return jsonError(
+                        `Endo order submitted (${orderId}) but basket cleanup failed`,
+                        error.status
                     );
                 }
 
@@ -479,9 +517,6 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error("[endo/basket/submit] Server error", error);
 
-        return NextResponse.json(
-            { success: false, message: "Server error" },
-            { status: 500 }
-        );
+        return jsonError("Server error");
     }
 }
