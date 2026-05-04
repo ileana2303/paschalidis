@@ -196,7 +196,6 @@ export async function PATCH(req: NextRequest) {
             typeof body.action === "string" ? body.action.toUpperCase() : "";
 
         const basketId = normalizePositiveInteger(body.basketId);
-        const mtrl = typeof body.mtrl === "string" ? body.mtrl.trim() : "";
         const qty =
             action === "DELETE"
                 ? String(body.qty || "1")
@@ -208,7 +207,7 @@ export async function PATCH(req: NextRequest) {
             return missingClientResponse();
         }
 
-        if (!isValidUpdateAction(action) || basketId == null || !mtrl) {
+        if (!isValidUpdateAction(action) || basketId == null) {
             return NextResponse.json(
                 {
                     success: false,
@@ -235,8 +234,7 @@ export async function PATCH(req: NextRequest) {
             SqlName: "ANATROF_UPDATE",
             ACTION: action,
             BASKETID: basketId,
-            MTRL: mtrl,
-            QTY_REQ: String(qty),
+            QTY: String(qty),
             APPUSER_ID: APPROVAL_APPUSER_ID,
         };
 

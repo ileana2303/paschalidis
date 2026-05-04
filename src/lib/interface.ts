@@ -328,8 +328,15 @@ export interface IStockRequestListRow {
   QTY_REQUESTED: string;
   BRANCH: string;
   INS_DATE: string;
-  APPROVED_TS?: string;
   STATUS: string;
+  TOTAL_AVAIL: string;
+  YP1001: string;
+  YP1006: string;
+  YP1007: string;
+  ONGOING: string;
+  ORDERED: string;
+  QTY_IN_BASKETS: string;
+  APPROVED_TS?: string;
 }
 
 export interface StockRequestListResponse
@@ -338,7 +345,6 @@ export interface StockRequestListResponse
 export interface StockRequestUpdateRoutePayload {
   action: StockRequestUpdateAction;
   basketId: number;
-  mtrl: string;
   qty: string;
 }
 
@@ -349,8 +355,7 @@ export interface StockRequestUpdatePayload {
   SqlName: "ANATROF_UPDATE";
   ACTION: StockRequestUpdateAction;
   BASKETID: number;
-  MTRL: string;
-  QTY_REQ: string;
+  QTY: string;
   APPUSER_ID: string;
 }
 

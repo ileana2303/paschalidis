@@ -6,7 +6,7 @@ import { ChevronDown, Plus } from "@/lib/icons/lucide";
 import type { IEndoListRow, IItem } from "@/lib/interface";
 import { useSearchEndoStore } from "@/stores/searchEndoStore";
 import { useModal } from "@/hooks/useModal";
-import PartsSearchModal from "@/components/parts/parts-search-modal";
+import PartsSearchModal from "@/components/search/parts-search-modal";
 import SearchBar from "@/components/search/search-bar";
 import {
     useAddItemToEndoBasketMutation,
