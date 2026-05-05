@@ -139,7 +139,7 @@ export function getBasketItemApprovalStatus(
     return null;
 }
 
-export function hasBasketItemDiscount(item: IBasketItem): boolean {
+export function hasBasketItemPriceRequest(item: IBasketItem): boolean {
     const approvalStatus = getBasketItemApprovalStatus(item);
     const requestedPrice = getBasketItemRequestedPrice(item);
     const basePrice = getBasketItemBasePrice(item);

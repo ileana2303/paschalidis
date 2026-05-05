@@ -3,7 +3,7 @@ import {
     getBasketItemApprovalStatus,
     getBasketItemQty,
     getBasketItemRequestedPrice,
-    hasBasketItemDiscount,
+    hasBasketItemPriceRequest,
 } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
 import PartStockQuantityContainer from "./part-stock-quantity-container";
@@ -77,13 +77,13 @@ interface PartResultsProps {
     stockRequestStatus: StockRequestStatus | null;
     stockRequestError: string;
     isSubmittingStockRequest: boolean;
-    discountValue: string;
+    requestedPriceValue: string;
     isSubmittingRequestPrice: boolean;
     onToggleExpanded: () => void;
     onQuantityChange: (nextQty: number) => void;
     onAddToBasket: () => void;
-    onDiscountValueChange: (value: string) => void;
-    onRequestDiscount: () => void;
+    onRequestedPriceValueChange: (value: string) => void;
+    onRequestPrice: () => void;
     onStoreOrderQuantityChange: (nextQuantity: number) => void;
     onSubmitStockRequest: () => void;
     formatPrice: (price: number | string | null | undefined) => string;
@@ -103,13 +103,13 @@ export default function PartResults({
     stockRequestStatus,
     stockRequestError,
     isSubmittingStockRequest,
-    discountValue,
+    requestedPriceValue,
     isSubmittingRequestPrice,
     onToggleExpanded,
     onQuantityChange,
     onAddToBasket,
-    onDiscountValueChange,
-    onRequestDiscount,
+    onRequestedPriceValueChange,
+    onRequestPrice,
     onStoreOrderQuantityChange,
     onSubmitStockRequest,
     formatPrice,
@@ -125,7 +125,7 @@ export default function PartResults({
             : null;
     const hasPriceRequest =
         basketItem != null
-            ? hasBasketItemDiscount(basketItem)
+            ? hasBasketItemPriceRequest(basketItem)
             : false;
     const requestStatusLabel =
         requestStatus === "approved"
@@ -462,11 +462,11 @@ export default function PartResults({
                                         type="number"
                                         min={0}
                                         step="0.01"
-                                        value={discountValue}
-                                        onChange={(e) => onDiscountValueChange(e.target.value)}
+                                        value={requestedPriceValue}
+                                        onChange={(e) => onRequestedPriceValueChange(e.target.value)}
                                         onKeyDown={(e) => {
                                             if (e.key === "Enter") {
-                                                onRequestDiscount();
+                                                onRequestPrice();
                                             }
                                         }}
                                         placeholder="Νέα τιμή..."
@@ -474,8 +474,8 @@ export default function PartResults({
                                     />
                                     <button
                                         type="button"
-                                        onClick={onRequestDiscount}
-                                        disabled={isSubmittingRequestPrice || !discountValue || Number(discountValue) <= 0}
+                                        onClick={onRequestPrice}
+                                        disabled={isSubmittingRequestPrice || !requestedPriceValue || Number(requestedPriceValue) <= 0}
                                         className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:bg-amber-600 disabled:opacity-40"
                                     >
                                         {isSubmittingRequestPrice ? (

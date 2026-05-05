@@ -13,6 +13,7 @@ import {
     useAddItemToBasketMutation,
     useDeleteBasketItemsMutation,
     useFetchBasketItemsMutation,
+    useRequestPriceMutation,
     useSubmitBasketOrderMutation,
     useUpdateBasketItemQtyMutation,
 } from "@/hooks/queries/useApiMutations";
@@ -55,8 +56,8 @@ export function useSearchPartsBasketController({
     const [sendingOrder, setSendingOrder] = useState(false);
     const [quantities, setQuantities] = useState<Record<string, number>>({});
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
-    const [discountPrices, setDiscountPrices] = useState<Record<string, string>>({});
-    const [submittingDiscount, setSubmittingDiscount] = useState<Set<string>>(new Set());
+    const [requestedPrices, setRequestedPrices] = useState<Record<string, string>>({});
+    const [submittingRequestedPrices, setSubmittingRequestedPrices] = useState<Set<string>>(new Set());
     const [removingBasketItems, setRemovingBasketItems] = useState<Set<string>>(new Set());
     const [removingSelectedBasketItems, setRemovingSelectedBasketItems] = useState(false);
     const basketLoadInFlightRef = useRef<Promise<void> | null>(null);
@@ -67,6 +68,7 @@ export function useSearchPartsBasketController({
     const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
     const { mutateAsync: addItemToBasket } = useAddItemToBasketMutation();
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
+    const { mutateAsync: requestPrice } = useRequestPriceMutation();
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
 
@@ -367,46 +369,36 @@ export function useSearchPartsBasketController({
         }
     }, [basket?.items, handleRemoveItems]);
 
-    const setDiscountValue = useCallback((itemCode: string, value: string) => {
-        setDiscountPrices((prev) => ({
+    const setRequestedPriceValue = useCallback((itemCode: string, value: string) => {
+        setRequestedPrices((prev) => ({
             ...prev,
             [itemCode]: value,
         }));
     }, []);
 
-    const handleRequestDiscount = useCallback(async (item: IItem) => {
+    const handleRequestPrice = useCallback(async (item: IItem) => {
         if (!customer) return;
 
-        const discountValue = discountPrices[item.ITEM_CODE] ?? "";
-        const requestedPrice = parseNumericValue(discountValue);
+        const requestedPriceInput = requestedPrices[item.ITEM_CODE] ?? "";
+        const requestedPrice = parseNumericValue(requestedPriceInput);
         const basketItem = findBasketItem(item);
         if (!basketItem) return;
-        const basketQty = Math.max(1, getBasketItemQty(basketItem));
-        const requestedQty = Math.max(1, getQuantity(item.ITEM_CODE, basketQty));
 
-        if (!discountValue || requestedPrice == null || requestedPrice <= 0) {
+        if (!requestedPriceInput || requestedPrice == null || requestedPrice <= 0) {
             return;
         }
 
-        const basketErpPrice = parseNumericValue(
-            String(basketItem.PRICE_ERP ?? basketItem.BASKET_ERP_PRICE ?? "")
-        );
-        const fallbackErpPrice = parseNumericValue(item.PRICE_WHOLE);
-        const priceErpForUpdate = basketErpPrice ?? fallbackErpPrice;
         setOrderSubmittedSuccess(false);
 
-        setSubmittingDiscount((prev) => new Set(prev).add(item.ITEM_CODE));
+        setSubmittingRequestedPrices((prev) => new Set(prev).add(item.ITEM_CODE));
 
         try {
-            await updateBasketItemQty({
+            await requestPrice({
                 BASKETID: basketItem.BASKETID,
-                QTY: requestedQty,
-                ...(priceErpForUpdate != null ? { PRICE_ERP: priceErpForUpdate } : {}),
-                PRICE_REQ: requestedPrice,
+                NEW_PRICE: requestedPrice,
             });
 
-            setDiscountPrices((prev) => ({ ...prev, [item.ITEM_CODE]: "" }));
-            clearQuantityOverride(item.ITEM_CODE);
+            setRequestedPrices((prev) => ({ ...prev, [item.ITEM_CODE]: "" }));
             await loadBasket(customer.TRDR);
         } catch (error) {
             if (isAxiosError(error)) {
@@ -423,20 +415,18 @@ export function useSearchPartsBasketController({
                 );
             }
         } finally {
-            setSubmittingDiscount((prev) => {
+            setSubmittingRequestedPrices((prev) => {
                 const next = new Set(prev);
                 next.delete(item.ITEM_CODE);
                 return next;
             });
         }
     }, [
-        clearQuantityOverride,
         customer,
-        discountPrices,
+        requestedPrices,
         findBasketItem,
-        getQuantity,
         loadBasket,
-        updateBasketItemQty,
+        requestPrice,
     ]);
 
     const formatPrice = useCallback((price: number | string | null | undefined) => {
@@ -462,17 +452,17 @@ export function useSearchPartsBasketController({
         orderSubmittedSuccess,
         sendingOrder,
         addingToBasket,
-        discountPrices,
-        submittingDiscount,
+        requestedPrices,
+        submittingRequestedPrices,
         removingBasketItems,
         removingSelectedBasketItems,
         getQuantity,
         setQuantity,
         findBasketItem,
-        setDiscountValue,
+        setRequestedPriceValue,
         formatPrice,
         handleAddToBasket,
-        handleRequestDiscount,
+        handleRequestPrice,
         handleSendOrder,
         handleRefreshBasket,
         handleToggleSelectedItem,

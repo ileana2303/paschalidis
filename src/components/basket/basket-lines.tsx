@@ -15,7 +15,7 @@ import {
     getBasketItemId,
     getBasketItemLineTotal,
     getBasketItemRequestedPrice,
-    hasBasketItemDiscount,
+    hasBasketItemPriceRequest,
 } from "@/lib/utils/basket-helpers";
 import { IBasketItem } from "@/lib/interface";
 
@@ -158,7 +158,7 @@ function BasketLineItem({
     const selected = isSelected ?? true;
     const [isExpanded, setIsExpanded] = useState(false);
     const approvalStatus = getBasketItemApprovalStatus(item);
-    const hasPriceRequest = hasBasketItemDiscount(item);
+    const hasPriceRequest = hasBasketItemPriceRequest(item);
     const requestedPrice = hasPriceRequest ? getBasketItemRequestedPrice(item) : null;
     const lineTotal = getBasketItemLineTotal(item);
     const requestStatusLabel =

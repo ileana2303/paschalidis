@@ -164,8 +164,9 @@ export interface BasketInRoutePayload {
     APPUSER_ID?: string;
 }
 
-export interface BasketRequestPriceRoutePayload extends BasketInRoutePayload {
-    PRICE_REQ: number;
+export interface BasketRequestPriceRoutePayload {
+    BASKETID: string | number;
+    NEW_PRICE: number;
 }
 
 // BASKET_IN :: Payload for adding an item to the basket.
@@ -202,6 +203,64 @@ export interface BasketUpdatePayload {
     BASKETID: number;
     PRICE_ERP?: number;
     PRICE_REQ?: number;
+}
+
+// BASKET_REQUESTED_PRICE :: Payload for requesting a new price on an existing basket item.
+export interface BasketRequestPricePayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "BASKET_REQUESTED_PRICE";
+    NEW_PRICE: number;
+    BASKETID: number;
+}
+
+export interface RequestedPriceListPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "TO_APROVE";
+}
+
+export interface IRequestedPriceListRow {
+    BASKETID: string;
+    TRDR: string;
+    MTRL: string;
+    CUSTOMER_NAME: string;
+    ITEM_CODE: string;
+    ITEM_DESCR: string;
+    PRICE_ERP: string;
+    PRICE_REQ: string;
+    KATASTIMA: string;
+    APPUSER_ID: string;
+}
+
+export interface RequestedPriceListResponse
+    extends ApiResponse<IRequestedPriceListRow> {}
+
+export type RequestedPriceUpdateAction = "APPROVE" | "APPROVE_WITH_PRICE";
+
+export interface RequestedPriceUpdateRoutePayload {
+    action: RequestedPriceUpdateAction;
+    basketId: number;
+    paschaPrice?: number;
+}
+
+export interface RequestedPriceApprovePayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "APPROVAL";
+    BASKETID: number;
+}
+
+export interface RequestedPriceApproveWithPricePayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "APPROVED_W_PRICE";
+    PASCHA_PRICE: number;
+    BASKETID: number;
 }
 
 export interface BasketMassDeleteRoutePayload {

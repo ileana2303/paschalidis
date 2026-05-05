@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
-import AdminPlaceholderPage from "@/components/template components/common/AdminPlaceholderPage";
+import DiscountRequestsClient from "./discount-requests-client";
 
-const title = "Αιτήματα εκπτώσεων";
+const title = "Αιτήματα Τιμών";
 
 export const metadata: Metadata = {
-  title: `${title} | Paschalidis`,
+  title: `${title} | Paschalidis ERP`,
 };
 
 export default function DiscountRequestsPage() {
-  return (
-    <AdminPlaceholderPage
-      title={title}
-      description="Σελίδα για την προβολή και έγκριση αιτημάτων εκπτώσεων. Είναι έτοιμη να δεχτεί τα πραγματικά δεδομένα και τα σχετικά actions."
-    />
-  );
+  return <DiscountRequestsClient />;
 }

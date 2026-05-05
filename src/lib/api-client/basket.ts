@@ -8,6 +8,8 @@ import type {
     BasketResponse,
     BasketSubmitRoutePayload,
     BasketUpdateRoutePayload,
+    RequestedPriceListResponse,
+    RequestedPriceUpdateRoutePayload,
 } from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
 
@@ -68,10 +70,62 @@ export async function deleteBasketItems(
     return data;
 }
 
-export async function requestDiscount(
+export async function requestBasketItemPrice(
     params: BasketRequestPriceRoutePayload
 ): Promise<BasketActionResponse> {
-    return addItemToBasket(params);
+    const { data } = await httpClient.post<BasketActionResponse>(
+        "/api/basket/request-price",
+        params
+    );
+
+    if (!data.success) {
+        throw new Error(data.message ?? "Failed to request basket item price");
+    }
+
+    return data;
+}
+
+export async function fetchRequestedPriceRequests(): Promise<RequestedPriceListResponse> {
+    const { data } = await httpClient.post<RequestedPriceListResponse>(
+        "/api/basket/requested-prices",
+        {}
+    );
+
+    if (!data.success) {
+        throw new Error(data.message ?? "Failed to fetch requested prices");
+    }
+
+    return data;
+}
+
+export async function updateRequestedPriceRequest(
+    params: RequestedPriceUpdateRoutePayload
+): Promise<BasketActionResponse> {
+    const { data } = await httpClient.patch<BasketActionResponse>(
+        "/api/basket/requested-prices",
+        params
+    );
+
+    if (!data.success) {
+        throw new Error(data.message ?? "Failed to update requested price");
+    }
+
+    return data;
+}
+
+export async function deleteRequestedPriceRequests(
+    params: BasketMassDeleteRoutePayload
+): Promise<BasketActionResponse> {
+    const { data } = await httpClient.delete<BasketActionResponse>(
+        "/api/basket/requested-prices",
+        { data: params }
+    );
+
+    if (!data.success) {
+        throw new Error(data.message ?? "Failed to delete requested price request");
+    }
+
+    return data;
 }
 
 export async function fetchAllClientBaskets(

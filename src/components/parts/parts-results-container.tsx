@@ -67,11 +67,11 @@ interface PartsResultsBasketProps {
     stockRequestStatuses: Record<string, StockRequestStatus>;
     stockRequestErrors: Record<string, string>;
     submittingStockRequests: Set<string>;
-    discountPrices: Record<string, string>;
-    submittingDiscount: Set<string>;
-    onDiscountValueChange: (itemCode: string, value: string) => void;
+    requestedPrices: Record<string, string>;
+    submittingRequestedPrices: Set<string>;
+    onRequestedPriceValueChange: (itemCode: string, value: string) => void;
     onAddToBasket: (item: IItem) => Promise<void> | void;
-    onRequestDiscount: (item: IItem) => Promise<void> | void;
+    onRequestPrice: (item: IItem) => Promise<void> | void;
     onStoreOrderQuantityChange: (mtrl: string, qty: number) => void;
     onSubmitStockRequest: (item: IItem) => Promise<void> | void;
     formatPrice: (price: number | string | null | undefined) => string;
@@ -132,11 +132,11 @@ export default function PartsResultsContainer({
         stockRequestStatuses,
         stockRequestErrors,
         submittingStockRequests,
-        discountPrices,
-        submittingDiscount,
-        onDiscountValueChange,
+        requestedPrices,
+        submittingRequestedPrices,
+        onRequestedPriceValueChange,
         onAddToBasket,
-        onRequestDiscount,
+        onRequestPrice,
         onStoreOrderQuantityChange,
         onSubmitStockRequest,
         formatPrice,
@@ -246,8 +246,8 @@ export default function PartsResultsContainer({
                                 const stockRequestStatus = stockRequestStatuses[mtrlKey] ?? null;
                                 const stockRequestError = stockRequestErrors[mtrlKey] ?? "";
                                 const isSubmittingStockRequest = submittingStockRequests.has(mtrlKey);
-                                const discountValue = discountPrices[item.ITEM_CODE] ?? "";
-                                const isSubmittingRequestPrice = submittingDiscount.has(item.ITEM_CODE);
+                                const requestedPriceValue = requestedPrices[item.ITEM_CODE] ?? "";
+                                const isSubmittingRequestPrice = submittingRequestedPrices.has(item.ITEM_CODE);
 
                                 return (
                                     <PartResults
@@ -265,17 +265,17 @@ export default function PartsResultsContainer({
                                         stockRequestStatus={stockRequestStatus}
                                         stockRequestError={stockRequestError}
                                         isSubmittingStockRequest={isSubmittingStockRequest}
-                                        discountValue={discountValue}
+                                        requestedPriceValue={requestedPriceValue}
                                         isSubmittingRequestPrice={isSubmittingRequestPrice}
                                         onToggleExpanded={() => toggleExpanded(expandedItemKey)}
                                         onQuantityChange={(nextQty) =>
                                             onQuantityChange(item.ITEM_CODE, nextQty)
                                         }
                                         onAddToBasket={() => onAddToBasket(item)}
-                                        onDiscountValueChange={(value) =>
-                                            onDiscountValueChange(item.ITEM_CODE, value)
+                                        onRequestedPriceValueChange={(value) =>
+                                            onRequestedPriceValueChange(item.ITEM_CODE, value)
                                         }
-                                        onRequestDiscount={() => onRequestDiscount(item)}
+                                        onRequestPrice={() => onRequestPrice(item)}
                                         onStoreOrderQuantityChange={(nextQuantity) =>
                                             onStoreOrderQuantityChange(mtrlKey, nextQuantity)
                                         }

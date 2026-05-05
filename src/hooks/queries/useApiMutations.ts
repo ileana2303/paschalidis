@@ -12,6 +12,7 @@ import type {
     EndoBasketSubmitRoutePayload,
     EndoListRoutePayload,
     EndoListUpdateQtyRoutePayload,
+    RequestedPriceUpdateRoutePayload,
     StockRequestListRoutePayload,
     StockRequestMassDeleteRoutePayload,
     StockRequestRoutePayload,
@@ -19,11 +20,14 @@ import type {
 } from "@/lib/interface";
 import {
     addItemToBasket,
+    deleteRequestedPriceRequests,
     deleteBasketItems,
     fetchAllClientBaskets,
     fetchBasketItems,
-    requestDiscount,
+    fetchRequestedPriceRequests,
+    requestBasketItemPrice,
     submitBasketOrder,
+    updateRequestedPriceRequest,
     updateBasketItemQty,
 } from "@/lib/api-client/basket";
 import {
@@ -117,10 +121,27 @@ export const useDeleteBasketItemsMutation = () =>
             deleteBasketItems(payload),
     });
 
-export const useRequestDiscountMutation = () =>
+export const useRequestPriceMutation = () =>
     useMutation({
         mutationFn: (payload: BasketRequestPriceRoutePayload) =>
-            requestDiscount(payload),
+            requestBasketItemPrice(payload),
+    });
+
+export const useFetchRequestedPriceRequestsMutation = () =>
+    useMutation({
+        mutationFn: () => fetchRequestedPriceRequests(),
+    });
+
+export const useUpdateRequestedPriceRequestMutation = () =>
+    useMutation({
+        mutationFn: (payload: RequestedPriceUpdateRoutePayload) =>
+            updateRequestedPriceRequest(payload),
+    });
+
+export const useDeleteRequestedPriceRequestsMutation = () =>
+    useMutation({
+        mutationFn: (payload: BasketMassDeleteRoutePayload) =>
+            deleteRequestedPriceRequests(payload),
     });
 
 export const useSubmitBasketOrderMutation = () =>
