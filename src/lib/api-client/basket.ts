@@ -6,6 +6,7 @@ import type {
     BasketMassDeleteRoutePayload,
     BasketRequestPriceRoutePayload,
     BasketResponse,
+    BasketSubmitRoutePayload,
     BasketUpdateRoutePayload,
 } from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
@@ -89,11 +90,11 @@ export async function fetchAllClientBaskets(
 }
 
 export async function submitBasketOrder(
-    trdr: string
+    params: BasketSubmitRoutePayload
 ): Promise<BasketActionResponse> {
     const { data } = await httpClient.post<BasketActionResponse>(
         "/api/basket/submit",
-        { trdr }
+        params
     );
 
     if (!data.success) {

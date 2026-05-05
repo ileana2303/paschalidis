@@ -10,7 +10,7 @@ import {
 import type {
     BasketActionResponse,
     BasketOutPayload,
-    BasketOutRoutePayload,
+    BasketSubmitRoutePayload,
     IBasketItem,
 } from "@/lib/interface";
 import { callMassDelete, MassDeleteError } from "@/app/api/mass-delete/mass-delete";
@@ -27,41 +27,21 @@ const DEFAULT_DELETE_TABLE_ACTION = "USRCUST";
 const DEFAULT_DELETE_METHOD = "LINK_S1";
 const ZERO_GUID = "00000000-0000-0000-0000-000000000000";
 
-type BasketSubmitRequestBody = BasketOutRoutePayload & {
-    TRDR?: string;
-    branch?: string | number;
+type BasketSubmitRequestBody = BasketSubmitRoutePayload & {
     BRANCH?: string | number;
-    trdBranch?: string | number;
-    trdrBranch?: string | number;
     TRDBRANCH?: string | number;
-    payment?: string | number;
     PAYMENT?: string | number;
-    shipkind?: string | number;
     SHIPKIND?: string | number;
-    socash?: string | number;
     SOCASH?: string | number;
-    trucks?: string | number;
     TRUCKS?: string | number;
-    deliveryDate?: string;
-    delivDate?: string;
     DELIVDATE?: string;
-    series?: string | number;
     SERIES?: string | number;
-    seriesNum?: string | number;
     SERIESNUM?: string | number;
-    taxSeries?: string;
     TAXSERIES?: string;
-    comments?: string;
     COMMENTS?: string;
-    notes?: string;
-    NOTES?: string;
-    remarks?: string;
     REMARKS?: string;
-    tableAction?: string;
     TABLE_ACTION?: string;
-    method?: string;
     METHOD?: string;
-    appUserId?: string;
     APPUSER_ID?: string;
 };
 
@@ -191,7 +171,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json() as BasketSubmitRequestBody;
-        const normalizedTrdr = asString(firstDefined(body.trdr, body.TRDR)).trim();
+        const normalizedTrdr = asString(body.TRDR).trim();
         const sqlClientID = getSoftOneClientID();
 
         if (!normalizedTrdr || !Number.isFinite(Number(normalizedTrdr))) {
@@ -274,68 +254,60 @@ export async function POST(req: NextRequest) {
         const fallbackTrucks = getEnvPositiveNumber("S1_ORDER_TRUCKS", DEFAULT_ORDER_TRUCKS);
         const tableAction =
             asString(
-                firstDefined(body.tableAction, body.TABLE_ACTION),
+                body.TABLE_ACTION,
                 getEnvString("S1_MASS_DELETE_TABLE_ACTION") || DEFAULT_DELETE_TABLE_ACTION
             ).trim() || DEFAULT_DELETE_TABLE_ACTION;
         const deleteMethod =
             asString(
-                firstDefined(body.method, body.METHOD),
+                body.METHOD,
                 getEnvString("S1_MASS_DELETE_METHOD") || DEFAULT_DELETE_METHOD
             ).trim() || DEFAULT_DELETE_METHOD;
         const deleteAppUserId =
             asString(
-                firstDefined(body.appUserId, body.APPUSER_ID, firstAppUserId),
+                firstDefined(body.APPUSER_ID, firstAppUserId),
                 getEnvString("S1_MASS_DELETE_APPUSER_ID") || ZERO_GUID
             ).trim() || ZERO_GUID;
 
         const orderBranch =
-            asPositiveNumber(firstDefined(body.branch, body.BRANCH, firstRow.BRANCH)) ??
+            asPositiveNumber(firstDefined(body.BRANCH, firstRow.BRANCH)) ??
             fallbackBranch;
         const orderTrdBranch =
-            asPositiveNumber(
-                firstDefined(body.trdBranch, body.trdrBranch, body.TRDBRANCH, firstRow.TRD_BRANCH)
-            ) ?? fallbackTrdBranch;
+            asPositiveNumber(firstDefined(body.TRDBRANCH, firstRow.TRD_BRANCH)) ??
+            fallbackTrdBranch;
         const orderPayment =
-            asPositiveNumber(firstDefined(body.payment, body.PAYMENT)) ??
+            asPositiveNumber(body.PAYMENT) ??
             fallbackPayment;
         const orderShipkind =
-            asPositiveNumber(firstDefined(body.shipkind, body.SHIPKIND)) ??
+            asPositiveNumber(body.SHIPKIND) ??
             fallbackShipkind;
         const orderSocash =
-            asPositiveNumber(firstDefined(body.socash, body.SOCASH)) ??
+            asPositiveNumber(body.SOCASH) ??
             fallbackSocash;
         const orderTrucks =
-            asPositiveNumber(firstDefined(body.trucks, body.TRUCKS)) ??
+            asPositiveNumber(body.TRUCKS) ??
             fallbackTrucks;
 
         const orderSeries =
             asString(
-                firstDefined(body.series, body.SERIES),
+                body.SERIES,
                 getEnvString("S1_ORDER_SERIES") || DEFAULT_ORDER_SERIES
             ).trim() || DEFAULT_ORDER_SERIES;
         const orderTaxSeries =
             asString(
-                firstDefined(body.taxSeries, body.TAXSERIES),
+                body.TAXSERIES,
                 getEnvString("S1_ORDER_TAXSERIES") || DEFAULT_ORDER_TAX_SERIES
             ).trim() || DEFAULT_ORDER_TAX_SERIES;
         const orderSeriesNum = asString(
-            firstDefined(body.seriesNum, body.SERIESNUM),
+            body.SERIESNUM,
             getEnvString("S1_ORDER_SERIESNUM")
         ).trim();
 
-        const deliveryDate = resolveIsoDate(
-            firstDefined(body.deliveryDate, body.delivDate, body.DELIVDATE)
-        );
+        const deliveryDate = resolveIsoDate(body.DELIVDATE);
 
-        const comments =
-            asString(
-                firstDefined(body.comments, body.COMMENTS, body.notes, body.NOTES)
-            ).trim() || `Web order submission for TRDR ${normalizedTrdr}`;
-        const remarks =
-            asString(
-                firstDefined(body.remarks, body.REMARKS),
-                getEnvString("S1_ORDER_REMARKS") || "JSON COPY FOR MONITORING"
-            ).trim();
+        const comments = asString(
+            firstDefined(body.NOTES, body.COMMENTS)
+        ).trim();
+        const remarks = `Web order submission for TRDR ${normalizedTrdr}`;
 
         const setDataClientID = getSoftOneSetDataClientID(orderBranch);
         if (!setDataClientID) {

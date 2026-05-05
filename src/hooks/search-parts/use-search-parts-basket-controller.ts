@@ -51,6 +51,7 @@ export function useSearchPartsBasketController({
     const [receiptType, setReceiptType] = useState<ReceiptType>("receipt");
     const [pickupPoint, setPickupPoint] = useState("");
     const [notes, setNotes] = useState("");
+    const [orderSubmittedSuccess, setOrderSubmittedSuccess] = useState(false);
     const [sendingOrder, setSendingOrder] = useState(false);
     const [quantities, setQuantities] = useState<Record<string, number>>({});
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
@@ -168,6 +169,8 @@ export function useSearchPartsBasketController({
         basketLoadInFlightIdRef.current = null;
         setBasket(null);
         setBasketError("");
+        setOrderSubmittedSuccess(false);
+        setNotes("");
         setSelectedItems(new Set());
         setBasketLoading(false);
     }, [customer?.TRDR, loadBasket]);
@@ -184,6 +187,7 @@ export function useSearchPartsBasketController({
         const basketItem = findBasketItem(item);
         const basketQtyFallback = basketItem ? Math.max(1, getBasketItemQty(basketItem)) : 1;
         const requestedQty = Math.max(1, getQuantity(item.ITEM_CODE, basketQtyFallback));
+        setOrderSubmittedSuccess(false);
 
         setAddingToBasket((prev) => new Set(prev).add(item.ITEM_CODE));
 
@@ -254,11 +258,22 @@ export function useSearchPartsBasketController({
 
         setSendingOrder(true);
         setBasketError("");
+        setOrderSubmittedSuccess(false);
 
+        let submittedSuccessfully = false;
         try {
-            await submitBasketOrder(customer.TRDR);
+            await submitBasketOrder({
+                TRDR: customer.TRDR,
+                NOTES: notes,
+            });
+            submittedSuccessfully = true;
+            setOrderSubmittedSuccess(true);
+            setNotes("");
             await loadBasket(customer.TRDR);
         } catch (error) {
+            if (!submittedSuccessfully) {
+                setOrderSubmittedSuccess(false);
+            }
             setBasketError(
                 error instanceof Error
                     ? error.message
@@ -267,7 +282,7 @@ export function useSearchPartsBasketController({
         } finally {
             setSendingOrder(false);
         }
-    }, [basket, customer, loadBasket, selectedItems.size, submitBasketOrder]);
+    }, [basket, customer, loadBasket, notes, selectedItems.size, submitBasketOrder]);
 
     const handleRefreshBasket = useCallback(() => {
         if (!customer) {
@@ -300,6 +315,7 @@ export function useSearchPartsBasketController({
         }
 
         setBasketError("");
+        setOrderSubmittedSuccess(false);
 
         try {
             await deleteBasketItems({
@@ -377,6 +393,7 @@ export function useSearchPartsBasketController({
         );
         const fallbackErpPrice = parseNumericValue(item.PRICE_WHOLE);
         const priceErpForUpdate = basketErpPrice ?? fallbackErpPrice;
+        setOrderSubmittedSuccess(false);
 
         setSubmittingDiscount((prev) => new Set(prev).add(item.ITEM_CODE));
 
@@ -442,6 +459,7 @@ export function useSearchPartsBasketController({
         setPickupPoint,
         notes,
         setNotes,
+        orderSubmittedSuccess,
         sendingOrder,
         addingToBasket,
         discountPrices,

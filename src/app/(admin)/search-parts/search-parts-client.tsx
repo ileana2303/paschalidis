@@ -317,6 +317,25 @@ export default function SearchPartsClient() {
                     basket={basketController.basket}
                     basketLoading={basketController.basketLoading}
                     basketError={basketController.basketError}
+                    basketSuccessMessage={
+                        basketController.orderSubmittedSuccess ? (
+                            <div className="space-y-3">
+                                <p className="font-semibold">
+                                    Η παραγγελία καταχωρήθηκε επιτυχώς.
+                                </p>
+                                <p className="text-xs opacity-90">
+                                    Μπορείτε να επιστρέψετε στην αρχική σελίδα ή να συνεχίσετε με νέα παραγγελία.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => router.push("/")}
+                                    className="inline-flex items-center rounded-lg bg-green-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-green-700"
+                                >
+                                    Επιστροφή στην αρχική
+                                </button>
+                            </div>
+                        ) : undefined
+                    }
                     onRefreshBasket={basketController.handleRefreshBasket}
                     selectedItems={basketController.selectedItems}
                     selectedCount={basketController.selectedItemsList.length}

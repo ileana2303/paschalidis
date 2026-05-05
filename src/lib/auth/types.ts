@@ -7,12 +7,12 @@ export interface LoginRequest {
     rememberMe?: boolean;
 }
 
-export interface ExternalLoginListAccessItem {
+interface ExternalLoginListAccessItem {
     name: string;
     code: string;
 }
 
-export interface ExternalLoginListBranchItem {
+interface ExternalLoginListBranchItem {
     name: string;
     s1Code: string;
 }

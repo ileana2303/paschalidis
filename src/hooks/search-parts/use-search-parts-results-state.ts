@@ -17,7 +17,7 @@ import {
     parseStockValue,
 } from "@/hooks/search-parts/search-parts-stock-utils";
 
-export interface ResetScopedResultsStateOptions {
+interface ResetScopedResultsStateOptions {
     resetScroll?: boolean;
 }
 

@@ -114,7 +114,7 @@ export interface BasketAllRoutePayload {
 }
 
 //BASKET_OUT LIST :: List of customers with basket info.
-export interface BasketAllCustomerGroup {
+interface BasketAllCustomerGroup {
     TRDR?: string | number;
     CUSTOMER_NAME?: string;
     TOT_QTY?: string | number;
@@ -224,8 +224,9 @@ export interface BasketMassDeletePayload {
     APPUSER_ID: string;
 }
 
-export interface BasketOutRoutePayload {
-    trdr: string;
+export interface BasketSubmitRoutePayload {
+    TRDR: string;
+    NOTES?: string;
 }
 
 export interface BasketOutPayload {
@@ -299,7 +300,7 @@ export interface StockRequestInsertPayload {
   APPUSER_ID: string;
 }
 
-export interface IStockRequestInsertRow {
+interface IStockRequestInsertRow {
   MESSAGE_TO_CALLER: string;
   NEW_ID: string;
 }
@@ -359,7 +360,7 @@ export interface StockRequestUpdatePayload {
   APPUSER_ID: string;
 }
 
-export interface IStockRequestMessageRow {
+interface IStockRequestMessageRow {
   MESSAGE_TO_CALLER: string;
 }
 

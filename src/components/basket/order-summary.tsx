@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import {
     Loader2,
     MapPin,
@@ -25,6 +26,7 @@ interface OrderSummaryProps {
     loading: boolean;
     error: string;
     onRefresh: () => void;
+    successMessage?: ReactNode;
     selectedItems?: Set<string>;
     selectedCount?: number;
     selectedTotal?: number;
@@ -60,6 +62,7 @@ export default function OrderSummary({
     loading,
     error,
     onRefresh,
+    successMessage,
     selectedItems,
     selectedCount,
     selectedTotal,
@@ -141,6 +144,7 @@ export default function OrderSummary({
             ]}
             loading={loading}
             error={error}
+            successMessage={successMessage}
             collapsible={collapsible}
             collapsed={collapsed}
             onToggleCollapse={onToggleCollapse}

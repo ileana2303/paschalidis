@@ -8,14 +8,14 @@ import {
     PanelRightOpen,
 } from "@/lib/icons/lucide";
 
-export interface OrderSummaryMetric {
+interface OrderSummaryMetric {
     id: string;
     label: ReactNode;
     value: ReactNode;
     trailingValue?: ReactNode;
 }
 
-export interface OrderSummaryInfoCard {
+interface OrderSummaryInfoCard {
     label: ReactNode;
     title: ReactNode;
     description?: ReactNode;
@@ -172,9 +172,9 @@ export function OrderSummary({
 
                     {successMessage && (
                         <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-500/30 dark:bg-green-500/10">
-                            <p className="text-sm text-green-700 dark:text-green-400">
+                            <div className="text-sm text-green-700 dark:text-green-400">
                                 {successMessage}
-                            </p>
+                            </div>
                         </div>
                     )}
 

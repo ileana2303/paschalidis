@@ -32,6 +32,7 @@ export default function BasketClient() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+    const [orderSubmittedSuccess, setOrderSubmittedSuccess] = useState(false);
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [receiptType, setReceiptType] = useState<ReceiptType>("receipt");
     const [pickupPoint, setPickupPoint] = useState("");
@@ -122,6 +123,7 @@ export default function BasketClient() {
             setBasket(null);
             setError("");
             setSuccessMessage("");
+            setOrderSubmittedSuccess(false);
             setSelectedItems(new Set());
             setRemovingItems(new Set());
             setRemovingSelectedItems(false);
@@ -212,6 +214,7 @@ export default function BasketClient() {
 
         setError("");
         setSuccessMessage("");
+        setOrderSubmittedSuccess(false);
         setBasketItemQty(uid, normalizedQty);
         setUpdatingQtyItems((prev) => new Set(prev).add(uid));
 
@@ -243,10 +246,15 @@ export default function BasketClient() {
         setSendingOrder(true);
         setError("");
         setSuccessMessage("");
+        setOrderSubmittedSuccess(false);
 
         try {
-            const result = await submitBasketOrder(urlTrdr);
-            setSuccessMessage(result.message ?? "Η παραγγελία καταχωρήθηκε");
+            await submitBasketOrder({
+                TRDR: urlTrdr,
+                NOTES: notes,
+            });
+            setOrderSubmittedSuccess(true);
+            setNotes("");
             await loadBasket(urlTrdr);
         } catch (err) {
             setError(
@@ -284,6 +292,7 @@ export default function BasketClient() {
 
         setError("");
         setSuccessMessage("");
+        setOrderSubmittedSuccess(false);
 
         try {
             const result = await deleteBasketItems({
@@ -417,6 +426,25 @@ export default function BasketClient() {
                     basket={basket}
                     loading={loading}
                     error={error}
+                    successMessage={
+                        orderSubmittedSuccess ? (
+                            <div className="space-y-3">
+                                <p className="font-semibold">
+                                    Η παραγγελία καταχωρήθηκε επιτυχώς.
+                                </p>
+                                <p className="text-xs opacity-90">
+                                    Μπορείτε να επιστρέψετε στην αρχική σελίδα ή να συνεχίσετε με νέα παραγγελία.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => router.push("/")}
+                                    className="inline-flex items-center rounded-lg bg-green-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-green-700"
+                                >
+                                    Επιστροφή στην αρχική
+                                </button>
+                            </div>
+                        ) : undefined
+                    }
                     onRefresh={refreshBasket}
                     selectedItems={selectedItems}
                     selectedCount={selectedItemsList.length}

@@ -6,6 +6,7 @@ import type {
     BasketInRoutePayload,
     BasketMassDeleteRoutePayload,
     BasketRequestPriceRoutePayload,
+    BasketSubmitRoutePayload,
     BasketUpdateRoutePayload,
     EndoBasketAddRoutePayload,
     EndoBasketSubmitRoutePayload,
@@ -124,7 +125,8 @@ export const useRequestDiscountMutation = () =>
 
 export const useSubmitBasketOrderMutation = () =>
     useMutation({
-        mutationFn: (trdr: string) => submitBasketOrder(trdr),
+        mutationFn: (payload: BasketSubmitRoutePayload) =>
+            submitBasketOrder(payload),
     });
 
 export const useAddItemToEndoBasketMutation = () =>

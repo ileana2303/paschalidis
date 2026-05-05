@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { IBasket, ICustomerInfo } from "@/lib/interface";
 import OrderSummary from "@/components/basket/order-summary";
 import EndoOrderSummary, { type EndoBasketUiItem } from "@/components/endo/endo-order-summary";
@@ -18,6 +19,7 @@ interface PartsSummarySidebarProps {
     basket: IBasket | null;
     basketLoading: boolean;
     basketError: string;
+    basketSuccessMessage?: ReactNode;
     onRefreshBasket: () => void;
     selectedItems: Set<string>;
     selectedCount: number;
@@ -51,6 +53,7 @@ export default function PartsSummarySidebar({
     basket,
     basketLoading,
     basketError,
+    basketSuccessMessage,
     onRefreshBasket,
     selectedItems,
     selectedCount,
@@ -95,6 +98,7 @@ export default function PartsSummarySidebar({
             basket={basket}
             loading={basketLoading}
             error={basketError}
+            successMessage={basketSuccessMessage}
             onRefresh={onRefreshBasket}
             selectedItems={selectedItems}
             selectedCount={selectedCount}
