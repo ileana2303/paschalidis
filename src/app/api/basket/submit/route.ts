@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import {
+    getEnvString,
+    getSoftOneClientID,
+    getSoftOneSetDataClientID,
+    parseJsonWithEncodingFallback,
+    postSoftOne,
+} from "@/lib/softone";
 import type {
     BasketActionResponse,
     BasketOutPayload,
@@ -7,9 +14,6 @@ import type {
     IBasketItem,
 } from "@/lib/interface";
 import { callMassDelete, MassDeleteError } from "@/app/api/mass-delete/mass-delete";
-
-const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
-const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
 
 const DEFAULT_ORDER_SERIES = "17002";
 const DEFAULT_ORDER_TAX_SERIES = "\u03c0\u0394";
@@ -97,52 +101,6 @@ type SetDataOrderPayload = {
     };
 };
 
-function getCharset(contentType: string | null) {
-    if (!contentType) {
-        return null;
-    }
-
-    const match = contentType.match(/charset=([^;]+)/i);
-    return match?.[1]?.trim().toLowerCase() ?? null;
-}
-
-async function parseJsonWithEncodingFallback(response: Response) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const candidateEncodings = new Set<string>();
-    const declaredCharset = getCharset(response.headers.get("content-type"));
-
-    if (declaredCharset) {
-        candidateEncodings.add(declaredCharset);
-    }
-
-    candidateEncodings.add("utf-8");
-
-    for (const encoding of GREEK_FALLBACK_ENCODINGS) {
-        candidateEncodings.add(encoding);
-    }
-
-    let lastError: Error | null = null;
-
-    for (const encoding of candidateEncodings) {
-        try {
-            const text = new TextDecoder(encoding).decode(bytes);
-
-            if (encoding === "utf-8" && text.includes("\uFFFD")) {
-                continue;
-            }
-
-            return JSON.parse(text);
-        } catch (error) {
-            lastError =
-                error instanceof Error
-                    ? error
-                    : new Error("Failed to decode upstream response");
-        }
-    }
-
-    throw lastError ?? new Error("Failed to decode upstream response");
-}
-
 function firstDefined<T>(...values: Array<T | null | undefined>): T | undefined {
     for (const value of values) {
         if (value !== null && value !== undefined) {
@@ -170,35 +128,9 @@ function asPositiveNumber(value: unknown): number | undefined {
     return parsed;
 }
 
-function sanitizeEnvValue(value: string | undefined) {
-    return value?.trim().replace(/^['"]|['"]$/g, "") ?? "";
-}
-
-function getEnvString(name: string) {
-    return sanitizeEnvValue(process.env[name]);
-}
-
 function getEnvPositiveNumber(name: string, fallback: number) {
     const parsed = asPositiveNumber(getEnvString(name));
     return parsed ?? fallback;
-}
-
-function getSqlClientID() {
-    return getEnvString("S1_CLIENT_ID");
-}
-
-function getSetDataClientID(branchCode: string) {
-    const normalizedBranchCode = branchCode.trim();
-    const fromSetDataBranch = normalizedBranchCode
-        ? getEnvString(`S1_SETDATA_CLIENT_ID_${normalizedBranchCode}`)
-        : "";
-    const fromSetDataDefault = getEnvString("S1_SETDATA_CLIENT_ID");
-    const fromSqlBranch = normalizedBranchCode
-        ? getEnvString(`S1_CLIENT_ID_${normalizedBranchCode}`)
-        : "";
-    const fromSqlDefault = getSqlClientID();
-
-    return fromSetDataBranch || fromSetDataDefault || fromSqlBranch || fromSqlDefault;
 }
 
 function resolveIsoDate(value: unknown) {
@@ -260,7 +192,7 @@ export async function POST(req: NextRequest) {
 
         const body = await req.json() as BasketSubmitRequestBody;
         const normalizedTrdr = asString(firstDefined(body.trdr, body.TRDR)).trim();
-        const sqlClientID = getSqlClientID();
+        const sqlClientID = getSoftOneClientID();
 
         if (!normalizedTrdr || !Number.isFinite(Number(normalizedTrdr))) {
             return NextResponse.json(
@@ -284,13 +216,7 @@ export async function POST(req: NextRequest) {
             TRDR: normalizedTrdr,
         };
 
-        const basketOutResponse = await fetch(S1_ENDPOINT, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(basketOutPayload),
-        });
+        const basketOutResponse = await postSoftOne(basketOutPayload);
 
         if (!basketOutResponse.ok) {
             const errorText = await basketOutResponse.text();
@@ -411,7 +337,7 @@ export async function POST(req: NextRequest) {
                 getEnvString("S1_ORDER_REMARKS") || "JSON COPY FOR MONITORING"
             ).trim();
 
-        const setDataClientID = getSetDataClientID(String(orderBranch));
+        const setDataClientID = getSoftOneSetDataClientID(orderBranch);
         if (!setDataClientID) {
             return NextResponse.json(
                 { success: false, message: "S1 setData client is not configured" },
@@ -456,13 +382,7 @@ export async function POST(req: NextRequest) {
             },
         };
 
-        const setDataResponse = await fetch(S1_ENDPOINT, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(setDataPayload),
-        });
+        const setDataResponse = await postSoftOne(setDataPayload);
 
         if (!setDataResponse.ok) {
             const errorText = await setDataResponse.text();

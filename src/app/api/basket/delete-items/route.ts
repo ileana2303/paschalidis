@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import { getSoftOneClientID } from "@/lib/softone";
 import type { BasketActionResponse, BasketMassDeleteRoutePayload } from "@/lib/interface";
 import { callMassDelete, MassDeleteError } from "@/app/api/mass-delete/mass-delete";
 
@@ -7,10 +8,6 @@ const DEFAULT_DELETE_TABLE_ACTION = "USRCUST";
 const DEFAULT_DELETE_METHOD = "DELETE";
 const DEFAULT_DELETE_S1_KEY = "1305";
 const DEFAULT_DELETE_APPUSER_ID = "00000001-0001-0001-0001-000000000001";
-
-function getClientID() {
-    return process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
-}
 
 export async function DELETE(req: NextRequest) {
     try {
@@ -23,7 +20,7 @@ export async function DELETE(req: NextRequest) {
         }
 
         const body = await req.json() as BasketMassDeleteRoutePayload;
-        const clientID = getClientID();
+        const clientID = getSoftOneClientID();
 
         if (!clientID) {
             return NextResponse.json(

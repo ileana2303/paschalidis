@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import {
+    getSoftOneClientID,
+    parseJsonWithEncodingFallback,
+    postSoftOne,
+} from "@/lib/softone";
 import type {
     BasketAllResponse,
     BasketAllRoutePayload,
 } from "@/lib/interface";
-
-const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
-const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 25;
@@ -23,10 +25,6 @@ type BasketListRow = {
     TOTAL_VALUE?: string;
     BASKETROWS?: string;
 };
-
-function getClientID() {
-    return process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
-}
 
 function toPositiveInt(value: unknown, fallback: number, max?: number) {
     const parsed = Number(value);
@@ -48,53 +46,6 @@ function normalizeSearch(value: unknown) {
     const trimmed = value.trim();
 
     return trimmed.length > 0 ? trimmed : "*";
-}
-
-function getCharset(contentType: string | null) {
-    if (!contentType) {
-        return null;
-    }
-
-    const match = contentType.match(/charset=([^;]+)/i);
-
-    return match?.[1]?.trim().toLowerCase() ?? null;
-}
-
-async function parseJsonWithEncodingFallback(response: Response) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const candidateEncodings = new Set<string>();
-    const declaredCharset = getCharset(response.headers.get("content-type"));
-
-    if (declaredCharset) {
-        candidateEncodings.add(declaredCharset);
-    }
-
-    candidateEncodings.add("utf-8");
-
-    for (const encoding of GREEK_FALLBACK_ENCODINGS) {
-        candidateEncodings.add(encoding);
-    }
-
-    let lastError: Error | null = null;
-
-    for (const encoding of candidateEncodings) {
-        try {
-            const text = new TextDecoder(encoding).decode(bytes);
-
-            if (encoding === "utf-8" && text.includes("\uFFFD")) {
-                continue;
-            }
-
-            return JSON.parse(text);
-        } catch (error) {
-            lastError =
-                error instanceof Error
-                    ? error
-                    : new Error("Failed to decode upstream response");
-        }
-    }
-
-    throw lastError ?? new Error("Failed to decode upstream response");
 }
 
 function getErrorMessage(data: unknown, fallback: string) {
@@ -150,7 +101,7 @@ export async function POST(req: NextRequest) {
         const page = toPositiveInt(body.page, DEFAULT_PAGE);
         const pageSize = toPositiveInt(body.pageSize, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
         const search = normalizeSearch(body.search);
-        const clientID = getClientID();
+        const clientID = getSoftOneClientID();
 
         if (!clientID) {
             return NextResponse.json(
@@ -164,17 +115,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const upstreamResponse = await fetch(S1_ENDPOINT, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                service: "SqlData",
-                clientID,
-                appId: S1_APP_ID,
-                SqlName: S1_SQL_NAME,
-            }),
+        const upstreamResponse = await postSoftOne({
+            service: "SqlData",
+            clientID,
+            appId: S1_APP_ID,
+            SqlName: S1_SQL_NAME,
         });
 
         if (!upstreamResponse.ok) {

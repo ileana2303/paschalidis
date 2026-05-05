@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import {
+    getSoftOneClientID,
+    parseJsonWithEncodingFallback,
+    postSoftOne,
+} from "@/lib/softone";
 import type {
     StockRequestListPayload,
     StockRequestListRoutePayload,
@@ -13,70 +18,11 @@ import type {
     StockRequestUpdateRoutePayload,
 } from "@/lib/interface";
 
-const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
-const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
 const S1_APP_ID = "1305";
 const APPROVAL_APPUSER_ID = "00000001-0001-0001-0001-000000000001";
 
-function getClientID() {
-    return process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
-}
-
-function getCharset(contentType: string | null) {
-    if (!contentType) {
-        return null;
-    }
-
-    const match = contentType.match(/charset=([^;]+)/i);
-
-    return match?.[1]?.trim().toLowerCase() ?? null;
-}
-
-async function parseJsonWithEncodingFallback(response: Response) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const candidateEncodings = new Set<string>();
-    const declaredCharset = getCharset(response.headers.get("content-type"));
-
-    if (declaredCharset) {
-        candidateEncodings.add(declaredCharset);
-    }
-
-    candidateEncodings.add("utf-8");
-
-    for (const encoding of GREEK_FALLBACK_ENCODINGS) {
-        candidateEncodings.add(encoding);
-    }
-
-    let lastError: Error | null = null;
-
-    for (const encoding of candidateEncodings) {
-        try {
-            const text = new TextDecoder(encoding).decode(bytes);
-
-            if (encoding === "utf-8" && text.includes("\uFFFD")) {
-                continue;
-            }
-
-            return JSON.parse(text);
-        } catch (error) {
-            lastError =
-                error instanceof Error
-                    ? error
-                    : new Error("Failed to decode upstream response");
-        }
-    }
-
-    throw lastError ?? new Error("Failed to decode upstream response");
-}
-
 async function callSoftOne(payload: unknown, logLabel: string) {
-    const response = await fetch(S1_ENDPOINT, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-    });
+    const response = await postSoftOne(payload);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -141,7 +87,7 @@ export async function POST(req: NextRequest) {
 
         const body = (await req.json().catch(() => ({}))) as StockRequestListRoutePayload;
         const branch = typeof body.branch === "string" ? body.branch.trim() : "";
-        const clientID = getClientID();
+        const clientID = getSoftOneClientID();
 
         if (!branch) {
             return NextResponse.json(
@@ -201,7 +147,7 @@ export async function PATCH(req: NextRequest) {
                 ? String(body.qty || "1")
                 : normalizePositiveIntegerString(body.qty);
 
-        const clientID = getClientID();
+        const clientID = getSoftOneClientID();
 
         if (!clientID) {
             return missingClientResponse();
@@ -264,7 +210,7 @@ export async function DELETE(req: NextRequest) {
         }
 
         const body = (await req.json().catch(() => ({}))) as StockRequestMassDeleteRoutePayload;
-        const clientID = getClientID();
+        const clientID = getSoftOneClientID();
 
         if (!clientID) {
             return missingClientResponse();

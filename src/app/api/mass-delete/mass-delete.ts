@@ -1,7 +1,5 @@
 import type { BasketMassDeletePayload } from "@/lib/interface";
-
-const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
-const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
+import { parseJsonWithEncodingFallback, postSoftOne } from "@/lib/softone";
 
 export class MassDeleteError extends Error {
     status: number;
@@ -27,52 +25,6 @@ interface MassDeleteResponseData {
     success?: boolean;
     message?: string;
     rows?: Array<{ MESSAGE_TO_CALLER?: string } | Record<string, unknown>>;
-}
-
-function getCharset(contentType: string | null) {
-    if (!contentType) {
-        return null;
-    }
-
-    const match = contentType.match(/charset=([^;]+)/i);
-    return match?.[1]?.trim().toLowerCase() ?? null;
-}
-
-async function parseJsonWithEncodingFallback(response: Response) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const candidateEncodings = new Set<string>();
-    const declaredCharset = getCharset(response.headers.get("content-type"));
-
-    if (declaredCharset) {
-        candidateEncodings.add(declaredCharset);
-    }
-
-    candidateEncodings.add("utf-8");
-
-    for (const encoding of GREEK_FALLBACK_ENCODINGS) {
-        candidateEncodings.add(encoding);
-    }
-
-    let lastError: Error | null = null;
-
-    for (const encoding of candidateEncodings) {
-        try {
-            const text = new TextDecoder(encoding).decode(bytes);
-
-            if (encoding === "utf-8" && text.includes("\uFFFD")) {
-                continue;
-            }
-
-            return JSON.parse(text);
-        } catch (error) {
-            lastError =
-                error instanceof Error
-                    ? error
-                    : new Error("Failed to decode upstream response");
-        }
-    }
-
-    throw lastError ?? new Error("Failed to decode upstream response");
 }
 
 export function getMassDeleteMessage(data: MassDeleteResponseData) {
@@ -122,13 +74,7 @@ export async function callMassDelete({
         APPUSER_ID: appUserId,
     };
 
-    const response = await fetch(S1_ENDPOINT, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-    });
+    const response = await postSoftOne(payload);
 
     if (!response.ok) {
         const errorText = await response.text();

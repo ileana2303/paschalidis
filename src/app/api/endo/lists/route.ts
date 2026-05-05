@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import {
+    getSoftOneClientID,
+    parseJsonWithEncodingFallback,
+    postSoftOne,
+} from "@/lib/softone";
 import type {
     EndoBasketActionResponse,
     EndoListEsoPayload,
@@ -12,75 +17,12 @@ import type {
     IEndoListRow,
 } from "@/lib/interface";
 
-const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
-const S1_ENDPOINT = "https://fordps.oncloud.gr/s1services";
 const ZERO_GUID = "00000000-0000-0000-0000-000000000000";
 
 type SectionFetchResult = {
     section: EndoListSection;
     error: string | null;
 };
-
-function getCharset(contentType: string | null) {
-    if (!contentType) {
-        return null;
-    }
-
-    const match = contentType.match(/charset=([^;]+)/i);
-    return match?.[1]?.trim().toLowerCase() ?? null;
-}
-
-async function parseJsonWithEncodingFallback(response: Response) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const candidateEncodings = new Set<string>();
-    const declaredCharset = getCharset(response.headers.get("content-type"));
-
-    if (declaredCharset) {
-        candidateEncodings.add(declaredCharset);
-    }
-
-    candidateEncodings.add("utf-8");
-
-    for (const encoding of GREEK_FALLBACK_ENCODINGS) {
-        candidateEncodings.add(encoding);
-    }
-
-    let lastError: Error | null = null;
-
-    for (const encoding of candidateEncodings) {
-        try {
-            const text = new TextDecoder(encoding).decode(bytes);
-
-            if (encoding === "utf-8" && text.includes("\uFFFD")) {
-                continue;
-            }
-
-            return JSON.parse(text);
-        } catch (error) {
-            lastError =
-                error instanceof Error
-                    ? error
-                    : new Error("Failed to decode upstream response");
-        }
-    }
-
-    throw lastError ?? new Error("Failed to decode upstream response");
-}
-
-function getClientID() {
-    return process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
-}
-
-function getClientIDForBranch(branch: string) {
-    const normalizedBranch = branch.trim();
-    const fromBranch =
-        process.env[`S1_CLIENT_ID_${normalizedBranch}`]
-            ?.trim()
-            .replace(/^['"]|['"]$/g, "") ?? "";
-    const fallback = getClientID();
-
-    return fromBranch || fallback;
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -102,13 +44,7 @@ function normalizeRow(row: Record<string, unknown>): IEndoListRow {
 }
 
 async function callSoftOne(payload: unknown, label: string) {
-    const response = await fetch(S1_ENDPOINT, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-    });
+    const response = await postSoftOne(payload);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -215,7 +151,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const clientID = getClientIDForBranch(normalizedBranch);
+        const clientID = getSoftOneClientID(normalizedBranch);
 
         if (!clientID) {
             return NextResponse.json(
@@ -327,7 +263,7 @@ export async function PATCH(req: NextRequest) {
         }
 
         const clientIdBranch = normalizedBranch || normalizedToBranch;
-        const clientID = getClientIDForBranch(clientIdBranch);
+        const clientID = getSoftOneClientID(clientIdBranch);
 
         if (!clientID) {
             return NextResponse.json(

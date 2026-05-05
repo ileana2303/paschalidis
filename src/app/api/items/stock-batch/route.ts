@@ -1,38 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+    getSoftOneClientID,
+    parseJsonWithEncodingFallback,
+    postSoftOne,
+} from "@/lib/softone";
 
-const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
 const MAX_CODES = 200;
 const CONCURRENCY = 10;
-
-function getCharset(contentType: string | null) {
-    if (!contentType) return null;
-    const match = contentType.match(/charset=([^;]+)/i);
-    return match?.[1]?.trim().toLowerCase() ?? null;
-}
-
-async function parseJsonWithEncodingFallback(response: Response) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const candidateEncodings = new Set<string>();
-    const declaredCharset = getCharset(response.headers.get("content-type"));
-
-    if (declaredCharset) candidateEncodings.add(declaredCharset);
-    candidateEncodings.add("utf-8");
-    for (const enc of GREEK_FALLBACK_ENCODINGS) candidateEncodings.add(enc);
-
-    let lastError: Error | null = null;
-
-    for (const encoding of candidateEncodings) {
-        try {
-            const text = new TextDecoder(encoding).decode(bytes);
-            if (encoding === "utf-8" && text.includes("\uFFFD")) continue;
-            return JSON.parse(text);
-        } catch (error) {
-            lastError = error instanceof Error ? error : new Error("Decode failed");
-        }
-    }
-
-    throw lastError ?? new Error("Failed to decode upstream response");
-}
 
 interface StockInfo {
     stock1001: number;
@@ -43,6 +17,22 @@ interface StockInfo {
     netAvail: number;
     soReserved: number;
 }
+
+type StockSearchRow = {
+    ITEM_CODE?: string;
+    MTRL?: string | number;
+    YP1001?: unknown;
+    YP1006?: unknown;
+    YP1007?: unknown;
+    TOTAL_AVAIL?: unknown;
+    ONGOING?: unknown;
+    NET_QTY_AVAILABLE?: unknown;
+    SoReserved?: unknown;
+};
+
+type StockSearchResponse = {
+    rows?: StockSearchRow[];
+};
 
 function toNumeric(value: unknown) {
     const parsed = Number(String(value ?? "").trim().replace(",", "."));
@@ -58,27 +48,23 @@ async function fetchStockForCode(
     clientID: string
 ): Promise<{ code: string; stock: StockInfo } | null> {
     try {
-        const response = await fetch("https://fordps.oncloud.gr/s1services", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                service: "SqlData",
-                clientID,
-                appId: "1305",
-                SqlName: "ITEM_SEARCH",
-                part: code,
-            }),
+        const response = await postSoftOne({
+            service: "SqlData",
+            clientID,
+            appId: "1305",
+            SqlName: "ITEM_SEARCH",
+            part: code,
         });
 
         if (!response.ok) return null;
 
-        const data = await parseJsonWithEncodingFallback(response);
+        const data = await parseJsonWithEncodingFallback<StockSearchResponse>(response);
 
         if (!data?.rows || !Array.isArray(data.rows)) return null;
 
         // Find exact match by code or by MTRL fallback.
         const match = data.rows.find(
-            (r: { ITEM_CODE?: string; MTRL?: string | number }) =>
+            (r) =>
                 String(r.ITEM_CODE ?? "").trim() === code ||
                 String(r.MTRL ?? "").trim() === code
         ) ?? data.rows[0];
@@ -134,7 +120,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const clientID = process.env.S1_CLIENT_ID?.trim().replace(/^['"]|['"]$/g, "");
+        const clientID = getSoftOneClientID();
 
         if (!clientID) {
             return NextResponse.json(

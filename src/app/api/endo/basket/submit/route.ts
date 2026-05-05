@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import {
+    getEnvString,
+    getSoftOneClientID,
+    getSoftOneEndpoint,
+    getSoftOneSetDataClientID,
+    parseJsonWithEncodingFallback,
+    postSoftOne,
+} from "@/lib/softone";
 import type {
     EndoBasketActionResponse,
     EndoBasketSubmitLineRoutePayload,
@@ -70,14 +78,6 @@ type BuildSetDataPayloadParams = {
     }>;
 };
 
-function sanitizeEnvValue(value: string | undefined) {
-    return value?.trim().replace(/^['"]|['"]$/g, "") ?? "";
-}
-
-function getEnvString(name: string) {
-    return sanitizeEnvValue(process.env[name]);
-}
-
 function jsonError(message: string, status = 500) {
     return NextResponse.json({ success: false, message }, { status });
 }
@@ -89,48 +89,6 @@ function asPositiveNumber(value: unknown): number | undefined {
     }
 
     return parsed;
-}
-
-function getCharset(contentType: string | null) {
-    if (!contentType) {
-        return null;
-    }
-
-    const match = contentType.match(/charset=([^;]+)/i);
-    return match?.[1]?.trim().toLowerCase() ?? null;
-}
-
-async function parseJsonWithEncodingFallback(response: Response) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const candidateEncodings = new Set<string>();
-    const declaredCharset = getCharset(response.headers.get("content-type"));
-
-    if (declaredCharset) {
-        candidateEncodings.add(declaredCharset);
-    }
-
-    candidateEncodings.add("utf-8");
-
-    let lastError: Error | null = null;
-
-    for (const encoding of candidateEncodings) {
-        try {
-            const text = new TextDecoder(encoding).decode(bytes);
-
-            if (encoding === "utf-8" && text.includes("\uFFFD")) {
-                continue;
-            }
-
-            return JSON.parse(text);
-        } catch (error) {
-            lastError =
-                error instanceof Error
-                    ? error
-                    : new Error("Failed to decode upstream response");
-        }
-    }
-
-    throw lastError ?? new Error("Failed to decode upstream response");
 }
 
 function resolveIsoDate(value: unknown) {
@@ -145,27 +103,6 @@ function resolveIsoDate(value: unknown) {
     }
 
     return new Date().toISOString().slice(0, 10);
-}
-
-function getSqlClientID() {
-    return getEnvString("S1_CLIENT_ID");
-}
-
-function getSetDataClientID(sourceBranch: string) {
-    const normalizedBranch = sourceBranch.trim();
-    const endoBranch = normalizedBranch
-        ? getEnvString(`S1_ENDO_SETDATA_CLIENT_ID_${normalizedBranch}`)
-        : "";
-    const setDataBranch = normalizedBranch
-        ? getEnvString(`S1_SETDATA_CLIENT_ID_${normalizedBranch}`)
-        : "";
-    const setDataDefault = getEnvString("S1_SETDATA_CLIENT_ID");
-    const sqlBranch = normalizedBranch
-        ? getEnvString(`S1_CLIENT_ID_${normalizedBranch}`)
-        : "";
-    const sqlDefault = getSqlClientID();
-
-    return endoBranch || setDataBranch || setDataDefault || sqlBranch || sqlDefault;
 }
 
 function getPerBranchNumericEnv(baseKey: string, branchCode: number) {
@@ -302,7 +239,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const sqlClientID = getSqlClientID();
+        const sqlClientID = getSoftOneClientID();
         if (!sqlClientID) {
             return jsonError("S1 SQL client is not configured");
         }
@@ -322,11 +259,9 @@ export async function POST(req: NextRequest) {
 
         const orderIds: string[] = [];
         const submittedGroups: string[] = [];
-        const s1Endpoint =
-            getEnvString("S1_ENDO_ENDPOINT") || getEnvString("S1_ENDPOINT");
-        if (!s1Endpoint) {
-            return jsonError("S1 endpoint is not configured");
-        }
+        const s1Endpoint = getSoftOneEndpoint({
+            endpointEnvKey: "S1_ENDO_ENDPOINT",
+        });
 
         const tableAction = getEnvString("S1_ENDO_MASS_DELETE_TABLE_ACTION");
         if (!tableAction) {
@@ -342,7 +277,9 @@ export async function POST(req: NextRequest) {
             getEnvString("S1_ENDO_MASS_DELETE_APPUSER_ID") || appUserId;
 
         for (const group of groups) {
-            const setDataClientID = getSetDataClientID(String(group.sourceBranch));
+            const setDataClientID = getSoftOneSetDataClientID(group.sourceBranch, {
+                endo: true,
+            });
             if (!setDataClientID) {
                 return jsonError(
                     `S1 setData client is not configured for source branch ${group.sourceBranch}`
@@ -439,12 +376,8 @@ export async function POST(req: NextRequest) {
                 orderLines,
             });
 
-            const setDataResponse = await fetch(s1Endpoint, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(setDataPayload),
+            const setDataResponse = await postSoftOne(setDataPayload, {
+                endpoint: s1Endpoint,
             });
 
             if (!setDataResponse.ok) {
