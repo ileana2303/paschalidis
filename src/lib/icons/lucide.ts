@@ -19,6 +19,8 @@ export {
   FolderOpen,
   GitCompareArrows,
   LayoutDashboard,
+  ListChevronsDownUp,
+  ListChevronsUpDown,
   Loader2,
   Mail,
   MapPin,

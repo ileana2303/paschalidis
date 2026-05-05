@@ -10,6 +10,7 @@ import type { ICustomerInfo } from "@/lib/interface";
 import CustomerInfoContainer from "@/components/customer/customer-info-container";
 import PartsSearchModal from "@/components/search/parts-search-modal";
 import CustomerSearchModal from "@/components/search/customer-search-modal";
+import SearchBar from "@/components/search/search-bar";
 import PartsResultsContainer from "@/components/parts/parts-results-container";
 import PartsSummarySidebar from "@/components/parts/parts-summary-sidebar";
 import { useSearchPartsBasketController } from "@/hooks/search-parts/use-search-parts-basket-controller";
@@ -246,62 +247,87 @@ export default function SearchPartsClient() {
             />
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
-                <PartsResultsContainer
-                    layout={{
-                        hasCustomer: customer != null,
-                        sidebarVisible: resultsController.sidebarVisible,
-                        resultsContainerRef,
-                        onResultsScroll: resultsController.handleResultsScroll,
-                        hasScrolledResults: resultsController.hasScrolledResults,
-                        isResultsScrollable: resultsController.isResultsScrollable,
-                        onOpenSearchModal: handleOpenSearchModal,
-                    }}
-                    search={{
-                        inputRef: searchInputRef,
-                        value: search,
-                        onChange: setSearch,
-                        onSearch: handleSearch,
-                        loading,
-                        hasSearched,
-                    }}
-                    results={{
-                        items,
-                        isEndoMode: resultsController.isEndoMode,
-                        onToggleEndoMode: resultsController.handleToggleEndoMode,
-                        onToggleAllExpanded: resultsController.toggleAllExpanded,
-                        areAllResultsExpanded: resultsController.areAllResultsExpanded,
-                        expandedItems: resultsController.expandedItems,
-                        getExpandedItemKey: resultsController.getExpandedItemKey,
-                        toggleExpanded: resultsController.toggleExpanded,
-                    }}
-                    endo={{
-                        getBranchOptions: resultsController.getEndoBranchOptions,
-                        endoBasketItems: resultsController.endoBasketItems,
-                        getEndoRequestedQty: resultsController.getEndoRequestedQty,
-                        setEndoRequestedQty: resultsController.setEndoRequestedQty,
-                        onAddToEndoBasket: resultsController.handleAddToEndoBasket,
-                        isAddingToEndoBasket: resultsController.isAddingToEndoBasket,
-                    }}
-                    basket={{
-                        findBasketItem: basketController.findBasketItem,
-                        getQuantity: basketController.getQuantity,
-                        onQuantityChange: basketController.setQuantity,
-                        addingToBasket: basketController.addingToBasket,
-                        getStoreStock: resultsController.getStoreStock,
-                        getStoreOrderQuantity: resultsController.getStoreOrderQuantity,
-                        stockRequestStatuses: resultsController.stockRequestStatuses,
-                        stockRequestErrors: resultsController.stockRequestErrors,
-                        submittingStockRequests: resultsController.submittingStockRequests,
-                        discountPrices: basketController.discountPrices,
-                        submittingDiscount: basketController.submittingDiscount,
-                        onDiscountValueChange: basketController.setDiscountValue,
-                        onAddToBasket: basketController.handleAddToBasket,
-                        onRequestDiscount: basketController.handleRequestDiscount,
-                        onStoreOrderQuantityChange: resultsController.setStoreOrderQuantity,
-                        onSubmitStockRequest: resultsController.handleSubmitStockRequest,
-                        formatPrice: basketController.formatPrice,
-                    }}
-                />
+                <div
+                    className={`min-h-0 w-full xl:min-w-0 ${customer != null && resultsController.sidebarVisible ? "xl:basis-2/3" : ""} flex flex-1 flex-col transition-all duration-300`}
+                >
+                    <div className="min-h-0 flex flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all duration-300 dark:border-gray-800 dark:bg-white/[0.03]">
+                        <div className="shrink-0 px-5 py-7 dark:border-gray-800 xl:px-10 xl:py-12">
+                            <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
+                                <h3
+                                    className={`overflow-hidden text-theme-xl font-semibold text-gray-800 transition-all duration-300 dark:text-white/90 sm:text-2xl ${resultsController.hasScrolledResults
+                                        ? "mb-0 max-h-0 opacity-0"
+                                        : "mb-4 max-h-16 opacity-100"
+                                        }`}
+                                >
+                                    Βρείτε το ανταλλακτικό που ψάχνετε
+                                </h3>
+
+                                <SearchBar
+                                    inputRef={searchInputRef}
+                                    value={search}
+                                    onChange={setSearch}
+                                    onSearch={handleSearch}
+                                    onClear={() => setSearch("")}
+                                    placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
+                                    loading={loading}
+                                    containerClassName={resultsController.hasScrolledResults ? "mt-0" : "mt-6"}
+                                    searchButtonClassName="font-medium shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md"
+                                />
+                            </div>
+                        </div>
+
+                        <PartsResultsContainer
+                            layout={{
+                                hasCustomer: customer != null,
+                                resultsContainerRef,
+                                onResultsScroll: resultsController.handleResultsScroll,
+                                hasScrolledResults: resultsController.hasScrolledResults,
+                                isResultsScrollable: resultsController.isResultsScrollable,
+                                onOpenSearchModal: handleOpenSearchModal,
+                            }}
+                            results={{
+                                items,
+                                loading,
+                                hasSearched,
+                                currentBranchCode: resultsController.currentBranchCode,
+                                isEndoMode: resultsController.isEndoMode,
+                                onToggleEndoMode: resultsController.handleToggleEndoMode,
+                                onToggleAllExpanded: resultsController.toggleAllExpanded,
+                                areAllResultsExpanded: resultsController.areAllResultsExpanded,
+                                expandedItems: resultsController.expandedItems,
+                                getExpandedItemKey: resultsController.getExpandedItemKey,
+                                toggleExpanded: resultsController.toggleExpanded,
+                            }}
+                            endo={{
+                                getBranchOptions: resultsController.getEndoBranchOptions,
+                                endoBasketItems: resultsController.endoBasketItems,
+                                getEndoRequestedQty: resultsController.getEndoRequestedQty,
+                                setEndoRequestedQty: resultsController.setEndoRequestedQty,
+                                onAddToEndoBasket: resultsController.handleAddToEndoBasket,
+                                isAddingToEndoBasket: resultsController.isAddingToEndoBasket,
+                            }}
+                            basket={{
+                                findBasketItem: basketController.findBasketItem,
+                                getQuantity: basketController.getQuantity,
+                                onQuantityChange: basketController.setQuantity,
+                                addingToBasket: basketController.addingToBasket,
+                                getStoreStock: resultsController.getStoreStock,
+                                getStoreOrderQuantity: resultsController.getStoreOrderQuantity,
+                                stockRequestStatuses: resultsController.stockRequestStatuses,
+                                stockRequestErrors: resultsController.stockRequestErrors,
+                                submittingStockRequests: resultsController.submittingStockRequests,
+                                discountPrices: basketController.discountPrices,
+                                submittingDiscount: basketController.submittingDiscount,
+                                onDiscountValueChange: basketController.setDiscountValue,
+                                onAddToBasket: basketController.handleAddToBasket,
+                                onRequestDiscount: basketController.handleRequestDiscount,
+                                onStoreOrderQuantityChange: resultsController.setStoreOrderQuantity,
+                                onSubmitStockRequest: resultsController.handleSubmitStockRequest,
+                                formatPrice: basketController.formatPrice,
+                            }}
+                        />
+                    </div>
+                </div>
 
                 <PartsSummarySidebar
                     customer={customer}

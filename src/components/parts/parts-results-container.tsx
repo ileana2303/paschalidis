@@ -1,10 +1,15 @@
-import { ChevronDown, ChevronLeft, GitCompareArrows, Plus } from "@/lib/icons/lucide";
+import {
+    ChevronLeft,
+    GitCompareArrows,
+    ListChevronsDownUp,
+    ListChevronsUpDown,
+    Plus,
+} from "@/lib/icons/lucide";
 import { getBasketItemQty } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
 import EndoPartResults from "@/components/endo/endo-part-results";
 import type { EndoBranchOption } from "@/components/endo/endo-part-results";
 import PartResults from "@/components/parts/part-results";
-import SearchBar from "@/components/search/search-bar";
 import type { RefObject, UIEvent } from "react";
 
 type EndoBasketPreviewItem = {
@@ -15,7 +20,6 @@ type EndoBasketPreviewItem = {
 
 interface PartsResultsLayoutProps {
     hasCustomer: boolean;
-    sidebarVisible: boolean;
     resultsContainerRef: RefObject<HTMLDivElement | null>;
     onResultsScroll: (event: UIEvent<HTMLDivElement>) => void;
     hasScrolledResults: boolean;
@@ -23,17 +27,11 @@ interface PartsResultsLayoutProps {
     onOpenSearchModal: () => void;
 }
 
-interface PartsResultsSearchProps {
-    inputRef: RefObject<HTMLInputElement | null>;
-    value: string;
-    onChange: (value: string) => void;
-    onSearch: () => void;
-    loading: boolean;
-    hasSearched: boolean;
-}
-
 interface PartsResultsStateProps {
     items: IItem[];
+    loading: boolean;
+    hasSearched: boolean;
+    currentBranchCode: string;
     isEndoMode: boolean;
     onToggleEndoMode: () => void;
     onToggleAllExpanded: () => void;
@@ -81,7 +79,6 @@ interface PartsResultsBasketProps {
 
 interface PartsResultsContainerProps {
     layout: PartsResultsLayoutProps;
-    search: PartsResultsSearchProps;
     results: PartsResultsStateProps;
     endo: PartsResultsEndoProps;
     basket: PartsResultsBasketProps;
@@ -89,14 +86,12 @@ interface PartsResultsContainerProps {
 
 export default function PartsResultsContainer({
     layout,
-    search,
     results,
     endo,
     basket,
 }: PartsResultsContainerProps) {
     const {
         hasCustomer,
-        sidebarVisible,
         resultsContainerRef,
         onResultsScroll,
         hasScrolledResults,
@@ -105,16 +100,10 @@ export default function PartsResultsContainer({
     } = layout;
 
     const {
-        inputRef: searchInputRef,
-        value: searchValue,
-        onChange: onSearchChange,
-        onSearch,
+        items,
         loading,
         hasSearched,
-    } = search;
-
-    const {
-        items,
+        currentBranchCode,
         isEndoMode,
         onToggleEndoMode,
         onToggleAllExpanded,
@@ -154,43 +143,16 @@ export default function PartsResultsContainer({
     } = basket;
 
     return (
-        <div
-            className={`relative min-h-0 w-full xl:min-w-0 ${hasCustomer && sidebarVisible ? "xl:basis-2/3" : ""} transition-all duration-300`}
-        >
+        <div className="relative min-h-0 flex-1">
             <div
                 ref={resultsContainerRef}
-                className="h-full overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+                className="h-full overflow-y-auto overscroll-contain"
                 onScroll={onResultsScroll}
             >
-                <div className="sticky top-0 z-10 overflow-hidden bg-white px-5 py-7 transition-all duration-300 dark:bg-[#0f172a] xl:px-10 xl:py-12">
-                    <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
-                        <h3
-                            className={`overflow-hidden text-theme-xl font-semibold text-gray-800 transition-all duration-300 dark:text-white/90 sm:text-2xl ${hasScrolledResults
-                                ? "mb-0 max-h-0 opacity-0"
-                                : "mb-4 max-h-16 opacity-100"
-                                }`}
-                        >
-                            Βρείτε το ανταλλακτικό που ψάχνετε
-                        </h3>
-
-                        <SearchBar
-                            inputRef={searchInputRef}
-                            value={searchValue}
-                            onChange={onSearchChange}
-                            onSearch={onSearch}
-                            onClear={() => onSearchChange("")}
-                            placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
-                            loading={loading}
-                            containerClassName={hasScrolledResults ? "mt-0" : "mt-6"}
-                            searchButtonClassName="font-medium shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md"
-                        />
-                    </div>
-                </div>
-
                 <div className="px-5 pb-2 xl:px-10 xl:pb-2">
                     <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
                         {items.length > 0 && (
-                            <div className="sticky top-[100px] z-10 mb-2 flex flex-col gap-2 border-b border-gray-100 bg-white py-2 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-[#0f172a]/95 xl:top-[140px]">
+                            <div className="sticky top-0 z-10 mb-2 flex flex-col gap-2 border-b border-gray-100 bg-white py-2 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-[#0f172a]/95">
                                 <p className="text-sm text-gray-500">
                                     Βρέθηκαν {items.length} αποτελέσματα
                                 </p>
@@ -222,9 +184,11 @@ export default function PartsResultsContainer({
                                         title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
                                         className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
                                     >
-                                        <ChevronDown
-                                            className={`h-4 w-4 transition-transform duration-200 ${areAllResultsExpanded ? "rotate-180" : ""}`}
-                                        />
+                                        {areAllResultsExpanded ? (
+                                            <ListChevronsDownUp className="h-4 w-4" />
+                                        ) : (
+                                            <ListChevronsUpDown className="h-4 w-4" />
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -295,6 +259,7 @@ export default function PartsResultsContainer({
                                         isInBasket={isInBasket}
                                         basketItem={basketItem}
                                         hasCustomer={hasCustomer}
+                                        currentBranchCode={currentBranchCode}
                                         storeStock={storeStock}
                                         storeOrderQty={storeOrderQty}
                                         stockRequestStatus={stockRequestStatus}

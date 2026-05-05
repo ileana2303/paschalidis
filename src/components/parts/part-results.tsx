@@ -9,6 +9,60 @@ import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
 import PartStockQuantityContainer from "./part-stock-quantity-container";
 import { useEffect, useState } from "react";
 
+type StockBranchCode = "1001" | "1006" | "1007";
+type StockKey = "YP1001" | "YP1006" | "YP1007";
+type LocationKey = "THESI1001" | "THESI1006" | "THESI1007";
+
+const STOCK_BRANCH_CODES: StockBranchCode[] = ["1001", "1006", "1007"];
+
+const STOCK_BRANCH_META: Record<
+    StockBranchCode,
+    { label: string; badgeClassName: string; stockKey: StockKey; locationKey: LocationKey }
+> = {
+    "1001": {
+        label: "Ν.Κόσμος",
+        badgeClassName:
+            "rounded-full bg-sky-100 px-2 py-0.5 font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+        stockKey: "YP1001",
+        locationKey: "THESI1001",
+    },
+    "1006": {
+        label: "Λ.Αθηνών",
+        badgeClassName:
+            "rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+        stockKey: "YP1006",
+        locationKey: "THESI1006",
+    },
+    "1007": {
+        label: "Λ.Μεσογείων",
+        badgeClassName:
+            "rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+        stockKey: "YP1007",
+        locationKey: "THESI1007",
+    },
+};
+
+const SECONDARY_BRANCH_PRIORITY: Record<StockBranchCode, number> = {
+    "1006": 0,
+    "1001": 1,
+    "1007": 2,
+};
+
+function getStockBranchOrder(currentBranchCode: string) {
+    const normalizedCurrentBranch = currentBranchCode.trim();
+
+    if (!STOCK_BRANCH_CODES.includes(normalizedCurrentBranch as StockBranchCode)) {
+        return STOCK_BRANCH_CODES;
+    }
+
+    const currentBranch = normalizedCurrentBranch as StockBranchCode;
+    const remainingBranches = STOCK_BRANCH_CODES
+        .filter((branchCode) => branchCode !== currentBranch)
+        .sort((a, b) => SECONDARY_BRANCH_PRIORITY[a] - SECONDARY_BRANCH_PRIORITY[b]);
+
+    return [currentBranch, ...remainingBranches];
+}
+
 interface PartResultsProps {
     item: IItem;
     isExpanded: boolean;
@@ -17,6 +71,7 @@ interface PartResultsProps {
     isInBasket: boolean;
     basketItem?: IBasketItem;
     hasCustomer: boolean;
+    currentBranchCode: string;
     storeStock: number;
     storeOrderQty: number;
     stockRequestStatus: StockRequestStatus | null;
@@ -42,6 +97,7 @@ export default function PartResults({
     isInBasket,
     basketItem,
     hasCustomer,
+    currentBranchCode,
     storeStock,
     storeOrderQty,
     stockRequestStatus,
@@ -166,56 +222,33 @@ export default function PartResults({
                             </div>
 
                             <div className="grid gap-2 sm:grid-cols-3">
+                                {getStockBranchOrder(currentBranchCode).map((branchCode) => {
+                                    const branchMeta = STOCK_BRANCH_META[branchCode];
+                                    const stockValue = item[branchMeta.stockKey];
+                                    const locationValue = item[branchMeta.locationKey];
+                                    const normalizedLocation = String(locationValue ?? "").trim();
 
-                                <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs shadow-sm dark:bg-white/[0.04]">
-                                    <div className="flex items-center gap-2">
-                                        <span className="rounded-full bg-sky-100 px-2 py-0.5 font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
-                                            Ν.Κόσμος
-                                        </span>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="font-semibold text-gray-800 dark:text-white">
-                                            {item.YP1001}
-                                        </span>
-                                        {item.THESI1001 && (
-                                            <div className="text-[10px] text-gray-400">
-                                                {item.THESI1001}
+                                    return (
+                                        <div
+                                            key={branchCode}
+                                            className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs shadow-sm dark:bg-white/[0.04]"
+                                        >
+                                            <span className={branchMeta.badgeClassName}>
+                                                {branchMeta.label}
+                                            </span>
+                                            <div className="text-right">
+                                                <span className="font-semibold text-gray-800 dark:text-white">
+                                                    {stockValue}
+                                                </span>
+                                                {normalizedLocation && (
+                                                    <div className="text-[10px] text-gray-400">
+                                                        {normalizedLocation}
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs shadow-sm dark:bg-white/[0.04]">
-                                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                                        Λ.Αθηνών
-                                    </span>
-                                    <div className="text-right">
-                                        <span className="font-semibold text-gray-800 dark:text-white">
-                                            {item.YP1006}
-                                        </span>
-                                        {item.THESI1006 && (
-                                            <div className="text-[10px] text-gray-400">
-                                                {item.THESI1006}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs shadow-sm dark:bg-white/[0.04]">
-                                    <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
-                                        Λ.Μεσογείων
-                                    </span>
-                                    <div className="text-right">
-                                        <span className="font-semibold text-gray-800 dark:text-white">
-                                            {item.YP1007}
-                                        </span>
-                                        {item.THESI1007 && (
-                                            <div className="text-[10px] text-gray-400">
-                                                {item.THESI1007}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
