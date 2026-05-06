@@ -236,12 +236,9 @@ export function useSearchPartsResultsState({
             }
         });
 
-        if (hasValidBranch) {
-            branchCodes.add(currentBranchCode);
-        }
-
         return Array.from(branchCodes)
             .sort((a, b) => Number(a) - Number(b))
+            .filter((code) => code !== currentBranchCode)
             .map((code) => {
                 const labelFromProfile = user?.listBranches?.find(
                     (branch) => String(branch.s1Code ?? "").trim() === code
@@ -258,7 +255,7 @@ export function useSearchPartsResultsState({
                     isCurrent: currentBranchCode === code,
                 };
             });
-    }, [currentBranchCode, hasValidBranch, user?.listBranches]);
+    }, [currentBranchCode, user?.listBranches]);
 
     const resetScopedResultsState = useCallback((
         options?: ResetScopedResultsStateOptions

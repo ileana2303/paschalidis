@@ -456,8 +456,8 @@ export interface StockRequestProps {
 export interface EndoBasketAddRoutePayload {
     MTRL: number;
     QTY: number;
-    BRANCH: number;
-    TO_BRANCH: number;
+    BRANCH: number; // source branch (where stock is requested from)
+    TO_BRANCH: number; // destination/requester branch (logged-in branch)
     APPUSER_ID?: string;
     ITEM_CODE?: string;
     ITEM_DESCR?: string;
@@ -471,8 +471,8 @@ export interface EndoBasketAddPayload {
     SqlName: "NOW_ENDO_INSERT";
     MTRL: number;
     QTY: number;
-    BRANCH: number;
-    TO_BRANCH: number;
+    BRANCH: number; // source branch (where stock is requested from)
+    TO_BRANCH: number; // destination/requester branch (logged-in branch)
     APPUSER_ID: string;
 }
 
@@ -515,7 +515,8 @@ export interface EndoListEsoPayload {
     clientID: string;
     appId: "1305";
     SqlName: "ENDO_LIST_ESO";
-    TO_BRANCH: string;
+    TO_BRANCH: string; // source branch (optional filter)
+    BRANCH: string; // logged-in branch
 }
 
 export interface EndoListExoPayload {

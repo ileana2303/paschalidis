@@ -59,14 +59,14 @@ export async function POST(req: NextRequest) {
 
         if (!Number.isFinite(normalizedBranch) || normalizedBranch <= 0) {
             return NextResponse.json(
-                { success: false, message: "Destination branch is required" },
+                { success: false, message: "Source branch is required" },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedToBranch) || normalizedToBranch <= 0) {
             return NextResponse.json(
-                { success: false, message: "Source branch is required" },
+                { success: false, message: "Destination branch is required" },
                 { status: 400 }
             );
         }
@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
             clientID,
             appId: "1305",
             SqlName: "NOW_ENDO_INSERT",
+            // NOW_ENDO_INSERT convention:
+            // BRANCH = source branch (where we request stock from),
+            // TO_BRANCH = destination/requester branch (logged-in branch).
             MTRL: normalizedMtrl,
             QTY: normalizedQty,
             BRANCH: normalizedBranch,

@@ -73,16 +73,8 @@ function mapEndoRequestedRows(
             const qty = parsePositiveInt(row.QTY || row.QTY_REQUESTED);
             const rowBranch = String(row.BRANCH ?? "").trim();
             const rowToBranch = String(row.TO_BRANCH ?? "").trim();
-            let fromBranch = rowBranch || rowToBranch;
-            let toBranch = rowToBranch || currentBranchCode;
-
-            if (rowBranch === currentBranchCode && rowToBranch) {
-                fromBranch = rowToBranch;
-                toBranch = rowBranch;
-            } else if (rowToBranch === currentBranchCode && rowBranch) {
-                fromBranch = rowBranch;
-                toBranch = rowToBranch;
-            }
+            let fromBranch = rowToBranch || rowBranch;
+            let toBranch = rowBranch || currentBranchCode;
 
             if (!fromBranch) {
                 fromBranch = "-";
@@ -368,12 +360,9 @@ export default function EndoPartsClient() {
             }
         });
 
-        if (hasValidBranch) {
-            branchCodes.add(currentBranchCode);
-        }
-
         return Array.from(branchCodes)
             .sort((a, b) => Number(a) - Number(b))
+            .filter((code) => code !== currentBranchCode)
             .map((code) => {
                 const labelFromProfile = user?.listBranches?.find(
                     (branch) => normalizeBranchCode(branch.s1Code) === code
@@ -393,24 +382,24 @@ export default function EndoPartsClient() {
     };
 
     const handleAddToBasket = async (item: IItem, sourceBranchCode: string) => {
-        const normalizedDestinationBranch = Number(currentBranchCode);
-        const normalizedSourceBranch = Number(sourceBranchCode);
+        const normalizedRequestFromBranch = Number(sourceBranchCode);
+        const normalizedRequesterBranch = Number(currentBranchCode);
         const requestedQty = getRequestedQty(item.MTRL, sourceBranchCode);
         const sourceBranchStock = getBranchOptions(item).find(
             (branch) => branch.code === sourceBranchCode
         )?.stock ?? 0;
 
-        if (!Number.isFinite(normalizedDestinationBranch) || normalizedDestinationBranch <= 0) {
-            setBasketError("Δεν βρέθηκε ενεργό κατάστημα χρήστη");
+        if (!Number.isFinite(normalizedRequesterBranch) || normalizedRequesterBranch <= 0) {
+            setBasketError("Δεν βρέθηκε ενεργό κατάστημα παραλαβής");
             return;
         }
 
-        if (!Number.isFinite(normalizedSourceBranch) || normalizedSourceBranch <= 0) {
+        if (!Number.isFinite(normalizedRequestFromBranch) || normalizedRequestFromBranch <= 0) {
             setBasketError("Μη έγκυρο κατάστημα αποστολής");
             return;
         }
 
-        if (normalizedDestinationBranch === normalizedSourceBranch) {
+        if (normalizedRequesterBranch === normalizedRequestFromBranch) {
             setBasketError("Η ενδοδιακίνηση πρέπει να αφορά διαφορετικά καταστήματα");
             return;
         }
@@ -434,8 +423,8 @@ export default function EndoPartsClient() {
             const response = await addItemToEndoBasket({
                 MTRL: Number(item.MTRL),
                 QTY: requestedQty,
-                BRANCH: normalizedDestinationBranch,
-                TO_BRANCH: normalizedSourceBranch,
+                BRANCH: normalizedRequestFromBranch,
+                TO_BRANCH: normalizedRequesterBranch,
                 APPUSER_ID: user?.uid,
                 ITEM_CODE: item.ITEM_CODE,
                 ITEM_DESCR: item.ITEM_DESCR,

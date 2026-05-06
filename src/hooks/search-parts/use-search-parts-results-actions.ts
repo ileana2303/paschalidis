@@ -31,50 +31,77 @@ export function useSearchPartsResultsActions({
     const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
     const { mutateAsync: addItemToEndoBasket } = useAddItemToEndoBasketMutation();
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
+    const {
+        addingToEndoBasket,
+        currentBranchCode,
+        getEndoBranchOptions,
+        getEndoRequestedQty,
+        getStoreOrderQuantity,
+        hasValidBranch,
+        isEndoMode,
+        setAddingToEndoBasket,
+        setEndoBasketError,
+        setEndoBasketItems,
+        setEndoBasketSuccess,
+        setEndoRequestedQty,
+        setEndoSummaryLoading,
+        setExpandedItems,
+        setIsEndoMode,
+        setStockRequestErrors,
+        setStockRequestStatuses,
+        setSubmittingStockRequests,
+    } = state;
 
     const loadRequestedEndoLines = useCallback(async () => {
-        if (!state.hasValidBranch) {
-            state.setEndoBasketItems([]);
-            state.setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
-            state.setEndoSummaryLoading(false);
+        if (!hasValidBranch) {
+            setEndoBasketItems([]);
+            setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
+            setEndoSummaryLoading(false);
             return;
         }
 
-        state.setEndoSummaryLoading(true);
+        setEndoSummaryLoading(true);
 
         try {
             const data = await fetchEndoLists({
-                branch: state.currentBranchCode,
+                branch: currentBranchCode,
                 scope: "requested",
             });
-            state.setEndoBasketItems(
-                mapEndoRequestedRows(data.requested.rows ?? [], state.currentBranchCode)
+            setEndoBasketItems(
+                mapEndoRequestedRows(data.requested.rows ?? [], currentBranchCode)
             );
 
             if (String(data.message ?? "").trim()) {
-                state.setEndoBasketError(String(data.message).trim());
+                setEndoBasketError(String(data.message).trim());
             } else {
-                state.setEndoBasketError("");
+                setEndoBasketError("");
             }
         } catch (error) {
-            state.setEndoBasketItems([]);
-            state.setEndoBasketError(
+            setEndoBasketItems([]);
+            setEndoBasketError(
                 error instanceof Error
                     ? error.message
                     : "Αποτυχία φόρτωσης ENDO_LIST_ESO"
             );
         } finally {
-            state.setEndoSummaryLoading(false);
+            setEndoSummaryLoading(false);
         }
-    }, [fetchEndoLists, state]);
+    }, [
+        currentBranchCode,
+        fetchEndoLists,
+        hasValidBranch,
+        setEndoBasketError,
+        setEndoBasketItems,
+        setEndoSummaryLoading,
+    ]);
 
     useEffect(() => {
-        if (!state.isEndoMode || !customer?.TRDR) {
+        if (!isEndoMode || !customer?.TRDR) {
             return;
         }
 
         void loadRequestedEndoLines();
-    }, [customer?.TRDR, loadRequestedEndoLines, state.isEndoMode]);
+    }, [customer?.TRDR, isEndoMode, loadRequestedEndoLines]);
 
     const handleToggleEndoMode = useCallback(() => {
         if (!customer) {
@@ -82,106 +109,125 @@ export function useSearchPartsResultsActions({
             return;
         }
 
-        if (!state.hasValidBranch) {
-            state.setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
+        if (!hasValidBranch) {
+            setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
             return;
         }
 
-        state.setExpandedItems(new Set());
-        state.setEndoBasketSuccess("");
-        state.setEndoBasketError("");
-        state.setIsEndoMode((prev) => !prev);
-    }, [customer, onRequireCustomerSelection, state]);
+        setExpandedItems(new Set());
+        setEndoBasketSuccess("");
+        setEndoBasketError("");
+        setIsEndoMode((prev) => !prev);
+    }, [
+        customer,
+        hasValidBranch,
+        onRequireCustomerSelection,
+        setEndoBasketError,
+        setEndoBasketSuccess,
+        setExpandedItems,
+        setIsEndoMode,
+    ]);
 
     const handleAddToEndoBasket = useCallback(async (item: IItem, sourceBranchCode: string) => {
-        const normalizedDestinationBranch = Number(state.currentBranchCode);
-        const normalizedSourceBranch = Number(sourceBranchCode);
-        const requestedQty = state.getEndoRequestedQty(item.MTRL, sourceBranchCode);
-        const sourceBranchStock = state.getEndoBranchOptions(item).find(
+        const normalizedRequestFromBranch = Number(sourceBranchCode);
+        const normalizedRequesterBranch = Number(currentBranchCode);
+        const requestedQty = getEndoRequestedQty(item.MTRL, sourceBranchCode);
+        const sourceBranchStock = getEndoBranchOptions(item).find(
             (branch) => branch.code === sourceBranchCode
         )?.stock ?? 0;
 
-        if (!Number.isFinite(normalizedDestinationBranch) || normalizedDestinationBranch <= 0) {
-            state.setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα χρήστη");
+        if (!Number.isFinite(normalizedRequesterBranch) || normalizedRequesterBranch <= 0) {
+            setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα παραλαβής");
             return;
         }
 
-        if (!Number.isFinite(normalizedSourceBranch) || normalizedSourceBranch <= 0) {
-            state.setEndoBasketError("Μη έγκυρο κατάστημα αποστολής");
+        if (!Number.isFinite(normalizedRequestFromBranch) || normalizedRequestFromBranch <= 0) {
+            setEndoBasketError("Μη έγκυρο κατάστημα αποστολής");
             return;
         }
 
-        if (normalizedDestinationBranch === normalizedSourceBranch) {
-            state.setEndoBasketError("Η ενδοδιακίνηση πρέπει να αφορά διαφορετικά καταστήματα");
+        if (normalizedRequesterBranch === normalizedRequestFromBranch) {
+            setEndoBasketError("Η ενδοδιακίνηση πρέπει να αφορά διαφορετικά καταστήματα");
             return;
         }
 
         if (!Number.isFinite(requestedQty) || requestedQty <= 0) {
-            state.setEndoBasketError("Η ποσότητα πρέπει να είναι μεγαλύτερη από 0");
+            setEndoBasketError("Η ποσότητα πρέπει να είναι μεγαλύτερη από 0");
             return;
         }
 
         if (requestedQty > sourceBranchStock) {
-            state.setEndoBasketError("Η ζητούμενη ποσότητα υπερβαίνει το διαθέσιμο απόθεμα");
+            setEndoBasketError("Η ζητούμενη ποσότητα υπερβαίνει το διαθέσιμο απόθεμα");
             return;
         }
 
         const requestKey = getEndoQtyKey(item.MTRL, sourceBranchCode);
-        state.setAddingToEndoBasket((prev) => new Set(prev).add(requestKey));
-        state.setEndoBasketError("");
-        state.setEndoBasketSuccess("");
+        setAddingToEndoBasket((prev) => new Set(prev).add(requestKey));
+        setEndoBasketError("");
+        setEndoBasketSuccess("");
 
         try {
             const response = await addItemToEndoBasket({
                 MTRL: Number(item.MTRL),
                 QTY: requestedQty,
-                BRANCH: normalizedDestinationBranch,
-                TO_BRANCH: normalizedSourceBranch,
+                BRANCH: normalizedRequestFromBranch,
+                TO_BRANCH: normalizedRequesterBranch,
                 APPUSER_ID: user?.uid,
                 ITEM_CODE: item.ITEM_CODE,
                 ITEM_DESCR: item.ITEM_DESCR,
                 MNF_DESCR: item.MNF_DESCR,
             });
 
-            state.setEndoRequestedQty(item.MTRL, sourceBranchCode, 0);
+            setEndoRequestedQty(item.MTRL, sourceBranchCode, 0);
             await loadRequestedEndoLines();
-            state.setEndoBasketSuccess(response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης");
+            setEndoBasketSuccess(response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης");
         } catch (error) {
             if (isAxiosError(error)) {
                 const responseMessage =
                     typeof error.response?.data?.message === "string"
                         ? error.response.data.message
                         : undefined;
-                state.setEndoBasketError(responseMessage ?? error.message);
+                setEndoBasketError(responseMessage ?? error.message);
             } else {
-                state.setEndoBasketError(
+                setEndoBasketError(
                     error instanceof Error
                         ? error.message
                         : "Αποτυχία προσθήκης στο καλάθι ενδοδιακίνησης"
                 );
             }
         } finally {
-            state.setAddingToEndoBasket((prev) => {
+            setAddingToEndoBasket((prev) => {
                 const next = new Set(prev);
                 next.delete(requestKey);
                 return next;
             });
         }
-    }, [addItemToEndoBasket, loadRequestedEndoLines, state, user?.uid]);
+    }, [
+        addItemToEndoBasket,
+        currentBranchCode,
+        getEndoBranchOptions,
+        getEndoRequestedQty,
+        loadRequestedEndoLines,
+        setAddingToEndoBasket,
+        setEndoBasketError,
+        setEndoBasketSuccess,
+        setEndoRequestedQty,
+        user?.uid,
+    ]);
 
     const isAddingToEndoBasket = useCallback((
         mtrl: string | number,
         sourceBranchCode: string
     ) => {
-        return state.addingToEndoBasket.has(getEndoQtyKey(mtrl, sourceBranchCode));
-    }, [state.addingToEndoBasket]);
+        return addingToEndoBasket.has(getEndoQtyKey(mtrl, sourceBranchCode));
+    }, [addingToEndoBasket]);
 
     const handleSubmitStockRequest = useCallback(async (item: IItem) => {
         const mtrlKey = String(item.MTRL);
-        const qty = state.getStoreOrderQuantity(mtrlKey);
+        const qty = getStoreOrderQuantity(mtrlKey);
 
-        if (!state.hasValidBranch) {
-            state.setStockRequestErrors((prev) => ({
+        if (!hasValidBranch) {
+            setStockRequestErrors((prev) => ({
                 ...prev,
                 [mtrlKey]: "Δεν βρέθηκε ενεργό κατάστημα χρήστη",
             }));
@@ -189,29 +235,29 @@ export function useSearchPartsResultsActions({
         }
 
         if (qty <= 0) {
-            state.setStockRequestErrors((prev) => ({
+            setStockRequestErrors((prev) => ({
                 ...prev,
                 [mtrlKey]: "Type a quantity greater than 0",
             }));
             return;
         }
 
-        state.setSubmittingStockRequests((prev) => new Set(prev).add(mtrlKey));
-        state.setStockRequestErrors((prev) => ({ ...prev, [mtrlKey]: "" }));
+        setSubmittingStockRequests((prev) => new Set(prev).add(mtrlKey));
+        setStockRequestErrors((prev) => ({ ...prev, [mtrlKey]: "" }));
 
         try {
             await requestStockQuantity({
                 mtrl: Number(item.MTRL),
                 qty,
-                branch: state.currentBranchCode,
+                branch: currentBranchCode,
             });
 
-            state.setStockRequestStatuses((prev) => ({
+            setStockRequestStatuses((prev) => ({
                 ...prev,
                 [mtrlKey]: "pending",
             }));
         } catch (error) {
-            state.setStockRequestErrors((prev) => ({
+            setStockRequestErrors((prev) => ({
                 ...prev,
                 [mtrlKey]:
                     error instanceof Error
@@ -219,13 +265,21 @@ export function useSearchPartsResultsActions({
                         : "Failed to submit stock request",
             }));
         } finally {
-            state.setSubmittingStockRequests((prev) => {
+            setSubmittingStockRequests((prev) => {
                 const next = new Set(prev);
                 next.delete(mtrlKey);
                 return next;
             });
         }
-    }, [requestStockQuantity, state]);
+    }, [
+        currentBranchCode,
+        getStoreOrderQuantity,
+        hasValidBranch,
+        requestStockQuantity,
+        setStockRequestErrors,
+        setStockRequestStatuses,
+        setSubmittingStockRequests,
+    ]);
 
     return {
         handleToggleEndoMode,

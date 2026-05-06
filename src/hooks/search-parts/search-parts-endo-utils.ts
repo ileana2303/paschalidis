@@ -42,16 +42,8 @@ export function mapEndoRequestedRows(
             const qty = parsePositiveInt(row.QTY || row.QTY_REQUESTED);
             const rowBranch = String(row.BRANCH ?? "").trim();
             const rowToBranch = String(row.TO_BRANCH ?? "").trim();
-            let fromBranch = rowBranch || rowToBranch;
-            let toBranch = rowToBranch || currentBranchCode;
-
-            if (rowBranch === currentBranchCode && rowToBranch) {
-                fromBranch = rowToBranch;
-                toBranch = rowBranch;
-            } else if (rowToBranch === currentBranchCode && rowBranch) {
-                fromBranch = rowBranch;
-                toBranch = rowToBranch;
-            }
+            let fromBranch = rowToBranch || rowBranch;
+            let toBranch = rowBranch || currentBranchCode;
 
             if (!fromBranch) {
                 fromBranch = "-";

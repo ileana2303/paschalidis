@@ -165,6 +165,7 @@ export async function POST(req: NextRequest) {
             clientID,
             appId: "1305",
             SqlName: "ENDO_LIST_ESO",
+            BRANCH: normalizedBranch,
             TO_BRANCH: normalizedBranch,
         };
 
