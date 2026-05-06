@@ -15,6 +15,7 @@ import {
   Users,
   GitCompareArrows,
   type LucideIcon,
+  Send,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
 
@@ -49,15 +50,16 @@ const navItems: NavItem[] = [
     name: "Ενδοδιακίνηση Ανταλλακτικών",
     path: "/endo/endo-parts",
     subItems: [
+
       {
-        icon: ClipboardList,
-        name: "Ενδολίστα Παραλαβών",
-        path: "/endo/endo-lists-requested",
+        icon: Send,
+        name: "Διαχείριση Αιτημάτων ",
+        path: "/endo/endo-lists-received",
       },
       {
         icon: ClipboardList,
-        name: "Ενδολίστα Αποστολών",
-        path: "/endo/endo-lists-received",
+        name: "Λίστα Αιτημάτων ",
+        path: "/endo/endo-lists-requested",
       },
     ],
   },

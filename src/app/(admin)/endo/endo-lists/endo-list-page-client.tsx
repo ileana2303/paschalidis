@@ -28,22 +28,12 @@ import EndoOrderSummary, {
 type EndoListScope = Exclude<EndoListRoutePayload["scope"], "both" | undefined>;
 const REQUESTED_QTY_COLUMN_KEY = "__REQUESTED_QTY";
 const QTY_ACTIONS_COLUMN_KEY = "__QTY_ACTIONS";
-const CURRENT_STORE_STOCK_COLUMN_KEY = "__CURRENT_STORE_STOCK";
-const NET_RESERVED_COLUMN_KEY = "__NET_RESERVED";
 
 interface EndoListPageClientProps {
     scope: EndoListScope;
 }
 
 function formatColumnLabel(key: string) {
-    if (key === CURRENT_STORE_STOCK_COLUMN_KEY) {
-        return "Store Stock";
-    }
-
-    if (key === NET_RESERVED_COLUMN_KEY) {
-        return "Net / Reserved";
-    }
-
     if (key === REQUESTED_QTY_COLUMN_KEY) {
         return "Requested QTY";
     }
@@ -184,40 +174,6 @@ function canApproveRowWithQty(row: IEndoListRow, qty: number) {
     );
 }
 
-function getRowFieldValue(row: IEndoListRow, key: string) {
-    const directValue = row[key];
-    if (directValue !== undefined) {
-        return String(directValue).trim();
-    }
-
-    const lookupKey = key.toLowerCase();
-    const matchedKey = Object.keys(row).find(
-        (entryKey) => entryKey.toLowerCase() === lookupKey
-    );
-
-    if (!matchedKey) {
-        return "";
-    }
-
-    return String(row[matchedKey] ?? "").trim();
-}
-
-function getBranchStockValue(row: IEndoListRow, branchCode: string) {
-    const normalizedBranchCode = String(branchCode ?? "").trim();
-    if (!normalizedBranchCode) return "";
-
-    const stockKey = `YP${normalizedBranchCode}`;
-    return getRowFieldValue(row, stockKey);
-}
-
-function getNetQtyAvailableValue(row: IEndoListRow) {
-    return getRowFieldValue(row, "NET_QTY_AVAILABLE") || getRowFieldValue(row, "TOTAL_AVAIL");
-}
-
-function getSoReservedValue(row: IEndoListRow) {
-    return getRowFieldValue(row, "SoReserved") || getRowFieldValue(row, "SO_RESERVED");
-}
-
 function renderCell(key: string, value: string) {
     if (!value) {
         return "—";
@@ -284,13 +240,13 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         () =>
             scope === "requested"
                 ? {
-                    pageTitle: "Ενδολίστα Παραλαβών",
-                    title: "Τι Περιμένω Να Πάρω",
+                    pageTitle: "Αιτήματα Ενδοδιακίνησης",
+                    title: "Λίστα εκκρεμών αιτημάτων ενδοδιακίνησης καταστήματος",
                     subtitle: "ENDO_LIST_ESO",
                 }
                 : {
-                    pageTitle: "Ενδολίστα Αποστολών",
-                    title: "Τι Περιμένω Να Δώσω",
+                    pageTitle: "Διαχείριση Ενδοδιακίνησης",
+                    title: "Διαχείριση αιτημάτων ενδοδιακίνησης προς άλλα καταστήματα",
                     subtitle: "ENDO_LIST_EXO",
                 },
         [scope]
@@ -374,8 +330,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
         return [
             ...withoutQtyColumns,
-            CURRENT_STORE_STOCK_COLUMN_KEY,
-            NET_RESERVED_COLUMN_KEY,
             REQUESTED_QTY_COLUMN_KEY,
             QTY_ACTIONS_COLUMN_KEY,
         ];
@@ -758,65 +712,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                         return (
                                             <tr key={rowKey}>
                                                 {tableColumns.map((column) => {
-                                                    if (
-                                                        isReceivedScope &&
-                                                        column === CURRENT_STORE_STOCK_COLUMN_KEY
-                                                    ) {
-                                                        const currentStoreStockValue =
-                                                            getBranchStockValue(
-                                                                row,
-                                                                currentBranchCode
-                                                            ) || "—";
-
-                                                        return (
-                                                            <td
-                                                                key={`${rowKey}-${column}`}
-                                                                className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200"
-                                                            >
-                                                                <span className="inline-flex min-w-[70px] items-center justify-center rounded-lg border border-brand-200 bg-brand-50 px-2 py-1 text-xs font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
-                                                                    {currentStoreStockValue}
-                                                                </span>
-                                                            </td>
-                                                        );
-                                                    }
-
-                                                    if (
-                                                        isReceivedScope &&
-                                                        column === NET_RESERVED_COLUMN_KEY
-                                                    ) {
-                                                        const netQtyAvailable =
-                                                            getNetQtyAvailableValue(row) ||
-                                                            "—";
-                                                        const soReserved =
-                                                            getSoReservedValue(row) ||
-                                                            "—";
-
-                                                        return (
-                                                            <td
-                                                                key={`${rowKey}-${column}`}
-                                                                className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200"
-                                                            >
-                                                                <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900/40">
-                                                                    <span className="font-medium text-gray-500 dark:text-gray-300">
-                                                                        NET
-                                                                    </span>
-                                                                    <span className="font-semibold text-gray-800 dark:text-gray-100">
-                                                                        {netQtyAvailable}
-                                                                    </span>
-                                                                    <span className="text-gray-300 dark:text-gray-600">
-                                                                        /
-                                                                    </span>
-                                                                    <span className="font-medium text-gray-500 dark:text-gray-300">
-                                                                        RES
-                                                                    </span>
-                                                                    <span className="font-semibold text-gray-800 dark:text-gray-100">
-                                                                        {soReserved}
-                                                                    </span>
-                                                                </div>
-                                                            </td>
-                                                        );
-                                                    }
-
                                                     if (
                                                         isReceivedScope &&
                                                         column === REQUESTED_QTY_COLUMN_KEY

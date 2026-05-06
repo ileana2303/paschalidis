@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import EndoListPageClient from "@/app/(admin)/endo/endo-lists/endo-list-page-client";
 
-const title = "Ενδολίστα Παραλαβών";
+const title = "Εκκρεμή Αιτήματα Ενδοδιακίνησης";
 
 export const metadata: Metadata = {
     title: `${title} | Paschalidis ERP`,
