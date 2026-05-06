@@ -39,7 +39,6 @@ import {
 import { fetchCatalogProducts } from "@/lib/api-client/catalogs";
 import { searchCustomers } from "@/lib/api-client/customers";
 import {
-    fetchBatchStock,
     fetchStockRequests,
     massDeleteStockRequests,
     requestStockQuantity,
@@ -62,11 +61,6 @@ export const useSearchItemsByTrdrMutation = () =>
     useMutation({
         mutationFn: ({ search, trdr }: { search: string; trdr: string }) =>
             searchItemsByTrdr(search, trdr),
-    });
-
-export const useFetchBatchStockMutation = () =>
-    useMutation({
-        mutationFn: (codes: string[]) => fetchBatchStock(codes),
     });
 
 export const useRequestStockQuantityMutation = () =>

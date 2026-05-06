@@ -2,7 +2,6 @@ import {
     IItem,
     IItemTRDR,
     ApiResponse,
-    StockInfo,
     StockRequestListResponse,
     StockRequestListRoutePayload,
     StockRequestMassDeleteResponse,
@@ -33,18 +32,6 @@ export async function searchItemsByTrdr(
         { search, trdr: Number(trdr) }
     );
     return data;
-}
-
-export async function fetchBatchStock(
-    codes: string[]
-): Promise<Record<string, StockInfo>> {
-    if (codes.length === 0) return {};
-
-    const { data } = await httpClient.post<{ stocks?: Record<string, StockInfo> }>(
-        "/api/items/stock-batch",
-        { codes }
-    );
-    return data.stocks ?? {};
 }
 
 export async function requestStockQuantity(

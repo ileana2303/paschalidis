@@ -11,7 +11,6 @@ import {
     Search,
 } from "@/lib/icons/lucide";
 import {
-    useFetchBatchStockMutation,
     useFetchEndoListsMutation,
     useSubmitEndoBasketOrderMutation,
     useUpdateEndoListQtyMutation,
@@ -21,7 +20,6 @@ import { useAuthStore } from "@/stores/authStore";
 import type {
     EndoListRoutePayload,
     IEndoListRow,
-    StockInfo,
 } from "@/lib/interface";
 import EndoOrderSummary, {
     type EndoBasketUiItem,
@@ -171,14 +169,6 @@ function getRequestedQtyFromRow(row: IEndoListRow) {
     return parseQtyValue(row.QTY_REQUESTED || row.QTY || "0");
 }
 
-function getRowItemCode(row: IEndoListRow) {
-    return (
-        getRowFieldValue(row, "ITEM_CODE") ||
-        getRowFieldValue(row, "CODE") ||
-        getRowFieldValue(row, "MTRL")
-    );
-}
-
 function canApproveRowWithQty(row: IEndoListRow, qty: number) {
     const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
     const mtrl = parsePositiveValue(row.MTRL);
@@ -218,23 +208,6 @@ function getBranchStockValue(row: IEndoListRow, branchCode: string) {
 
     const stockKey = `YP${normalizedBranchCode}`;
     return getRowFieldValue(row, stockKey);
-}
-
-function getBatchBranchStockValue(stock: StockInfo | undefined, branchCode: string) {
-    if (!stock) return "";
-
-    const normalizedBranchCode = String(branchCode ?? "").trim();
-    if (normalizedBranchCode === "1001") {
-        return String(stock.stock1001);
-    }
-    if (normalizedBranchCode === "1006") {
-        return String(stock.stock1006);
-    }
-    if (normalizedBranchCode === "1007") {
-        return String(stock.stock1007);
-    }
-
-    return "";
 }
 
 function getNetQtyAvailableValue(row: IEndoListRow) {
@@ -279,14 +252,10 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         {}
     );
     const [finalQtyByRow, setFinalQtyByRow] = useState<Record<string, number>>({});
-    const [stockByItemCode, setStockByItemCode] = useState<Record<string, StockInfo>>(
-        {}
-    );
     const [savingRowKeys, setSavingRowKeys] = useState<Set<string>>(new Set());
     const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(new Set());
     const [approvingBulk, setApprovingBulk] = useState(false);
     const user = useAuthStore((state) => state.user);
-    const { mutateAsync: fetchBatchStock } = useFetchBatchStockMutation();
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
     const { mutateAsync: submitEndoBasketOrder } = useSubmitEndoBasketOrderMutation();
     const { mutateAsync: updateEndoListQty } = useUpdateEndoListQtyMutation();
@@ -335,7 +304,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         setEditedQtyByRow({});
         setRequestedQtyByRow({});
         setFinalQtyByRow({});
-        setStockByItemCode({});
         setSavingRowKeys(new Set());
         setSelectedRowKeys(new Set());
         setApprovingBulk(false);
@@ -370,25 +338,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             setRequestedQtyByRow(nextRequestedQtyByRow);
             setFinalQtyByRow(nextFinalQtyByRow);
             setWarning(String(data.message ?? "").trim());
-
-            if (scope === "received") {
-                const itemCodes = Array.from(
-                    new Set(
-                        nextRows
-                            .map((row) => getRowItemCode(row))
-                            .filter((code): code is string => Boolean(code))
-                    )
-                );
-
-                if (itemCodes.length > 0) {
-                    try {
-                        const stocks = await fetchBatchStock(itemCodes);
-                        setStockByItemCode(stocks);
-                    } catch (stockError) {
-                        console.error("[endo/lists] failed to fetch stock batch", stockError);
-                    }
-                }
-            }
         } catch (err) {
             setRows([]);
             setError(
@@ -399,7 +348,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         } finally {
             setLoading(false);
         }
-    }, [currentBranchCode, fetchBatchStock, fetchEndoLists, hasValidBranch, scope]);
+    }, [currentBranchCode, fetchEndoLists, hasValidBranch, scope]);
 
     useEffect(() => {
         loadRows();
@@ -813,19 +762,11 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                         isReceivedScope &&
                                                         column === CURRENT_STORE_STOCK_COLUMN_KEY
                                                     ) {
-                                                        const itemCode = getRowItemCode(row);
-                                                        const batchStock =
-                                                            itemCode ? stockByItemCode[itemCode] : undefined;
-                                                        const fallbackStoreStock =
-                                                            getBatchBranchStockValue(
-                                                                batchStock,
-                                                                currentBranchCode
-                                                            );
                                                         const currentStoreStockValue =
                                                             getBranchStockValue(
                                                                 row,
                                                                 currentBranchCode
-                                                            ) || fallbackStoreStock || "—";
+                                                            ) || "—";
 
                                                         return (
                                                             <td
@@ -843,21 +784,11 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                         isReceivedScope &&
                                                         column === NET_RESERVED_COLUMN_KEY
                                                     ) {
-                                                        const itemCode = getRowItemCode(row);
-                                                        const batchStock =
-                                                            itemCode ? stockByItemCode[itemCode] : undefined;
                                                         const netQtyAvailable =
                                                             getNetQtyAvailableValue(row) ||
-                                                            (batchStock
-                                                                ? String(batchStock.netAvail)
-                                                                : "") ||
                                                             "—";
                                                         const soReserved =
                                                             getSoReservedValue(row) ||
-                                                            (batchStock &&
-                                                                Number.isFinite(batchStock.soReserved)
-                                                                ? String(batchStock.soReserved)
-                                                                : "") ||
                                                             "—";
 
                                                         return (
