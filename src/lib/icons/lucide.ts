@@ -1,10 +1,12 @@
 export {
+  AlertCircle,
   ArrowDown,
   ArrowUp,
   BadgePercent,
   BookOpenText,
   Boxes,
   Calendar,
+  CalendarDays,
   ChartColumn,
   Check,
   ChevronDown,
@@ -46,6 +48,7 @@ export {
   UserRound,
   Users,
   X,
+  Warehouse,
 } from "lucide-react";
 
 export type { LucideIcon } from "lucide-react";

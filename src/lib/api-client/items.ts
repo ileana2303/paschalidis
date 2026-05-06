@@ -2,6 +2,8 @@ import {
     IItem,
     IItemTRDR,
     ApiResponse,
+    StockFeedbackResponse,
+    StockFeedbackRoutePayload,
     StockRequestListResponse,
     StockRequestListRoutePayload,
     StockRequestMassDeleteResponse,
@@ -31,6 +33,21 @@ export async function searchItemsByTrdr(
         "/api/items/search",
         { search, trdr: Number(trdr) }
     );
+    return data;
+}
+
+export async function fetchStockFeedback(
+    payload: StockFeedbackRoutePayload
+): Promise<StockFeedbackResponse> {
+    const { data } = await httpClient.post<StockFeedbackResponse>(
+        "/api/items/stock-feedback",
+        payload
+    );
+
+    if (!data?.success) {
+        throw new Error(data?.message ?? "Failed to fetch stock feedback items");
+    }
+
     return data;
 }
 

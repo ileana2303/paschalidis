@@ -309,34 +309,34 @@ export interface ApiResponse<T> {
     rows: T[];
 }
 
-export interface IProduct {
-    mtrl: string;
-    code: string;
-    name: string;
-    barcode: string;
-    price: string;
-    soft1Active: string;
-    modifiedDate: string;
+export interface StockFeedbackRoutePayload {
+  branch: string;
+  days: number;
 }
 
-export interface ProductsResponse {
-    success: boolean;
-    page: number;
-    totalPages: number;
-    pageSize: number;
-    totalCount: string;
-    data: IProduct[];
+export interface StockFeedbackPayload {
+  service: "SqlData";
+  clientID: string;
+  appId: "1305";
+  SqlName: "SALES_PER_BRANCH";
+  BRANCH: string;
+  DAYS: number;
 }
 
-export interface StockInfo {
-    stock1001: number;
-    stock1006: number;
-    stock1007: number;
-    totalAvail: number;
-    ongoing: number;
-    netAvail: number;
-    soReserved?: number;
+export interface IStockFeedbackRow {
+  MTRL: string;
+  CODE: string;
+  NAME: string;
+  QTY_SOLD: string;
+  ONGOING: string;
+  YP1001: string;
+  YP1006: string;
+  YP1007: string;
+  TOTAL_AVAIL: string;
 }
+
+export interface StockFeedbackResponse
+  extends ApiResponse<IStockFeedbackRow> {}
 
 export type StockRequestStatus = "approved" | "pending" | "deleted";
 

@@ -12,6 +12,7 @@ import type {
     EndoBasketSubmitRoutePayload,
     EndoListRoutePayload,
     EndoListUpdateQtyRoutePayload,
+    StockFeedbackRoutePayload,
     RequestedPriceUpdateRoutePayload,
     StockRequestListRoutePayload,
     StockRequestMassDeleteRoutePayload,
@@ -36,9 +37,9 @@ import {
     submitEndoBasketOrder,
     updateEndoListQty,
 } from "@/lib/api-client/endo";
-import { fetchCatalogProducts } from "@/lib/api-client/catalogs";
 import { searchCustomers } from "@/lib/api-client/customers";
 import {
+    fetchStockFeedback,
     fetchStockRequests,
     massDeleteStockRequests,
     requestStockQuantity,
@@ -61,6 +62,12 @@ export const useSearchItemsByTrdrMutation = () =>
     useMutation({
         mutationFn: ({ search, trdr }: { search: string; trdr: string }) =>
             searchItemsByTrdr(search, trdr),
+    });
+
+export const useFetchStockFeedbackMutation = () =>
+    useMutation({
+        mutationFn: (payload: StockFeedbackRoutePayload) =>
+            fetchStockFeedback(payload),
     });
 
 export const useRequestStockQuantityMutation = () =>
@@ -165,10 +172,4 @@ export const useUpdateEndoListQtyMutation = () =>
     useMutation({
         mutationFn: (payload: EndoListUpdateQtyRoutePayload) =>
             updateEndoListQty(payload),
-    });
-
-export const useFetchCatalogProductsMutation = () =>
-    useMutation({
-        mutationFn: ({ page, pageSize }: { page: number; pageSize: number }) =>
-            fetchCatalogProducts(page, pageSize),
     });

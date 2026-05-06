@@ -6,7 +6,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BadgePercent,
-  BookOpenText,
   ClipboardList,
   MoreHorizontal,
   PackageSearch,
@@ -18,6 +17,7 @@ import {
   Send,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
+import { CloudSync, Warehouse } from "lucide-react";
 
 type NavSubItem = {
   name: string;
@@ -46,6 +46,11 @@ const navItems: NavItem[] = [
     path: "/search-parts",
   },
   {
+    icon: Warehouse,
+    name: "Ανατροφοδοσία",
+    path: "/stock-feedback",
+  },
+  {
     icon: GitCompareArrows,
     name: "Ενδοδιακίνηση Ανταλλακτικών",
     path: "/endo/endo-parts",
@@ -67,16 +72,6 @@ const navItems: NavItem[] = [
     icon: Users,
     name: "Καλάθια Πελατών",
     path: "/all-baskets",
-  },
-  {
-    icon: ClipboardList,
-    name: "Ανατροφοδοσία Καταστήματος",
-    path: "/order-feedback",
-  },
-  {
-    icon: BookOpenText,
-    name: "Κατάλογοι",
-    path: "/catalogs",
   },
   {
     icon: Settings,
