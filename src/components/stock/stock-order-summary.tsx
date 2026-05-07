@@ -23,18 +23,17 @@ export default function StockOrderSummary({
 }: StockOrderSummaryProps) {
     return (
         <OrderSummaryPanel
-            summaryLabel="Σύνοψη Ολοκληρωμένων"
-            summaryTitle="Done Requests"
-            asideClassName="xl:!basis-[24%] xl:!min-w-[272px]"
+            summaryLabel="Σύνοψη Ανατροφοδοσίας"
+            summaryTitle="Αποστολή Ανατροφοδοσίας :: S1"
+            asideClassName="xl:!basis-[25%] xl:!min-w-[272px]"
             headerActions={
                 <span className="rounded-full bg-gray-900/10 px-2 py-1 text-[10px] font-semibold text-gray-700 dark:bg-gray-100/10 dark:text-gray-200">
                     {rows.length}
                 </span>
             }
             infoCard={{
-                label: "Κατάστημα",
-                title: branchLabel || "—",
-                description: "Approved / Deleted",
+                label: "ΑΝΑΤΡΟΦΟΔΟΣΙΑ ΓΙΑ ΚΑΤΑΣΤΗΜΑ:",
+                title: branchLabel || "—"
             }}
             metrics={[
                 {
@@ -52,7 +51,7 @@ export default function StockOrderSummary({
             <div className="mt-5">
                 <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                        Ολοκληρωμένα αιτήματα
+                        Καλάθι Ανατροφοδοσίας
                     </p>
                     {rows.length > 0 && (
                         <span className="text-xs text-gray-400">
@@ -121,22 +120,10 @@ export default function StockOrderSummary({
                                     </span>
                                 </div>
 
-                                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 border-t border-gray-200 pt-3 text-[11px] text-gray-500 dark:border-gray-800">
-                                    <span>TOTAL_AVAIL: {row.TOTAL_AVAIL}</span>
-                                    <span>YP1001: {row.YP1001}</span>
-                                    <span>YP1006: {row.YP1006}</span>
-                                    <span>YP1007: {row.YP1007}</span>
-                                    <span>ONGOING: {row.ONGOING}</span>
-                                    <span>ORDERED: {row.ORDERED}</span>
-                                    <span className="col-span-2">
-                                        QTY_IN_BASKETS: {row.QTY_IN_BASKETS}
-                                    </span>
-                                </div>
-
                                 <div className="mt-3 border-t border-gray-200 pt-3 text-[11px] text-gray-500 dark:border-gray-800">
-                                    <p>Αίτημα: {formatDateTime(row.INS_DATE)}</p>
+                                    <p>Ημ/νία Αιτήματος: {formatDateTime(row.INS_DATE)}</p>
                                     <p className="mt-1">
-                                        Έγκριση: {formatDateTime(row.APPROVED_TS)}
+                                        Ημ/νία Έγκρισης: {formatDateTime(row.APPROVED_TS)}
                                     </p>
                                 </div>
                             </div>
