@@ -25,6 +25,22 @@ import { useAuthStore } from "@/stores/authStore";
 import { normalizeBranchCode } from "@/lib/auth/branches";
 
 type StockBranchCode = "1001" | "1006" | "1007";
+type StockBranchStockKey = "YP1001" | "YP1006" | "YP1007";
+
+const STOCK_REQUEST_BRANCH_OPTIONS: Array<{ code: StockBranchCode; label: string }> = [
+    { code: "1001", label: "Κασομούλη" },
+    { code: "1006", label: "Λ. Αθηνών" },
+    { code: "1007", label: "Λ. Μεσογείων" },
+];
+const STOCK_BRANCH_COLUMNS: Array<{
+    code: StockBranchCode;
+    label: string;
+    stockKey: StockBranchStockKey;
+}> = [
+    { code: "1001", label: "Κασομούλη", stockKey: "YP1001" },
+    { code: "1006", label: "Λ.Αθηνών", stockKey: "YP1006" },
+    { code: "1007", label: "Λ.Μεσογείων", stockKey: "YP1007" },
+];
 
 function getStatusStyle(status: string) {
     const normalized = status.toUpperCase();
@@ -125,18 +141,15 @@ function getActionQty(row: IStockRequestListRow) {
     return getValidatedQty(getRequestedQty(row));
 }
 
-function isRequestBranchStockColumn(
-    requestBranchCode: string,
-    stockBranchCode: StockBranchCode
-) {
-    return normalizeBranchCode(requestBranchCode) === stockBranchCode;
+function isStockRequestBranchCode(value: string): value is StockBranchCode {
+    return STOCK_REQUEST_BRANCH_OPTIONS.some((branch) => branch.code === value);
 }
 
 export default function StockRequestsClient() {
     const user = useAuthStore((state) => state.user);
 
     const currentBranchCode = useMemo(
-        () => String(user?.s1code ?? "").trim(),
+        () => normalizeBranchCode(user?.s1code),
         [user?.s1code]
     );
 
@@ -151,21 +164,65 @@ export default function StockRequestsClient() {
     const [editingId, setEditingId] = useState("");
     const [editedQty, setEditedQty] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedBranchCode, setSelectedBranchCode] = useState<StockBranchCode | "">("");
 
-    const loadRows = useCallback(async () => {
-        setLoading(true);
-        setError("");
+    const selectedBranchLabel = useMemo(() => {
+        const selectedBranch = STOCK_REQUEST_BRANCH_OPTIONS.find(
+            (branch) => branch.code === selectedBranchCode
+        );
 
-        if (!currentBranchCode) {
-            setRows([]);
-            setLoading(false);
-            setError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
+        if (!selectedBranch) {
+            return selectedBranchCode || "—";
+        }
+
+        return `${selectedBranch.label} (${selectedBranch.code})`;
+    }, [selectedBranchCode]);
+
+    const orderedStockBranchColumns = useMemo(() => {
+        if (!selectedBranchCode) {
+            return STOCK_BRANCH_COLUMNS;
+        }
+
+        const selectedColumn = STOCK_BRANCH_COLUMNS.find(
+            (column) => column.code === selectedBranchCode
+        );
+
+        if (!selectedColumn) {
+            return STOCK_BRANCH_COLUMNS;
+        }
+
+        return [
+            ...STOCK_BRANCH_COLUMNS.filter((column) => column.code !== selectedBranchCode),
+            selectedColumn,
+        ];
+    }, [selectedBranchCode]);
+
+    useEffect(() => {
+        if (selectedBranchCode) {
             return;
         }
 
+        const normalizedCurrentBranch = normalizeBranchCode(currentBranchCode);
+
+        if (isStockRequestBranchCode(normalizedCurrentBranch)) {
+            setSelectedBranchCode(normalizedCurrentBranch);
+            return;
+        }
+
+        setSelectedBranchCode(STOCK_REQUEST_BRANCH_OPTIONS[0].code);
+    }, [currentBranchCode, selectedBranchCode]);
+
+    const loadRows = useCallback(async () => {
+        if (!selectedBranchCode) {
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+
         try {
             const data = await fetchStockRequests({
-                branch: currentBranchCode,
+                branch: selectedBranchCode,
             });
 
             setRows(sortStockRequestRows(data.rows ?? []));
@@ -181,11 +238,15 @@ export default function StockRequestsClient() {
         } finally {
             setLoading(false);
         }
-    }, [currentBranchCode, fetchStockRequests]);
+    }, [fetchStockRequests, selectedBranchCode]);
 
     useEffect(() => {
-        loadRows();
-    }, [loadRows]);
+        if (!selectedBranchCode) {
+            return;
+        }
+
+        void loadRows();
+    }, [loadRows, selectedBranchCode]);
 
     const pendingRows = useMemo(
         () => rows.filter((row) => canUpdate(row.STATUS)),
@@ -356,19 +417,45 @@ export default function StockRequestsClient() {
                 <div className="flex min-h-0 flex-1 flex-col gap-5 xl:flex-row">
                     <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-[1.6]">
                         <DataTableHeader
-                            title="Εκκρεμή Αιτήματα Ανατροφοδοσίας"
-                            description="Διαχείριση αιτημάτων, ποσοτήτων και έγκρισης ανατροφοδοσίας."
+                            title="Εκκρεμή Αιτήματα Ανατροφοδοσίας" 
+                            description={`Διαχείριση αιτημάτων, ποσοτήτων και έγκρισης ανατροφοδοσίας. Κατάστημα: ${selectedBranchLabel}`}
                             count={pendingRows.length}
                             countClassName="bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
                             action={(
-                                <DataTableSearchBar
-                                    value={searchTerm}
-                                    onChange={setSearchTerm}
-                                    onRefresh={loadRows}
-                                    isRefreshing={loading}
-                                    refreshDisabled={loading || Boolean(updatingId)}
-                                    placeholder="Αναζήτηση με ID, MTRL, κωδικό ή περιγραφή..."
-                                />
+                                <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
+                                    <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                                        Κατάστημα
+                                        <select
+                                            value={selectedBranchCode}
+                                            onChange={(event) => {
+                                                const nextBranchCode = normalizeBranchCode(event.target.value);
+
+                                                if (!isStockRequestBranchCode(nextBranchCode)) {
+                                                    return;
+                                                }
+
+                                                setSelectedBranchCode(nextBranchCode);
+                                            }}
+                                            disabled={loading || Boolean(updatingId)}
+                                            className="min-w-[140px] border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
+                                        >
+                                            {STOCK_REQUEST_BRANCH_OPTIONS.map((branch) => (
+                                                <option key={branch.code} value={branch.code}>
+                                                    {branch.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+
+                                    <DataTableSearchBar
+                                        value={searchTerm}
+                                        onChange={setSearchTerm}
+                                        onRefresh={loadRows}
+                                        isRefreshing={loading}
+                                        refreshDisabled={loading || Boolean(updatingId)}
+                                        placeholder="Αναζήτηση με ID, MTRL, κωδικό ή περιγραφή..."
+                                    />
+                                </div>
                             )}
                         />
 
@@ -430,17 +517,19 @@ export default function StockRequestsClient() {
                                                 Διαθέσιμα
                                             </th>
 
-                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                                Κασομούλη
-                                            </th>
-
-                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                                Λ.Αθηνών
-                                            </th>
-
-                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                                Λ.Μεσογείων
-                                            </th>
+                                            {orderedStockBranchColumns.map((branchColumn) => (
+                                                <th
+                                                    key={branchColumn.code}
+                                                    className={[
+                                                        "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
+                                                        branchColumn.code === selectedBranchCode
+                                                            ? "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                                                            : "text-gray-500 dark:text-gray-400",
+                                                    ].join(" ")}
+                                                >
+                                                    {branchColumn.label}
+                                                </th>
+                                            ))}
 
                                             <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 Αιτούμενη Ποσότητα
@@ -539,38 +628,19 @@ export default function StockRequestsClient() {
                                                         />
                                                     </td>
 
-                                                    <td
-                                                        className={[
-                                                            "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
-                                                            isRequestBranchStockColumn(row.BRANCH, "1001")
-                                                                ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
-                                                                : "text-gray-700 dark:text-gray-200",
-                                                        ].join(" ")}
-                                                    >
-                                                        {row.YP1001}
-                                                    </td>
-
-                                                    <td
-                                                        className={[
-                                                            "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
-                                                            isRequestBranchStockColumn(row.BRANCH, "1006")
-                                                                ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
-                                                                : "text-gray-700 dark:text-gray-200",
-                                                        ].join(" ")}
-                                                    >
-                                                        {row.YP1006}
-                                                    </td>
-
-                                                    <td
-                                                        className={[
-                                                            "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
-                                                            isRequestBranchStockColumn(row.BRANCH, "1007")
-                                                                ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
-                                                                : "text-gray-700 dark:text-gray-200",
-                                                        ].join(" ")}
-                                                    >
-                                                        {row.YP1007}
-                                                    </td>
+                                                    {orderedStockBranchColumns.map((branchColumn) => (
+                                                        <td
+                                                            key={`${row.BASKETID}-${branchColumn.code}`}
+                                                            className={[
+                                                                "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
+                                                                branchColumn.code === selectedBranchCode
+                                                                    ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                                                                    : "text-gray-700 dark:text-gray-200",
+                                                            ].join(" ")}
+                                                        >
+                                                            {row[branchColumn.stockKey]}
+                                                        </td>
+                                                    ))}
 
                                                     <td className="px-5 py-4 text-right align-top">
                                                         {rowIsEditing ? (
@@ -660,7 +730,7 @@ export default function StockRequestsClient() {
                     <StockOrderSummary
                         rows={doneRows}
                         requestedQtyTotal={doneRequestedQty}
-                        branchLabel={currentBranchCode || "—"}
+                        branchLabel={selectedBranchLabel}
                         getStatusStyle={getStatusStyle}
                         getRequestedQty={getRequestedQty}
                         formatDateTime={formatDateTime}
