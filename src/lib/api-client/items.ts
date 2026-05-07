@@ -6,14 +6,30 @@ import {
     StockFeedbackRoutePayload,
     StockRequestListResponse,
     StockRequestListRoutePayload,
-    StockRequestMassDeleteResponse,
-    StockRequestMassDeleteRoutePayload,
     StockRequestInsertResponse,
     StockRequestRoutePayload,
+    StockRequestSubmitResponse,
+    StockRequestSubmitRoutePayload,
     StockRequestUpdateResponse,
     StockRequestUpdateRoutePayload,
 } from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
+import type { OrderSubmitRequestBody } from "@/lib/orders/order-submit-types";
+
+const DEFAULT_ANATROF_PAYMENT = 1006;
+const DEFAULT_ANATROF_TRUCKS = 2;
+const DEFAULT_ANATROF_SHIPKIND = 1000;
+const DEFAULT_ANATROF_SOCASH = 1005;
+
+function asPositiveNumber(value: unknown): number | undefined {
+    const parsed = Number(value);
+
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return undefined;
+    }
+
+    return parsed;
+}
 
 export async function searchItems(
     search: string
@@ -96,16 +112,38 @@ export async function updateStockRequest(
     return data;
 }
 
-export async function massDeleteStockRequests(
-    payload: StockRequestMassDeleteRoutePayload
-): Promise<StockRequestMassDeleteResponse> {
-    const { data } = await httpClient.delete<StockRequestMassDeleteResponse>(
-        "/api/items/stock-requests",
-        { data: payload }
+export async function submitAnatrofOrder(
+    payload: StockRequestSubmitRoutePayload
+): Promise<StockRequestSubmitResponse> {
+    const branch = asPositiveNumber(payload.branch);
+    const body: OrderSubmitRequestBody = {
+        submitType: "anatrof",
+        appUserId: String(payload.appUserId ?? "").trim(),
+        deliveryDate: payload.deliveryDate,
+        notes: payload.notes,
+        trdr: payload.trdr,
+        trdBranch: payload.trdBranch,
+        payment: payload.payment ?? DEFAULT_ANATROF_PAYMENT,
+        trucks: payload.trucks ?? DEFAULT_ANATROF_TRUCKS,
+        shipKind: payload.shipKind ?? DEFAULT_ANATROF_SHIPKIND,
+        socash: payload.socash ?? DEFAULT_ANATROF_SOCASH,
+        branchSec: payload.branchSec ?? branch,
+        whouseSec: payload.whouseSec ?? branch,
+        items: payload.items.map((item) => ({
+            basketId: item.BASKETID,
+            mtrl: item.MTRL,
+            qty: item.QTY_REQUESTED || item.QTY,
+            branch: item.BRANCH || payload.branch,
+        })),
+    };
+
+    const { data } = await httpClient.post<StockRequestSubmitResponse>(
+        "/api/orders/submit",
+        body
     );
 
     if (!data?.success) {
-        throw new Error(data?.message ?? "Failed to delete stock requests");
+        throw new Error(data?.message ?? "Failed to submit stock request order");
     }
 
     return data;

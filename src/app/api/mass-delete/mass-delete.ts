@@ -1,4 +1,10 @@
 import type { BasketMassDeletePayload } from "@/lib/interface";
+import { buildMassDeletePayload } from "@/lib/orders/build-mass-delete-payload";
+import type {
+    MassDeleteTableAction,
+    OrderSubmitType,
+} from "@/lib/orders/order-submit-types";
+import { isMassDeleteTableAction } from "@/lib/orders/validation";
 import { parseJsonWithEncodingFallback, postSoftOne } from "@/lib/softone";
 
 export class MassDeleteError extends Error {
@@ -19,6 +25,7 @@ interface CallMassDeleteParams {
     s1Key: string | number;
     appUserId: string;
     logLabel: string;
+    submitType?: OrderSubmitType;
 }
 
 interface MassDeleteResponseData {
@@ -53,6 +60,7 @@ export async function callMassDelete({
     s1Key,
     appUserId,
     logLabel,
+    submitType,
 }: CallMassDeleteParams) {
     const normalizedIds = basketIds
         .map((id) => String(id).trim())
@@ -62,17 +70,39 @@ export async function callMassDelete({
         throw new MassDeleteError("No BASKET IDs provided", 400);
     }
 
-    const payload: BasketMassDeletePayload = {
-        service: "SqlData",
-        clientID,
-        appId: "1305",
-        SqlName: "MASS_DELETE",
-        BASKET_IDS: normalizedIds.join(","),
-        TABLE_ACTION: tableAction,
-        METHOD: method,
-        S1_KEY: String(s1Key),
-        APPUSER_ID: appUserId,
-    };
+    let payload: BasketMassDeletePayload;
+
+    if (submitType) {
+        if (!isMassDeleteTableAction(tableAction)) {
+            throw new MassDeleteError("Invalid MASS_DELETE table action", 400);
+        }
+
+        if (method !== "LINK_S1") {
+            throw new MassDeleteError("Invalid MASS_DELETE method", 400);
+        }
+
+        payload = buildMassDeletePayload({
+            clientID,
+            basketIds: normalizedIds,
+            tableAction: tableAction as MassDeleteTableAction,
+            method,
+            s1Key: String(s1Key),
+            appUserId,
+            submitType,
+        });
+    } else {
+        payload = {
+            service: "SqlData",
+            clientID,
+            appId: "1305",
+            SqlName: "MASS_DELETE",
+            BASKET_IDS: normalizedIds.join(","),
+            TABLE_ACTION: tableAction,
+            METHOD: method,
+            S1_KEY: String(s1Key),
+            APPUSER_ID: appUserId,
+        };
+    }
 
     const response = await postSoftOne(payload);
 

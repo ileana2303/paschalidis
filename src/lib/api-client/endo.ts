@@ -7,6 +7,7 @@ import type {
     EndoListsResponse,
     EndoBasketSubmitRoutePayload,
 } from "@/lib/interface";
+import type { OrderSubmitRequestBody } from "@/lib/orders/order-submit-types";
 
 export async function addItemToEndoBasket(
     payload: EndoBasketAddRoutePayload
@@ -26,9 +27,26 @@ export async function addItemToEndoBasket(
 export async function submitEndoBasketOrder(
     payload: EndoBasketSubmitRoutePayload
 ): Promise<EndoBasketActionResponse> {
+    const body: OrderSubmitRequestBody = {
+        submitType: "endo",
+        appUserId: String(payload.appUserId ?? "").trim(),
+        deliveryDate: payload.deliveryDate,
+        notes: payload.notes,
+        items: payload.items.map((item) => ({
+            basketId: item.basketIds?.[0],
+            basketIds: item.basketIds,
+            mtrl: item.mtrl,
+            qty: item.qty,
+            sourceBranch: item.toBranch,
+            destinationBranch: item.branch,
+            branch: item.branch,
+            toBranch: item.toBranch,
+        })),
+    };
+
     const { data } = await httpClient.post<EndoBasketActionResponse>(
-        "/api/endo/basket/submit",
-        payload
+        "/api/orders/submit",
+        body
     );
 
     if (!data.success) {

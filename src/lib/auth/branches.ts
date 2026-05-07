@@ -6,6 +6,12 @@ const BRANCH_NAME_BY_CODE = {
 
 type KnownBranchCode = keyof typeof BRANCH_NAME_BY_CODE;
 
+const TRD_BRANCH_BY_BRANCH_CODE: Partial<Record<KnownBranchCode, number>> = {
+  "1001": 15,
+  "1006": 13,
+  "1007": 14,
+} as const;
+
 function normalizeText(value: string | null | undefined) {
   return String(value ?? "").trim();
 }
@@ -19,6 +25,13 @@ export function getKnownBranchName(
 ) {
   const code = normalizeBranchCode(branchCode) as KnownBranchCode;
   return BRANCH_NAME_BY_CODE[code];
+}
+
+export function getTrdBranchByBranchCode(
+  branchCode: string | number | null | undefined
+) {
+  const code = normalizeBranchCode(branchCode) as KnownBranchCode;
+  return TRD_BRANCH_BY_BRANCH_CODE[code];
 }
 
 export function resolveBranchName(

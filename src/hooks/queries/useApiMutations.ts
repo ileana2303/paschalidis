@@ -15,8 +15,8 @@ import type {
     StockFeedbackRoutePayload,
     RequestedPriceUpdateRoutePayload,
     StockRequestListRoutePayload,
-    StockRequestMassDeleteRoutePayload,
     StockRequestRoutePayload,
+    StockRequestSubmitRoutePayload,
     StockRequestUpdateRoutePayload,
 } from "@/lib/interface";
 import {
@@ -41,10 +41,10 @@ import { searchCustomers } from "@/lib/api-client/customers";
 import {
     fetchStockFeedback,
     fetchStockRequests,
-    massDeleteStockRequests,
     requestStockQuantity,
     searchItems,
     searchItemsByTrdr,
+    submitAnatrofOrder,
     updateStockRequest,
 } from "@/lib/api-client/items";
 
@@ -88,10 +88,10 @@ export const useUpdateStockRequestMutation = () =>
             updateStockRequest(payload),
     });
 
-export const useMassDeleteStockRequestsMutation = () =>
+export const useSubmitAnatrofOrderMutation = () =>
     useMutation({
-        mutationFn: (payload: StockRequestMassDeleteRoutePayload) =>
-            massDeleteStockRequests(payload),
+        mutationFn: (payload: StockRequestSubmitRoutePayload) =>
+            submitAnatrofOrder(payload),
     });
 
 export const useFetchBasketItemsMutation = () =>

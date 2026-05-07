@@ -12,6 +12,41 @@ import type {
     RequestedPriceUpdateRoutePayload,
 } from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
+import type { OrderSubmitRequestBody } from "@/lib/orders/order-submit-types";
+import { getTrdBranchByBranchCode } from "@/lib/auth/branches";
+
+const DEFAULT_ORDER_PAYMENT = 1006;
+const DEFAULT_ORDER_SHIPKIND = 1000;
+const DEFAULT_ORDER_SOCASH = 1005;
+const DEFAULT_ORDER_TRUCKS = 2;
+const DEFAULT_ORDER_BRANCH = 1006;
+const DEFAULT_ORDER_TRD_BRANCH = 1000;
+
+function firstDefined<T>(...values: Array<T | null | undefined>): T | undefined {
+    for (const value of values) {
+        if (value !== null && value !== undefined) {
+            return value;
+        }
+    }
+
+    return undefined;
+}
+
+function asPositiveNumber(value: unknown): number | undefined {
+    const parsed = Number(value);
+
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return undefined;
+    }
+
+    return parsed;
+}
+
+function getBasketSubmitQty(item: BasketSubmitRoutePayload["items"][number]) {
+    return asPositiveNumber(
+        firstDefined(item.QTY, item.TOTAL_QTY, item.BASKET_QTY)
+    );
+}
 
 export async function fetchBasketItems(trdr: string): Promise<BasketResponse> {
     const { data } = await httpClient.post<BasketResponse>("/api/basket/items", {
@@ -146,9 +181,41 @@ export async function fetchAllClientBaskets(
 export async function submitBasketOrder(
     params: BasketSubmitRoutePayload
 ): Promise<BasketActionResponse> {
+    const firstItem = params.items[0];
+    const orderBranch =
+        asPositiveNumber(firstItem?.BRANCH) ?? DEFAULT_ORDER_BRANCH;
+    const orderTrdBranch =
+        getTrdBranchByBranchCode(orderBranch) ??
+        asPositiveNumber(firstItem?.TRD_BRANCH) ??
+        DEFAULT_ORDER_TRD_BRANCH;
+    const appUserId =
+        String(params.APPUSER_ID ?? "").trim() ||
+        String(firstItem?.APPUSER_ID ?? "").trim();
+    const body: OrderSubmitRequestBody = {
+        submitType: "basket",
+        appUserId,
+        deliveryDate: params.DELIVDATE,
+        notes: params.NOTES,
+        trdr: Number(params.TRDR),
+        trdBranch: orderTrdBranch,
+        payment: DEFAULT_ORDER_PAYMENT,
+        trucks: DEFAULT_ORDER_TRUCKS,
+        shipKind: DEFAULT_ORDER_SHIPKIND,
+        socash: DEFAULT_ORDER_SOCASH,
+        branchSec: orderBranch,
+        whouseSec: orderBranch,
+        items: params.items.map((item) => ({
+            basketId: item.BASKETID,
+            mtrl: item.MTRL,
+            qty: getBasketSubmitQty(item),
+            branch: item.BRANCH,
+            toBranch: item.TRD_BRANCH,
+        })),
+    };
+
     const { data } = await httpClient.post<BasketActionResponse>(
-        "/api/basket/submit",
-        params
+        "/api/orders/submit",
+        body
     );
 
     if (!data.success) {

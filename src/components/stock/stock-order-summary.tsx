@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "@/lib/icons/lucide";
+import { Check, Loader2, Send } from "@/lib/icons/lucide";
 import { OrderSummary as OrderSummaryPanel } from "@/components/order-summary/order-summary";
 import type { IStockRequestListRow } from "@/lib/interface";
 
@@ -11,6 +11,8 @@ interface StockOrderSummaryProps {
     getStatusStyle: (status: string) => string;
     getRequestedQty: (row: IStockRequestListRow) => string;
     formatDateTime: (value?: string) => string;
+    sendingOrder?: boolean;
+    onSendOrder?: () => void;
 }
 
 export default function StockOrderSummary({
@@ -20,7 +22,11 @@ export default function StockOrderSummary({
     getStatusStyle,
     getRequestedQty,
     formatDateTime,
+    sendingOrder = false,
+    onSendOrder,
 }: StockOrderSummaryProps) {
+    const sendDisabled = sendingOrder || rows.length === 0;
+
     return (
         <OrderSummaryPanel
             summaryLabel="Σύνοψη Ανατροφοδοσίας"
@@ -47,6 +53,23 @@ export default function StockOrderSummary({
                     value: requestedQtyTotal,
                 },
             ]}
+            footer={
+                onSendOrder ? (
+                    <button
+                        type="button"
+                        onClick={onSendOrder}
+                        disabled={sendDisabled}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-brand-300"
+                    >
+                        {sendingOrder ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Send className="h-4 w-4" />
+                        )}
+                        Αποστολή Ανατροφοδοσίας
+                    </button>
+                ) : undefined
+            }
         >
             <div className="mt-5">
                 <div className="flex items-center justify-between">

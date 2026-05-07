@@ -19,6 +19,7 @@ import type {
 } from "@/lib/interface";
 import {
     useFetchStockRequestsMutation,
+    useSubmitAnatrofOrderMutation,
     useUpdateStockRequestMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
@@ -62,6 +63,12 @@ function getStatusStyle(status: string) {
 
 function canUpdate(status: string) {
     return status.toUpperCase().includes("ΕΚΚΡΕΜ");
+}
+
+function canSubmitAnatrofRow(status: string) {
+    const normalized = status.toUpperCase();
+
+    return normalized.includes("ΕΓΚΡΙΘ") || normalized.includes("APPROV");
 }
 
 function getStatusPriority(status: string) {
@@ -155,12 +162,15 @@ export default function StockRequestsClient() {
 
     const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
     const { mutateAsync: updateStockRequest } = useUpdateStockRequestMutation();
+    const { mutateAsync: submitAnatrofOrder } = useSubmitAnatrofOrderMutation();
 
     const [rows, setRows] = useState<IStockRequestListRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
 
     const [updatingId, setUpdatingId] = useState("");
+    const [submittingAnatrof, setSubmittingAnatrof] = useState(false);
     const [editingId, setEditingId] = useState("");
     const [editedQty, setEditedQty] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
@@ -219,6 +229,7 @@ export default function StockRequestsClient() {
 
         setLoading(true);
         setError("");
+        setSuccessMessage("");
 
         try {
             const data = await fetchStockRequests({
@@ -275,21 +286,6 @@ export default function StockRequestsClient() {
         });
     }, [pendingRows, searchTerm]);
 
-    const doneRows = useMemo(
-        () => rows.filter((row) => !canUpdate(row.STATUS)),
-        [rows]
-    );
-
-    const doneRequestedQty = useMemo(
-        () =>
-            doneRows.reduce((sum, row) => {
-                const qty = Number(row.QTY_REQUESTED);
-
-                return sum + (Number.isFinite(qty) ? qty : 0);
-            }, 0),
-        [doneRows]
-    );
-
     const hasRowInEditMode = Boolean(editingId);
 
     const handleStartQtyEdit = (row: IStockRequestListRow) => {
@@ -309,6 +305,7 @@ export default function StockRequestsClient() {
     ) => {
         setUpdatingId(row.BASKETID);
         setError("");
+        setSuccessMessage("");
 
         try {
             await updateStockRequest({
@@ -327,6 +324,7 @@ export default function StockRequestsClient() {
                 );
                 setEditingId("");
                 setEditedQty("");
+                setSuccessMessage("Η ποσότητα ενημερώθηκε");
                 return;
             }
 
@@ -349,6 +347,7 @@ export default function StockRequestsClient() {
                 );
                 setEditingId("");
                 setEditedQty("");
+                setSuccessMessage("Το αίτημα εγκρίθηκε");
                 return;
             }
 
@@ -392,6 +391,60 @@ export default function StockRequestsClient() {
         await handleUpdateAction(row, "DELETE", getActionQty(row) ?? "1");
     };
 
+    const approvedRows = useMemo(
+        () => rows.filter((row) => canSubmitAnatrofRow(row.STATUS)),
+        [rows]
+    );
+
+    const approvedRequestedQty = useMemo(
+        () =>
+            approvedRows.reduce((sum, row) => {
+                const qty = Number(row.QTY_REQUESTED);
+
+                return sum + (Number.isFinite(qty) ? qty : 0);
+            }, 0),
+        [approvedRows]
+    );
+
+    const handleSubmitAnatrofOrder = useCallback(async () => {
+        if (approvedRows.length === 0) {
+            setError("Δεν υπάρχουν εγκεκριμένες γραμμές για αποστολή.");
+            return;
+        }
+
+        setSubmittingAnatrof(true);
+        setError("");
+        setSuccessMessage("");
+
+        try {
+            const data = await submitAnatrofOrder({
+                appUserId: user?.uid,
+                branch: selectedBranchCode,
+                items: approvedRows,
+            });
+
+            await loadRows();
+            setSuccessMessage(
+                String(data.message ?? "").trim() ||
+                    "Η ανατροφοδοσία καταχωρήθηκε επιτυχώς."
+            );
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Αποτυχία αποστολής ανατροφοδοσίας"
+            );
+        } finally {
+            setSubmittingAnatrof(false);
+        }
+    }, [
+        approvedRows,
+        loadRows,
+        selectedBranchCode,
+        submitAnatrofOrder,
+        user?.uid,
+    ]);
+
     return (
         <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
             <div className="shrink-0">
@@ -401,6 +454,12 @@ export default function StockRequestsClient() {
             {error && (
                 <div className="mb-4 shrink-0 rounded-lg border border-red-100 bg-red-50 px-5 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
                     {error}
+                </div>
+            )}
+
+            {successMessage && (
+                <div className="mb-4 shrink-0 rounded-lg border border-green-100 bg-green-50 px-5 py-3 text-sm text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400">
+                    {successMessage}
                 </div>
             )}
 
@@ -705,7 +764,7 @@ export default function StockRequestsClient() {
                                                         ) : (
                                                             <RowActionGroup
                                                                 loading={rowUpdating}
-                                                                disabled={hasRowInEditMode}
+                                                                disabled={hasRowInEditMode || submittingAnatrof}
                                                                 onEdit={() => handleStartQtyEdit(row)}
                                                                 onApprove={() => void handleApproveRow(row)}
                                                                 onDelete={() => void handleDeleteRow(row)}
@@ -728,12 +787,14 @@ export default function StockRequestsClient() {
                     </DataTable>
 
                     <StockOrderSummary
-                        rows={doneRows}
-                        requestedQtyTotal={doneRequestedQty}
+                        rows={approvedRows}
+                        requestedQtyTotal={approvedRequestedQty}
                         branchLabel={selectedBranchLabel}
                         getStatusStyle={getStatusStyle}
                         getRequestedQty={getRequestedQty}
                         formatDateTime={formatDateTime}
+                        sendingOrder={submittingAnatrof}
+                        onSendOrder={() => void handleSubmitAnatrofOrder()}
                     />
                 </div>
             )}

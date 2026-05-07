@@ -286,6 +286,9 @@ export interface BasketMassDeletePayload {
 export interface BasketSubmitRoutePayload {
     TRDR: string;
     NOTES?: string;
+    APPUSER_ID?: string;
+    DELIVDATE?: string;
+    items: Array<Partial<IBasketItem>>;
 }
 
 export interface BasketOutPayload {
@@ -300,6 +303,8 @@ export interface BasketActionResponse {
     success: boolean;
     message?: string;
     id?: string;
+    orderIds?: string[];
+    basketIds?: string[];
 }
 
 export interface ApiResponse<T> {
@@ -426,21 +431,29 @@ interface IStockRequestMessageRow {
 export interface StockRequestUpdateResponse
   extends ApiResponse<IStockRequestMessageRow> {}
 
-export interface StockRequestMassDeleteRoutePayload {
-  basketIds: Array<string | number>;
+export interface StockRequestSubmitRoutePayload {
+  appUserId?: string;
+  deliveryDate?: string;
+  notes?: string;
+  branch?: string | number;
+  trdr?: number;
+  trdBranch?: number;
+  payment?: number;
+  trucks?: number;
+  shipKind?: number;
+  socash?: number;
+  branchSec?: number;
+  whouseSec?: number;
+  items: IStockRequestListRow[];
 }
 
-export interface StockRequestMassDeletePayload {
-  service: "SqlData";
-  clientID: string;
-  appId: "1305";
-  SqlName: "ANTROF_MASS_DELETE";
-  BASKET_IDS: string;
-  APPUSER_ID: string;
+export interface StockRequestSubmitResponse {
+  success: boolean;
+  message?: string;
+  id?: string;
+  orderIds?: string[];
+  basketIds?: string[];
 }
-
-export interface StockRequestMassDeleteResponse
-  extends ApiResponse<IStockRequestMessageRow> {}
 
 export interface StockRequestProps {
   mtrl: string;
@@ -482,6 +495,7 @@ export interface EndoBasketActionResponse {
     basketId?: string;
     id?: string;
     orderIds?: string[];
+    basketIds?: string[];
 }
 
 export interface EndoBasketSubmitLineRoutePayload {

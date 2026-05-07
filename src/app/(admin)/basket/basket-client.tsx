@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomerStore } from "@/stores/customerStore";
 import { IBasket } from "@/lib/interface";
+import { useAuthStore } from "@/stores/authStore";
 import {
     getBasketItemId,
     getBasketItemLineTotal,
@@ -28,6 +29,7 @@ export default function BasketClient() {
     const urlTrdr = String(searchParams.get("trdr") ?? "").trim();
     const customer = useCustomerStore((state) => state.customer);
     const clearCustomer = useCustomerStore((state) => state.clearCustomer);
+    const user = useAuthStore((state) => state.user);
     const [basket, setBasket] = useState<IBasket | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -252,6 +254,8 @@ export default function BasketClient() {
             await submitBasketOrder({
                 TRDR: urlTrdr,
                 NOTES: notes,
+                APPUSER_ID: user?.uid,
+                items: basketItems,
             });
             setOrderSubmittedSuccess(true);
             setNotes("");

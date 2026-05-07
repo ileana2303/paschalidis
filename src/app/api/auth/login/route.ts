@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { setSessionCookie } from "@/lib/auth/session";
+import { getTrdBranchByBranchCode } from "@/lib/auth/branches";
 import { backend } from "@/lib/http/backend";
 import type {
     ExternalLoginResponse,
@@ -57,12 +58,17 @@ export async function POST(req: NextRequest) {
 
         await setSessionCookie();
 
+        const userAccount = {
+            ...upstreamData.userAccount,
+            trdBranch: getTrdBranchByBranchCode(upstreamData.userAccount.s1code),
+        };
+
         tmessage = {
             result: true,
             message: "Επιτυχής σύνδεση",
             type: "success",
             redirectlink: "/",
-            userAccount: upstreamData.userAccount,
+            userAccount,
         };
 
         return NextResponse.json(tmessage);

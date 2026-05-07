@@ -267,6 +267,8 @@ export function useSearchPartsBasketController({
             await submitBasketOrder({
                 TRDR: customer.TRDR,
                 NOTES: notes,
+                APPUSER_ID: userId,
+                items: basket.items,
             });
             submittedSuccessfully = true;
             setOrderSubmittedSuccess(true);
@@ -284,7 +286,7 @@ export function useSearchPartsBasketController({
         } finally {
             setSendingOrder(false);
         }
-    }, [basket, customer, loadBasket, notes, selectedItems.size, submitBasketOrder]);
+    }, [basket, customer, loadBasket, notes, selectedItems.size, submitBasketOrder, userId]);
 
     const handleRefreshBasket = useCallback(() => {
         if (!customer) {

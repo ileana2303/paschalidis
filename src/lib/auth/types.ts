@@ -24,6 +24,7 @@ export interface ExternalLoginUserAccount {
     role: string;
     uid: string;
     s1code: string;
+    trdBranch?: number;
     listAccess: ExternalLoginListAccessItem[];
     listBranches: ExternalLoginListBranchItem[];
 }

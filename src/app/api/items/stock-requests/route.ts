@@ -9,9 +9,6 @@ import type {
     StockRequestListPayload,
     StockRequestListRoutePayload,
     StockRequestListResponse,
-    StockRequestMassDeletePayload,
-    StockRequestMassDeleteResponse,
-    StockRequestMassDeleteRoutePayload,
     StockRequestUpdateAction,
     StockRequestUpdatePayload,
     StockRequestUpdateResponse,
@@ -192,63 +189,6 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json(data);
     } catch (error) {
         console.error("[items/stock-requests:update] Server error", error);
-
-        return NextResponse.json(
-            {
-                success: false,
-                message: error instanceof Error ? error.message : "Server error",
-            },
-            { status: 500 }
-        );
-    }
-}
-
-export async function DELETE(req: NextRequest) {
-    try {
-        if (!hasSession(req)) {
-            return unauthorizedResponse();
-        }
-
-        const body = (await req.json().catch(() => ({}))) as StockRequestMassDeleteRoutePayload;
-        const clientID = getSoftOneClientID();
-
-        if (!clientID) {
-            return missingClientResponse();
-        }
-
-        const basketIds = Array.isArray(body.basketIds)
-            ? body.basketIds
-                .map((id) => normalizePositiveInteger(id))
-                .filter((id): id is number => id != null)
-            : [];
-
-        if (basketIds.length === 0) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: "No BASKET IDs provided",
-                },
-                { status: 400 }
-            );
-        }
-
-        const payload: StockRequestMassDeletePayload = {
-            service: "SqlData",
-            clientID,
-            appId: S1_APP_ID,
-            SqlName: "ANTROF_MASS_DELETE",
-            BASKET_IDS: basketIds.join(","),
-            APPUSER_ID: APPROVAL_APPUSER_ID,
-        };
-
-        const response = await callSoftOne(payload, "[items/stock-requests:delete]");
-        const data = (await parseJsonWithEncodingFallback(
-            response
-        )) as StockRequestMassDeleteResponse;
-
-        return NextResponse.json(data);
-    } catch (error) {
-        console.error("[items/stock-requests:delete] Server error", error);
 
         return NextResponse.json(
             {
