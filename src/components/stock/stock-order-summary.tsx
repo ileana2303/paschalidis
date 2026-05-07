@@ -25,6 +25,7 @@ export default function StockOrderSummary({
         <OrderSummaryPanel
             summaryLabel="Σύνοψη Ολοκληρωμένων"
             summaryTitle="Done Requests"
+            asideClassName="xl:!basis-[24%] xl:!min-w-[272px]"
             headerActions={
                 <span className="rounded-full bg-gray-900/10 px-2 py-1 text-[10px] font-semibold text-gray-700 dark:bg-gray-100/10 dark:text-gray-200">
                     {rows.length}

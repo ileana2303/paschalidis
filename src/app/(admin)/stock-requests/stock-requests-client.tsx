@@ -3,7 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import StockOrderSummary from "@/components/stock/stock-order-summary";
-import { Check, Loader2, Pencil, RefreshCw, X } from "@/lib/icons/lucide";
+import { Check, Loader2 } from "@/lib/icons/lucide";
+import DataTable from "@/components/ui/data-table/DataTable";
+import DataTableActions, {
+    RowActionGroup,
+} from "@/components/ui/data-table/DataTableActions";
+import DataTableEmptyState from "@/components/ui/data-table/DataTableEmptyState";
+import DataTableHeader from "@/components/ui/data-table/DataTableHeader";
+import DataTableSearchBar from "@/components/ui/data-table/DataTableSearchBar";
+import NumberBadge from "@/components/ui/data-table/NumberBadge";
+import StatusBadge from "@/components/ui/data-table/StatusBadge";
 import type {
     IStockRequestListRow,
     StockRequestUpdateAction,
@@ -13,6 +22,9 @@ import {
     useUpdateStockRequestMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
+import { normalizeBranchCode } from "@/lib/auth/branches";
+
+type StockBranchCode = "1001" | "1006" | "1007";
 
 function getStatusStyle(status: string) {
     const normalized = status.toUpperCase();
@@ -113,6 +125,13 @@ function getActionQty(row: IStockRequestListRow) {
     return getValidatedQty(getRequestedQty(row));
 }
 
+function isRequestBranchStockColumn(
+    requestBranchCode: string,
+    stockBranchCode: StockBranchCode
+) {
+    return normalizeBranchCode(requestBranchCode) === stockBranchCode;
+}
+
 export default function StockRequestsClient() {
     const user = useAuthStore((state) => state.user);
 
@@ -131,6 +150,7 @@ export default function StockRequestsClient() {
     const [updatingId, setUpdatingId] = useState("");
     const [editingId, setEditingId] = useState("");
     const [editedQty, setEditedQty] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
 
     const loadRows = useCallback(async () => {
         setLoading(true);
@@ -171,6 +191,28 @@ export default function StockRequestsClient() {
         () => rows.filter((row) => canUpdate(row.STATUS)),
         [rows]
     );
+
+    const filteredPendingRows = useMemo(() => {
+        const query = searchTerm.trim().toLowerCase();
+
+        if (!query) {
+            return pendingRows;
+        }
+
+        return pendingRows.filter((row) => {
+            return [
+                row.BASKETID,
+                row.MTRL,
+                row.ITEM_CODE,
+                row.ITEM_NAME,
+                row.BRANCH,
+                row.STATUS,
+            ]
+                .join(" ")
+                .toLowerCase()
+                .includes(query);
+        });
+    }, [pendingRows, searchTerm]);
 
     const doneRows = useMemo(
         () => rows.filter((row) => !canUpdate(row.STATUS)),
@@ -312,266 +354,317 @@ export default function StockRequestsClient() {
                 </div>
             ) : (
                 <div className="flex min-h-0 flex-1 flex-col gap-5 xl:flex-row">
-                    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-amber-200 bg-white dark:border-amber-500/20 dark:bg-white/[0.03]">
-                            <div className="flex items-center justify-between border-b border-amber-100 bg-amber-50/70 px-4 py-2 dark:border-amber-500/20 dark:bg-amber-500/10">
-                                <div className="flex items-center gap-2">
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                                        Εκκρεμή Αιτήματα Ανατροφοδοσίας
-                                    </p>
-
-                                    <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                                        {pendingRows.length}
-                                    </span>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={loadRows}
-                                    disabled={loading || Boolean(updatingId)}
-                                    className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-white px-2 py-1 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-50 dark:border-amber-500/40 dark:bg-transparent dark:text-amber-300 dark:hover:bg-amber-500/10"
-                                >
-                                    {loading ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    ) : (
-                                        <RefreshCw className="h-3.5 w-3.5" />
-                                    )}
-                                    Ανανέωση
-                                </button>
-                            </div>
-
-                            {pendingRows.length === 0 ? (
-                                <div className="px-4 py-8 text-sm text-gray-500 dark:text-gray-400">
-                                    Δεν υπάρχουν εκκρεμή αιτήματα.
-                                </div>
-                            ) : (
-                                <div className="min-h-0 flex-1 overflow-auto">
-                                    <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
-                                        <thead className="bg-gray-50 dark:bg-white/[0.02]">
-                                            <tr>
-                                                <th className="px-4 py-3 text-xs text-gray-500">
-                                                    Κατάσταση
-                                                </th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">
-                                                    Ημ/νία Αιτήματος
-                                                </th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">ID</th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">
-                                                    MTRL
-                                                </th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">
-                                                    Κωδικός
-                                                </th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">
-                                                    Περιγραφή
-                                                </th>
-                                                <th className="px-4 py-3 text-xs text-gray-500">
-                                                    Κατάστημα
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-xs text-gray-500">
-                                                    Αιτούμενη Ποσότητα
-                                                </th>
-                                                <th className="whitespace-nowrap px-4 py-3 text-right text-xs text-gray-500">
-                                                    Διαθέσιμα
-                                                </th>
-                                                <th className="whitespace-nowrap px-4 py-3 text-right text-xs text-gray-500">
-                                                    YP1001
-                                                </th>
-                                                <th className="whitespace-nowrap px-4 py-3 text-right text-xs text-gray-500">
-                                                    YP1006
-                                                </th>
-                                                <th className="whitespace-nowrap px-4 py-3 text-right text-xs text-gray-500">
-                                                    YP1007
-                                                </th>
-                                                <th className="whitespace-nowrap px-4 py-3 text-right text-xs text-gray-500">
-                                                    ONGOING
-                                                </th>
-                                                <th className="whitespace-nowrap px-4 py-3 text-right text-xs text-gray-500">
-                                                    ORDERED
-                                                </th>
-                                                <th className="whitespace-nowrap px-4 py-3 text-right text-xs text-gray-500">
-                                                    QTY_IN_BASKETS
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-xs text-gray-500">
-                                                    Ενέργειες
-                                                </th>
-                                            </tr>
-                                        </thead>
-
-                                        <tbody>
-                                            {pendingRows.map((row) => {
-                                                const rowUpdating = updatingId === row.BASKETID;
-                                                const rowIsEditing = editingId === row.BASKETID;
-                                                const currentRequestedQty = getRequestedQty(row);
-                                                const qtyChanged =
-                                                    String(editedQty) !== String(currentRequestedQty);
-
-                                                return (
-                                                    <tr
-                                                        key={row.BASKETID}
-                                                        className={
-                                                            rowIsEditing
-                                                                ? "bg-blue-50 dark:bg-blue-900/20"
-                                                                : ""
-                                                        }
-                                                    >
-                                                        <td className="px-4 py-3">
-                                                            <span
-                                                                className={`rounded-full px-2 py-1 text-xs ${getStatusStyle(
-                                                                    row.STATUS
-                                                                )}`}
-                                                            >
-                                                                {row.STATUS}
-                                                            </span>
-                                                        </td>
-
-                                                        <td className="whitespace-nowrap px-4 py-3">
-                                                            {formatDateTime(row.INS_DATE)}
-                                                        </td>
-
-                                                        <td className="px-4 py-3">{row.BASKETID}</td>
-                                                        <td className="px-4 py-3">{row.MTRL}</td>
-                                                        <td className="px-4 py-3">{row.ITEM_CODE}</td>
-                                                        <td className="px-4 py-3">{row.ITEM_NAME}</td>
-                                                        <td className="px-4 py-3">{row.BRANCH}</td>
-
-                                                        <td className="px-4 py-3 text-right">
-                                                            {rowIsEditing ? (
-                                                                <input
-                                                                    type="number"
-                                                                    min={1}
-                                                                    step={1}
-                                                                    autoFocus
-                                                                    disabled={rowUpdating}
-                                                                    value={editedQty}
-                                                                    onChange={(event) =>
-                                                                        setEditedQty(event.target.value)
-                                                                    }
-                                                                    onKeyDown={(event) => {
-                                                                        if (event.key === "Enter") {
-                                                                            void handleUpdateQty(row);
-                                                                        }
-
-                                                                        if (event.key === "Escape") {
-                                                                            handleCancelQtyEdit();
-                                                                        }
-                                                                    }}
-                                                                    className={`w-20 rounded-md border px-2 py-1 text-right text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${qtyChanged
-                                                                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200 dark:border-blue-400 dark:bg-blue-500/10"
-                                                                            : "border-gray-300 dark:border-gray-700 dark:bg-gray-900"
-                                                                        }`}
-                                                                />
-                                                            ) : (
-                                                                <span className="text-sm font-medium text-gray-800 dark:text-white/90">
-                                                                    {currentRequestedQty}
-                                                                </span>
-                                                            )}
-                                                        </td>
-
-                                                        <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                                                            {row.TOTAL_AVAIL}
-                                                        </td>
-                                                        <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                                                            {row.YP1001}
-                                                        </td>
-                                                        <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                                                            {row.YP1006}
-                                                        </td>
-                                                        <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                                                            {row.YP1007}
-                                                        </td>
-                                                        <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                                                            {row.ONGOING}
-                                                        </td>
-                                                        <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                                                            {row.ORDERED}
-                                                        </td>
-                                                        <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                                                            {row.QTY_IN_BASKETS}
-                                                        </td>
-
-                                                        <td className="px-4 py-3 text-right">
-                                                            {rowIsEditing ? (
-                                                                <div className="flex justify-end gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => void handleUpdateQty(row)}
-                                                                        disabled={rowUpdating || !qtyChanged}
-                                                                        className="rounded-md bg-blue-500 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-blue-600 disabled:opacity-40"
-                                                                    >
-                                                                        {rowUpdating ? (
-                                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                                        ) : (
-                                                                            "Save"
-                                                                        )}
-                                                                    </button>
-
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={handleCancelQtyEdit}
-                                                                        disabled={rowUpdating}
-                                                                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-                                                                    >
-                                                                        Cancel
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex justify-end gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleStartQtyEdit(row)}
-                                                                        disabled={rowUpdating || hasRowInEditMode}
-                                                                        title="Επεξεργασία ποσότητας"
-                                                                        aria-label={`Επεξεργασία ποσότητας για αίτημα ${row.BASKETID}`}
-                                                                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-                                                                    >
-                                                                        <Pencil className="h-3.5 w-3.5" />
-                                                                    </button>
-
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleApproveRow(row)}
-                                                                        disabled={rowUpdating || hasRowInEditMode}
-                                                                        title="Έγκριση αιτήματος"
-                                                                        aria-label={`Έγκριση αιτήματος ${row.BASKETID}`}
-                                                                        className="rounded bg-green-500 px-2 py-1 text-white disabled:opacity-40"
-                                                                    >
-                                                                        {rowUpdating ? (
-                                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                                        ) : (
-                                                                            <Check className="h-4 w-4" />
-                                                                        )}
-                                                                    </button>
-
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleDeleteRow(row)}
-                                                                        disabled={rowUpdating || hasRowInEditMode}
-                                                                        title="Διαγραφή αιτήματος"
-                                                                        aria-label={`Διαγραφή αιτήματος ${row.BASKETID}`}
-                                                                        className="rounded bg-red-500 px-2 py-1 text-white disabled:opacity-40"
-                                                                    >
-                                                                        <X className="h-4 w-4" />
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
+                    <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-[1.6]">
+                        <DataTableHeader
+                            title="Εκκρεμή Αιτήματα Ανατροφοδοσίας"
+                            description="Διαχείριση αιτημάτων, ποσοτήτων και έγκρισης ανατροφοδοσίας."
+                            count={pendingRows.length}
+                            countClassName="bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+                            action={(
+                                <DataTableSearchBar
+                                    value={searchTerm}
+                                    onChange={setSearchTerm}
+                                    onRefresh={loadRows}
+                                    isRefreshing={loading}
+                                    refreshDisabled={loading || Boolean(updatingId)}
+                                    placeholder="Αναζήτηση με ID, MTRL, κωδικό ή περιγραφή..."
+                                />
                             )}
-                        </section>
-
-                        <StockOrderSummary
-                            rows={doneRows}
-                            requestedQtyTotal={doneRequestedQty}
-                            branchLabel={currentBranchCode || "—"}
-                            getStatusStyle={getStatusStyle}
-                            getRequestedQty={getRequestedQty}
-                            formatDateTime={formatDateTime}
                         />
+
+                        {filteredPendingRows.length === 0 ? (
+                            <DataTableEmptyState
+                                icon={<Check className="h-7 w-7" />}
+                                title={
+                                    pendingRows.length === 0
+                                        ? "Δεν υπάρχουν εκκρεμή αιτήματα"
+                                        : "Δεν βρέθηκαν αποτελέσματα"
+                                }
+                                description={
+                                    pendingRows.length === 0
+                                        ? "Όλα τα αιτήματα ανατροφοδοσίας έχουν διεκπεραιωθεί ή δεν υπάρχουν νέα αιτήματα προς έγκριση."
+                                        : "Η αναζήτηση δεν επέστρεψε γραμμές για τα εκκρεμή αιτήματα."
+                                }
+                                className="flex-1"
+                            />
+                        ) : (
+                            <div className="min-h-0 flex-1 overflow-y-auto">
+                                <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
+                                    <colgroup>
+                                        <col className="w-[8%]" />
+                                        <col className="w-[10%]" />
+                                        <col className="w-[7%]" />
+                                        <col className="w-[27%]" />
+                                        <col className="w-[8%]" />
+                                        <col className="w-[7%]" />
+                                        <col className="w-[6%]" />
+                                        <col className="w-[6%]" />
+                                        <col className="w-[6%]" />
+                                        <col className="w-[8%]" />
+                                        <col className="w-[7%]" />
+                                    </colgroup>
+
+                                    <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
+                                        <tr>
+                                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                Κατάσταση
+                                            </th>
+
+                                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                Ημ/νία Αιτήματος
+                                            </th>
+
+                                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                ID
+                                            </th>
+
+                                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                Είδος
+                                            </th>
+
+                                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                ΠΡΟΣ
+                                            </th>
+
+                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                Διαθέσιμα
+                                            </th>
+
+                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                Κασομούλη
+                                            </th>
+
+                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                Λ.Αθηνών
+                                            </th>
+
+                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                Λ.Μεσογείων
+                                            </th>
+
+                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                Αιτούμενη Ποσότητα
+                                            </th>
+
+                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                Ενέργειες
+                                            </th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        {filteredPendingRows.map((row) => {
+                                            const rowUpdating = updatingId === row.BASKETID;
+                                            const rowIsEditing = editingId === row.BASKETID;
+                                            const currentRequestedQty = getRequestedQty(row);
+                                            const qtyChanged = String(editedQty) !== String(currentRequestedQty);
+
+                                            return (
+                                                <tr
+                                                    key={row.BASKETID}
+                                                    className={[
+                                                        "transition hover:bg-gray-50 dark:hover:bg-white/[0.04]",
+                                                        rowIsEditing
+                                                            ? "bg-brand-50/70 ring-1 ring-inset ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/20"
+                                                            : "",
+                                                    ].join(" ")}
+                                                >
+                                                    <td className="px-5 py-4 align-top">
+                                                        <StatusBadge status={row.STATUS} />
+                                                    </td>
+
+                                                    <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-gray-600 dark:text-gray-300">
+                                                        {formatDateTime(row.INS_DATE)}
+                                                    </td>
+
+                                                    <td className="whitespace-nowrap px-5 py-4 align-top">
+                                                        <span className="inline-flex rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                                            #{row.BASKETID}
+                                                        </span>
+                                                    </td>
+
+                                                    <td className="px-5 py-4 align-top">
+                                                        <div className="pr-4">
+                                                            <p className="break-words font-medium leading-5 text-gray-900 dark:text-white">
+                                                                {row.ITEM_NAME}
+                                                            </p>
+
+                                                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                                                                <span>
+                                                                    Κωδικός:{" "}
+                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                                        {row.ITEM_CODE}
+                                                                    </span>
+                                                                </span>
+
+                                                                <span>
+                                                                    MTRL:{" "}
+                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                                        {row.MTRL}
+                                                                    </span>
+                                                                </span>
+
+                                                                <span>
+                                                                    Σε εξέλιξη:{" "}
+                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                                        {row.ONGOING}
+                                                                    </span>
+                                                                </span>
+
+                                                                <span>
+                                                                    Παραγγελθέν:{" "}
+                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                                        {row.ORDERED}
+                                                                    </span>
+                                                                </span>
+
+                                                                <span>
+                                                                    Σε καλάθι:{" "}
+                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                                        {row.QTY_IN_BASKETS}
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    <td className="whitespace-nowrap px-5 py-4 align-top text-gray-700 dark:text-gray-200">
+                                                        {row.BRANCH}
+                                                    </td>
+
+                                                    <td className="px-5 py-4 text-right align-top tabular-nums">
+                                                        <NumberBadge
+                                                            value={row.TOTAL_AVAIL}
+                                                            variant={Number(row.TOTAL_AVAIL) > 0 ? "success" : "danger"}
+                                                        />
+                                                    </td>
+
+                                                    <td
+                                                        className={[
+                                                            "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
+                                                            isRequestBranchStockColumn(row.BRANCH, "1001")
+                                                                ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                                                                : "text-gray-700 dark:text-gray-200",
+                                                        ].join(" ")}
+                                                    >
+                                                        {row.YP1001}
+                                                    </td>
+
+                                                    <td
+                                                        className={[
+                                                            "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
+                                                            isRequestBranchStockColumn(row.BRANCH, "1006")
+                                                                ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                                                                : "text-gray-700 dark:text-gray-200",
+                                                        ].join(" ")}
+                                                    >
+                                                        {row.YP1006}
+                                                    </td>
+
+                                                    <td
+                                                        className={[
+                                                            "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
+                                                            isRequestBranchStockColumn(row.BRANCH, "1007")
+                                                                ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                                                                : "text-gray-700 dark:text-gray-200",
+                                                        ].join(" ")}
+                                                    >
+                                                        {row.YP1007}
+                                                    </td>
+
+                                                    <td className="px-5 py-4 text-right align-top">
+                                                        {rowIsEditing ? (
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                step={1}
+                                                                autoFocus
+                                                                disabled={rowUpdating}
+                                                                value={editedQty}
+                                                                onChange={(event) => setEditedQty(event.target.value)}
+                                                                onKeyDown={(event) => {
+                                                                    if (event.key === "Enter") {
+                                                                        void handleUpdateQty(row);
+                                                                    }
+
+                                                                    if (event.key === "Escape") {
+                                                                        handleCancelQtyEdit();
+                                                                    }
+                                                                }}
+                                                                className={[
+                                                                    "h-9 w-20 rounded-xl border px-2 text-right text-sm font-semibold tabular-nums outline-none transition disabled:cursor-not-allowed disabled:opacity-60",
+                                                                    qtyChanged
+                                                                        ? "border-brand-500 bg-brand-50 text-gray-900 ring-2 ring-brand-500/20 dark:border-brand-400 dark:bg-brand-500/10 dark:text-white"
+                                                                        : "border-gray-300 bg-white text-gray-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white",
+                                                                ].join(" ")}
+                                                            />
+                                                        ) : (
+                                                            <NumberBadge
+                                                                value={currentRequestedQty}
+                                                                variant="brand"
+                                                            />
+                                                        )}
+                                                    </td>
+
+                                                    <td className="px-5 py-4 text-right align-top">
+                                                        {rowIsEditing ? (
+                                                            <DataTableActions>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => void handleUpdateQty(row)}
+                                                                    disabled={rowUpdating || !qtyChanged}
+                                                                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:bg-gray-700 dark:disabled:text-gray-400"
+                                                                >
+                                                                    {rowUpdating ? (
+                                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                                    ) : (
+                                                                        <Check className="h-3.5 w-3.5" />
+                                                                    )}
+                                                                    Save
+                                                                </button>
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleCancelQtyEdit}
+                                                                    disabled={rowUpdating}
+                                                                    className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </DataTableActions>
+                                                        ) : (
+                                                            <RowActionGroup
+                                                                loading={rowUpdating}
+                                                                disabled={hasRowInEditMode}
+                                                                onEdit={() => handleStartQtyEdit(row)}
+                                                                onApprove={() => void handleApproveRow(row)}
+                                                                onDelete={() => void handleDeleteRow(row)}
+                                                                editTitle="Επεξεργασία ποσότητας"
+                                                                approveTitle="Έγκριση αιτήματος"
+                                                                deleteTitle="Διαγραφή αιτήματος"
+                                                                editAriaLabel={`Επεξεργασία ποσότητας για αίτημα ${row.BASKETID}`}
+                                                                approveAriaLabel={`Έγκριση αιτήματος ${row.BASKETID}`}
+                                                                deleteAriaLabel={`Διαγραφή αιτήματος ${row.BASKETID}`}
+                                                            />
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </DataTable>
+
+                    <StockOrderSummary
+                        rows={doneRows}
+                        requestedQtyTotal={doneRequestedQty}
+                        branchLabel={currentBranchCode || "—"}
+                        getStatusStyle={getStatusStyle}
+                        getRequestedQty={getRequestedQty}
+                        formatDateTime={formatDateTime}
+                    />
                 </div>
             )}
         </div>

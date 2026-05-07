@@ -11,11 +11,16 @@ import {
   Package,
   Plus,
   RefreshCw,
-  Search,
   Send,
   ShoppingCart,
   Warehouse,
 } from "@/lib/icons/lucide";
+import DataTable from "@/components/ui/data-table/DataTable";
+import DataTableEmptyState from "@/components/ui/data-table/DataTableEmptyState";
+import DataTableHeader from "@/components/ui/data-table/DataTableHeader";
+import DataTableSearchBar from "@/components/ui/data-table/DataTableSearchBar";
+import NumberBadge from "@/components/ui/data-table/NumberBadge";
+import StatusBadge from "@/components/ui/data-table/StatusBadge";
 import type { IStockFeedbackRow, StockRequestStatus } from "@/lib/interface";
 import {
   useFetchStockFeedbackMutation,
@@ -54,18 +59,6 @@ function getRequestStatusLabel(
     return `Pending: ${requestedQty}`;
   }
   return "Pending";
-}
-
-function getRequestStatusClassName(status: StockRequestStatus) {
-  if (status === "approved") {
-    return "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400";
-  }
-
-  if (status === "deleted") {
-    return "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
-  }
-
-  return "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
 }
 
 function isPendingStockRequestStatus(status: string | null | undefined) {
@@ -533,65 +526,30 @@ export default function StockFeedbackClient() {
         />
       </div>
 
-      <section className="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                Λίστα Ειδών
-              </h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {filteredRows.length} από {rows.length} είδη ·{" "}
-                {formatDaysLabel(days)}
-              </p>
-            </div>
-
-            <div className="flex w-full items-center gap-2 lg:w-auto">
-              <div className="relative w-full lg:min-w-[320px] lg:max-w-sm">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-
-                <input
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Αναζήτηση με κωδικό, MTRL ή περιγραφή..."
-                  className="h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={loadRows}
-                disabled={loading}
-                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-              >
-                {loading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-3.5 w-3.5" />
-                )}
-                Ανανέωση
-              </button>
-            </div>
-          </div>
-        </div>
+      <DataTable>
+        <DataTableHeader
+          title="Λίστα Ειδών"
+          description={`${filteredRows.length} από ${rows.length} είδη · ${formatDaysLabel(days)}`}
+          action={(
+            <DataTableSearchBar
+              value={searchTerm}
+              onChange={setSearchTerm}
+              onRefresh={loadRows}
+              isRefreshing={loading}
+              refreshDisabled={loading}
+              placeholder="Αναζήτηση με κωδικό, MTRL ή περιγραφή..."
+            />
+          )}
+        />
 
         {loading ? (
           <TableSkeleton />
         ) : filteredRows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-              <Package className="h-7 w-7" />
-            </div>
-
-            <h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-white">
-              Δεν βρέθηκαν είδη
-            </h3>
-
-            <p className="mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">
-              Δεν υπάρχουν δεδομένα για τα επιλεγμένα φίλτρα ή η αναζήτηση δεν
-              επέστρεψε αποτελέσματα.
-            </p>
-          </div>
+          <DataTableEmptyState
+            icon={<Package className="h-7 w-7" />}
+            title="Δεν βρέθηκαν είδη"
+            description="Δεν υπάρχουν δεδομένα για τα επιλεγμένα φίλτρα ή η αναζήτηση δεν επέστρεψε αποτελέσματα."
+          />
         ) : (
           <div className="max-h-[70vh] w-full overflow-y-auto">
             <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
@@ -630,7 +588,7 @@ export default function StockFeedbackClient() {
                         : "text-gray-500 dark:text-gray-400",
                     ].join(" ")}
                   >
-                    YP1001
+                    Κασομούλη
                   </th>
                   <th
                     className={[
@@ -640,7 +598,7 @@ export default function StockFeedbackClient() {
                         : "text-gray-500 dark:text-gray-400",
                     ].join(" ")}
                   >
-                    YP1006
+                    Λ.Αθηνών
                   </th>
                   <th
                     className={[
@@ -650,7 +608,7 @@ export default function StockFeedbackClient() {
                         : "text-gray-500 dark:text-gray-400",
                     ].join(" ")}
                   >
-                    YP1007
+                    Λ.Μεσογείων
                   </th>
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Διαθέσιμο
@@ -741,31 +699,23 @@ export default function StockFeedbackClient() {
                       </td>
 
                       <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums">
-                        <span
-                          className={[
-                            "inline-flex min-w-[72px] justify-center rounded-full px-2.5 py-1 text-xs font-semibold",
-                            totalAvail > 0
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-                              : "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
-                          ].join(" ")}
-                        >
-                          {formatNumber(totalAvail)}
-                        </span>
+                        <NumberBadge
+                          value={formatNumber(totalAvail)}
+                          variant={totalAvail > 0 ? "success" : "danger"}
+                          className="min-w-[72px]"
+                        />
                       </td>
 
                       <td className="px-5 py-4 align-top">
                         <div className="flex justify-end">
                           {requestStatus ? (
-                            <span
-                              className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-semibold leading-none ${getRequestStatusClassName(
-                                requestStatus
-                              )}`}
-                            >
-                              {getRequestStatusLabel(
+                            <StatusBadge
+                              status={requestStatus}
+                              label={getRequestStatusLabel(
                                 requestStatus,
                                 statusRequestedQty
                               )}
-                            </span>
+                            />
                           ) : (
                             <span className="text-xs text-gray-400">—</span>
                           )}
@@ -840,7 +790,7 @@ export default function StockFeedbackClient() {
             </table>
           </div>
         )}
-      </section>
+      </DataTable>
     </div>
   );
 }
