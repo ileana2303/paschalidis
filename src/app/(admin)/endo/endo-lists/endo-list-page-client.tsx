@@ -484,6 +484,8 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         try {
             const data = await submitEndoBasketOrder({
                 appUserId: user?.uid,
+                branchSec: parsePositiveValue(currentBranchCode),
+                whouseSec: parsePositiveValue(currentBranchCode),
                 items: [
                     {
                         basketIds: [basketId],
@@ -517,6 +519,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         }
     }, [
         finalQtyByRow,
+        currentBranchCode,
         loadRows,
         requestedQtyByRow,
         submitEndoBasketOrder,

@@ -63,8 +63,8 @@ export type SetDataOrderPayload = {
             DELIVDATE: string;
             DEPTRDR_CUSTOMER_CODE: string;
             BILLTRDR_CUSTOMER_CODE: string;
-            BRANCHSEC: number;
-            WHOUSESEC: number;
+            BRANCHSEC?: number;
+            WHOUSESEC?: number;
         }>;
         ITELINES: Array<{
             MTRL: number;

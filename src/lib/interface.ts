@@ -513,6 +513,8 @@ export interface EndoBasketSubmitRoutePayload {
     appUserId?: string;
     deliveryDate?: string;
     notes?: string;
+    branchSec?: number;
+    whouseSec?: number;
 }
 
 export interface IEndoListRow {

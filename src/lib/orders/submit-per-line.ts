@@ -24,8 +24,8 @@ type PerLineHeaderValues = {
     trucks: number;
     shipKind: number;
     socash: number;
-    branchSec: number;
-    whouseSec: number;
+    branchSec?: number;
+    whouseSec?: number;
 };
 
 type SubmitPerLineParams = {

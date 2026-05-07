@@ -202,8 +202,6 @@ export async function submitBasketOrder(
         trucks: DEFAULT_ORDER_TRUCKS,
         shipKind: DEFAULT_ORDER_SHIPKIND,
         socash: DEFAULT_ORDER_SOCASH,
-        branchSec: orderBranch,
-        whouseSec: orderBranch,
         items: params.items.map((item) => ({
             basketId: item.BASKETID,
             mtrl: item.MTRL,

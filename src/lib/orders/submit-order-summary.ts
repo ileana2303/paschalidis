@@ -25,17 +25,19 @@ const DEFAULT_TRUCKS = 2;
 const DEFAULT_SHIPKIND = 1000;
 const DEFAULT_SOCASH = 1005;
 const DEFAULT_BRANCH = 1006;
-const DEFAULT_ANATROF_TRDR = 8674;
+const DEFAULT_INTERNAL_TRDR = 5204;
+const DEFAULT_ANATROF_TRDBRANCH = 13;
 
 type SingleOrderHeaderValues = {
+    setDataBranch: number;
     trdr: number;
     trdBranch: number;
     payment: number;
     trucks: number;
     shipKind: number;
     socash: number;
-    branchSec: number;
-    whouseSec: number;
+    branchSec?: number;
+    whouseSec?: number;
 };
 
 type SubmitBodyItem = OrderSubmitRequestBody["items"][number] & {
@@ -133,29 +135,39 @@ function resolveSingleOrderHeader(
         "BRANCH",
         "sourceBranch",
     ]);
-    const branchSec =
+    const setDataBranch =
         jsonSafeNumber(body.branchSec) ??
         getSubmitEnvNumber(body.submitType, "BRANCHSEC", branchFromItems) ??
         getSubmitEnvNumber(body.submitType, "BRANCH", branchFromItems) ??
         branchFromItems ??
         DEFAULT_BRANCH;
+    const branchSec =
+        body.submitType === "basket"
+            ? undefined
+            : jsonSafeNumber(body.branchSec) ??
+                getSubmitEnvNumber(body.submitType, "BRANCHSEC", setDataBranch) ??
+                setDataBranch;
     const whouseSec =
-        jsonSafeNumber(body.whouseSec) ??
-        getSubmitEnvNumber(body.submitType, "WHOUSESEC", branchSec) ??
-        branchSec;
+        body.submitType === "basket"
+            ? undefined
+            : jsonSafeNumber(body.whouseSec) ??
+                getSubmitEnvNumber(body.submitType, "WHOUSESEC", branchSec) ??
+                branchSec;
     const trdr =
         jsonSafeNumber(body.trdr) ??
-        getSubmitEnvNumber(body.submitType, "TRDR", branchSec) ??
-        (body.submitType === "anatrof" ? DEFAULT_ANATROF_TRDR : undefined);
+        getSubmitEnvNumber(body.submitType, "TRDR", setDataBranch) ??
+        (body.submitType === "anatrof" ? DEFAULT_INTERNAL_TRDR : undefined);
     const trdBranch =
         jsonSafeNumber(body.trdBranch) ??
-        (body.submitType === "basket" || body.submitType === "anatrof"
-            ? getTrdBranchByBranchCode(branchSec)
+        (body.submitType === "basket"
+            ? getTrdBranchByBranchCode(setDataBranch)
             : undefined) ??
         firstItemNumber(rawItems, ["trdBranch", "TRD_BRANCH"]) ??
-        getSubmitEnvNumber(body.submitType, "TRDBRANCH", branchSec);
+        getSubmitEnvNumber(body.submitType, "TRDBRANCH", setDataBranch) ??
+        (body.submitType === "anatrof" ? DEFAULT_ANATROF_TRDBRANCH : undefined);
 
     return {
+        setDataBranch,
         trdr: requireHeaderNumber(trdr, "TRDR", body.submitType),
         trdBranch: requireHeaderNumber(
             trdBranch,
@@ -164,29 +176,32 @@ function resolveSingleOrderHeader(
         ),
         payment:
             jsonSafeNumber(body.payment) ??
-            getSubmitEnvNumber(body.submitType, "PAYMENT", branchSec) ??
+            getSubmitEnvNumber(body.submitType, "PAYMENT", setDataBranch) ??
             DEFAULT_PAYMENT,
         trucks:
             jsonSafeNumber(body.trucks) ??
-            getSubmitEnvNumber(body.submitType, "TRUCKS", branchSec) ??
+            getSubmitEnvNumber(body.submitType, "TRUCKS", setDataBranch) ??
             DEFAULT_TRUCKS,
         shipKind:
             jsonSafeNumber(body.shipKind) ??
-            getSubmitEnvNumber(body.submitType, "SHIPKIND", branchSec) ??
+            getSubmitEnvNumber(body.submitType, "SHIPKIND", setDataBranch) ??
             DEFAULT_SHIPKIND,
         socash:
             jsonSafeNumber(body.socash) ??
-            getSubmitEnvNumber(body.submitType, "SOCASH", branchSec) ??
+            getSubmitEnvNumber(body.submitType, "SOCASH", setDataBranch) ??
             DEFAULT_SOCASH,
         branchSec,
         whouseSec,
     };
 }
 
-function getEndoHeaderForLine(line: {
-    sourceBranch?: number;
-    destinationBranch?: number;
-}) {
+function getEndoHeaderForLine(
+    line: {
+        sourceBranch?: number;
+        destinationBranch?: number;
+    },
+    loggedInBranch?: number
+) {
     const sourceBranch = line.sourceBranch;
     const destinationBranch = line.destinationBranch;
 
@@ -204,12 +219,15 @@ function getEndoHeaderForLine(line: {
         );
     }
 
+    const branchSec = loggedInBranch ?? sourceBranch;
     const trdr =
         getSubmitEnvNumber("endo", "TRDR", destinationBranch) ??
-        jsonSafeNumber(getEnvString("S1_ENDO_TRDR"));
+        jsonSafeNumber(getEnvString("S1_ENDO_TRDR")) ??
+        DEFAULT_INTERNAL_TRDR;
     const trdBranch =
         getSubmitEnvNumber("endo", "TRDBRANCH", destinationBranch) ??
-        jsonSafeNumber(getEnvString("S1_ENDO_TRDBRANCH"));
+        jsonSafeNumber(getEnvString("S1_ENDO_TRDBRANCH")) ??
+        getTrdBranchByBranchCode(destinationBranch);
     const socash =
         getSubmitEnvNumber("endo", "SOCASH", destinationBranch) ??
         jsonSafeNumber(getEnvString("S1_ENDO_SOCASH"));
@@ -217,13 +235,9 @@ function getEndoHeaderForLine(line: {
         getSubmitEnvNumber("endo", "TRUCKS", sourceBranch) ??
         jsonSafeNumber(getEnvString("S1_ENDO_TRUCKS"));
 
-    if (!trdr) {
-        throw new Error(`S1_ENDO_TRDR is missing for branch ${destinationBranch}.`);
-    }
-
     if (!trdBranch) {
         throw new Error(
-            `S1_ENDO_TRDBRANCH is missing for branch ${destinationBranch}.`
+            `Cannot resolve ENDO TRDBRANCH for TO_BRANCH ${destinationBranch}.`
         );
     }
 
@@ -241,8 +255,8 @@ function getEndoHeaderForLine(line: {
         trdBranch,
         payment: destinationBranch,
         shipKind: sourceBranch,
-        branchSec: destinationBranch,
-        whouseSec: destinationBranch,
+        branchSec,
+        whouseSec: branchSec,
         trucks,
         socash,
     };
@@ -289,6 +303,10 @@ export async function submitOrderSummary(body: OrderSubmitRequestBody) {
         getSubmitEnvString(config.submitType, "SERIES") || DEFAULT_ORDER_SERIES;
 
     if (config.submitMode === "per-line") {
+        const loggedInBranch =
+            jsonSafeNumber(body.branchSec) ??
+            jsonSafeNumber(body.whouseSec);
+
         return submitPerLine({
             submitType: config.submitType,
             sqlClientID,
@@ -301,12 +319,13 @@ export async function submitOrderSummary(body: OrderSubmitRequestBody) {
             deliveryDate,
             remarks,
             lines,
-            resolvePerLineHeader: ({ line }) => getEndoHeaderForLine(line),
+            resolvePerLineHeader: ({ line }) =>
+                getEndoHeaderForLine(line, loggedInBranch),
         });
     }
 
     const header = resolveSingleOrderHeader(body, rawItems);
-    const setDataClientID = getSoftOneSetDataClientID(header.branchSec);
+    const setDataClientID = getSoftOneSetDataClientID(header.setDataBranch);
 
     if (!setDataClientID) {
         throw new Error("S1 setData client is not configured.");

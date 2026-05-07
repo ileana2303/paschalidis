@@ -15,8 +15,8 @@ type BuildSetDataPayloadParams = {
     remarks: string;
     shipKind: number;
     socash: number;
-    branchSec: number;
-    whouseSec: number;
+    branchSec?: number;
+    whouseSec?: number;
     lines: OrderSubmitLine[];
 };
 
@@ -36,6 +36,21 @@ export function buildSetDataPayload({
     whouseSec,
     lines,
 }: BuildSetDataPayloadParams): SetDataOrderPayload {
+    const mtrdoc: SetDataOrderPayload["data"]["MTRDOC"][number] = {
+        TRUCKS: trucks,
+        DELIVDATE: deliveryDate,
+        DEPTRDR_CUSTOMER_CODE: "",
+        BILLTRDR_CUSTOMER_CODE: "",
+    };
+
+    if (branchSec != null) {
+        mtrdoc.BRANCHSEC = branchSec;
+    }
+
+    if (whouseSec != null) {
+        mtrdoc.WHOUSESEC = whouseSec;
+    }
+
     return {
         service: "setData",
         clientID,
@@ -57,16 +72,7 @@ export function buildSetDataPayload({
                     SOCASH: socash,
                 },
             ],
-            MTRDOC: [
-                {
-                    TRUCKS: trucks,
-                    DELIVDATE: deliveryDate,
-                    DEPTRDR_CUSTOMER_CODE: "",
-                    BILLTRDR_CUSTOMER_CODE: "",
-                    BRANCHSEC: branchSec,
-                    WHOUSESEC: whouseSec,
-                },
-            ],
+            MTRDOC: [mtrdoc],
             ITELINES: lines.map((line) => ({
                 MTRL: line.mtrl,
                 QTY1: line.qty,

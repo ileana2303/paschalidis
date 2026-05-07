@@ -30,8 +30,8 @@ type SubmitSingleOrderParams = {
     remarks: string;
     shipKind: number;
     socash: number;
-    branchSec: number;
-    whouseSec: number;
+    branchSec?: number;
+    whouseSec?: number;
     lines: OrderSubmitLine[];
 };
 
