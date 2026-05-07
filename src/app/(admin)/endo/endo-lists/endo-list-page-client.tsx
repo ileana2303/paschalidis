@@ -9,6 +9,7 @@ import {
     Plus,
     RefreshCw,
     Search,
+    Send,
 } from "@/lib/icons/lucide";
 import {
     useFetchEndoListsMutation,
@@ -21,9 +22,6 @@ import type {
     EndoListRoutePayload,
     IEndoListRow,
 } from "@/lib/interface";
-import EndoOrderSummary, {
-    type EndoBasketUiItem,
-} from "@/components/endo/endo-order-summary";
 
 type EndoListScope = Exclude<EndoListRoutePayload["scope"], "both" | undefined>;
 const REQUESTED_QTY_COLUMN_KEY = "__REQUESTED_QTY";
@@ -209,8 +207,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
     );
     const [finalQtyByRow, setFinalQtyByRow] = useState<Record<string, number>>({});
     const [savingRowKeys, setSavingRowKeys] = useState<Set<string>>(new Set());
-    const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(new Set());
-    const [approvingBulk, setApprovingBulk] = useState(false);
+    const [submittingRowKeys, setSubmittingRowKeys] = useState<Set<string>>(new Set());
     const user = useAuthStore((state) => state.user);
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
     const { mutateAsync: submitEndoBasketOrder } = useSubmitEndoBasketOrderMutation();
@@ -261,8 +258,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         setRequestedQtyByRow({});
         setFinalQtyByRow({});
         setSavingRowKeys(new Set());
-        setSelectedRowKeys(new Set());
-        setApprovingBulk(false);
+        setSubmittingRowKeys(new Set());
 
         if (!hasValidBranch) {
             setRows([]);
@@ -334,49 +330,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             QTY_ACTIONS_COLUMN_KEY,
         ];
     }, [columns, isReceivedScope]);
-    const showSummaryAside = isReceivedScope;
-
-    const selectedRowsForApproval = useMemo(
-        () =>
-            rows
-                .map((row, index) => ({
-                    row,
-                    rowKey: getRowKey(row, index),
-                }))
-                .filter(
-                    ({ row, rowKey }) =>
-                        selectedRowKeys.has(rowKey) &&
-                        canApproveRowWithQty(
-                            row,
-                            finalQtyByRow[rowKey] ??
-                            requestedQtyByRow[rowKey] ??
-                            getRequestedQtyFromRow(row)
-                        )
-                ),
-        [finalQtyByRow, requestedQtyByRow, rows, selectedRowKeys]
-    );
-    const selectedRowsSummaryItems = useMemo<EndoBasketUiItem[]>(
-        () =>
-            selectedRowsForApproval.map(({ row, rowKey }) => ({
-                uid: rowKey,
-                basketIds: [
-                    String(row.BASKETID ?? row.ID ?? "").trim(),
-                ].filter(Boolean),
-                mtrl: parsePositiveValue(row.MTRL),
-                qty:
-                    finalQtyByRow[rowKey] ??
-                    requestedQtyByRow[rowKey] ??
-                    getRequestedQtyFromRow(row),
-                fromBranch: String(row.BRANCH ?? "—").trim() || "—",
-                toBranch: String(row.TO_BRANCH ?? "—").trim() || "—",
-                itemCode: String(row.ITEM_CODE ?? row.MTRL ?? "—").trim(),
-                itemDescr: String(row.ITEM_DESCR ?? row.ITEM_NAME ?? "—").trim(),
-                manufacturer:
-                    String(row.MNF_DESCR ?? row.MANUFACTURER ?? "").trim() ||
-                    undefined,
-            })),
-        [finalQtyByRow, requestedQtyByRow, selectedRowsForApproval]
-    );
 
     const getResolvedQty = useCallback(
         (rowKey: string, row: IEndoListRow) => {
@@ -449,32 +402,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         }));
     };
 
-    const addRowToSelection = useCallback((rowKey: string) => {
-        setSelectedRowKeys((prev) => {
-            if (prev.has(rowKey)) {
-                return prev;
-            }
-
-            const next = new Set(prev);
-            next.add(rowKey);
-            return next;
-        });
-    }, []);
-    const clearSelection = useCallback(() => {
-        setSelectedRowKeys(new Set());
-    }, []);
-    const handleRemoveSelectedLine = useCallback((rowKey: string) => {
-        setSelectedRowKeys((prev) => {
-            if (!prev.has(rowKey)) {
-                return prev;
-            }
-
-            const next = new Set(prev);
-            next.delete(rowKey);
-            return next;
-        });
-    }, []);
-
     const handleQtyUpdate = useCallback(
         async (rowKey: string, row: IEndoListRow) => {
             const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
@@ -513,17 +440,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                     [rowKey]: nextQty,
                 }));
 
-                const canBeIncludedInSummary = canApproveRowWithQty(row, nextQty);
-                setSelectedRowKeys((prev) => {
-                    const next = new Set(prev);
-                    if (canBeIncludedInSummary) {
-                        next.add(rowKey);
-                    } else {
-                        next.delete(rowKey);
-                    }
-                    return next;
-                });
-
                 setSuccessMessage(
                     String(data.message ?? "").trim() || "Η ποσότητα ενημερώθηκε"
                 );
@@ -544,53 +460,65 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         [currentBranchCode, getResolvedQty, updateEndoListQty, user?.uid]
     );
 
-    const handleApproveSelected = useCallback(async () => {
-        if (selectedRowsForApproval.length === 0) {
+    const handleSubmitRow = useCallback(async (rowKey: string, row: IEndoListRow) => {
+        const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
+        const qty =
+            finalQtyByRow[rowKey] ??
+            requestedQtyByRow[rowKey] ??
+            getRequestedQtyFromRow(row);
+
+        if (!basketId) {
+            setError("Δεν βρέθηκε BASKETID για τη γραμμή");
+            return;
+        }
+
+        if (!canApproveRowWithQty(row, qty)) {
+            setError("Μη έγκυρα στοιχεία γραμμής για αποστολή SALDOC");
             return;
         }
 
         setError("");
         setSuccessMessage("");
-        setApprovingBulk(true);
+        setSubmittingRowKeys((prev) => new Set(prev).add(rowKey));
 
         try {
-                const data = await submitEndoBasketOrder({
-                    appUserId: user?.uid,
-                    items: selectedRowsForApproval.map(({ row, rowKey }) => ({
-                        basketIds: [
-                            String(row.BASKETID ?? row.ID ?? "").trim(),
-                        ],
+            const data = await submitEndoBasketOrder({
+                appUserId: user?.uid,
+                items: [
+                    {
+                        basketIds: [basketId],
                         mtrl: parsePositiveValue(row.MTRL),
-                        qty:
-                            finalQtyByRow[rowKey] ??
-                            requestedQtyByRow[rowKey] ??
-                            getRequestedQtyFromRow(row),
+                        qty,
                         branch: parsePositiveValue(row.TO_BRANCH),
                         toBranch: parsePositiveValue(row.BRANCH),
                         itemCode: String(row.ITEM_CODE ?? "").trim() || undefined,
                         itemDescr: String(row.ITEM_DESCR ?? "").trim() || undefined,
-                    })),
+                    },
+                ],
             });
 
             await loadRows();
             setSuccessMessage(
                 String(data.message ?? "").trim() ||
-                "Η μαζική έγκριση ενδοδιακίνησης καταχωρήθηκε"
+                "Η ενδοδιακίνηση καταχωρήθηκε επιτυχώς"
             );
         } catch (err) {
             setError(
                 err instanceof Error
                     ? err.message
-                    : "Αποτυχία μαζικής έγκρισης ενδοδιακίνησης"
+                    : "Αποτυχία αποστολής SALDOC"
             );
         } finally {
-            setApprovingBulk(false);
+            setSubmittingRowKeys((prev) => {
+                const next = new Set(prev);
+                next.delete(rowKey);
+                return next;
+            });
         }
     }, [
         finalQtyByRow,
         loadRows,
         requestedQtyByRow,
-        selectedRowsForApproval,
         submitEndoBasketOrder,
         user?.uid,
     ]);
@@ -644,7 +572,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                 </div>
             )}
 
-            <div className={`grid gap-4 ${showSummaryAside ? "xl:grid-cols-[minmax(0,1fr)_360px]" : ""}`}>
+            <div className="grid gap-4">
                 <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.02]">
                     <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-800">
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -744,6 +672,8 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                         }
 
                                                         const rowSaving = savingRowKeys.has(rowKey);
+                                                        const rowSubmitting =
+                                                            submittingRowKeys.has(rowKey);
                                                         const draftValue =
                                                             editedQtyByRow[rowKey] ??
                                                             (finalQty === 0
@@ -751,7 +681,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                 : String(finalQty));
                                                         const resolvedQty = getResolvedQty(rowKey, row);
                                                         const qtyChanged = isQtyChanged(rowKey, row);
-                                                        const rowSelected = selectedRowKeys.has(rowKey);
                                                         const canApproveWithResolvedQty =
                                                             canApproveRowWithQty(row, resolvedQty);
 
@@ -772,6 +701,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                         }
                                                                         disabled={
                                                                             rowSaving ||
+                                                                            rowSubmitting ||
                                                                             resolvedQty <= 0
                                                                         }
                                                                         className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-100 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
@@ -784,7 +714,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                         inputMode="numeric"
                                                                         value={draftValue}
                                                                         placeholder="0"
-                                                                        disabled={rowSaving}
+                                                                        disabled={rowSaving || rowSubmitting}
                                                                         onChange={(event) =>
                                                                             handleQtyInputChange(
                                                                                 rowKey,
@@ -818,7 +748,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                                 1
                                                                             )
                                                                         }
-                                                                        disabled={rowSaving}
+                                                                        disabled={rowSaving || rowSubmitting}
                                                                         className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-100 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
                                                                     >
                                                                         <Plus className="h-3.5 w-3.5" />
@@ -826,24 +756,48 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
                                                                     <button
                                                                         type="button"
+                                                                        title="Ενημέρωση ποσότητας"
                                                                         onClick={() =>
-                                                                            qtyChanged
-                                                                                ? void handleQtyUpdate(
-                                                                                    rowKey,
-                                                                                    row
-                                                                                )
-                                                                                : addRowToSelection(rowKey)
+                                                                            void handleQtyUpdate(
+                                                                                rowKey,
+                                                                                row
+                                                                            )
                                                                         }
-                                                                        disabled={rowSaving || !canApproveWithResolvedQty}
-                                                                        className={`ml-1 inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-semibold text-white transition disabled:opacity-40 ${rowSelected && !qtyChanged
-                                                                            ? "bg-green-500 hover:bg-green-600"
-                                                                            : "bg-brand-500 hover:bg-brand-600"
-                                                                            }`}
+                                                                        disabled={
+                                                                            rowSaving ||
+                                                                            rowSubmitting ||
+                                                                            !qtyChanged
+                                                                        }
+                                                                        className="ml-1 inline-flex h-8 items-center gap-1 rounded-md bg-brand-500 px-2 text-xs font-semibold text-white transition hover:bg-brand-600 disabled:opacity-40"
                                                                     >
                                                                         {rowSaving ? (
                                                                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                                         ) : (
                                                                             <Check className="h-3.5 w-3.5" />
+                                                                        )}
+                                                                    </button>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        title="Αποστολή SALDOC"
+                                                                        onClick={() =>
+                                                                            void handleSubmitRow(
+                                                                                rowKey,
+                                                                                row
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            rowSaving ||
+                                                                            rowSubmitting ||
+                                                                            qtyChanged ||
+                                                                            !canApproveWithResolvedQty
+                                                                        }
+                                                                        className="inline-flex h-8 items-center gap-1 rounded-md bg-green-600 px-2 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-40"
+                                                                    >
+                                                                        {rowSubmitting ? (
+                                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                                        ) : (
+                                                                            <Send className="h-3.5 w-3.5" />
                                                                         )}
                                                                     </button>
                                                                 </div>
@@ -869,26 +823,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                     )}
                 </section>
 
-                {showSummaryAside && (
-                    <EndoOrderSummary
-                        currentBranchCode={currentBranchCode}
-                        currentBranchName={currentBranchName}
-                        basketItems={selectedRowsSummaryItems}
-                        loading={false}
-                        error=""
-                        successMessage=""
-                        sendingOrder={approvingBulk}
-                        summaryLabel="Σύνοψη SALDOC"
-                        summaryTitle="Έγκριση Ενδοαποστολής"
-                        branchCardLabel="Κατάστημα Αποστολής"
-                        linesLabel="Επιλεγμένες Γραμμές"
-                        sendButtonLabel="Αποστολή SALDOC"
-                        emptyStateLabel="Επίλεξε γραμμές από τη λίστα για να προστεθούν στο SALDOC."
-                        onRemoveItem={handleRemoveSelectedLine}
-                        onSendOrder={() => void handleApproveSelected()}
-                        onClearSelection={clearSelection}
-                    />
-                )}
             </div>
         </div>
     );
