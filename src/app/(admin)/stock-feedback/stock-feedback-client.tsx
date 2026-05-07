@@ -5,15 +5,23 @@ import PageBreadcrumb from "@/components/template components/common/PageBreadCru
 import {
   AlertCircle,
   CalendarDays,
+  Check,
   Loader2,
+  Minus,
   Package,
+  Plus,
   RefreshCw,
   Search,
+  Send,
   ShoppingCart,
   Warehouse,
 } from "@/lib/icons/lucide";
-import type { IStockFeedbackRow } from "@/lib/interface";
-import { useFetchStockFeedbackMutation } from "@/hooks/queries/useApiMutations";
+import type { IStockFeedbackRow, StockRequestStatus } from "@/lib/interface";
+import {
+  useFetchStockFeedbackMutation,
+  useFetchStockRequestsMutation,
+  useRequestStockQuantityMutation,
+} from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
 import { normalizeBranchCode } from "@/lib/auth/branches";
 
@@ -34,6 +42,51 @@ function formatNumber(value: string | number | null | undefined) {
   return new Intl.NumberFormat("el-GR", {
     maximumFractionDigits: 2,
   }).format(toNumber(value));
+}
+
+function getRequestStatusLabel(
+  status: StockRequestStatus,
+  requestedQty?: number
+) {
+  if (status === "approved") return "Approved";
+  if (status === "deleted") return "Deleted";
+  if (Number.isInteger(requestedQty) && Number(requestedQty) > 0) {
+    return `Pending: ${requestedQty}`;
+  }
+  return "Pending";
+}
+
+function getRequestStatusClassName(status: StockRequestStatus) {
+  if (status === "approved") {
+    return "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400";
+  }
+
+  if (status === "deleted") {
+    return "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
+  }
+
+  return "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
+}
+
+function isPendingStockRequestStatus(status: string | null | undefined) {
+  const normalized = String(status ?? "").trim().toUpperCase();
+  return normalized.includes("ΕΚΚΡΕΜ") || normalized.includes("PENDING");
+}
+
+function toPositiveInteger(value: unknown) {
+  const parsed = Number(String(value ?? "").trim().replace(",", "."));
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return 0;
+  }
+
+  return parsed;
+}
+
+function isCurrentBranchStockColumn(
+  currentBranchCode: string,
+  branchCode: "1001" | "1006" | "1007"
+) {
+  return currentBranchCode === branchCode;
 }
 
 function KpiCard({
@@ -92,6 +145,8 @@ function TableSkeleton() {
 export default function StockFeedbackClient() {
   const user = useAuthStore((state) => state.user);
   const { mutateAsync: fetchStockFeedback } = useFetchStockFeedbackMutation();
+  const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
+  const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
 
   const currentBranchCode = useMemo(
     () => normalizeBranchCode(user?.s1code),
@@ -103,6 +158,34 @@ export default function StockFeedbackClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [requestQuantities, setRequestQuantities] = useState<
+    Record<string, number>
+  >({});
+  const [requestStatuses, setRequestStatuses] = useState<
+    Record<string, StockRequestStatus>
+  >({});
+  const [requestedStatusQty, setRequestedStatusQty] = useState<
+    Record<string, number>
+  >({});
+  const [requestErrors, setRequestErrors] = useState<Record<string, string>>({});
+  const [successToastMessage, setSuccessToastMessage] = useState("");
+  const [submittingRequests, setSubmittingRequests] = useState<Set<string>>(
+    new Set()
+  );
+
+  useEffect(() => {
+    if (!successToastMessage) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setSuccessToastMessage("");
+    }, 3200);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [successToastMessage]);
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -110,6 +193,8 @@ export default function StockFeedbackClient() {
 
     if (!currentBranchCode) {
       setRows([]);
+      setRequestStatuses({});
+      setRequestedStatusQty({});
       setLoading(false);
       setError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη.");
       return;
@@ -126,6 +211,40 @@ export default function StockFeedbackClient() {
       );
 
       setRows(nextRows);
+
+      try {
+        const stockRequestData = await fetchStockRequests({
+          branch: currentBranchCode,
+        });
+
+        const nextPendingStatuses: Record<string, StockRequestStatus> = {};
+        const nextPendingQty: Record<string, number> = {};
+
+        for (const requestRow of stockRequestData.rows ?? []) {
+          const mtrl = String(requestRow.MTRL ?? "").trim();
+
+          if (!mtrl || !isPendingStockRequestStatus(requestRow.STATUS)) {
+            continue;
+          }
+
+          const requestedQty = toPositiveInteger(requestRow.QTY_REQUESTED);
+
+          if (requestedQty <= 0) {
+            continue;
+          }
+
+          nextPendingStatuses[mtrl] = "pending";
+          nextPendingQty[mtrl] = (nextPendingQty[mtrl] ?? 0) + requestedQty;
+        }
+
+        setRequestStatuses(nextPendingStatuses);
+        setRequestedStatusQty(nextPendingQty);
+      } catch (stockRequestError) {
+        console.error(
+          "[stock-feedback] Failed to hydrate pending request statuses",
+          stockRequestError
+        );
+      }
     } catch (err) {
       setRows([]);
       setError(
@@ -136,7 +255,7 @@ export default function StockFeedbackClient() {
     } finally {
       setLoading(false);
     }
-  }, [currentBranchCode, days, fetchStockFeedback]);
+  }, [currentBranchCode, days, fetchStockFeedback, fetchStockRequests]);
 
   useEffect(() => {
     loadRows();
@@ -144,16 +263,141 @@ export default function StockFeedbackClient() {
 
   const filteredRows = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
+    const visibleRows = !query
+      ? rows
+      : rows.filter((row) => {
+          return [row.MTRL, row.CODE, row.NAME]
+            .join(" ")
+            .toLowerCase()
+            .includes(query);
+        });
 
-    if (!query) return rows;
+    return visibleRows
+      .map((row, index) => ({ row, index }))
+      .sort((a, b) => {
+        const aIsPending = requestStatuses[String(a.row.MTRL)] === "pending";
+        const bIsPending = requestStatuses[String(b.row.MTRL)] === "pending";
 
-    return rows.filter((row) => {
-      return [row.MTRL, row.CODE, row.NAME]
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    });
-  }, [rows, searchTerm]);
+        if (aIsPending !== bIsPending) {
+          return aIsPending ? 1 : -1;
+        }
+
+        return a.index - b.index;
+      })
+      .map(({ row }) => row);
+  }, [rows, searchTerm, requestStatuses]);
+
+  const getRequestQuantity = useCallback(
+    (mtrl: string) => requestQuantities[mtrl] ?? 0,
+    [requestQuantities]
+  );
+
+  const setRequestQuantity = useCallback((mtrl: string, nextQuantity: number) => {
+    const normalizedQty = Number.isFinite(nextQuantity)
+      ? Math.max(0, Math.floor(nextQuantity))
+      : 0;
+
+    setRequestQuantities((prev) => ({
+      ...prev,
+      [mtrl]: normalizedQty,
+    }));
+  }, []);
+
+  const handleRequestQuantityInput = useCallback(
+    (mtrl: string, value: string) => {
+      const normalizedValue = value.trim();
+
+      if (!normalizedValue) {
+        setRequestQuantity(mtrl, 0);
+        return;
+      }
+
+      if (!/^\d+$/.test(normalizedValue)) {
+        return;
+      }
+
+      setRequestQuantity(mtrl, Number(normalizedValue));
+      setRequestErrors((prev) => ({
+        ...prev,
+        [mtrl]: "",
+      }));
+    },
+    [setRequestQuantity]
+  );
+
+  const handleSubmitStockRequest = useCallback(
+    async (row: IStockFeedbackRow) => {
+      const mtrlKey = String(row.MTRL);
+      const qty = getRequestQuantity(mtrlKey);
+      const normalizedMtrl = Number(mtrlKey);
+
+      if (!currentBranchCode) {
+        setRequestErrors((prev) => ({
+          ...prev,
+          [mtrlKey]: "Δεν βρέθηκε ενεργό κατάστημα χρήστη.",
+        }));
+        return;
+      }
+
+      if (!Number.isFinite(normalizedMtrl) || normalizedMtrl <= 0) {
+        setRequestErrors((prev) => ({
+          ...prev,
+          [mtrlKey]: "Μη έγκυρο MTRL για αίτημα ανατροφοδοσίας.",
+        }));
+        return;
+      }
+
+      if (!Number.isInteger(qty) || qty <= 0) {
+        setRequestErrors((prev) => ({
+          ...prev,
+          [mtrlKey]: "Η ποσότητα πρέπει να είναι μεγαλύτερη από 0.",
+        }));
+        return;
+      }
+
+      setSubmittingRequests((prev) => new Set(prev).add(mtrlKey));
+      setRequestErrors((prev) => ({
+        ...prev,
+        [mtrlKey]: "",
+      }));
+
+      try {
+        await requestStockQuantity({
+          mtrl: normalizedMtrl,
+          qty,
+          branch: currentBranchCode,
+        });
+
+        setRequestStatuses((prev) => ({
+          ...prev,
+          [mtrlKey]: "pending",
+        }));
+        setRequestedStatusQty((prev) => ({
+          ...prev,
+          [mtrlKey]: (prev[mtrlKey] ?? 0) + qty,
+        }));
+        setRequestQuantity(mtrlKey, 0);
+        setSuccessToastMessage(
+          `Το αίτημα για ${qty} τεμ. καταχωρήθηκε για το είδος ${row.CODE}.`
+        );
+      } catch (submitError) {
+        setRequestErrors((prev) => ({
+          ...prev,
+          [mtrlKey]:
+            submitError instanceof Error
+              ? submitError.message
+              : "Αποτυχία καταχώρησης αιτήματος ανατροφοδοσίας.",
+        }));
+      } finally {
+        setSubmittingRequests((prev) => {
+          const next = new Set(prev);
+          next.delete(mtrlKey);
+          return next;
+        });
+      }
+    },
+    [currentBranchCode, getRequestQuantity, requestStockQuantity, setRequestQuantity]
+  );
 
   const totals = useMemo(() => {
     return rows.reduce(
@@ -173,6 +417,20 @@ export default function StockFeedbackClient() {
 
   return (
     <div className="w-full max-w-none space-y-6">
+      {successToastMessage && (
+        <div className="fixed right-6 top-6 z-[100000]">
+          <div
+            role="status"
+            className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-lg dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
+          >
+            <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+              <Check className="h-3.5 w-3.5" />
+            </span>
+            <p className="max-w-[280px] leading-5">{successToastMessage}</p>
+          </div>
+        </div>
+      )}
+
       <PageBreadcrumb pageTitle="Ανατροφοδοσία Καταστήματος" />
 
       <div className="w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
@@ -222,7 +480,7 @@ export default function StockFeedbackClient() {
               type="button"
               onClick={loadRows}
               disabled={loading}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -288,15 +546,31 @@ export default function StockFeedbackClient() {
               </p>
             </div>
 
-            <div className="relative w-full lg:max-w-sm">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <div className="flex w-full items-center gap-2 lg:w-auto">
+              <div className="relative w-full lg:min-w-[320px] lg:max-w-sm">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
-              <input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Αναζήτηση με κωδικό, MTRL ή περιγραφή..."
-                className="h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-              />
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Αναζήτηση με κωδικό, MTRL ή περιγραφή..."
+                  className="h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={loadRows}
+                disabled={loading}
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                {loading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                Ανανέωση
+              </button>
             </div>
           </div>
         </div>
@@ -322,14 +596,16 @@ export default function StockFeedbackClient() {
           <div className="max-h-[70vh] w-full overflow-y-auto">
             <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
               <colgroup>
-                <col className="w-[40%]" />
+                <col className="w-[24%]" />
+                <col className="w-[8%]" />
+                <col className="w-[7%]" />
+                <col className="w-[8%]" />
+                <col className="w-[7%]" />
+                <col className="w-[7%]" />
+                <col className="w-[7%]" />
                 <col className="w-[9%]" />
-                <col className="w-[8%]" />
-                <col className="w-[9%]" />
-                <col className="w-[8%]" />
-                <col className="w-[8%]" />
-                <col className="w-[8%]" />
                 <col className="w-[10%]" />
+                <col className="w-[13%]" />
               </colgroup>
 
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
@@ -346,17 +622,44 @@ export default function StockFeedbackClient() {
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Σε εξέλιξη
                   </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <th
+                    className={[
+                      "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
+                      isCurrentBranchStockColumn(currentBranchCode, "1001")
+                        ? "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                        : "text-gray-500 dark:text-gray-400",
+                    ].join(" ")}
+                  >
                     YP1001
                   </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <th
+                    className={[
+                      "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
+                      isCurrentBranchStockColumn(currentBranchCode, "1006")
+                        ? "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                        : "text-gray-500 dark:text-gray-400",
+                    ].join(" ")}
+                  >
                     YP1006
                   </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <th
+                    className={[
+                      "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
+                      isCurrentBranchStockColumn(currentBranchCode, "1007")
+                        ? "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                        : "text-gray-500 dark:text-gray-400",
+                    ].join(" ")}
+                  >
                     YP1007
                   </th>
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Διαθέσιμο
+                  </th>
+                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Κατάσταση
+                  </th>
+                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Αίτημα
                   </th>
                 </tr>
               </thead>
@@ -365,6 +668,12 @@ export default function StockFeedbackClient() {
                 {filteredRows.map((row, index) => {
                   const totalAvail = toNumber(row.TOTAL_AVAIL);
                   const qtySold = toNumber(row.QTY_SOLD);
+                  const mtrlKey = String(row.MTRL);
+                  const requestQty = getRequestQuantity(mtrlKey);
+                  const requestStatus = requestStatuses[mtrlKey] ?? null;
+                  const statusRequestedQty = requestedStatusQty[mtrlKey];
+                  const requestError = requestErrors[mtrlKey] ?? "";
+                  const isSubmittingRequest = submittingRequests.has(mtrlKey);
 
                   return (
                     <tr
@@ -398,15 +707,36 @@ export default function StockFeedbackClient() {
                         {formatNumber(row.ONGOING)}
                       </td>
 
-                      <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums text-gray-700 dark:text-gray-200">
+                      <td
+                        className={[
+                          "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
+                          isCurrentBranchStockColumn(currentBranchCode, "1001")
+                            ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                            : "text-gray-700 dark:text-gray-200",
+                        ].join(" ")}
+                      >
                         {formatNumber(row.YP1001)}
                       </td>
 
-                      <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums text-gray-700 dark:text-gray-200">
+                      <td
+                        className={[
+                          "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
+                          isCurrentBranchStockColumn(currentBranchCode, "1006")
+                            ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                            : "text-gray-700 dark:text-gray-200",
+                        ].join(" ")}
+                      >
                         {formatNumber(row.YP1006)}
                       </td>
 
-                      <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums text-gray-700 dark:text-gray-200">
+                      <td
+                        className={[
+                          "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
+                          isCurrentBranchStockColumn(currentBranchCode, "1007")
+                            ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
+                            : "text-gray-700 dark:text-gray-200",
+                        ].join(" ")}
+                      >
                         {formatNumber(row.YP1007)}
                       </td>
 
@@ -421,6 +751,87 @@ export default function StockFeedbackClient() {
                         >
                           {formatNumber(totalAvail)}
                         </span>
+                      </td>
+
+                      <td className="px-5 py-4 align-top">
+                        <div className="flex justify-end">
+                          {requestStatus ? (
+                            <span
+                              className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-semibold leading-none ${getRequestStatusClassName(
+                                requestStatus
+                              )}`}
+                            >
+                              {getRequestStatusLabel(
+                                requestStatus,
+                                statusRequestedQty
+                              )}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-4 align-top">
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex w-full items-center justify-end gap-2">
+                          <div className="inline-flex items-center rounded-xl border border-gray-200/80 bg-gray-50/70 p-1 shadow-sm dark:border-gray-700/70 dark:bg-gray-900/60">
+                            <button
+                              type="button"
+                              onClick={() => setRequestQuantity(mtrlKey, requestQty - 1)}
+                              disabled={requestQty <= 0 || isSubmittingRequest}
+                              aria-label="Μείωση ποσότητας ανατροφοδοσίας"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-white hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-35 dark:hover:bg-gray-800 dark:hover:text-white"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={requestQty === 0 ? "" : requestQty}
+                              placeholder="0"
+                              onChange={(event) =>
+                                handleRequestQuantityInput(mtrlKey, event.target.value)
+                              }
+                              disabled={isSubmittingRequest}
+                              className="h-8 w-12 border-0 bg-transparent px-1 text-center text-sm font-semibold tabular-nums text-gray-900 outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-70 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => setRequestQuantity(mtrlKey, requestQty + 1)}
+                              disabled={isSubmittingRequest}
+                              aria-label="Αύξηση ποσότητας ανατροφοδοσίας"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-white hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-35 dark:hover:bg-gray-800 dark:hover:text-white"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+
+                            <div className="mx-1 h-6 w-px bg-gray-200/70 dark:bg-gray-700/60" />
+
+                            <button
+                              type="button"
+                              onClick={() => void handleSubmitStockRequest(row)}
+                              disabled={isSubmittingRequest || requestQty <= 0 || !currentBranchCode}
+                              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
+                            >
+                              {isSubmittingRequest ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Send className="h-3.5 w-3.5" />
+                              )}
+                              <span>Αίτημα</span>
+                            </button>
+                          </div>
+                          </div>
+
+                          {requestError && (
+                            <p className="max-w-[220px] text-right text-[11px] font-medium leading-4 text-red-500">
+                              {requestError}
+                            </p>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

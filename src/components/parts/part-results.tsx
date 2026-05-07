@@ -6,7 +6,7 @@ import {
     hasBasketItemPriceRequest,
 } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
-import PartStockQuantityContainer from "./part-stock-quantity-container";
+import PartStockQuantityContainer from "./request-stock-card";
 import { useEffect, useState } from "react";
 
 type StockBranchCode = "1001" | "1006" | "1007";
