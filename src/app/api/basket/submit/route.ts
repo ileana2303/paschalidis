@@ -127,6 +127,13 @@ function resolveIsoDate(value: unknown) {
     return new Date().toISOString().slice(0, 10);
 }
 
+function getMappedTrdBranchByBranch(branchCode: number | undefined) {
+    if (branchCode === 1006) return 13;
+    if (branchCode === 1007) return 14;
+    if (branchCode === 1001) return 15;
+    return undefined;
+}
+
 function buildOrderLines(rows: Array<Partial<IBasketItem>>) {
     const aggregatedByMtrl = new Map<number, number>();
 
@@ -271,7 +278,9 @@ export async function POST(req: NextRequest) {
         const orderBranch =
             asPositiveNumber(firstDefined(body.BRANCH, firstRow.BRANCH)) ??
             fallbackBranch;
+        const mappedOrderTrdBranch = getMappedTrdBranchByBranch(orderBranch);
         const orderTrdBranch =
+            mappedOrderTrdBranch ??
             asPositiveNumber(firstDefined(body.TRDBRANCH, firstRow.TRD_BRANCH)) ??
             fallbackTrdBranch;
         const orderPayment =
