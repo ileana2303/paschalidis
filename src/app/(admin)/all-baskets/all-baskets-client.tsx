@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
-import SearchBar from "@/components/search/search-bar";
+import DataTable from "@/components/ui/data-table/DataTable";
+import DataTableEmptyState from "@/components/ui/data-table/DataTableEmptyState";
+import DataTableHeader from "@/components/ui/data-table/DataTableHeader";
+import DataTableSearchBar from "@/components/ui/data-table/DataTableSearchBar";
+import NumberBadge from "@/components/ui/data-table/NumberBadge";
 import {
   ChevronLeft,
   Loader2,
-  RefreshCw,
   ShoppingCart,
 } from "@/lib/icons/lucide";
 import type { BasketAllResponse } from "@/lib/interface";
@@ -54,8 +57,6 @@ export default function AllBasketsClient() {
   const { mutateAsync: fetchAllClientBaskets } =
     useFetchAllClientBasketsMutation();
 
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState(DEFAULT_SEARCH);
   const [page, setPage] = useState(1);
@@ -95,22 +96,17 @@ export default function AllBasketsClient() {
     loadData();
   }, [loadData]);
 
-  useEffect(() => {
-    searchInputRef.current?.focus();
-  }, []);
-
-  const handleSearch = () => {
+  const handleSearchOrRefresh = useCallback(() => {
     const normalizedSearch = searchInput.trim() || DEFAULT_SEARCH;
 
-    setAppliedSearch(normalizedSearch);
-    setPage(1);
-  };
+    if (normalizedSearch !== appliedSearch) {
+      setAppliedSearch(normalizedSearch);
+      setPage(1);
+      return;
+    }
 
-  const handleClearSearch = () => {
-    setSearchInput("");
-    setAppliedSearch(DEFAULT_SEARCH);
-    setPage(1);
-  };
+    void loadData();
+  }, [appliedSearch, loadData, searchInput]);
 
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil(totalcount / pageSize));
@@ -123,84 +119,64 @@ export default function AllBasketsClient() {
     <div>
       <PageBreadcrumb pageTitle="Καλάθια Πελατών" />
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.02]">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-          <div className="flex-1">
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.08em] text-gray-500">
-              Αναζήτηση πελάτη
-            </label>
-
-            <SearchBar
-              inputRef={searchInputRef}
-              value={searchInput}
-              onChange={setSearchInput}
-              onSearch={handleSearch}
-              onClear={handleClearSearch}
-              placeholder="Όνομα πελάτη ή TRDR..."
-              loading={loading}
-              clearOnFocus={false}
-              containerClassName="w-full"
-              inputClassName="rounded-lg py-2.5"
-              searchButtonClassName="h-10 w-10 rounded-lg"
-            />
-          </div>
-
-          <div className="w-full lg:w-40">
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.08em] text-gray-500">
-              Ανά σελίδα
-            </label>
-
-            <select
-              value={pageSize}
-              onChange={(event) => {
-                setPageSize(Number(event.target.value));
-                setPage(1);
-              }}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
-
-          <button
-            type="button"
-            onClick={loadData}
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:border-brand-500 hover:text-brand-600 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Ανανέωση
-          </button>
-        </div>
-      </div>
-
       {error && (
         <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
           {error}
         </div>
       )}
 
-      <div className="mt-4 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.02]">
+      <DataTable className="mt-4">
+        <DataTableHeader
+          title="Καλάθια Πελατών"
+          description="Αναζήτηση και προβολή όλων των καλαθιών πελατών."
+          count={totalcount}
+          action={
+            <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
+              <DataTableSearchBar
+                value={searchInput}
+                onChange={setSearchInput}
+                onRefresh={handleSearchOrRefresh}
+                onSubmit={handleSearchOrRefresh}
+                isRefreshing={loading}
+                refreshDisabled={loading}
+                placeholder="Όνομα πελάτη ή TRDR..."
+              />
+
+              <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                Ανά Σελίδα
+                <select
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value));
+                    setPage(1);
+                  }}
+                  className="border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 dark:text-gray-200"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </label>
+            </div>
+          }
+        />
+
         {loading ? (
           <div className="flex items-center justify-center px-5 py-16 text-gray-500 dark:text-gray-400">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Φόρτωση καλαθιών...
           </div>
         ) : rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-5 py-16 text-center text-gray-500 dark:text-gray-400">
-            <ShoppingCart className="h-10 w-10 text-gray-300 dark:text-gray-600" />
-
-            <p className="mt-3 text-sm">
-              Δεν βρέθηκαν καλάθια για τα κριτήρια αναζήτησης.
-            </p>
-          </div>
+          <DataTableEmptyState
+            icon={<ShoppingCart className="h-7 w-7" />}
+            title="Δεν βρέθηκαν καλάθια"
+            description="Δεν βρέθηκαν καλάθια για τα τρέχοντα κριτήρια αναζήτησης."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
-              <thead className="bg-gray-50 dark:bg-white/[0.02]">
+              <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Πελάτης
@@ -228,13 +204,16 @@ export default function AllBasketsClient() {
 
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {rows.map((row) => (
-                  <tr key={row.TRDR}>
+                  <tr
+                    key={row.TRDR}
+                    className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                  >
                     <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
                       {row.CUSTOMER_NAME || "—"}
                     </td>
 
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                      {row.TRDR || "—"}
+                      <NumberBadge value={row.TRDR || "—"} />
                     </td>
 
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
@@ -246,7 +225,11 @@ export default function AllBasketsClient() {
                     </td>
 
                     <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-300">
-                      {row.TOT_QTY || "0"}
+                      <NumberBadge
+                        value={row.TOT_QTY || "0"}
+                        variant="brand"
+                        className="min-w-[64px]"
+                      />
                     </td>
 
                     <td className="px-4 py-3 text-right text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -254,7 +237,10 @@ export default function AllBasketsClient() {
                     </td>
 
                     <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-300">
-                      {row.BASKETROWS || "0"}
+                      <NumberBadge
+                        value={row.BASKETROWS || "0"}
+                        className="min-w-[64px]"
+                      />
                     </td>
                   </tr>
                 ))}
@@ -262,7 +248,7 @@ export default function AllBasketsClient() {
             </table>
           </div>
         )}
-      </div>
+      </DataTable>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-gray-500 dark:text-gray-400">

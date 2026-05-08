@@ -539,9 +539,8 @@ export default function StockRequestsClient() {
                             <div className="min-h-0 flex-1 overflow-y-auto">
                                 <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
                                     <colgroup>
+                                        <col className="w-[5%]" />
                                         <col className="w-[8%]" />
-                                        <col className="w-[10%]" />
-                                        <col className="w-[7%]" />
                                         <col className="w-[27%]" />
                                         <col className="w-[8%]" />
                                         <col className="w-[7%]" />
@@ -555,15 +554,11 @@ export default function StockRequestsClient() {
                                     <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                         <tr>
                                             <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                                Κατάσταση
+                                                ID
                                             </th>
 
                                             <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 Ημ/νία Αιτήματος
-                                            </th>
-
-                                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                                ID
                                             </th>
 
                                             <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -619,18 +614,16 @@ export default function StockRequestsClient() {
                                                             : "",
                                                     ].join(" ")}
                                                 >
-                                                    <td className="px-5 py-4 align-top">
-                                                        <StatusBadge status={row.STATUS} />
-                                                    </td>
-
-                                                    <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-gray-600 dark:text-gray-300">
-                                                        {formatDateTime(row.INS_DATE)}
-                                                    </td>
+                                                    
 
                                                     <td className="whitespace-nowrap px-5 py-4 align-top">
                                                         <span className="inline-flex rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                                                             #{row.BASKETID}
                                                         </span>
+                                                    </td>
+                                                    
+                                                    <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-gray-600 dark:text-gray-300">
+                                                        {formatDateTime(row.INS_DATE)}
                                                     </td>
 
                                                     <td className="px-5 py-4 align-top">

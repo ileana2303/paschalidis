@@ -4,6 +4,7 @@ interface DataTableSearchBarProps {
   value: string;
   onChange: (value: string) => void;
   onRefresh: () => void;
+  onSubmit?: () => void;
   isRefreshing?: boolean;
   refreshDisabled?: boolean;
   placeholder?: string;
@@ -14,6 +15,7 @@ export default function DataTableSearchBar({
   value,
   onChange,
   onRefresh,
+  onSubmit,
   isRefreshing = false,
   refreshDisabled = false,
   placeholder = "Αναζήτηση...",
@@ -27,6 +29,12 @@ export default function DataTableSearchBar({
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && onSubmit) {
+              event.preventDefault();
+              onSubmit();
+            }
+          }}
           placeholder={placeholder}
           className="h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
         />
@@ -48,4 +56,3 @@ export default function DataTableSearchBar({
     </div>
   );
 }
-

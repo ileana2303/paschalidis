@@ -1,8 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
-import { Check, Loader2, Pencil, RefreshCw, X } from "@/lib/icons/lucide";
+import { Check, Loader2 } from "@/lib/icons/lucide";
+import DataTable from "@/components/ui/data-table/DataTable";
+import DataTableActions, {
+    RowActionGroup,
+} from "@/components/ui/data-table/DataTableActions";
+import DataTableEmptyState from "@/components/ui/data-table/DataTableEmptyState";
+import DataTableHeader from "@/components/ui/data-table/DataTableHeader";
+import DataTableSearchBar from "@/components/ui/data-table/DataTableSearchBar";
+import NumberBadge from "@/components/ui/data-table/NumberBadge";
 import type { IRequestedPriceListRow } from "@/lib/interface";
 import {
     useDeleteBasketItemsMutation,
@@ -64,6 +72,7 @@ export default function DiscountRequestsClient() {
     const [updatingId, setUpdatingId] = useState("");
     const [editingId, setEditingId] = useState("");
     const [editedPrice, setEditedPrice] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
 
     const loadRows = useCallback(async () => {
         setLoading(true);
@@ -89,6 +98,31 @@ export default function DiscountRequestsClient() {
     useEffect(() => {
         void loadRows();
     }, [loadRows]);
+
+    const filteredRows = useMemo(() => {
+        const query = searchTerm.trim().toLowerCase();
+
+        if (!query) {
+            return rows;
+        }
+
+        return rows.filter((row) =>
+            [
+                row.BASKETID,
+                row.TRDR,
+                row.CUSTOMER_NAME,
+                row.MTRL,
+                row.ITEM_CODE,
+                row.ITEM_DESCR,
+                row.KATASTIMA,
+                row.PRICE_ERP,
+                row.PRICE_REQ,
+            ]
+                .join(" ")
+                .toLowerCase()
+                .includes(query)
+        );
+    }, [rows, searchTerm]);
 
     const handleStartEdit = (row: IRequestedPriceListRow) => {
         setEditingId(row.BASKETID);
@@ -200,7 +234,7 @@ export default function DiscountRequestsClient() {
     return (
         <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
             <div className="shrink-0">
-                <PageBreadcrumb pageTitle="Αιτήματα Τιμών" />
+                <PageBreadcrumb pageTitle="Αιτήματα Εκπτώσεων" />
             </div>
 
             {error && (
@@ -215,32 +249,22 @@ export default function DiscountRequestsClient() {
                 </div>
             )}
 
-            <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/70 px-4 py-2 dark:border-gray-800 dark:bg-white/[0.02]">
-                    <div className="flex items-center gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                            Εκκρεμή Αιτήματα Τιμής
-                        </p>
-
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                            {rows.length}
-                        </span>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => void loadRows()}
-                        disabled={loading || Boolean(updatingId)}
-                        className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-white/[0.04]"
-                    >
-                        {loading ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                            <RefreshCw className="h-3.5 w-3.5" />
-                        )}
-                        Ανανέωση
-                    </button>
-                </div>
+            <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <DataTableHeader
+                    title="Εκκρεμή Αιτήματα:"
+                    description="Έγκριση ή διαγραφή αιτημάτων τιμής πελατών."
+                    count={rows.length}
+                    action={(
+                        <DataTableSearchBar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            onRefresh={() => void loadRows()}
+                            isRefreshing={loading}
+                            refreshDisabled={loading || Boolean(updatingId)}
+                            placeholder="Αναζήτηση με BASKETID, MTRL, πελάτη..."
+                        />
+                    )}
+                />
 
                 {loading ? (
                     <div className="flex min-h-0 flex-1 items-center justify-center px-5 py-16 text-sm text-gray-500 dark:text-gray-400">
@@ -248,29 +272,52 @@ export default function DiscountRequestsClient() {
                         Φόρτωση αιτημάτων...
                     </div>
                 ) : rows.length === 0 ? (
-                    <div className="flex min-h-0 flex-1 items-center justify-center px-5 py-16 text-center text-sm text-gray-500 dark:text-gray-400">
-                        Δεν υπάρχουν αιτήματα τιμής προς έγκριση.
-                    </div>
+                    <DataTableEmptyState
+                        icon={<Check className="h-7 w-7" />}
+                        title="Δεν υπάρχουν αιτήματα τιμής"
+                        description="Δεν υπάρχουν αιτήματα τιμής προς έγκριση."
+                        className="flex-1"
+                    />
+                ) : filteredRows.length === 0 ? (
+                    <DataTableEmptyState
+                        icon={<Check className="h-7 w-7" />}
+                        title="Δεν βρέθηκαν αποτελέσματα"
+                        description="Η αναζήτηση δεν επέστρεψε γραμμές."
+                        className="flex-1"
+                    />
                 ) : (
                     <div className="min-h-0 flex-1 overflow-auto">
-                        <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
-                            <thead className="bg-gray-50 dark:bg-white/[0.02]">
+                        <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
+                            <colgroup>
+                                <col className="w-[9%]" />
+                                <col className="w-[8%]" />
+                                <col className="w-[14%]" />
+                                <col className="w-[8%]" />
+                                <col className="w-[11%]" />
+                                <col className="w-[19%]" />
+                                <col className="w-[9%]" />
+                                <col className="w-[8%]" />
+                                <col className="w-[8%]" />
+                                <col className="w-[10%]" />
+                            </colgroup>
+
+                            <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs text-gray-500">BASKETID</th>
-                                    <th className="px-4 py-3 text-left text-xs text-gray-500">TRDR</th>
-                                    <th className="px-4 py-3 text-left text-xs text-gray-500">Πελάτης</th>
-                                    <th className="px-4 py-3 text-left text-xs text-gray-500">MTRL</th>
-                                    <th className="px-4 py-3 text-left text-xs text-gray-500">Κωδικός</th>
-                                    <th className="px-4 py-3 text-left text-xs text-gray-500">Περιγραφή</th>
-                                    <th className="px-4 py-3 text-left text-xs text-gray-500">Κατάστημα</th>
-                                    <th className="px-4 py-3 text-right text-xs text-gray-500">Τιμή ERP</th>
-                                    <th className="px-4 py-3 text-right text-xs text-gray-500">Ζητούμενη Τιμή</th>
-                                    <th className="px-4 py-3 text-right text-xs text-gray-500">Ενέργειες</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">BASKETID</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">TRDR</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Πελάτης</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">MTRL</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Κωδικός</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Περιγραφή</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Κατάστημα</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Τιμή ERP</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ζητούμενη Τιμή</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ενέργειες</th>
                                 </tr>
                             </thead>
 
-                            <tbody>
-                                {rows.map((row) => {
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                {filteredRows.map((row) => {
                                     const rowUpdating = updatingId === row.BASKETID;
                                     const rowIsEditing = editingId === row.BASKETID;
                                     const initialRequestedPrice = String(row.PRICE_REQ ?? "").trim();
@@ -279,9 +326,16 @@ export default function DiscountRequestsClient() {
                                     return (
                                         <tr
                                             key={row.BASKETID}
-                                            className={rowIsEditing ? "bg-blue-50 dark:bg-blue-900/20" : ""}
+                                            className={[
+                                                "transition hover:bg-gray-50 dark:hover:bg-white/[0.04]",
+                                                rowIsEditing
+                                                    ? "bg-brand-50/70 ring-1 ring-inset ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/20"
+                                                    : "",
+                                            ].join(" ")}
                                         >
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.BASKETID}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+                                                <NumberBadge value={`#${row.BASKETID}`} />
+                                            </td>
                                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.TRDR}</td>
                                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.CUSTOMER_NAME}</td>
                                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.MTRL}</td>
@@ -317,79 +371,53 @@ export default function DiscountRequestsClient() {
                                                         }`}
                                                     />
                                                 ) : (
-                                                    <span className="text-sm font-medium text-gray-800 dark:text-white/90">
-                                                        {formatPrice(row.PRICE_REQ)}
-                                                    </span>
+                                                    <NumberBadge
+                                                        value={formatPrice(row.PRICE_REQ)}
+                                                        variant="brand"
+                                                        className="min-w-[84px]"
+                                                    />
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-right">
                                                 {rowIsEditing ? (
-                                                    <div className="flex justify-end gap-2">
+                                                    <DataTableActions>
                                                         <button
                                                             type="button"
                                                             onClick={() => void handleApprove(row)}
-                                                            disabled={rowUpdating}
-                                                            title="Έγκριση αιτήματος με την τιμή"
-                                                            aria-label={`Έγκριση αιτήματος ${row.BASKETID} με τιμή`}
-                                                            className="rounded bg-green-500 px-2 py-1 text-white disabled:opacity-40"
+                                                            disabled={rowUpdating || !priceChanged}
+                                                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:bg-gray-700 dark:disabled:text-gray-400"
                                                         >
                                                             {rowUpdating ? (
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                             ) : (
-                                                                <Check className="h-4 w-4" />
+                                                                <Check className="h-3.5 w-3.5" />
                                                             )}
+                                                            Save
                                                         </button>
 
                                                         <button
                                                             type="button"
                                                             onClick={handleCancelEdit}
                                                             disabled={rowUpdating}
-                                                            title="Ακύρωση επεξεργασίας"
-                                                            aria-label={`Ακύρωση επεξεργασίας για αίτημα ${row.BASKETID}`}
-                                                            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                                                            className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
                                                         >
                                                             Cancel
                                                         </button>
-                                                    </div>
+                                                    </DataTableActions>
                                                 ) : (
-                                                    <div className="flex justify-end gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleStartEdit(row)}
-                                                            disabled={rowUpdating || Boolean(editingId)}
-                                                            title="Αλλαγή τιμής"
-                                                            aria-label={`Αλλαγή τιμής για αίτημα ${row.BASKETID}`}
-                                                            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => void handleApprove(row)}
-                                                            disabled={rowUpdating || Boolean(editingId)}
-                                                            title="Έγκριση αιτήματος"
-                                                            aria-label={`Έγκριση αιτήματος ${row.BASKETID}`}
-                                                            className="rounded bg-green-500 px-2 py-1 text-white disabled:opacity-40"
-                                                        >
-                                                            {rowUpdating ? (
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                            ) : (
-                                                                <Check className="h-4 w-4" />
-                                                            )}
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => void handleDelete(row)}
-                                                            disabled={rowUpdating || Boolean(editingId)}
-                                                            title="Διαγραφή αιτήματος"
-                                                            aria-label={`Διαγραφή αιτήματος ${row.BASKETID}`}
-                                                            className="rounded bg-red-500 px-2 py-1 text-white disabled:opacity-40"
-                                                        >
-                                                            <X className="h-4 w-4" />
-                                                        </button>
-                                                    </div>
+                                                    <RowActionGroup
+                                                        loading={rowUpdating}
+                                                        disabled={Boolean(editingId)}
+                                                        onEdit={() => handleStartEdit(row)}
+                                                        onApprove={() => void handleApprove(row)}
+                                                        onDelete={() => void handleDelete(row)}
+                                                        editTitle="Αλλαγή τιμής"
+                                                        approveTitle="Έγκριση αιτήματος"
+                                                        deleteTitle="Διαγραφή αιτήματος"
+                                                        editAriaLabel={`Αλλαγή τιμής για αίτημα ${row.BASKETID}`}
+                                                        approveAriaLabel={`Έγκριση αιτήματος ${row.BASKETID}`}
+                                                        deleteAriaLabel={`Διαγραφή αιτήματος ${row.BASKETID}`}
+                                                    />
                                                 )}
                                             </td>
                                         </tr>
@@ -399,7 +427,7 @@ export default function DiscountRequestsClient() {
                         </table>
                     </div>
                 )}
-            </section>
+            </DataTable>
         </div>
     );
 }

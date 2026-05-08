@@ -2,13 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
+import DataTable from "@/components/ui/data-table/DataTable";
+import DataTableEmptyState from "@/components/ui/data-table/DataTableEmptyState";
+import DataTableHeader from "@/components/ui/data-table/DataTableHeader";
+import DataTableSearchBar from "@/components/ui/data-table/DataTableSearchBar";
+import NumberBadge from "@/components/ui/data-table/NumberBadge";
+import StatusBadge from "@/components/ui/data-table/StatusBadge";
 import {
     Check,
     Loader2,
     Minus,
     Plus,
     RefreshCw,
-    Search,
     Send,
 } from "@/lib/icons/lucide";
 import {
@@ -58,24 +63,6 @@ function formatDateTime(value?: string) {
         hour: "2-digit",
         minute: "2-digit",
     });
-}
-
-function getStatusClass(value: string) {
-    const normalized = value.toUpperCase();
-
-    if (
-        normalized.includes("ΟΛΟΚΛΗΡ") ||
-        normalized.includes("ΕΓΚΡΙΘ") ||
-        normalized.includes("AVAILABLE")
-    ) {
-        return "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400";
-    }
-
-    if (normalized.includes("ΑΚΥΡ") || normalized.includes("ΑΠΟΡΡΙ")) {
-        return "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
-    }
-
-    return "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
 }
 
 function buildColumns(rows: IEndoListRow[]) {
@@ -183,9 +170,7 @@ function renderCell(key: string, value: string) {
 
     if (/STATUS/i.test(key)) {
         return (
-            <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${getStatusClass(value)}`}>
-                {value}
-            </span>
+            <StatusBadge status={value} />
         );
     }
 
@@ -530,33 +515,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         <div>
             <PageBreadcrumb pageTitle={listConfig.pageTitle} />
 
-            <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50/70 px-5 py-4 dark:border-brand-500/20 dark:bg-brand-500/5">
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-300">
-                            Ενεργό Κατάστημα
-                        </p>
-                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                            {currentBranchName} ({currentBranchCode})
-                        </p>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={loadRows}
-                        disabled={loading}
-                        className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-                    >
-                        {loading ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                            <RefreshCw className="h-3.5 w-3.5" />
-                        )}
-                        Ανανέωση
-                    </button>
-                </div>
-            </div>
-
             {error && (
                 <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
                     {error}
@@ -576,30 +534,22 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             )}
 
             <div className="grid gap-4">
-                <section className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.02]">
-                    <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <h3 className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                                    {listConfig.title} ({rows.length})
-                                </h3>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    {listConfig.subtitle}
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 dark:border-gray-700 dark:bg-gray-900/50">
-                                <Search className="h-3.5 w-3.5 text-gray-400" />
-                                <input
-                                    type="text"
-                                    value={search}
-                                    onChange={(event) => setSearch(event.target.value)}
-                                    placeholder="Αναζήτηση..."
-                                    className="w-full bg-transparent text-xs text-gray-700 outline-none placeholder:text-gray-400 dark:text-gray-200"
-                                />
-                            </div>
-                        </div>
-                    </div>
+                <DataTable>
+                    <DataTableHeader
+                        title={listConfig.title}
+                        description={listConfig.subtitle}
+                        count={rows.length}
+                        action={(
+                            <DataTableSearchBar
+                                value={search}
+                                onChange={setSearch}
+                                onRefresh={loadRows}
+                                isRefreshing={loading}
+                                refreshDisabled={loading}
+                                placeholder="Αναζήτηση..."
+                            />
+                        )}
+                    />
 
                     {loading ? (
                         <div className="flex items-center justify-center px-5 py-20 text-gray-500 dark:text-gray-400">
@@ -607,17 +557,21 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                             Φόρτωση λίστας...
                         </div>
                     ) : rows.length === 0 ? (
-                        <div className="px-5 py-16 text-center text-sm text-gray-500 dark:text-gray-400">
-                            Δεν υπάρχουν εγγραφές.
-                        </div>
+                        <DataTableEmptyState
+                            icon={<Check className="h-7 w-7" />}
+                            title="Δεν υπάρχουν εγγραφές"
+                            description="Δεν υπάρχουν διαθέσιμες γραμμές ενδοδιακίνησης για το επιλεγμένο scope."
+                        />
                     ) : filteredRows.length === 0 ? (
-                        <div className="px-5 py-16 text-center text-sm text-gray-500 dark:text-gray-400">
-                            Δεν βρέθηκαν αποτελέσματα για την αναζήτηση.
-                        </div>
+                        <DataTableEmptyState
+                            icon={<Minus className="h-7 w-7" />}
+                            title="Δεν βρέθηκαν αποτελέσματα"
+                            description="Η αναζήτηση δεν επέστρεψε γραμμές για τα φίλτρα που δώσατε."
+                        />
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
-                                <thead className="bg-gray-50 dark:bg-white/[0.02]">
+                            <table className="min-w-full divide-y divide-gray-100 text-sm dark:divide-gray-800">
+                                <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                     <tr>
                                         {tableColumns.map((column) => (
                                             <th
@@ -641,7 +595,10 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                             finalQtyByRow[rowKey] ?? requestedQty;
 
                                         return (
-                                            <tr key={rowKey}>
+                                            <tr
+                                                key={rowKey}
+                                                className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                                            >
                                                 {tableColumns.map((column) => {
                                                     if (
                                                         isReceivedScope &&
@@ -652,9 +609,11 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                 key={`${rowKey}-${column}`}
                                                                 className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200"
                                                             >
-                                                                <span className="inline-flex min-w-[64px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
-                                                                    {requestedQty}
-                                                                </span>
+                                                                <NumberBadge
+                                                                    value={requestedQty}
+                                                                    variant="brand"
+                                                                    className="min-w-[64px]"
+                                                                />
                                                             </td>
                                                         );
                                                     }
@@ -824,7 +783,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                             </table>
                         </div>
                     )}
-                </section>
+                </DataTable>
 
             </div>
         </div>
