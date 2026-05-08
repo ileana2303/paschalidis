@@ -21,6 +21,7 @@ const DEFAULT_ORDER_SOCASH = 1005;
 const DEFAULT_ORDER_TRUCKS = 2;
 const DEFAULT_ORDER_BRANCH = 1006;
 const DEFAULT_ORDER_TRD_BRANCH = 1000;
+let requestedPriceRequestsInFlight: Promise<RequestedPriceListResponse> | null = null;
 
 function firstDefined<T>(...values: Array<T | null | undefined>): T | undefined {
     for (const value of values) {
@@ -121,16 +122,30 @@ export async function requestBasketItemPrice(
 }
 
 export async function fetchRequestedPriceRequests(): Promise<RequestedPriceListResponse> {
-    const { data } = await httpClient.post<RequestedPriceListResponse>(
-        "/api/basket/requested-prices",
-        {}
-    );
-
-    if (!data.success) {
-        throw new Error(data.message ?? "Failed to fetch requested prices");
+    if (requestedPriceRequestsInFlight) {
+        return requestedPriceRequestsInFlight;
     }
 
-    return data;
+    const requestPromise = (async () => {
+        const { data } = await httpClient.post<RequestedPriceListResponse>(
+            "/api/basket/requested-prices",
+            {}
+        );
+
+        if (!data.success) {
+            throw new Error(data.message ?? "Failed to fetch requested prices");
+        }
+
+        return data;
+    })();
+
+    requestedPriceRequestsInFlight = requestPromise;
+
+    try {
+        return await requestPromise;
+    } finally {
+        requestedPriceRequestsInFlight = null;
+    }
 }
 
 export async function updateRequestedPriceRequest(

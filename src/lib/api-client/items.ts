@@ -20,6 +20,17 @@ const DEFAULT_ANATROF_PAYMENT = 1006;
 const DEFAULT_ANATROF_TRUCKS = 2;
 const DEFAULT_ANATROF_SHIPKIND = 1000;
 const DEFAULT_ANATROF_SOCASH = 1005;
+const stockFeedbackInFlightRequests = new Map<
+    string,
+    Promise<StockFeedbackResponse>
+>();
+
+function getStockFeedbackRequestKey(payload: StockFeedbackRoutePayload) {
+    return JSON.stringify({
+        branch: String(payload.branch ?? "").trim(),
+        days: String(payload.days ?? "").trim(),
+    });
+}
 
 function asPositiveNumber(value: unknown): number | undefined {
     const parsed = Number(value);
@@ -55,16 +66,33 @@ export async function searchItemsByTrdr(
 export async function fetchStockFeedback(
     payload: StockFeedbackRoutePayload
 ): Promise<StockFeedbackResponse> {
-    const { data } = await httpClient.post<StockFeedbackResponse>(
-        "/api/items/stock-feedback",
-        payload
-    );
+    const requestKey = getStockFeedbackRequestKey(payload);
+    const inFlightRequest = stockFeedbackInFlightRequests.get(requestKey);
 
-    if (!data?.success) {
-        throw new Error(data?.message ?? "Failed to fetch stock feedback items");
+    if (inFlightRequest) {
+        return inFlightRequest;
     }
 
-    return data;
+    const requestPromise = (async () => {
+        const { data } = await httpClient.post<StockFeedbackResponse>(
+            "/api/items/stock-feedback",
+            payload
+        );
+
+        if (!data?.success) {
+            throw new Error(data?.message ?? "Failed to fetch stock feedback items");
+        }
+
+        return data;
+    })();
+
+    stockFeedbackInFlightRequests.set(requestKey, requestPromise);
+
+    try {
+        return await requestPromise;
+    } finally {
+        stockFeedbackInFlightRequests.delete(requestKey);
+    }
 }
 
 export async function requestStockQuantity(

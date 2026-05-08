@@ -24,7 +24,6 @@ import StatusBadge from "@/components/ui/data-table/StatusBadge";
 import type { IStockFeedbackRow, StockRequestStatus } from "@/lib/interface";
 import {
   useFetchStockFeedbackMutation,
-  useFetchStockRequestsMutation,
   useRequestStockQuantityMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
@@ -59,20 +58,6 @@ function getRequestStatusLabel(
     return `Pending: ${requestedQty}`;
   }
   return "Pending";
-}
-
-function isPendingStockRequestStatus(status: string | null | undefined) {
-  const normalized = String(status ?? "").trim().toUpperCase();
-  return normalized.includes("ΕΚΚΡΕΜ") || normalized.includes("PENDING");
-}
-
-function toPositiveInteger(value: unknown) {
-  const parsed = Number(String(value ?? "").trim().replace(",", "."));
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return 0;
-  }
-
-  return parsed;
 }
 
 function isCurrentBranchStockColumn(
@@ -138,7 +123,6 @@ function TableSkeleton() {
 export default function StockFeedbackClient() {
   const user = useAuthStore((state) => state.user);
   const { mutateAsync: fetchStockFeedback } = useFetchStockFeedbackMutation();
-  const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
   const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
 
   const currentBranchCode = useMemo(
@@ -204,40 +188,6 @@ export default function StockFeedbackClient() {
       );
 
       setRows(nextRows);
-
-      try {
-        const stockRequestData = await fetchStockRequests({
-          branch: currentBranchCode,
-        });
-
-        const nextPendingStatuses: Record<string, StockRequestStatus> = {};
-        const nextPendingQty: Record<string, number> = {};
-
-        for (const requestRow of stockRequestData.rows ?? []) {
-          const mtrl = String(requestRow.MTRL ?? "").trim();
-
-          if (!mtrl || !isPendingStockRequestStatus(requestRow.STATUS)) {
-            continue;
-          }
-
-          const requestedQty = toPositiveInteger(requestRow.QTY_REQUESTED);
-
-          if (requestedQty <= 0) {
-            continue;
-          }
-
-          nextPendingStatuses[mtrl] = "pending";
-          nextPendingQty[mtrl] = (nextPendingQty[mtrl] ?? 0) + requestedQty;
-        }
-
-        setRequestStatuses(nextPendingStatuses);
-        setRequestedStatusQty(nextPendingQty);
-      } catch (stockRequestError) {
-        console.error(
-          "[stock-feedback] Failed to hydrate pending request statuses",
-          stockRequestError
-        );
-      }
     } catch (err) {
       setRows([]);
       setError(
@@ -248,7 +198,7 @@ export default function StockFeedbackClient() {
     } finally {
       setLoading(false);
     }
-  }, [currentBranchCode, days, fetchStockFeedback, fetchStockRequests]);
+  }, [currentBranchCode, days, fetchStockFeedback]);
 
   useEffect(() => {
     loadRows();
