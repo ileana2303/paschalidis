@@ -3,9 +3,10 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title:
-    "Paschalidis - Sign In",
+    "Sign In | Paschalidis ERP",
 };
 
 export default function SignIn() {
   return <SignInForm />;
 }
+
