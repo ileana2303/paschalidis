@@ -12,14 +12,14 @@ import {
     getBasketItemQty,
     normalizeBasket,
 } from "@/lib/utils/basket-helpers";
-import OrderSummary from "@/components/basket/order-summary";
+import OrderSummary from "@/components/order-summary/customer-order-summary";
 import {
     useDeleteBasketItemsMutation,
     useFetchBasketItemsMutation,
     useSubmitBasketOrderMutation,
     useUpdateBasketItemQtyMutation,
 } from "@/hooks/queries/useApiMutations";
-import BasketTable from "@/components/basket/basket-table";
+import BasketTable from "@/components/customer-basket/basket-table";
 
 type ReceiptType = "receipt" | "invoice";
 

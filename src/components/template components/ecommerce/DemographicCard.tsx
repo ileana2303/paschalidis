@@ -4,8 +4,8 @@ import { MoreHorizontal } from "@/lib/icons/lucide";
 
 import CountryMap from "./CountryMap";
 import { useState } from "react";
-import { Dropdown } from "../../ui/dropdown/Dropdown";
-import { DropdownItem } from "../../ui/dropdown/DropdownItem";
+import { Dropdown } from "../../ui/dropdown/dropdown";
+import { DropdownItem } from "../../ui/dropdown/dropdown-item";
 
 export default function DemographicCard() {
   const [isOpen, setIsOpen] = useState(false);

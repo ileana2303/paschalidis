@@ -4,15 +4,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import StockOrderSummary from "@/components/stock/stock-order-summary";
 import { Check, Loader2 } from "@/lib/icons/lucide";
-import DataTable from "@/components/ui/data-table/DataTable";
+import DataTable from "@/components/ui/data-table/data-table";
 import DataTableActions, {
     RowActionGroup,
-} from "@/components/ui/data-table/DataTableActions";
-import DataTableEmptyState from "@/components/ui/data-table/DataTableEmptyState";
-import DataTableHeader from "@/components/ui/data-table/DataTableHeader";
-import DataTableSearchBar from "@/components/ui/data-table/DataTableSearchBar";
-import NumberBadge from "@/components/ui/data-table/NumberBadge";
-import StatusBadge from "@/components/ui/data-table/StatusBadge";
+} from "@/components/ui/data-table/data-table-action";
+import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
+import DataTableHeader from "@/components/ui/data-table/data-table-header";
+import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
+import NumberBadge from "@/components/ui/data-table/number-badge";
+import StatusBadge from "@/components/ui/data-table/status-badge";
 import type {
     IStockRequestListRow,
     StockRequestUpdateAction,
@@ -38,10 +38,10 @@ const STOCK_BRANCH_COLUMNS: Array<{
     label: string;
     stockKey: StockBranchStockKey;
 }> = [
-    { code: "1001", label: "Κασομούλη", stockKey: "YP1001" },
-    { code: "1006", label: "Λ.Αθηνών", stockKey: "YP1006" },
-    { code: "1007", label: "Λ.Μεσογείων", stockKey: "YP1007" },
-];
+        { code: "1001", label: "Κασομούλη", stockKey: "YP1001" },
+        { code: "1006", label: "Λ.Αθηνών", stockKey: "YP1006" },
+        { code: "1007", label: "Λ.Μεσογείων", stockKey: "YP1007" },
+    ];
 
 function getStatusStyle(status: string) {
     const normalized = status.toUpperCase();
@@ -428,7 +428,7 @@ export default function StockRequestsClient() {
             await loadRows();
             setSuccessMessage(
                 String(data.message ?? "").trim() ||
-                    "Η ανατροφοδοσία καταχωρήθηκε επιτυχώς."
+                "Η ανατροφοδοσία καταχωρήθηκε επιτυχώς."
             );
         } catch (err) {
             setError(
@@ -478,7 +478,7 @@ export default function StockRequestsClient() {
                 <div className="flex min-h-0 flex-1 flex-col gap-5 xl:flex-row">
                     <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-[1.6]">
                         <DataTableHeader
-                            title="Εκκρεμή Αιτήματα Ανατροφοδοσίας" 
+                            title="Εκκρεμή Αιτήματα Ανατροφοδοσίας"
                             description={`Διαχείριση αιτημάτων, ποσοτήτων και έγκρισης ανατροφοδοσίας. Κατάστημα: ${selectedBranchLabel}`}
                             count={pendingRows.length}
                             countClassName="bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
@@ -614,14 +614,14 @@ export default function StockRequestsClient() {
                                                             : "",
                                                     ].join(" ")}
                                                 >
-                                                    
+
 
                                                     <td className="whitespace-nowrap px-5 py-4 align-top">
                                                         <span className="inline-flex rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                                                             #{row.BASKETID}
                                                         </span>
                                                     </td>
-                                                    
+
                                                     <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-gray-600 dark:text-gray-300">
                                                         {formatDateTime(row.INS_DATE)}
                                                     </td>

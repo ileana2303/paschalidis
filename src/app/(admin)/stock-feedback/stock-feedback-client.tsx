@@ -15,12 +15,12 @@ import {
   ShoppingCart,
   Warehouse,
 } from "@/lib/icons/lucide";
-import DataTable from "@/components/ui/data-table/DataTable";
-import DataTableEmptyState from "@/components/ui/data-table/DataTableEmptyState";
-import DataTableHeader from "@/components/ui/data-table/DataTableHeader";
-import DataTableSearchBar from "@/components/ui/data-table/DataTableSearchBar";
-import NumberBadge from "@/components/ui/data-table/NumberBadge";
-import StatusBadge from "@/components/ui/data-table/StatusBadge";
+import DataTable from "@/components/ui/data-table/data-table";
+import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
+import DataTableHeader from "@/components/ui/data-table/data-table-header";
+import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
+import NumberBadge from "@/components/ui/data-table/number-badge";
+import StatusBadge from "@/components/ui/data-table/status-badge";
 import type { IStockFeedbackRow, StockRequestStatus } from "@/lib/interface";
 import {
   useFetchStockFeedbackMutation,
@@ -209,11 +209,11 @@ export default function StockFeedbackClient() {
     const visibleRows = !query
       ? rows
       : rows.filter((row) => {
-          return [row.MTRL, row.CODE, row.NAME]
-            .join(" ")
-            .toLowerCase()
-            .includes(query);
-        });
+        return [row.MTRL, row.CODE, row.NAME]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      });
 
     return visibleRows
       .map((row, index) => ({ row, index }))
@@ -675,55 +675,55 @@ export default function StockFeedbackClient() {
                       <td className="px-5 py-4 align-top">
                         <div className="flex flex-col items-end gap-2">
                           <div className="flex w-full items-center justify-end gap-2">
-                          <div className="inline-flex items-center rounded-xl border border-gray-200/80 bg-gray-50/70 p-1 shadow-sm dark:border-gray-700/70 dark:bg-gray-900/60">
-                            <button
-                              type="button"
-                              onClick={() => setRequestQuantity(mtrlKey, requestQty - 1)}
-                              disabled={requestQty <= 0 || isSubmittingRequest}
-                              aria-label="Μείωση ποσότητας ανατροφοδοσίας"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-white hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-35 dark:hover:bg-gray-800 dark:hover:text-white"
-                            >
-                              <Minus className="h-4 w-4" />
-                            </button>
+                            <div className="inline-flex items-center rounded-xl border border-gray-200/80 bg-gray-50/70 p-1 shadow-sm dark:border-gray-700/70 dark:bg-gray-900/60">
+                              <button
+                                type="button"
+                                onClick={() => setRequestQuantity(mtrlKey, requestQty - 1)}
+                                disabled={requestQty <= 0 || isSubmittingRequest}
+                                aria-label="Μείωση ποσότητας ανατροφοδοσίας"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-white hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-35 dark:hover:bg-gray-800 dark:hover:text-white"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
 
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={requestQty === 0 ? "" : requestQty}
-                              placeholder="0"
-                              onChange={(event) =>
-                                handleRequestQuantityInput(mtrlKey, event.target.value)
-                              }
-                              disabled={isSubmittingRequest}
-                              className="h-8 w-12 border-0 bg-transparent px-1 text-center text-sm font-semibold tabular-nums text-gray-900 outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-70 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                            />
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={requestQty === 0 ? "" : requestQty}
+                                placeholder="0"
+                                onChange={(event) =>
+                                  handleRequestQuantityInput(mtrlKey, event.target.value)
+                                }
+                                disabled={isSubmittingRequest}
+                                className="h-8 w-12 border-0 bg-transparent px-1 text-center text-sm font-semibold tabular-nums text-gray-900 outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-70 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              />
 
-                            <button
-                              type="button"
-                              onClick={() => setRequestQuantity(mtrlKey, requestQty + 1)}
-                              disabled={isSubmittingRequest}
-                              aria-label="Αύξηση ποσότητας ανατροφοδοσίας"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-white hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-35 dark:hover:bg-gray-800 dark:hover:text-white"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => setRequestQuantity(mtrlKey, requestQty + 1)}
+                                disabled={isSubmittingRequest}
+                                aria-label="Αύξηση ποσότητας ανατροφοδοσίας"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-white hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-35 dark:hover:bg-gray-800 dark:hover:text-white"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
 
-                            <div className="mx-1 h-6 w-px bg-gray-200/70 dark:bg-gray-700/60" />
+                              <div className="mx-1 h-6 w-px bg-gray-200/70 dark:bg-gray-700/60" />
 
-                            <button
-                              type="button"
-                              onClick={() => void handleSubmitStockRequest(row)}
-                              disabled={isSubmittingRequest || requestQty <= 0 || !currentBranchCode}
-                              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
-                            >
-                              {isSubmittingRequest ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Send className="h-3.5 w-3.5" />
-                              )}
-                              <span>Αίτημα</span>
-                            </button>
-                          </div>
+                              <button
+                                type="button"
+                                onClick={() => void handleSubmitStockRequest(row)}
+                                disabled={isSubmittingRequest || requestQty <= 0 || !currentBranchCode}
+                                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
+                              >
+                                {isSubmittingRequest ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Send className="h-3.5 w-3.5" />
+                                )}
+                                <span>Αίτημα</span>
+                              </button>
+                            </div>
                           </div>
 
                           {requestError && (

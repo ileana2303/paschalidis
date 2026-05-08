@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
-import { Dropdown } from "../ui/dropdown/Dropdown";
-import { DropdownItem } from "../ui/dropdown/DropdownItem";
+import { Dropdown } from "../ui/dropdown/dropdown";
+import { DropdownItem } from "../ui/dropdown/dropdown-item";
 import { useAuthStore } from "@/stores/authStore";
 import { useLogoutMutation } from "@/hooks/queries/useAuthQueries";
 

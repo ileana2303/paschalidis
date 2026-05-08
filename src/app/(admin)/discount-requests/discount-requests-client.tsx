@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
 import { Check, Loader2 } from "@/lib/icons/lucide";
-import DataTable from "@/components/ui/data-table/DataTable";
+import DataTable from "@/components/ui/data-table/data-table";
 import DataTableActions, {
     RowActionGroup,
-} from "@/components/ui/data-table/DataTableActions";
-import DataTableEmptyState from "@/components/ui/data-table/DataTableEmptyState";
-import DataTableHeader from "@/components/ui/data-table/DataTableHeader";
-import DataTableSearchBar from "@/components/ui/data-table/DataTableSearchBar";
-import NumberBadge from "@/components/ui/data-table/NumberBadge";
+} from "@/components/ui/data-table/data-table-action";
+import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
+import DataTableHeader from "@/components/ui/data-table/data-table-header";
+import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
+import NumberBadge from "@/components/ui/data-table/number-badge";
 import type { IRequestedPriceListRow } from "@/lib/interface";
 import {
     useDeleteBasketItemsMutation,
@@ -234,7 +234,7 @@ export default function DiscountRequestsClient() {
     return (
         <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
             <div className="shrink-0">
-                <PageBreadcrumb pageTitle="Αιτήματα Εκπτώσεων" />
+                <PageBreadcrumb pageTitle="Αιτήματα Έκπτωσης" />
             </div>
 
             {error && (
@@ -364,11 +364,10 @@ export default function DiscountRequestsClient() {
                                                                 handleCancelEdit();
                                                             }
                                                         }}
-                                                        className={`w-28 rounded-md border px-2 py-1 text-right text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                                                            priceChanged
-                                                                ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200 dark:border-blue-400 dark:bg-blue-500/10"
-                                                                : "border-gray-300 dark:border-gray-700 dark:bg-gray-900"
-                                                        }`}
+                                                        className={`w-28 rounded-md border px-2 py-1 text-right text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${priceChanged
+                                                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200 dark:border-blue-400 dark:bg-blue-500/10"
+                                                            : "border-gray-300 dark:border-gray-700 dark:bg-gray-900"
+                                                            }`}
                                                     />
                                                 ) : (
                                                     <NumberBadge

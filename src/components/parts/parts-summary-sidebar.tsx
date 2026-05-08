@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { IBasket, ICustomerInfo } from "@/lib/interface";
-import OrderSummary from "@/components/basket/order-summary";
+import OrderSummary from "@/components/order-summary/customer-order-summary";
 import EndoOrderSummary, { type EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 
 type ReceiptType = "receipt" | "invoice";

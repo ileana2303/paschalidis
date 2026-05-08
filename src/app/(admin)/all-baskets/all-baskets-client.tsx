@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
-import DataTable from "@/components/ui/data-table/DataTable";
-import DataTableEmptyState from "@/components/ui/data-table/DataTableEmptyState";
-import DataTableHeader from "@/components/ui/data-table/DataTableHeader";
-import DataTableSearchBar from "@/components/ui/data-table/DataTableSearchBar";
-import NumberBadge from "@/components/ui/data-table/NumberBadge";
+import DataTable from "@/components/ui/data-table/data-table";
+import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
+import DataTableHeader from "@/components/ui/data-table/data-table-header";
+import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
+import NumberBadge from "@/components/ui/data-table/number-badge";
 import {
   ChevronLeft,
   Loader2,

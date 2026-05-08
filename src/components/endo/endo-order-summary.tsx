@@ -3,13 +3,21 @@
 import { useState } from "react";
 import {
     Check,
+    ChevronDown,
     Circle,
     Loader2,
     Send,
     ShoppingCart,
     Trash2,
 } from "@/lib/icons/lucide";
-import { OrderSummary as OrderSummaryPanel } from "@/components/order-summary/order-summary";
+import SummaryPanel, {
+    SummaryPanelMessage,
+} from "@/components/ui/summary-panel/summary-panel";
+import SummaryInfoCard from "@/components/ui/summary-panel/summary-info-card";
+import SummaryMetricGrid from "@/components/ui/summary-panel/summary-metric-grid";
+import SummaryPrimaryAction from "@/components/ui/summary-panel/summary-primary-action";
+import BasketList from "@/components/ui/basket-list/basket-list";
+import BasketListItem from "@/components/ui/basket-list/basket-list-item";
 
 export interface EndoBasketUiItem {
     uid: string;
@@ -79,32 +87,12 @@ export default function EndoOrderSummary({
         ? basketItems.filter((item) => selectedSet.has(item.uid))
         : basketItems;
     const selectedQty = selectedLines.reduce((sum, item) => sum + item.qty, 0);
+    const sendDisabled = sendingOrder || selectedLines.length === 0;
 
     return (
-        <OrderSummaryPanel
-            summaryLabel={summaryLabel}
-            summaryTitle={summaryTitle}
-            infoCard={{
-                label: branchCardLabel,
-                title: currentBranchName || "—",
-                description: `Κωδικός: ${currentBranchCode || "—"}`,
-            }}
-            metrics={[
-                {
-                    id: "lines",
-                    label: "Γραμμές",
-                    value: selectedLines.length,
-                    trailingValue: isSelectable ? ` / ${basketItems.length}` : undefined,
-                },
-                {
-                    id: "qty",
-                    label: "Τεμάχια",
-                    value: selectedQty,
-                },
-            ]}
-            error={error}
-            successMessage={successMessage}
-            loading={loading}
+        <SummaryPanel
+            label={summaryLabel}
+            title={summaryTitle}
             collapsible={collapsible}
             collapsed={collapsed}
             onToggleCollapse={onToggleCollapse}
@@ -112,27 +100,21 @@ export default function EndoOrderSummary({
             footer={
                 onSendOrder ? (
                     <div className="flex gap-2">
-                        <button
-                            type="button"
+                        <SummaryPrimaryAction
+                            label={sendButtonLabel}
+                            loading={sendingOrder}
+                            disabled={sendDisabled}
+                            icon={<Send className="h-4 w-4" />}
                             onClick={onSendOrder}
-                            disabled={sendingOrder || selectedLines.length === 0}
-                            className={`flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-brand-300 ${
-                                onClearSelection ? "flex-1" : "w-full"
-                            }`}
-                        >
-                            {sendingOrder ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Send className="h-4 w-4" />
-                            )}
-                            {sendButtonLabel}
-                        </button>
+                            fullWidth={!onClearSelection}
+                            className={onClearSelection ? "flex-1" : ""}
+                        />
 
                         {onClearSelection && (
                             <button
                                 type="button"
                                 onClick={onClearSelection}
-                                disabled={sendingOrder || selectedLines.length === 0}
+                                disabled={sendDisabled}
                                 className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-3 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
                             >
                                 {clearButtonLabel}
@@ -142,43 +124,63 @@ export default function EndoOrderSummary({
                 ) : undefined
             }
         >
-            {!loading && (
-                <div className="mt-5">
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                            {linesLabel}
-                        </p>
-                        {basketItems.length > 0 && (
-                            <span className="text-xs text-gray-400">
-                                {basketItems.length}{" "}
-                                {basketItems.length === 1 ? "γραμμή" : "γραμμές"}
-                            </span>
-                        )}
-                    </div>
+            <SummaryInfoCard
+                label={branchCardLabel}
+                title={currentBranchName || "—"}
+                description={`Κωδικός: ${currentBranchCode || "—"}`}
+            />
 
-                    {basketItems.length === 0 ? (
-                        <div className="mt-4 rounded-2xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-                            <ShoppingCart className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
-                            <p className="mt-3 text-sm text-gray-400">{emptyStateLabel}</p>
-                        </div>
-                    ) : (
-                        <div className="mt-4 space-y-3">
-                            {basketItems.map((item) => (
-                                <EndoBasketLineItem
-                                    key={item.uid}
-                                    item={item}
-                                    isSelected={selectedSet.has(item.uid)}
-                                    isSelectable={isSelectable}
-                                    isRemovable={isRemovable}
-                                    onToggle={onToggleItem}
-                                    onRemove={onRemoveItem}
-                                />
-                            ))}
-                        </div>
-                    )}
+            <SummaryMetricGrid
+                metrics={[
+                    {
+                        id: "lines",
+                        label: "Γραμμές",
+                        value: selectedLines.length,
+                        trailingValue: isSelectable ? ` / ${basketItems.length}` : undefined,
+                    },
+                    {
+                        id: "qty",
+                        label: "Τεμάχια",
+                        value: selectedQty,
+                        tone: "brand",
+                    },
+                ]}
+            />
+
+            {error && <SummaryPanelMessage tone="error">{error}</SummaryPanelMessage>}
+            {successMessage && (
+                <SummaryPanelMessage tone="success">
+                    {successMessage}
+                </SummaryPanelMessage>
+            )}
+            {loading && (
+                <div className="mt-5 flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
                 </div>
             )}
-        </OrderSummaryPanel>
+
+            {!loading && (
+                <BasketList
+                    title={linesLabel}
+                    count={basketItems.length}
+                    countLabel={`${basketItems.length} ${basketItems.length === 1 ? "γραμμή" : "γραμμές"}`}
+                    emptyTitle={emptyStateLabel}
+                    emptyIcon={<ShoppingCart className="h-8 w-8" />}
+                >
+                    {basketItems.map((item) => (
+                        <EndoBasketLineItem
+                            key={item.uid}
+                            item={item}
+                            isSelected={selectedSet.has(item.uid)}
+                            isSelectable={isSelectable}
+                            isRemovable={isRemovable}
+                            onToggle={onToggleItem}
+                            onRemove={onRemoveItem}
+                        />
+                    ))}
+                </BasketList>
+            )}
+        </SummaryPanel>
     );
 }
 
@@ -200,15 +202,13 @@ function EndoBasketLineItem({
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <div
-            className={`group rounded-xl border p-3 transition-all ${
-                isSelected
-                    ? "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/40"
-                    : "border-gray-200 bg-gray-50/50 opacity-60 dark:border-gray-800 dark:bg-gray-900/40"
-            }`}
-        >
-            <div className="flex items-start gap-2">
-                {isSelectable && onToggle ? (
+        <BasketListItem
+            title={item.itemCode || String(item.mtrl)}
+            subtitle={item.itemDescr || "—"}
+            selected={isSelected}
+            quantity={item.qty}
+            leading={
+                isSelectable && onToggle ? (
                     <button
                         type="button"
                         onClick={() => onToggle(item.uid)}
@@ -227,69 +227,10 @@ function EndoBasketLineItem({
                     </button>
                 ) : (
                     <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-brand-500/70" />
-                )}
-
-                <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-700 dark:text-white/90">
-                        {item.itemCode || String(item.mtrl)}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">{item.itemDescr || "—"}</p>
-                    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-500">
-                        <span>
-                            ΠΟΣΟΤΗΤΑ:{" "}
-                            <span className="font-medium text-gray-700 dark:text-white/90">
-                                {item.qty}
-                            </span>
-                        </span>
-                        <span>
-                            MTRL:{" "}
-                            <span className="font-medium text-gray-700 dark:text-white/90">
-                                {item.mtrl}
-                            </span>
-                        </span>
-                        <span>
-                            ΑΠΟ:{" "}
-                            <span className="font-medium text-gray-700 dark:text-white/90">
-                                {item.fromBranch}
-                            </span>
-                        </span>
-                        <span>
-                            ΠΡΟΣ:{" "}
-                            <span className="font-medium text-gray-700 dark:text-white/90">
-                                {item.toBranch}
-                            </span>
-                        </span>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => setIsExpanded((prev) => !prev)}
-                        className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                    >
-                        {isExpanded ? "Απόκρυψη στοιχείων" : "Περισσότερα στοιχεία"}
-                    </button>
-
-                    {isExpanded && (
-                        <div className="mt-2 grid grid-cols-1 gap-2 rounded-lg border border-gray-200 bg-white/70 p-3 dark:border-gray-800 dark:bg-gray-900/60">
-                            <p className="text-xs text-gray-700 dark:text-gray-200">
-                                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
-                                    BASKET IDS:
-                                </span>{" "}
-                                {item.basketIds.join(", ") || "-"}
-                            </p>
-                            {item.manufacturer && (
-                                <p className="text-xs text-gray-700 dark:text-gray-200">
-                                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
-                                        Μάρκα:
-                                    </span>{" "}
-                                    {item.manufacturer}
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {isRemovable && onRemove && (
+                )
+            }
+            actions={
+                isRemovable && onRemove ? (
                     <button
                         type="button"
                         onClick={() => onRemove(item.uid)}
@@ -298,8 +239,42 @@ function EndoBasketLineItem({
                     >
                         <Trash2 className="h-3 w-3" />
                     </button>
-                )}
-            </div>
-        </div>
+                ) : undefined
+            }
+            meta={[
+                { label: "MTRL", value: item.mtrl },
+                { label: "ΑΠΟ", value: item.fromBranch },
+                { label: "ΠΡΟΣ", value: item.toBranch },
+            ]}
+        >
+            <button
+                type="button"
+                onClick={() => setIsExpanded((prev) => !prev)}
+                aria-expanded={isExpanded}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            >
+                {isExpanded ? "Απόκρυψη στοιχείων" : "Περισσότερα στοιχεία"}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+            </button>
+
+            {isExpanded && (
+                <div className="mt-2 grid grid-cols-1 gap-2 rounded-lg border border-gray-200 bg-white/70 p-3 dark:border-gray-800 dark:bg-gray-900/60">
+                    <p className="text-xs text-gray-700 dark:text-gray-200">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
+                            BASKET IDS:
+                        </span>{" "}
+                        {item.basketIds.join(", ") || "-"}
+                    </p>
+                    {item.manufacturer && (
+                        <p className="text-xs text-gray-700 dark:text-gray-200">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
+                                Μάρκα:
+                            </span>{" "}
+                            {item.manufacturer}
+                        </p>
+                    )}
+                </div>
+            )}
+        </BasketListItem>
     );
 }
