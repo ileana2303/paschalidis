@@ -12,6 +12,12 @@ const TRD_BRANCH_BY_BRANCH_CODE: Partial<Record<KnownBranchCode, number>> = {
   "1007": 14,
 } as const;
 
+const SALDOC_SERIES_BY_BRANCH_CODE: Partial<Record<KnownBranchCode, string>> = {
+  "1001": "7002",
+  "1006": "17002",
+  "1007": "27002",
+} as const;
+
 function normalizeText(value: string | null | undefined) {
   return String(value ?? "").trim();
 }
@@ -32,6 +38,13 @@ export function getTrdBranchByBranchCode(
 ) {
   const code = normalizeBranchCode(branchCode) as KnownBranchCode;
   return TRD_BRANCH_BY_BRANCH_CODE[code];
+}
+
+export function getSaldocSeriesByBranchCode(
+  branchCode: string | number | null | undefined
+) {
+  const code = normalizeBranchCode(branchCode) as KnownBranchCode;
+  return SALDOC_SERIES_BY_BRANCH_CODE[code];
 }
 
 export function resolveBranchName(

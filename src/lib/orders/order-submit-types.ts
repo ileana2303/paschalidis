@@ -56,7 +56,7 @@ export type SetDataOrderPayload = {
             COMMENTS: string;
             REMARKS: string;
             SHIPKIND: number;
-            SOCASH: number;
+            SOCASH?: number;
         }>;
         MTRDOC: Array<{
             TRUCKS: number;

@@ -32,8 +32,6 @@ export async function submitEndoBasketOrder(
         appUserId: String(payload.appUserId ?? "").trim(),
         deliveryDate: payload.deliveryDate,
         notes: payload.notes,
-        branchSec: payload.branchSec,
-        whouseSec: payload.whouseSec,
         items: payload.items.map((item) => ({
             basketId: item.basketIds?.[0],
             basketIds: item.basketIds,

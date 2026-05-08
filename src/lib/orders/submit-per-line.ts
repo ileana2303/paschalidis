@@ -23,7 +23,7 @@ type PerLineHeaderValues = {
     payment: number;
     trucks: number;
     shipKind: number;
-    socash: number;
+    socash?: number;
     branchSec?: number;
     whouseSec?: number;
 };

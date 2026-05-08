@@ -14,7 +14,7 @@ type BuildSetDataPayloadParams = {
     comments: string;
     remarks: string;
     shipKind: number;
-    socash: number;
+    socash?: number;
     branchSec?: number;
     whouseSec?: number;
     lines: OrderSubmitLine[];
@@ -36,12 +36,27 @@ export function buildSetDataPayload({
     whouseSec,
     lines,
 }: BuildSetDataPayloadParams): SetDataOrderPayload {
+    const saldoc: SetDataOrderPayload["data"]["SALDOC"][number] = {
+        SERIES: series,
+        TRDR: trdr,
+        TRDBRANCH: trdBranch,
+        PAYMENT: payment,
+        TRUCKS: trucks,
+        DELIVDATE: deliveryDate,
+        COMMENTS: comments,
+        REMARKS: remarks,
+        SHIPKIND: shipKind,
+    };
     const mtrdoc: SetDataOrderPayload["data"]["MTRDOC"][number] = {
         TRUCKS: trucks,
         DELIVDATE: deliveryDate,
         DEPTRDR_CUSTOMER_CODE: "",
         BILLTRDR_CUSTOMER_CODE: "",
     };
+
+    if (socash != null) {
+        saldoc.SOCASH = socash;
+    }
 
     if (branchSec != null) {
         mtrdoc.BRANCHSEC = branchSec;
@@ -58,20 +73,7 @@ export function buildSetDataPayload({
         OBJECT: "SALDOC",
         KEY: "",
         data: {
-            SALDOC: [
-                {
-                    SERIES: series,
-                    TRDR: trdr,
-                    TRDBRANCH: trdBranch,
-                    PAYMENT: payment,
-                    TRUCKS: trucks,
-                    DELIVDATE: deliveryDate,
-                    COMMENTS: comments,
-                    REMARKS: remarks,
-                    SHIPKIND: shipKind,
-                    SOCASH: socash,
-                },
-            ],
+            SALDOC: [saldoc],
             MTRDOC: [mtrdoc],
             ITELINES: lines.map((line) => ({
                 MTRL: line.mtrl,

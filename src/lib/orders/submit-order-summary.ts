@@ -3,7 +3,10 @@ import {
     getSoftOneClientID,
     getSoftOneSetDataClientID,
 } from "@/lib/softone";
-import { getTrdBranchByBranchCode } from "@/lib/auth/branches";
+import {
+    getSaldocSeriesByBranchCode,
+    getTrdBranchByBranchCode,
+} from "@/lib/auth/branches";
 import { getOrderSubmitConfig } from "./order-submit-config";
 import { submitPerLine } from "./submit-per-line";
 import { submitSingleOrder } from "./submit-single-order";
@@ -114,6 +117,17 @@ function getSubmitEnvString(submitType: OrderSubmitType, key: string) {
     return "";
 }
 
+function resolveSaldocSeries(
+    submitType: OrderSubmitType,
+    branchCode?: number
+) {
+    return (
+        getSubmitEnvString(submitType, "SERIES") ||
+        getSaldocSeriesByBranchCode(branchCode) ||
+        DEFAULT_ORDER_SERIES
+    );
+}
+
 function requireHeaderNumber(
     value: number | undefined,
     fieldName: string,
@@ -195,13 +209,10 @@ function resolveSingleOrderHeader(
     };
 }
 
-function getEndoHeaderForLine(
-    line: {
-        sourceBranch?: number;
-        destinationBranch?: number;
-    },
-    loggedInBranch?: number
-) {
+function getEndoHeaderForLine(line: {
+    sourceBranch?: number;
+    destinationBranch?: number;
+}) {
     const sourceBranch = line.sourceBranch;
     const destinationBranch = line.destinationBranch;
 
@@ -219,7 +230,8 @@ function getEndoHeaderForLine(
         );
     }
 
-    const branchSec = loggedInBranch ?? sourceBranch;
+    // ENDO BRANCHSEC/WHOUSESEC must follow the branch that initiated the request.
+    const branchSec = destinationBranch;
     const trdr =
         getSubmitEnvNumber("endo", "TRDR", destinationBranch) ??
         jsonSafeNumber(getEnvString("S1_ENDO_TRDR")) ??
@@ -233,20 +245,13 @@ function getEndoHeaderForLine(
         jsonSafeNumber(getEnvString("S1_ENDO_SOCASH"));
     const trucks =
         getSubmitEnvNumber("endo", "TRUCKS", sourceBranch) ??
-        jsonSafeNumber(getEnvString("S1_ENDO_TRUCKS"));
+        jsonSafeNumber(getEnvString("S1_ENDO_TRUCKS")) ??
+        DEFAULT_TRUCKS;
 
     if (!trdBranch) {
         throw new Error(
             `Cannot resolve ENDO TRDBRANCH for TO_BRANCH ${destinationBranch}.`
         );
-    }
-
-    if (!socash) {
-        throw new Error(`S1_ENDO_SOCASH is missing for branch ${destinationBranch}.`);
-    }
-
-    if (!trucks) {
-        throw new Error(`S1_ENDO_TRUCKS is missing for branch ${sourceBranch}.`);
     }
 
     return {
@@ -299,13 +304,8 @@ export async function submitOrderSummary(body: OrderSubmitRequestBody) {
 
     const deliveryDate = resolveIsoDate(body.deliveryDate);
     const remarks = String(body.notes ?? "").trim();
-    const series =
-        getSubmitEnvString(config.submitType, "SERIES") || DEFAULT_ORDER_SERIES;
-
     if (config.submitMode === "per-line") {
-        const loggedInBranch =
-            jsonSafeNumber(body.branchSec) ??
-            jsonSafeNumber(body.whouseSec);
+        const firstLineSourceBranch = lines[0]?.sourceBranch;
 
         return submitPerLine({
             submitType: config.submitType,
@@ -315,12 +315,11 @@ export async function submitOrderSummary(body: OrderSubmitRequestBody) {
             tableAction: config.tableAction,
             method: config.massDeleteMethod,
             appUserId,
-            series,
+            series: resolveSaldocSeries(config.submitType, firstLineSourceBranch),
             deliveryDate,
             remarks,
             lines,
-            resolvePerLineHeader: ({ line }) =>
-                getEndoHeaderForLine(line, loggedInBranch),
+            resolvePerLineHeader: ({ line }) => getEndoHeaderForLine(line),
         });
     }
 
@@ -340,7 +339,7 @@ export async function submitOrderSummary(body: OrderSubmitRequestBody) {
         tableAction: config.tableAction,
         method: config.massDeleteMethod,
         appUserId,
-        series,
+        series: resolveSaldocSeries(config.submitType, header.setDataBranch),
         deliveryDate,
         remarks,
         lines,
