@@ -14,7 +14,7 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
 const S1_APP_ID = "1305";
-const S1_SQL_NAME = "BASKET_LIST";
+const S1_SQL_NAME = "BASKET_OUT_L_BRANCH";
 
 type BasketListRow = {
     TRDR?: string;
@@ -46,6 +46,16 @@ function normalizeSearch(value: unknown) {
     const trimmed = value.trim();
 
     return trimmed.length > 0 ? trimmed : "*";
+}
+
+function toBranch(value: unknown) {
+    const parsed = Number(String(value ?? "").trim());
+
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return null;
+    }
+
+    return Math.floor(parsed);
 }
 
 function getErrorMessage(data: unknown, fallback: string) {
@@ -101,7 +111,20 @@ export async function POST(req: NextRequest) {
         const page = toPositiveInt(body.page, DEFAULT_PAGE);
         const pageSize = toPositiveInt(body.pageSize, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
         const search = normalizeSearch(body.search);
+        const branch = toBranch(body.branch);
         const clientID = getSoftOneClientID();
+
+        if (!branch) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "Branch is required",
+                    totalcount: 0,
+                    rows: [],
+                },
+                { status: 400 }
+            );
+        }
 
         if (!clientID) {
             return NextResponse.json(
@@ -120,6 +143,7 @@ export async function POST(req: NextRequest) {
             clientID,
             appId: S1_APP_ID,
             SqlName: S1_SQL_NAME,
+            BRANCH: branch,
         });
 
         if (!upstreamResponse.ok) {

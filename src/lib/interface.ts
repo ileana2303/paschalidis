@@ -111,6 +111,7 @@ export interface BasketAllRoutePayload {
     search?: string;
     page?: number;
     pageSize?: number;
+    branch?: string | number;
 }
 
 //BASKET_OUT LIST :: List of customers with basket info.

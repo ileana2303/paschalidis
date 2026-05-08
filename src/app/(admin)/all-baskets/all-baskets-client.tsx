@@ -14,9 +14,18 @@ import {
 } from "@/lib/icons/lucide";
 import type { BasketAllResponse } from "@/lib/interface";
 import { useFetchAllClientBasketsMutation } from "@/hooks/queries/useApiMutations";
+import { normalizeBranchCode } from "@/lib/auth/branches";
+import { useAuthStore } from "@/stores/authStore";
 
 const DEFAULT_SEARCH = "*";
 const DEFAULT_PAGE_SIZE = 25;
+type BasketBranchCode = "1001" | "1006" | "1007";
+
+const BASKET_BRANCH_OPTIONS: Array<{ code: BasketBranchCode; label: string }> = [
+  { code: "1001", label: "Κασομούλη" },
+  { code: "1006", label: "Λ. Αθηνών" },
+  { code: "1007", label: "Λ. Μεσογείων" },
+];
 
 type BasketListRow = {
   TRDR: string;
@@ -53,7 +62,16 @@ function getBasketRows(data: BasketAllResponse): BasketListRow[] {
   return Array.isArray(data.rows) ? (data.rows as BasketListRow[]) : [];
 }
 
+function isBasketBranchCode(value: string): value is BasketBranchCode {
+  return BASKET_BRANCH_OPTIONS.some((branch) => branch.code === value);
+}
+
 export default function AllBasketsClient() {
+  const user = useAuthStore((state) => state.user);
+  const currentBranchCode = useMemo(
+    () => normalizeBranchCode(user?.s1code),
+    [user?.s1code]
+  );
   const { mutateAsync: fetchAllClientBaskets } =
     useFetchAllClientBasketsMutation();
 
@@ -65,8 +83,30 @@ export default function AllBasketsClient() {
   const [rows, setRows] = useState<BasketListRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedBranchCode, setSelectedBranchCode] = useState<
+    BasketBranchCode | ""
+  >("");
+
+  useEffect(() => {
+    if (selectedBranchCode) {
+      return;
+    }
+
+    const normalizedCurrentBranch = normalizeBranchCode(currentBranchCode);
+
+    if (isBasketBranchCode(normalizedCurrentBranch)) {
+      setSelectedBranchCode(normalizedCurrentBranch);
+      return;
+    }
+
+    setSelectedBranchCode(BASKET_BRANCH_OPTIONS[0].code);
+  }, [currentBranchCode, selectedBranchCode]);
 
   const loadData = useCallback(async () => {
+    if (!selectedBranchCode) {
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -75,6 +115,7 @@ export default function AllBasketsClient() {
         search: appliedSearch,
         page,
         pageSize,
+        branch: selectedBranchCode,
       });
 
       setRows(getBasketRows(data));
@@ -90,11 +131,15 @@ export default function AllBasketsClient() {
     } finally {
       setLoading(false);
     }
-  }, [appliedSearch, fetchAllClientBaskets, page, pageSize]);
+  }, [appliedSearch, fetchAllClientBaskets, page, pageSize, selectedBranchCode]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!selectedBranchCode) {
+      return;
+    }
+
+    void loadData();
+  }, [loadData, selectedBranchCode]);
 
   const handleSearchOrRefresh = useCallback(() => {
     const normalizedSearch = searchInput.trim() || DEFAULT_SEARCH;
@@ -132,6 +177,32 @@ export default function AllBasketsClient() {
           count={totalcount}
           action={
             <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
+
+              <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                Κατάστημα
+                <select
+                  value={selectedBranchCode}
+                  onChange={(event) => {
+                    const nextBranchCode = normalizeBranchCode(event.target.value);
+
+                    if (!isBasketBranchCode(nextBranchCode)) {
+                      return;
+                    }
+
+                    setSelectedBranchCode(nextBranchCode);
+                    setPage(1);
+                  }}
+                  disabled={loading}
+                  className="min-w-[140px] border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
+                >
+                  {BASKET_BRANCH_OPTIONS.map((branch) => (
+                    <option key={branch.code} value={branch.code}>
+                      {branch.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
               <DataTableSearchBar
                 value={searchInput}
                 onChange={setSearchInput}
@@ -142,22 +213,6 @@ export default function AllBasketsClient() {
                 placeholder="Όνομα πελάτη ή TRDR..."
               />
 
-              <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                Ανά Σελίδα
-                <select
-                  value={pageSize}
-                  onChange={(event) => {
-                    setPageSize(Number(event.target.value));
-                    setPage(1);
-                  }}
-                  className="border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 dark:text-gray-200"
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </label>
             </div>
           }
         />
@@ -256,6 +311,23 @@ export default function AllBasketsClient() {
         </p>
 
         <div className="flex items-center gap-2">
+          <label className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            Ανά Σελίδα
+            <select
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value));
+                setPage(1);
+              }}
+              className="border-0 bg-transparent text-sm font-medium text-gray-700 outline-none focus:ring-0 dark:text-gray-200"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </label>
+          
           <button
             type="button"
             disabled={!canGoPrevious}
