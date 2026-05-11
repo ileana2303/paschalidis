@@ -1,6 +1,6 @@
 "use client";
 
-import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSearchPartsStore } from "@/stores/searchPartsStore";

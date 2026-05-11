@@ -1,6 +1,6 @@
 "use client";
 
-import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Plus } from "@/lib/icons/lucide";
 import type { IEndoListRow, IItem } from "@/lib/interface";

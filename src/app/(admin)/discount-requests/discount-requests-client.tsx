@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import { Check, Loader2 } from "@/lib/icons/lucide";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableActions, {

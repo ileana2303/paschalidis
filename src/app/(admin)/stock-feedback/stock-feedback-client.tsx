@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import {
   AlertCircle,
   CalendarDays,

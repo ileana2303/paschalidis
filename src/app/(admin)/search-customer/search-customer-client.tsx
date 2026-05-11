@@ -1,6 +1,6 @@
 "use client";
 
-import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import { useEffect, useRef, useState } from "react";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useCustomerSearchStore } from "@/stores/customerSearchStore";

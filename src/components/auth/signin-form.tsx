@@ -1,7 +1,7 @@
 "use client";
-import Checkbox from "@/components/template components/form/input/Checkbox";
-import Input from "@/components/template components/form/input/InputField";
-import Label from "@/components/template components/form/Label";
+import Checkbox from "@/components/template-components/form/input/Checkbox";
+import Input from "@/components/template-components/form/input/InputField";
+import Label from "@/components/template-components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";

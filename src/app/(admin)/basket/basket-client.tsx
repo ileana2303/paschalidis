@@ -1,6 +1,6 @@
 "use client";
 
-import PageBreadcrumb from "@/components/template components/common/PageBreadCrumb";
+import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomerStore } from "@/stores/customerStore";
@@ -19,7 +19,7 @@ import {
     useSubmitBasketOrderMutation,
     useUpdateBasketItemQtyMutation,
 } from "@/hooks/queries/useApiMutations";
-import BasketTable from "@/components/customer-basket/basket-table";
+import BasketTable from "@/components/ui/basket-list/basket-items-table";
 
 type ReceiptType = "receipt" | "invoice";
 
