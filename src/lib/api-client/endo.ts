@@ -18,7 +18,7 @@ export async function addItemToEndoBasket(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to add item to endo basket");
+        throw new Error(data.message ?? 'Αποτυχία προσθήκης στη λίστα ενδοκινήσεων.');
     }
 
     return data;
@@ -50,7 +50,7 @@ export async function submitEndoBasketOrder(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to submit endo order");
+        throw new Error(data.message ?? 'Αποτυχία υποβολής ενδοκίνησης.');
     }
 
     return data;
@@ -65,7 +65,7 @@ export async function fetchEndoLists(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to fetch endo lists");
+        throw new Error(data.message ?? 'Αποτυχία φόρτωσης λιστών ενδοκινήσεων.');
     }
 
     return data;
@@ -80,7 +80,7 @@ export async function updateEndoListQty(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to update endo quantity");
+        throw new Error(data.message ?? 'Αποτυχία ενημέρωσης ποσότητας ενδοκίνησης.');
     }
 
     return data;

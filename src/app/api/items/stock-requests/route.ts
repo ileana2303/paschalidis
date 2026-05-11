@@ -26,7 +26,7 @@ async function callSoftOne(payload: unknown, logLabel: string) {
 
         console.error(`${logLabel} Upstream error body:`, errorText);
 
-        throw new Error(`Upstream request failed with status ${response.status}`);
+        throw new Error(`Αποτυχία επικοινωνίας με το ERP (HTTP ${response.status}).`);
     }
 
     return response;
@@ -56,7 +56,7 @@ function unauthorizedResponse() {
     return NextResponse.json(
         {
             success: false,
-            message: "Unauthorized",
+            message: 'Απαιτείται σύνδεση.',
         },
         { status: 401 }
     );
@@ -66,7 +66,7 @@ function missingClientResponse() {
     return NextResponse.json(
         {
             success: false,
-            message: "S1 client is not configured",
+            message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.',
         },
         { status: 500 }
     );
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "Branch is required",
+                    message: 'Απαιτείται υποκατάστημα.',
                 },
                 { status: 400 }
             );
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                message: error instanceof Error ? error.message : "Server error",
+                message: error instanceof Error ? error.message : 'Σφάλμα διακομιστή.',
             },
             { status: 500 }
         );
@@ -154,7 +154,7 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "Invalid update payload",
+                    message: 'Μη έγκυρα δεδομένα ενημέρωσης.',
                 },
                 { status: 400 }
             );
@@ -164,7 +164,7 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "Invalid quantity",
+                    message: 'Μη έγκυρη ποσότητα.',
                 },
                 { status: 400 }
             );
@@ -193,7 +193,7 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                message: error instanceof Error ? error.message : "Server error",
+                message: error instanceof Error ? error.message : 'Σφάλμα διακομιστή.',
             },
             { status: 500 }
         );

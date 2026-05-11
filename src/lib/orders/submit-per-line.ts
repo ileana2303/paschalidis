@@ -82,7 +82,7 @@ export async function submitPerLine(params: SubmitPerLineParams) {
             console.error("[orders/submit/per-line] setData error body:", errorText);
 
             throw new Error(
-                `SoftOne ENDO submission failed for basket ${line.basketId}.`
+                `Αποτυχία υποβολής ενδοκίνησης για το καλάθι (${line.basketId})`
             );
         }
 
@@ -97,7 +97,7 @@ export async function submitPerLine(params: SubmitPerLineParams) {
         if (setDataResult.success === false) {
             throw new Error(
                 setDataResult.message ||
-                    `SoftOne ENDO submission failed for basket ${line.basketId}.`
+                    `Αποτυχία υποβολής ενδοκίνησης για το καλάθι (${line.basketId})`
             );
         }
 
@@ -105,7 +105,7 @@ export async function submitPerLine(params: SubmitPerLineParams) {
 
         if (!orderId) {
             throw new Error(
-                `ENDO order submitted for basket ${line.basketId}, but response id is missing.`
+                `Η ενδοκίνηση υποβλήθηκε αλλά λείπει το αναγνωριστικό από την απάντηση (${line.basketId})`
             );
         }
 

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
         if (!normalizedSearch) {
             return NextResponse.json(
-                { success: false, message: "Search term is required", totalcount: 0, rows: [] },
+                { success: false, message: 'Απαιτείται όρος αναζήτησης.', totalcount: 0, rows: [] },
                 { status: 400 }
             );
         }
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
             console.error("[customers/search] Missing S1_CLIENT_ID");
 
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured", totalcount: 0, rows: [] },
+                { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.', totalcount: 0, rows: [] },
                 { status: 500 }
             );
         }
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
         if (!response.ok) {
             return NextResponse.json(
-                { success: false, message: "Upstream request failed" },
+                { success: false, message: 'Αποτυχία επικοινωνίας με το ERP.' },
                 { status: response.status }
             );
         }
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         console.error("[customers/search] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error" },
+            { success: false, message: 'Σφάλμα διακομιστή.' },
             { status: 500 }
         );
     }

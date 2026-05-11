@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
         if (!sessionCookie?.trim()) {
             return NextResponse.json(
-                { success: false, message: "Unauthorized" },
+                { success: false, message: 'Απαιτείται σύνδεση.' },
                 { status: 401 }
             );
         }
@@ -38,42 +38,42 @@ export async function POST(req: NextRequest) {
 
         if (!clientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured" },
+                { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.' },
                 { status: 500 }
             );
         }
 
         if (!Number.isFinite(normalizedMtrl) || normalizedMtrl <= 0) {
             return NextResponse.json(
-                { success: false, message: "Product MTRL is required" },
+                { success: false, message: 'Απαιτείται κωδικός προϊόντος (MTRL).' },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedQty) || normalizedQty <= 0) {
             return NextResponse.json(
-                { success: false, message: "Quantity must be a positive number" },
+                { success: false, message: 'Η ποσότητα πρέπει να είναι θετικός αριθμός.' },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedBranch) || normalizedBranch <= 0) {
             return NextResponse.json(
-                { success: false, message: "Source branch is required" },
+                { success: false, message: 'Απαιτείται υποκατάστημα προέλευσης.' },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedToBranch) || normalizedToBranch <= 0) {
             return NextResponse.json(
-                { success: false, message: "Destination branch is required" },
+                { success: false, message: 'Απαιτείται υποκατάστημα προορισμού.' },
                 { status: 400 }
             );
         }
 
         if (normalizedBranch === normalizedToBranch) {
             return NextResponse.json(
-                { success: false, message: "Source and destination branch must differ" },
+                { success: false, message: 'Το υποκατάστημα προέλευσης και προορισμού πρέπει να διαφέρουν.' },
                 { status: 400 }
             );
         }
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
             console.error("[endo/basket/add-item] Upstream error body:", errorText);
 
             return NextResponse.json(
-                { success: false, message: "Upstream request failed" },
+                { success: false, message: 'Αποτυχία επικοινωνίας με το ERP.' },
                 { status: response.status }
             );
         }
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: upstreamData.message ?? "Upstream endo basket insert failed",
+                    message: upstreamData.message ?? 'Αποτυχία προσθήκης στη λίστα ενδοκινήσεων.',
                 },
                 { status: 502 }
             );
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
         const callerMessage =
             upstreamData?.rows?.[0]?.MESSAGE_TO_CALLER ??
             upstreamData?.message ??
-            "Item added to endo basket";
+            'Το είδος προστέθηκε στη λίστα ενδοκινήσεων.';
         const basketId =
             String(
                 upstreamData?.rows?.[0]?.NEW_ID ??
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
         console.error("[endo/basket/add-item] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error" },
+            { success: false, message: 'Σφάλμα διακομιστή.' },
             { status: 500 }
         );
     }

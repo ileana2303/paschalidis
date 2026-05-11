@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
         if (!sessionCookie?.trim()) {
             return NextResponse.json(
-                { success: false, message: "Unauthorized" },
+                { success: false, message: 'Απαιτείται σύνδεση.' },
                 { status: 401 }
             );
         }
@@ -32,35 +32,35 @@ export async function POST(req: NextRequest) {
 
         if (!clientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured" },
+                { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.' },
                 { status: 500 }
             );
         }
 
         if (!Number.isFinite(normalizedBasketId) || normalizedBasketId <= 0) {
             return NextResponse.json(
-                { success: false, message: "Basket id is required" },
+                { success: false, message: 'Απαιτείται αναγνωριστικό καλαθιού.' },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedQty) || normalizedQty <= 0) {
             return NextResponse.json(
-                { success: false, message: "Quantity must be a positive number" },
+                { success: false, message: 'Η ποσότητα πρέπει να είναι θετικός αριθμός.' },
                 { status: 400 }
             );
         }
 
         if (normalizedPriceErp != null && (!Number.isFinite(normalizedPriceErp) || normalizedPriceErp < 0)) {
             return NextResponse.json(
-                { success: false, message: "PRICE_ERP is invalid" },
+                { success: false, message: 'Μη έγκυρη τιμή ERP (PRICE_ERP).' },
                 { status: 400 }
             );
         }
 
         if (normalizedPriceReq != null && (!Number.isFinite(normalizedPriceReq) || normalizedPriceReq < 0)) {
             return NextResponse.json(
-                { success: false, message: "PRICE_REQ is invalid" },
+                { success: false, message: 'Μη έγκυρη τιμή αίτησης (PRICE_REQ).' },
                 { status: 400 }
             );
         }
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
             console.error("[basket/update-item] Upstream error body:", errorText);
 
             return NextResponse.json(
-                { success: false, message: "Upstream request failed" },
+                { success: false, message: 'Αποτυχία επικοινωνίας με το ERP.' },
                 { status: response.status }
             );
         }
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: upstreamData.message ?? "Upstream basket update failed",
+                    message: upstreamData.message ?? 'Αποτυχία ενημέρωσης γραμμής καλαθιού.',
                 },
                 { status: 502 }
             );
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
             message:
                 upstreamData?.message ??
                 upstreamData?.rows?.[0]?.MESSAGE_TO_CALLER ??
-                "Basket quantity updated",
+                'Η ποσότητα στο καλάθι ενημερώθηκε.',
         };
 
         return NextResponse.json(data);
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
         console.error("[basket/update-item] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error" },
+            { success: false, message: 'Σφάλμα διακομιστή.' },
             { status: 500 }
         );
     }

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
         if (!sessionCookie?.trim()) {
             return NextResponse.json(
-                { success: false, message: "Unauthorized" },
+                { success: false, message: 'Απαιτείται σύνδεση.' },
                 { status: 401 }
             );
         }
@@ -42,49 +42,49 @@ export async function POST(req: NextRequest) {
 
         if (!clientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured" },
+                { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.' },
                 { status: 500 }
             );
         }
 
         if (!Number.isFinite(normalizedTrdr) || normalizedTrdr <= 0) {
             return NextResponse.json(
-                { success: false, message: "Customer TRDR is required" },
+                { success: false, message: 'Απαιτείται κωδικός πελάτη (TRDR).' },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedMtrl) || normalizedMtrl <= 0) {
             return NextResponse.json(
-                { success: false, message: "Product MTRL is required" },
+                { success: false, message: 'Απαιτείται κωδικός προϊόντος (MTRL).' },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedQty) || normalizedQty <= 0) {
             return NextResponse.json(
-                { success: false, message: "Quantity must be a positive number" },
+                { success: false, message: 'Η ποσότητα πρέπει να είναι θετικός αριθμός.' },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedPriceErp) || normalizedPriceErp < 0) {
             return NextResponse.json(
-                { success: false, message: "PRICE_ERP is required" },
+                { success: false, message: 'Απαιτείται τιμή ERP (PRICE_ERP).' },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedPriceReq) || normalizedPriceReq < 0) {
             return NextResponse.json(
-                { success: false, message: "PRICE_REQ is invalid" },
+                { success: false, message: 'Μη έγκυρη τιμή αίτησης (PRICE_REQ).' },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedBranch) || normalizedBranch <= 0) {
             return NextResponse.json(
-                { success: false, message: "Branch is required" },
+                { success: false, message: 'Απαιτείται υποκατάστημα.' },
                 { status: 400 }
             );
         }
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
             console.error("[basket/add-item] Upstream error body:", errorText);
 
             return NextResponse.json(
-                { success: false, message: "Upstream request failed" },
+                { success: false, message: 'Αποτυχία επικοινωνίας με το ERP.' },
                 { status: response.status }
             );
         }
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: upstreamData.message ?? "Upstream basket insert failed",
+                    message: upstreamData.message ?? 'Αποτυχία προσθήκης στο καλάθι.',
                 },
                 { status: 502 }
             );
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
             message:
                 upstreamData?.message ??
                 upstreamData?.rows?.[0]?.MESSAGE_TO_CALLER ??
-                "Item added to basket",
+                'Το είδος προστέθηκε στο καλάθι.',
         };
 
         return NextResponse.json(data);
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
         console.error("[basket/add-item] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error" },
+            { success: false, message: 'Σφάλμα διακομιστή.' },
             { status: 500 }
         );
     }

@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
         if (!sessionCookie?.trim()) {
             return NextResponse.json(
-                { success: false, message: "Unauthorized" },
+                { success: false, message: 'Απαιτείται σύνδεση.' },
                 { status: 401 }
             );
         }
@@ -28,21 +28,21 @@ export async function POST(req: NextRequest) {
 
         if (!clientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured" },
+                { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.' },
                 { status: 500 }
             );
         }
 
         if (!Number.isFinite(normalizedBasketId) || normalizedBasketId <= 0) {
             return NextResponse.json(
-                { success: false, message: "Basket id is required" },
+                { success: false, message: 'Απαιτείται αναγνωριστικό καλαθιού.' },
                 { status: 400 }
             );
         }
 
         if (!Number.isFinite(normalizedNewPrice) || normalizedNewPrice <= 0) {
             return NextResponse.json(
-                { success: false, message: "NEW_PRICE is invalid" },
+                { success: false, message: 'Μη έγκυρη νέα τιμή (NEW_PRICE).' },
                 { status: 400 }
             );
         }
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
             console.error("[basket/request-price] Upstream error body:", errorText);
 
             return NextResponse.json(
-                { success: false, message: "Upstream request failed" },
+                { success: false, message: 'Αποτυχία επικοινωνίας με το ERP.' },
                 { status: response.status }
             );
         }
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: upstreamData.message ?? "Upstream requested-price update failed",
+                    message: upstreamData.message ?? 'Αποτυχία ενημέρωσης αίτησης τιμής.',
                 },
                 { status: 502 }
             );
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
             message:
                 upstreamData?.message ??
                 upstreamData?.rows?.[0]?.MESSAGE_TO_CALLER ??
-                "Requested price submitted",
+                'Η αίτηση τιμής υποβλήθηκε.',
         };
 
         return NextResponse.json(data);
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         console.error("[basket/request-price] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error" },
+            { success: false, message: 'Σφάλμα διακομιστή.' },
             { status: 500 }
         );
     }

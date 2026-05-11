@@ -34,11 +34,11 @@ export function buildMassDeletePayload({
     });
 
     if (!s1Key.trim()) {
-        throw new Error("Missing SoftOne document id for MASS_DELETE S1_KEY.");
+        throw new Error('Λείπει το αναγνωριστικό εγγράφου SoftOne για τη μαζική διαγραφή.');
     }
 
     if (!appUserId.trim()) {
-        throw new Error("Missing APPUSER_ID for MASS_DELETE.");
+        throw new Error('Λείπει το APPUSER_ID για τη μαζική διαγραφή.');
     }
 
     return {

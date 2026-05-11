@@ -34,7 +34,7 @@ function unauthorizedResponse() {
     return NextResponse.json(
         {
             success: false,
-            message: "Unauthorized",
+            message: 'Απαιτείται σύνδεση.',
         },
         { status: 401 }
     );
@@ -44,7 +44,7 @@ function missingClientResponse() {
     return NextResponse.json(
         {
             success: false,
-            message: "S1 client is not configured",
+            message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.',
         },
         { status: 500 }
     );
@@ -91,7 +91,7 @@ async function callSoftOne(payload: unknown, logLabel: string) {
 
         console.error(`${logLabel} Upstream error body:`, errorText);
 
-        throw new Error(`Upstream request failed with status ${response.status}`);
+        throw new Error(`Αποτυχία επικοινωνίας με το ERP (HTTP ${response.status}).`);
     }
 
     return response;
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: data.message ?? "Upstream requested-prices request failed",
+                    message: data.message ?? 'Αποτυχία φόρτωσης αιτημάτων τιμής.',
                     totalcount: 0,
                     rows: [],
                 },
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                message: error instanceof Error ? error.message : "Server error",
+                message: error instanceof Error ? error.message : 'Σφάλμα διακομιστή.',
                 totalcount: 0,
                 rows: [],
             },
@@ -170,7 +170,7 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "Invalid update payload",
+                    message: 'Μη έγκυρα δεδομένα ενημέρωσης.',
                 },
                 { status: 400 }
             );
@@ -180,7 +180,7 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "PASCHA_PRICE is required",
+                    message: 'Απαιτείται τιμή PASCHA_PRICE.',
                 },
                 { status: 400 }
             );
@@ -215,7 +215,7 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: upstreamData.message ?? "Upstream requested-price update failed",
+                    message: upstreamData.message ?? 'Αποτυχία ενημέρωσης αίτησης τιμής.',
                 },
                 { status: 502 }
             );
@@ -227,8 +227,8 @@ export async function PATCH(req: NextRequest) {
                 upstreamData?.message ??
                 upstreamData?.rows?.[0]?.MESSAGE_TO_CALLER ??
                 (action === "APPROVE"
-                    ? "Requested price approved"
-                    : "Requested price approved with new price"),
+                    ? 'Η αίτηση τιμής εγκρίθηκε.'
+                    : 'Η αίτηση τιμής εγκρίθηκε με νέα τιμή.'),
         };
 
         return NextResponse.json(data);
@@ -238,7 +238,7 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                message: error instanceof Error ? error.message : "Server error",
+                message: error instanceof Error ? error.message : 'Σφάλμα διακομιστή.',
             },
             { status: 500 }
         );
@@ -266,7 +266,7 @@ export async function DELETE(req: NextRequest) {
 
         if (basketIds.length === 0) {
             return NextResponse.json(
-                { success: false, message: "No BASKET IDs provided" },
+                { success: false, message: 'Δεν δόθηκαν αναγνωριστικά γραμμών καλαθιού.' },
                 { status: 400 }
             );
         }
@@ -283,7 +283,7 @@ export async function DELETE(req: NextRequest) {
 
         const responseData: BasketActionResponse = {
             success: true,
-            message: result.message ?? "The requested price row was deleted",
+            message: result.message ?? 'Η γραμμή αίτησης τιμής διαγράφηκε.',
         };
 
         return NextResponse.json(responseData);
@@ -298,7 +298,7 @@ export async function DELETE(req: NextRequest) {
         console.error("[basket/requested-prices:delete] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error" },
+            { success: false, message: 'Σφάλμα διακομιστή.' },
             { status: 500 }
         );
     }

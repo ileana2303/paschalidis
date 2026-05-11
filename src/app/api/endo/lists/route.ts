@@ -48,14 +48,13 @@ async function callSoftOne(payload: unknown, label: string) {
 
     if (!response.ok) {
         const errorText = await response.text();
-        const compactError = errorText.replace(/\s+/g, " ").trim().slice(0, 400);
 
         console.error(`${label} Upstream error body:`, errorText);
 
         return {
             ok: false as const,
             status: response.status,
-            error: `${label} failed (${response.status})${compactError ? `: ${compactError}` : ""}`,
+            error: `Αποτυχία επικοινωνίας με το ERP (HTTP ${response.status}).`,
         };
     }
 
@@ -95,7 +94,7 @@ async function fetchSection(
                     totalcount: 0,
                     rows: [],
                 },
-                error: `${label} failed: ${upstream.message ?? "application error"}`,
+                error: `Αποτυχία φόρτωσης λίστας: ${upstream.message ?? "σφάλμα εφαρμογής"}`,
             };
         }
 
@@ -114,13 +113,13 @@ async function fetchSection(
             error: null,
         };
     } catch (error) {
-        const message = error instanceof Error ? error.message : "unexpected error";
+        const message = error instanceof Error ? error.message : 'Σφάλμα διακομιστή.';
         return {
             section: {
                 totalcount: 0,
                 rows: [],
             },
-            error: `${label} failed: ${message}`,
+            error: `Αποτυχία φόρτωσης λίστας: ${message}`,
         };
     }
 }
@@ -130,7 +129,7 @@ export async function POST(req: NextRequest) {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
         if (!sessionCookie?.trim()) {
             return NextResponse.json(
-                { success: false, message: "Unauthorized" },
+                { success: false, message: 'Απαιτείται σύνδεση.' },
                 { status: 401 }
             );
         }
@@ -146,7 +145,7 @@ export async function POST(req: NextRequest) {
                 : "both";
         if (!normalizedBranch) {
             return NextResponse.json(
-                { success: false, message: "Branch is required" },
+                { success: false, message: 'Απαιτείται υποκατάστημα.' },
                 { status: 400 }
             );
         }
@@ -155,7 +154,7 @@ export async function POST(req: NextRequest) {
 
         if (!clientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured" },
+                { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.' },
                 { status: 500 }
             );
         }
@@ -223,7 +222,7 @@ export async function POST(req: NextRequest) {
         console.error("[endo/lists] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error" },
+            { success: false, message: 'Σφάλμα διακομιστή.' },
             { status: 500 }
         );
     }
@@ -234,7 +233,7 @@ export async function PATCH(req: NextRequest) {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
         if (!sessionCookie?.trim()) {
             return NextResponse.json(
-                { success: false, message: "Unauthorized" },
+                { success: false, message: 'Απαιτείται σύνδεση.' },
                 { status: 401 }
             );
         }
@@ -258,7 +257,7 @@ export async function PATCH(req: NextRequest) {
 
         if (!normalizedBasketId || !normalizedToBranch || !normalizedMtrl || !normalizedQty) {
             return NextResponse.json(
-                { success: false, message: "Invalid update payload" },
+                { success: false, message: 'Μη έγκυρα δεδομένα ενημέρωσης.' },
                 { status: 400 }
             );
         }
@@ -268,7 +267,7 @@ export async function PATCH(req: NextRequest) {
 
         if (!clientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured" },
+                { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.' },
                 { status: 500 }
             );
         }
@@ -310,7 +309,7 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: upstream.message ?? "Upstream qty update failed",
+                    message: upstream.message ?? 'Αποτυχία ενημέρωσης ποσότητας ενδοκίνησης.',
                 },
                 { status: 502 }
             );
@@ -319,7 +318,7 @@ export async function PATCH(req: NextRequest) {
         const message =
             upstream?.rows?.[0]?.MESSAGE_TO_CALLER ??
             upstream?.message ??
-            "Quantity updated";
+            'Η ποσότητα ενημερώθηκε.';
 
         const data: EndoBasketActionResponse = {
             success: true,
@@ -331,7 +330,7 @@ export async function PATCH(req: NextRequest) {
         console.error("[endo/lists:update-qty] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error" },
+            { success: false, message: 'Σφάλμα διακομιστή.' },
             { status: 500 }
         );
     }

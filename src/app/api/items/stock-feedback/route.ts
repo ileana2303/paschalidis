@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     try {
         if (!hasSession(req)) {
             return NextResponse.json(
-                { success: false, message: "Unauthorized", totalcount: 0, rows: [] },
+                { success: false, message: 'Απαιτείται σύνδεση.', totalcount: 0, rows: [] },
                 { status: 401 }
             );
         }
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
         if (!branch) {
             return NextResponse.json(
-                { success: false, message: "Branch is required", totalcount: 0, rows: [] },
+                { success: false, message: 'Απαιτείται υποκατάστημα.', totalcount: 0, rows: [] },
                 { status: 400 }
             );
         }
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "Days must be an integer between 0 and 5",
+                    message: 'Οι ημέρες πρέπει να είναι ακέραιος από 0 έως 5.',
                     totalcount: 0,
                     rows: [],
                 },
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
         if (!clientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured", totalcount: 0, rows: [] },
+                { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.', totalcount: 0, rows: [] },
                 { status: 500 }
             );
         }
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: `Upstream request failed with status ${response.status}`,
+                    message: `Αποτυχία επικοινωνίας με το ERP (HTTP ${response.status}).`,
                     totalcount: 0,
                     rows: [],
                 },
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: data?.message ?? "Upstream returned an application error",
+                    message: data?.message ?? 'Σφάλμα εφαρμογής από το ERP.',
                     totalcount: data?.totalcount ?? 0,
                     rows: data?.rows ?? [],
                 },
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
         console.error("[items/stock-feedback] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error", totalcount: 0, rows: [] },
+            { success: false, message: 'Σφάλμα διακομιστή.', totalcount: 0, rows: [] },
             { status: 500 }
         );
     }

@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "Unauthorized",
+                    message: 'Απαιτείται σύνδεση.',
                     totalcount: 0,
                     rows: [],
                 },
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "Branch is required",
+                    message: 'Απαιτείται υποκατάστημα.',
                     totalcount: 0,
                     rows: [],
                 },
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "S1 client is not configured",
+                    message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.',
                     totalcount: 0,
                     rows: [],
                 },
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: `All-clients baskets endpoint failed (${upstreamResponse.status})`,
+                    message: `Αποτυχία επικοινωνίας με το ERP (HTTP ${upstreamResponse.status}).`,
                     totalcount: 0,
                     rows: [],
                 },
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
                     success: false,
                     message: getErrorMessage(
                         upstreamData,
-                        "All-clients baskets request failed"
+                        'Αποτυχία αιτήματος καλαθιών ανά πελάτη.'
                     ),
                     totalcount: 0,
                     rows: [],
@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                message: error instanceof Error ? error.message : "Server error",
+                message: error instanceof Error ? error.message : 'Σφάλμα διακομιστή.',
                 totalcount: 0,
                 rows: [],
             },

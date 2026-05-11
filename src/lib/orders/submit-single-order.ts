@@ -66,7 +66,7 @@ export async function submitSingleOrder(params: SubmitSingleOrderParams) {
         const errorText = await setDataResponse.text();
         console.error("[orders/submit] setData error body:", errorText);
 
-        throw new Error("SoftOne order submission failed.");
+        throw new Error('Αποτυχία υποβολής παραγγελίας στο SoftOne.');
     }
 
     const setDataResult = (await parseJsonWithEncodingFallback(
@@ -79,14 +79,14 @@ export async function submitSingleOrder(params: SubmitSingleOrderParams) {
 
     if (setDataResult.success === false) {
         throw new Error(
-            setDataResult.message || "SoftOne order submission failed."
+            setDataResult.message || 'Αποτυχία υποβολής παραγγελίας στο SoftOne.'
         );
     }
 
     const orderId = String(setDataResult.id ?? "").trim();
 
     if (!orderId) {
-        throw new Error("SoftOne order was submitted but response id is missing.");
+        throw new Error('Η παραγγελία υποβλήθηκε αλλά λείπει το αναγνωριστικό από την απάντηση.');
     }
 
     await callMassDelete({

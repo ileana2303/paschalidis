@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
 
         if (!sessionCookie?.trim()) {
-            return jsonError("Unauthorized", 401);
+            return jsonError('Απαιτείται σύνδεση.', 401);
         }
 
         const body = (await req.json()) as OrderSubmitRequestBody;
@@ -29,13 +29,13 @@ export async function POST(req: NextRequest) {
             id: result.id,
             orderIds: result.orderIds,
             basketIds: result.basketIds,
-            message: "Order submitted successfully.",
+            message: 'Η παραγγελία υποβλήθηκε επιτυχώς.',
         });
     } catch (error) {
         console.error("[orders/submit] Server error", error);
 
         const message =
-            error instanceof Error ? error.message : "Server error during submit.";
+            error instanceof Error ? error.message : 'Σφάλμα διακομιστή κατά την υποβολή.';
 
         return jsonError(message, 500);
     }

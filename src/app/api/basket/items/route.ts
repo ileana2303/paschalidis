@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
         if (!sessionCookie?.trim()) {
             return NextResponse.json(
-                { success: false, message: "Unauthorized" },
+                { success: false, message: 'Απαιτείται σύνδεση.' },
                 { status: 401 }
             );
         }
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
 
         if (!normalizedTrdr || !Number.isFinite(Number(normalizedTrdr))) {
             return NextResponse.json(
-                { success: false, message: "Customer TRDR is required", totalcount: 0, rows: [] },
+                { success: false, message: 'Απαιτείται κωδικός πελάτη (TRDR).', totalcount: 0, rows: [] },
                 { status: 400 }
             );
         }
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
 
         if (!clientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured", totalcount: 0, rows: [] },
+                { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.', totalcount: 0, rows: [] },
                 { status: 500 }
             );
         }
@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
             }
 
             return NextResponse.json(
-                { success: false, message: "Upstream request failed", totalcount: 0, rows: [] },
+                { success: false, message: 'Αποτυχία επικοινωνίας με το ERP.', totalcount: 0, rows: [] },
                 { status: response.status }
             );
         }
@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: upstreamData.message ?? "Upstream basket request failed",
+                    message: upstreamData.message ?? 'Αποτυχία φόρτωσης καλαθιού.',
                     totalcount: 0,
                     rows: [],
                 },
@@ -233,7 +233,7 @@ export async function POST(req: NextRequest) {
         console.error("[basket/items] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error" },
+            { success: false, message: 'Σφάλμα διακομιστή.' },
             { status: 500 }
         );
     }

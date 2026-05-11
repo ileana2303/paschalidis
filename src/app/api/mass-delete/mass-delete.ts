@@ -67,18 +67,18 @@ export async function callMassDelete({
         .filter(Boolean);
 
     if (normalizedIds.length === 0) {
-        throw new MassDeleteError("No BASKET IDs provided", 400);
+        throw new MassDeleteError('Δεν δόθηκαν αναγνωριστικά γραμμών καλαθιού.', 400);
     }
 
     let payload: BasketMassDeletePayload;
 
     if (submitType) {
         if (!isMassDeleteTableAction(tableAction)) {
-            throw new MassDeleteError("Invalid MASS_DELETE table action", 400);
+            throw new MassDeleteError('Μη έγκυρη ενέργεια πίνακα για μαζική διαγραφή.', 400);
         }
 
         if (method !== "LINK_S1") {
-            throw new MassDeleteError("Invalid MASS_DELETE method", 400);
+            throw new MassDeleteError('Μη έγκυρη μέθοδος μαζικής διαγραφής.', 400);
         }
 
         payload = buildMassDeletePayload({
@@ -110,14 +110,14 @@ export async function callMassDelete({
         const errorText = await response.text();
         console.error(`${logLabel} mass-delete error body:`, errorText);
 
-        throw new MassDeleteError("Upstream mass-delete request failed", response.status);
+        throw new MassDeleteError('Αποτυχία μαζικής διαγραφής στο ERP.', response.status);
     }
 
     const data = await parseJsonWithEncodingFallback(response) as MassDeleteResponseData;
 
     if (data?.success === false) {
         throw new MassDeleteError(
-            getMassDeleteMessage(data) ?? "Mass delete failed",
+            getMassDeleteMessage(data) ?? 'Αποτυχία μαζικής διαγραφής.',
             502
         );
     }

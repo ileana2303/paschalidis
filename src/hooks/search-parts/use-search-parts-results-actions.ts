@@ -262,7 +262,7 @@ export function useSearchPartsResultsActions({
                 [mtrlKey]:
                     error instanceof Error
                         ? error.message
-                        : "Failed to submit stock request",
+                        : 'Αποτυχία υποβολής αιτήματος αποθέματος.',
             }));
         } finally {
             setSubmittingStockRequests((prev) => {

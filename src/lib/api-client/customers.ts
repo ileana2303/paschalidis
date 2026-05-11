@@ -10,7 +10,7 @@ export async function searchCustomers(
     );
 
     if (!data?.success) {
-        throw new Error(data.message ?? "Failed to fetch customers");
+        throw new Error(data.message ?? 'Αποτυχία αναζήτησης πελατών.');
     }
 
     return data;

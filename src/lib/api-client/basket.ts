@@ -55,7 +55,7 @@ export async function fetchBasketItems(trdr: string): Promise<BasketResponse> {
     });
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to fetch basket items");
+        throw new Error(data.message ?? 'Αποτυχία φόρτωσης καλαθιού.');
     }
 
     return data;
@@ -70,7 +70,7 @@ export async function addItemToBasket(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to add item to basket");
+        throw new Error(data.message ?? 'Αποτυχία προσθήκης στο καλάθι.');
     }
 
     return data;
@@ -85,7 +85,7 @@ export async function updateBasketItemQty(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to update basket item quantity");
+        throw new Error(data.message ?? 'Αποτυχία ενημέρωσης ποσότητας καλαθιού.');
     }
 
     return data;
@@ -100,7 +100,7 @@ export async function deleteBasketItems(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to delete basket items");
+        throw new Error(data.message ?? 'Αποτυχία διαγραφής γραμμών καλαθιού.');
     }
 
     return data;
@@ -115,7 +115,7 @@ export async function requestBasketItemPrice(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to request basket item price");
+        throw new Error(data.message ?? 'Αποτυχία αίτησης τιμής είδους.');
     }
 
     return data;
@@ -133,7 +133,7 @@ export async function fetchRequestedPriceRequests(): Promise<RequestedPriceListR
         );
 
         if (!data.success) {
-            throw new Error(data.message ?? "Failed to fetch requested prices");
+            throw new Error(data.message ?? 'Αποτυχία φόρτωσης αιτημάτων τιμής.');
         }
 
         return data;
@@ -157,7 +157,7 @@ export async function updateRequestedPriceRequest(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to update requested price");
+        throw new Error(data.message ?? 'Αποτυχία ενημέρωσης αίτησης τιμής.');
     }
 
     return data;
@@ -172,7 +172,7 @@ export async function deleteRequestedPriceRequests(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to delete requested price request");
+        throw new Error(data.message ?? 'Αποτυχία διαγραφής αίτησης τιμής.');
     }
 
     return data;
@@ -187,7 +187,7 @@ export async function fetchAllClientBaskets(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to fetch all client baskets");
+        throw new Error(data.message ?? 'Αποτυχία φόρτωσης όλων των καλαθιών.');
     }
 
     return data;
@@ -232,7 +232,7 @@ export async function submitBasketOrder(
     );
 
     if (!data.success) {
-        throw new Error(data.message ?? "Failed to submit order");
+        throw new Error(data.message ?? 'Αποτυχία υποβολής παραγγελίας.');
     }
 
     return data;

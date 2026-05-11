@@ -80,7 +80,7 @@ export async function fetchStockFeedback(
         );
 
         if (!data?.success) {
-            throw new Error(data?.message ?? "Failed to fetch stock feedback items");
+            throw new Error(data?.message ?? 'Αποτυχία φόρτωσης αποθεμάτων.');
         }
 
         return data;
@@ -104,7 +104,7 @@ export async function requestStockQuantity(
     );
 
     if (!data?.success) {
-        throw new Error(data?.message ?? "Failed to submit stock request");
+        throw new Error(data?.message ?? 'Αποτυχία υποβολής αιτήματος αποθέματος.');
     }
 
     return data;
@@ -119,7 +119,7 @@ export async function fetchStockRequests(
     );
 
     if (!data?.success) {
-        throw new Error(data?.message ?? "Failed to fetch stock requests");
+        throw new Error(data?.message ?? 'Αποτυχία φόρτωσης αιτημάτων αποθέματος.');
     }
 
     return data;
@@ -134,7 +134,7 @@ export async function updateStockRequest(
     );
 
     if (!data?.success) {
-        throw new Error(data?.message ?? "Failed to update stock request");
+        throw new Error(data?.message ?? 'Αποτυχία ενημέρωσης αιτήματος αποθέματος.');
     }
 
     return data;
@@ -171,7 +171,7 @@ export async function submitAnatrofOrder(
     );
 
     if (!data?.success) {
-        throw new Error(data?.message ?? "Failed to submit stock request order");
+        throw new Error(data?.message ?? 'Αποτυχία υποβολής παραγγελίας αποθέματος.');
     }
 
     return data;

@@ -1,3 +1,4 @@
+
 const DEFAULT_SOFTONE_ENDPOINT = "";
 const GREEK_FALLBACK_ENCODINGS = ["windows-1253", "iso-8859-7"] as const;
 
@@ -32,7 +33,7 @@ export function getSoftOneEndpoint({
     const endpoint = configuredEndpoint || genericEndpoint || defaultEndpoint;
 
     if (!endpoint) {
-        throw new Error("SoftOne endpoint is not configured");
+        throw new Error('Το endpoint του SoftOne δεν είναι ρυθμισμένο.');
     }
 
     return endpoint;
@@ -118,11 +119,11 @@ export async function parseJsonWithEncodingFallback<T = unknown>(
             lastError =
                 error instanceof Error
                     ? error
-                    : new Error("Failed to decode upstream response");
+                    : new Error('Αποτυχία ανάγνωσης απάντησης από το ERP.');
         }
     }
 
-    throw lastError ?? new Error("Failed to decode upstream response");
+    throw lastError ?? new Error('Αποτυχία ανάγνωσης απάντησης από το ERP.');
 }
 
 export async function postSoftOne(

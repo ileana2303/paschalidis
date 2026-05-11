@@ -52,7 +52,7 @@ function getRequiredString(value: unknown, fieldName: string) {
     const parsed = String(value ?? "").trim();
 
     if (!parsed) {
-        throw new Error(`${fieldName} is required.`);
+        throw new Error('Λείπει υποχρεωτικό πεδίο στο αίτημα.');
     }
 
     return parsed;
@@ -134,7 +134,7 @@ function requireHeaderNumber(
     submitType: OrderSubmitType
 ) {
     if (value == null) {
-        throw new Error(`${fieldName} is required for ${submitType} submit.`);
+        throw new Error('Λείπουν δεδομένα κεφαλίδας παραγγελίας.');
     }
 
     return value;
@@ -217,7 +217,7 @@ function getEndoHeaderForLine(line: {
     const destinationBranch = line.destinationBranch;
 
     if (!sourceBranch || !destinationBranch) {
-        throw new Error("ENDO line is missing source or destination branch.");
+        throw new Error('Λείπει υποκατάστημα προέλευσης ή προορισμού στη γραμμή ενδοκίνησης.');
     }
 
     const setDataClientID = getSoftOneSetDataClientID(sourceBranch, {
@@ -226,7 +226,7 @@ function getEndoHeaderForLine(line: {
 
     if (!setDataClientID) {
         throw new Error(
-            `S1 setData client is not configured for ENDO source branch ${sourceBranch}.`
+            `Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne για την ενδοκίνηση (${sourceBranch})`
         );
     }
 
@@ -250,7 +250,7 @@ function getEndoHeaderForLine(line: {
 
     if (!trdBranch) {
         throw new Error(
-            `Cannot resolve ENDO TRDBRANCH for TO_BRANCH ${destinationBranch}.`
+            `Δεν βρέθηκε TRDBRANCH για το υποκατάστημα προορισμού (${destinationBranch})`
         );
     }
 
@@ -271,7 +271,7 @@ export async function submitOrderSummary(body: OrderSubmitRequestBody) {
     const config = getOrderSubmitConfig(body.submitType);
 
     if (!config) {
-        throw new Error("Invalid submit type.");
+        throw new Error('Μη έγκυρος τύπος υποβολής.');
     }
 
     validateMassDeleteSafety({
@@ -282,16 +282,16 @@ export async function submitOrderSummary(body: OrderSubmitRequestBody) {
     const sqlClientID = getSoftOneClientID();
 
     if (!sqlClientID) {
-        throw new Error("S1 SQL client is not configured.");
+        throw new Error('Δεν έχει ρυθμιστεί ο SQL πελάτης SoftOne.');
     }
 
-    const appUserId = getRequiredString(body.appUserId, "App user id");
+    const appUserId = getRequiredString(body.appUserId, "appUserId");
     const rawItems = Array.isArray(body.items)
         ? (body.items as SubmitBodyItem[])
         : [];
 
     if (!rawItems.length) {
-        throw new Error("Basket is empty. Add items before submitting.");
+        throw new Error('Το καλάθι είναι άδειο. Προσθέστε είδη πριν την υποβολή.');
     }
 
     const lines = rawItems
@@ -299,7 +299,7 @@ export async function submitOrderSummary(body: OrderSubmitRequestBody) {
         .filter((line): line is OrderSubmitLine => line !== null);
 
     if (!lines.length) {
-        throw new Error("No valid lines to submit.");
+        throw new Error('Δεν υπάρχουν έγκυρες γραμμές για υποβολή.');
     }
 
     const deliveryDate = resolveIsoDate(body.deliveryDate);
@@ -327,7 +327,7 @@ export async function submitOrderSummary(body: OrderSubmitRequestBody) {
     const setDataClientID = getSoftOneSetDataClientID(header.setDataBranch);
 
     if (!setDataClientID) {
-        throw new Error("S1 setData client is not configured.");
+        throw new Error('Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne.');
     }
 
     return submitSingleOrder({

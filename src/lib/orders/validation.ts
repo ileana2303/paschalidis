@@ -30,7 +30,7 @@ export function resolveIsoDate(value: unknown) {
 
 export function validateBasketIds(basketIds: string[]) {
     if (!basketIds.length) {
-        throw new Error("No basket IDs found for cleanup.");
+        throw new Error('Δεν βρέθηκαν αναγνωριστικά καλαθιού για εκκαθάριση.');
     }
 
     const invalidBasketId = basketIds.find((id) => {
@@ -39,7 +39,7 @@ export function validateBasketIds(basketIds: string[]) {
     });
 
     if (invalidBasketId) {
-        throw new Error(`Invalid basket ID: ${invalidBasketId}`);
+        throw new Error(`Μη έγκυρο αναγνωριστικό καλαθιού: ${invalidBasketId}`);
     }
 }
 
@@ -61,9 +61,7 @@ export function validateMassDeleteSafety(params: {
     const expected = expectedTableActionByType[params.submitType];
 
     if (params.tableAction !== expected) {
-        throw new Error(
-            `Unsafe MASS_DELETE configuration. ${params.submitType} must use TABLE_ACTION=${expected}, received ${params.tableAction}.`
-        );
+        throw new Error('Μη ασφαλής ρύθμιση μαζικής διαγραφής για τον τύπο υποβολής.');
     }
 }
 

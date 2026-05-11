@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
         if (!sessionCookie?.trim()) {
             return NextResponse.json(
-                { success: false, message: "Unauthorized" },
+                { success: false, message: 'Απαιτείται σύνδεση.' },
                 { status: 401 }
             );
         }
@@ -33,28 +33,28 @@ export async function POST(req: NextRequest) {
 
         if (!Number.isFinite(normalizedMtrl) || normalizedMtrl <= 0) {
             return NextResponse.json(
-                { success: false, message: "MTRL is required" },
+                { success: false, message: 'Απαιτείται κωδικός προϊόντος (MTRL).' },
                 { status: 400 }
             );
         }
 
         if (!Number.isInteger(normalizedQty) || normalizedQty <= 0) {
             return NextResponse.json(
-                { success: false, message: "Quantity must be a positive integer" },
+                { success: false, message: 'Η ποσότητα πρέπει να είναι θετικός ακέραιος αριθμός.' },
                 { status: 400 }
             );
         }
 
         if (!normalizedBranch) {
             return NextResponse.json(
-                { success: false, message: "Branch is required" },
+                { success: false, message: 'Απαιτείται υποκατάστημα.' },
                 { status: 400 }
             );
         }
 
         if (!clientID) {
             return NextResponse.json(
-                { success: false, message: "S1 client is not configured" },
+                { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.' },
                 { status: 500 }
             );
         }
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
             console.error("[items/request-stock] Upstream error body:", errorText);
 
             return NextResponse.json(
-                { success: false, message: "Upstream request failed" },
+                { success: false, message: 'Αποτυχία επικοινωνίας με το ERP.' },
                 { status: response.status }
             );
         }
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: "Stock request was rejected by upstream service",
+                    message: 'Το αίτημα αποθέματος απορρίφθηκε από το σύστημα.',
                 },
                 { status: 502 }
             );
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
         console.error("[items/request-stock] Server error", error);
 
         return NextResponse.json(
-            { success: false, message: "Server error" },
+            { success: false, message: 'Σφάλμα διακομιστή.' },
             { status: 500 }
         );
     }
