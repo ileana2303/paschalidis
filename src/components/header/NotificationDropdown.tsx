@@ -2,7 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
-import { Dropdown } from "../ui/dropdown/Dropdown";
+import { Dropdown } from "../ui/dropdown/dropdown";
 import { DropdownItem } from "../ui/dropdown/dropdown-item";
 
 export default function NotificationDropdown() {
