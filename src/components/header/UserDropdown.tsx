@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { DropdownItem } from "@/components/ui/dropdown/dropdown-item";
 import { useAuthStore } from "@/stores/authStore";
 import { useLogoutMutation } from "@/hooks/queries/useAuthQueries";
-import { Dropdown } from "@/components/ui/dropdown/dropdown";
+import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
