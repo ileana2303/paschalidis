@@ -11,6 +11,7 @@ import {
     getEndoItemKey,
     getEndoQtyKey,
 } from "@/hooks/search-parts/search-parts-endo-utils";
+import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import {
     getItemFieldValue,
     parseAvailableStock,
@@ -95,7 +96,7 @@ export function useSearchPartsResultsState({
     const [endoBasketSuccess, setEndoBasketSuccess] = useState("");
 
     const currentBranchCode = useMemo(
-        () => String(user?.s1code ?? "").trim(),
+        () => normalizeBranchCode(user?.s1code),
         [user?.s1code]
     );
     const hasValidBranch = currentBranchCode.length > 0;
@@ -105,17 +106,11 @@ export function useSearchPartsResultsState({
             return "—";
         }
 
-        const normalizedCurrent = String(currentBranchCode).trim();
+        const normalizedCurrent = normalizeBranchCode(currentBranchCode);
         const fromProfile = user?.listBranches?.find(
-            (branch) => String(branch.s1Code ?? "").trim() === normalizedCurrent
+            (branch) => normalizeBranchCode(branch.s1Code) === normalizedCurrent
         )?.name;
-        const normalizedProfileName = String(fromProfile ?? "").trim();
-
-        if (normalizedProfileName) {
-            return normalizedProfileName;
-        }
-
-        return normalizedCurrent;
+        return resolveBranchName(normalizedCurrent, fromProfile);
     }, [currentBranchCode, hasValidBranch, user?.listBranches]);
 
     useEffect(() => {
@@ -229,21 +224,14 @@ export function useSearchPartsResultsState({
     const getEndoBranchOptions = useCallback((item: IItem): EndoBranchOption[] => {
         const branchCodes = new Set<string>(getBranchCodesFromItem(item));
 
-        (user?.listBranches ?? []).forEach((branch) => {
-            const code = String(branch.s1Code ?? "").trim();
-            if (code) {
-                branchCodes.add(code);
-            }
-        });
-
         return Array.from(branchCodes)
             .sort((a, b) => Number(a) - Number(b))
             .filter((code) => code !== currentBranchCode)
             .map((code) => {
                 const labelFromProfile = user?.listBranches?.find(
-                    (branch) => String(branch.s1Code ?? "").trim() === code
+                    (branch) => normalizeBranchCode(branch.s1Code) === code
                 )?.name;
-                const label = String(labelFromProfile ?? "").trim() || code;
+                const label = resolveBranchName(code, labelFromProfile);
                 const location =
                     String(getItemFieldValue(item, `THESI${code}`) ?? "").trim() || "-";
 

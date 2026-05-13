@@ -353,13 +353,6 @@ export default function EndoPartsClient() {
     const getBranchOptions = (item: IItem): EndoBranchOption[] => {
         const branchCodes = new Set<string>(getBranchCodesFromItem(item));
 
-        (user?.listBranches ?? []).forEach((branch) => {
-            const code = normalizeBranchCode(branch.s1Code);
-            if (code) {
-                branchCodes.add(code);
-            }
-        });
-
         return Array.from(branchCodes)
             .sort((a, b) => Number(a) - Number(b))
             .filter((code) => code !== currentBranchCode)
