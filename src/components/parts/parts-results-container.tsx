@@ -151,11 +151,28 @@ export default function PartsResultsContainer({
             >
                 <div className="px-5 pb-2 xl:px-10 xl:pb-2">
                     <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
+
                         {items.length > 0 && (
                             <div className="sticky top-0 z-10 mb-2 flex flex-col gap-2 border-b border-gray-100 bg-white py-2 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-[#0f172a]/95">
-                                <p className="text-sm text-gray-500">
-                                    Βρέθηκαν {items.length} αποτελέσματα
-                                </p>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={onToggleAllExpanded}
+                                        aria-label={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
+                                        title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
+                                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                                    >
+                                        {areAllResultsExpanded ? (
+                                            <ListChevronsDownUp className="h-4 w-4" />
+                                        ) : (
+                                            <ListChevronsUpDown className="h-4 w-4" />
+                                        )}
+                                    </button>
+
+                                    <p className="text-sm text-gray-500">
+                                        Βρέθηκαν {items.length} αποτελέσματα
+                                    </p>
+                                </div>
 
                                 <div className="flex items-center gap-2">
                                     {hasCustomer && (
@@ -164,8 +181,8 @@ export default function PartsResultsContainer({
                                             onClick={onToggleEndoMode}
                                             aria-pressed={isEndoMode}
                                             className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-semibold shadow-sm transition ${isEndoMode
-                                                ? "border-brand-500 bg-brand-500 text-white hover:bg-brand-600"
-                                                : "border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                                                    ? "border-brand-500 bg-brand-500 text-white hover:bg-brand-600"
+                                                    : "border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
                                                 }`}
                                         >
                                             {isEndoMode ? (
@@ -176,20 +193,6 @@ export default function PartsResultsContainer({
                                             <span>{isEndoMode ? "Καλάθι Πελάτη" : "Ενδοδιακίνηση"}</span>
                                         </button>
                                     )}
-
-                                    <button
-                                        type="button"
-                                        onClick={onToggleAllExpanded}
-                                        aria-label={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                        title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
-                                    >
-                                        {areAllResultsExpanded ? (
-                                            <ListChevronsDownUp className="h-4 w-4" />
-                                        ) : (
-                                            <ListChevronsUpDown className="h-4 w-4" />
-                                        )}
-                                    </button>
                                 </div>
                             </div>
                         )}

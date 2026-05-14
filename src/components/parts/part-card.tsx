@@ -163,16 +163,26 @@ export default function PartResults({
             : basketItem != null
                 ? "Ενημέρωση"
                 : "Προσθήκη";
+
+    const hasSelectedQty = qty > 0;
+
     const basketActionClassName = isBasketActionMuted
-        ? "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3.5 text-xs font-semibold text-green-700 transition disabled:cursor-not-allowed disabled:opacity-70 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-300"
-        : "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3.5 text-xs font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-brand-500 dark:hover:bg-brand-400";
+        ? "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3.5 text-xs font-semibold text-green-700 transition disabled:cursor-not-allowed disabled:opacity-70 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-300"
+        : hasSelectedQty
+            ? "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3.5 text-xs font-semibold text-brand-700 shadow-xs transition hover:border-brand-300 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/15"
+            : "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-600 shadow-xs transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10 dark:hover:text-brand-300";
 
     const expandToggleButton = (
         <button
             type="button"
             onClick={onToggleExpanded}
+            onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                }
+            }}
             aria-label={isExpanded ? "Απόκρυψη λεπτομερειών" : "Προβολή λεπτομερειών"}
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none dark:hover:bg-gray-800 dark:hover:text-gray-200"
         >
             <ChevronDown
                 className={`h-4 w-4 transition-transform duration-100 ${isExpanded ? "rotate-180" : ""}`}
@@ -182,7 +192,7 @@ export default function PartResults({
 
     return (
         <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_228px]">
-            
+
             <div
                 className={`rounded-xl border transition hover:border-2 ${isInBasket
                     ? "border-green-400 bg-green-50 hover:bg-green-100 hover:border-green-500 dark:border-green-600 dark:bg-green-500/[0.06] dark:hover:bg-green-500/10 dark:hover:border-green-500"
@@ -285,15 +295,15 @@ export default function PartResults({
                                             disabled={isBasketActionDisabled}
                                             className={basketActionClassName}
                                         >
-                                        {isAdding ? (
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                        ) : (
-                                            <ShoppingCart
-                                                className={isBasketActionMuted
-                                                    ? "h-3.5 w-3.5 text-green-500 dark:text-green-300"
-                                                    : "h-3.5 w-3.5"}
-                                            />
-                                        )}
+                                            {isAdding ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            ) : (
+                                                <ShoppingCart
+                                                    className={isBasketActionMuted
+                                                        ? "h-3.5 w-3.5 text-green-500 dark:text-green-300"
+                                                        : "h-3.5 w-3.5"}
+                                                />
+                                            )}
 
                                             <span>{basketActionLabel}</span>
                                         </button>
