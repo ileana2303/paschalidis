@@ -1,4 +1,5 @@
-import { Loader2, Minus, Plus, Send } from "@/lib/icons/lucide";
+import QuantityControl from "@/components/ui/quantity-control";
+import { Loader2, Send } from "@/lib/icons/lucide";
 import type { StockRequestProps } from "@/lib/interface";
 
 export default function StockRequest({
@@ -57,46 +58,16 @@ export default function StockRequest({
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                     Ποσότητα Ανατροφοδοσίας
                 </p>
-                <div className="flex items-center rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/50">
-                    <button
-                        type="button"
-                        onClick={() => onQuantityChange(quantity - 1)}
-                        disabled={quantity <= 0}
-                        aria-label="Μείωση ποσότητας αποθέματος"
-                        className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
-                    >
-                        <Minus className="h-4 w-4" />
-                    </button>
-                    <input
-                        type="text"
-                        inputMode="numeric"
-                        value={quantity === 0 ? "" : quantity}
-                        placeholder="0"
-                        onChange={(e) => {
-                            const nextValue = e.target.value.trim();
-
-                            if (!nextValue) {
-                                onQuantityChange(0);
-                                return;
-                            }
-
-                            if (!/^\d+$/.test(nextValue)) {
-                                return;
-                            }
-
-                            onQuantityChange(Number(nextValue));
-                        }}
-                        className="h-9 w-full border-x border-gray-200 bg-transparent px-2 text-center text-sm font-medium text-gray-800 outline-none dark:border-gray-700 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => onQuantityChange(quantity + 1)}
-                        aria-label="Αύξηση ποσότητας αποθέματος"
-                        className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
-                    >
-                        <Plus className="h-4 w-4" />
-                    </button>
-                </div>
+                <QuantityControl
+                    value={quantity}
+                    onChange={onQuantityChange}
+                    min={0}
+                    displayZeroAsEmpty
+                    fullWidth
+                    placeholder="0"
+                    decrementLabel="Μείωση ποσότητας αποθέματος"
+                    incrementLabel="Αύξηση ποσότητας αποθέματος"
+                />
             </div>
 
             <button

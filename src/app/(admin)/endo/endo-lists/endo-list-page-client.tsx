@@ -7,13 +7,12 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
+import QuantityControl from "@/components/ui/quantity-control";
 import StatusBadge from "@/components/ui/data-table/status-badge";
 import {
     Check,
     Loader2,
     Minus,
-    Plus,
-    RefreshCw,
     Send,
 } from "@/lib/icons/lucide";
 import {
@@ -21,7 +20,7 @@ import {
     useSubmitEndoBasketOrderMutation,
     useUpdateEndoListQtyMutation,
 } from "@/hooks/queries/useApiMutations";
-import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
+import { normalizeBranchCode } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
 import type {
     EndoListRoutePayload,
@@ -29,6 +28,7 @@ import type {
 } from "@/lib/interface";
 
 type EndoListScope = Exclude<EndoListRoutePayload["scope"], "both" | undefined>;
+
 const REQUESTED_QTY_COLUMN_KEY = "__REQUESTED_QTY";
 const QTY_ACTIONS_COLUMN_KEY = "__QTY_ACTIONS";
 
@@ -52,6 +52,7 @@ function formatDateTime(value?: string) {
     if (!value) return "—";
 
     const parsed = new Date(value);
+
     if (Number.isNaN(parsed.getTime())) {
         return value;
     }
@@ -101,17 +102,21 @@ function buildColumns(rows: IEndoListRow[]) {
 
 function filterRows(rows: IEndoListRow[], searchTerm: string) {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    if (!normalizedSearch) return rows;
+
+    if (!normalizedSearch) {
+        return rows;
+    }
 
     return rows.filter((row) =>
         Object.values(row).some((value) =>
-            String(value).toLowerCase().includes(normalizedSearch)
+            String(value ?? "").toLowerCase().includes(normalizedSearch)
         )
     );
 }
 
-function parseQtyValue(value: string) {
-    const parsed = Number(String(value).trim().replace(",", "."));
+function parseQtyValue(value: unknown) {
+    const parsed = Number(String(value ?? "").trim().replace(",", "."));
+
     if (!Number.isFinite(parsed) || parsed < 0) {
         return 0;
     }
@@ -121,6 +126,7 @@ function parseQtyValue(value: string) {
 
 function parsePositiveValue(value: unknown) {
     const parsed = Number(String(value ?? "").trim().replace(",", "."));
+
     if (!Number.isFinite(parsed) || parsed <= 0) {
         return 0;
     }
@@ -129,7 +135,7 @@ function parsePositiveValue(value: unknown) {
 }
 
 function getRowKey(row: IEndoListRow, index: number) {
-    return row.BASKETID || row.ID || `${row.MTRL ?? "row"}-${index}`;
+    return String(row.BASKETID || row.ID || `${row.MTRL ?? "row"}-${index}`);
 }
 
 function hasQtyUpdateFields(row: IEndoListRow) {
@@ -159,22 +165,22 @@ function canApproveRowWithQty(row: IEndoListRow, qty: number) {
     );
 }
 
-function renderCell(key: string, value: string) {
-    if (!value) {
+function renderCell(key: string, value: unknown) {
+    if (value == null || value === "") {
         return "—";
     }
 
+    const displayValue = String(value);
+
     if (/DATE|TS|TIME/i.test(key)) {
-        return formatDateTime(value);
+        return formatDateTime(displayValue);
     }
 
     if (/STATUS/i.test(key)) {
-        return (
-            <StatusBadge status={value} />
-        );
+        return <StatusBadge status={displayValue} />;
     }
 
-    return value;
+    return displayValue;
 }
 
 export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
@@ -184,39 +190,28 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
     const [warning, setWarning] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [search, setSearch] = useState("");
-    const [editedQtyByRow, setEditedQtyByRow] = useState<Record<string, string>>(
-        {}
-    );
-    const [requestedQtyByRow, setRequestedQtyByRow] = useState<Record<string, number>>(
-        {}
-    );
+
+    const [editedQtyByRow, setEditedQtyByRow] = useState<Record<string, string>>({});
+    const [requestedQtyByRow, setRequestedQtyByRow] = useState<Record<string, number>>({});
     const [finalQtyByRow, setFinalQtyByRow] = useState<Record<string, number>>({});
+
     const [savingRowKeys, setSavingRowKeys] = useState<Set<string>>(new Set());
     const [submittingRowKeys, setSubmittingRowKeys] = useState<Set<string>>(new Set());
+
     const user = useAuthStore((state) => state.user);
+
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
     const { mutateAsync: submitEndoBasketOrder } = useSubmitEndoBasketOrderMutation();
     const { mutateAsync: updateEndoListQty } = useUpdateEndoListQtyMutation();
+
     const isReceivedScope = scope === "received";
 
     const currentBranchCode = useMemo(
         () => normalizeBranchCode(user?.s1code),
         [user?.s1code]
     );
+
     const hasValidBranch = currentBranchCode.length > 0;
-
-    const currentBranchName = useMemo(() => {
-        if (!hasValidBranch) {
-            return "—";
-        }
-
-        const currentCode = normalizeBranchCode(currentBranchCode);
-        const fromProfile = user?.listBranches?.find(
-            (branch) => normalizeBranchCode(branch.s1Code) === currentCode
-        )?.name;
-
-        return resolveBranchName(currentCode, fromProfile);
-    }, [currentBranchCode, hasValidBranch, user?.listBranches]);
 
     const listConfig = useMemo(
         () =>
@@ -263,15 +258,18 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                     ? data.requested.rows ?? []
                     : data.received.rows ?? [];
 
-            setRows(nextRows);
             const nextRequestedQtyByRow: Record<string, number> = {};
             const nextFinalQtyByRow: Record<string, number> = {};
+
             nextRows.forEach((row, index) => {
                 const rowKey = getRowKey(row, index);
                 const requestedQty = getRequestedQtyFromRow(row);
+
                 nextRequestedQtyByRow[rowKey] = requestedQty;
                 nextFinalQtyByRow[rowKey] = requestedQty;
             });
+
+            setRows(nextRows);
             setRequestedQtyByRow(nextRequestedQtyByRow);
             setFinalQtyByRow(nextFinalQtyByRow);
             setWarning(String(data.message ?? "").trim());
@@ -292,7 +290,9 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
     }, [loadRows]);
 
     const filteredRows = useMemo(() => filterRows(rows, search), [rows, search]);
+
     const columns = useMemo(() => buildColumns(filteredRows), [filteredRows]);
+
     const tableColumns = useMemo(() => {
         if (!isReceivedScope) {
             return columns;
@@ -319,6 +319,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
     const getResolvedQty = useCallback(
         (rowKey: string, row: IEndoListRow) => {
             const draft = editedQtyByRow[rowKey];
+
             const fallbackQty =
                 finalQtyByRow[rowKey] ??
                 requestedQtyByRow[rowKey] ??
@@ -347,45 +348,32 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                 finalQtyByRow[rowKey] ??
                 requestedQtyByRow[rowKey] ??
                 getRequestedQtyFromRow(row);
+
             const editedQty = getResolvedQty(rowKey, row);
+
             return currentQty !== editedQty;
         },
         [editedQtyByRow, finalQtyByRow, getResolvedQty, requestedQtyByRow]
     );
 
-    const handleQtyInputChange = (rowKey: string, value: string) => {
-        const normalized = value.trim();
-
-        if (!normalized) {
-            setEditedQtyByRow((prev) => ({
-                ...prev,
-                [rowKey]: "",
-            }));
-            return;
-        }
-
-        if (!/^\d+$/.test(normalized)) {
-            return;
-        }
+    const setEditedQuantity = useCallback((rowKey: string, nextQuantity: number) => {
+        const normalizedQty = Number.isFinite(nextQuantity)
+            ? Math.max(0, Math.floor(nextQuantity))
+            : 0;
 
         setEditedQtyByRow((prev) => ({
             ...prev,
-            [rowKey]: normalized,
+            [rowKey]: String(normalizedQty),
         }));
-    };
+    }, []);
 
-    const handleQtyStep = (
-        rowKey: string,
-        row: IEndoListRow,
-        delta: number
-    ) => {
-        const nextQty = Math.max(0, getResolvedQty(rowKey, row) + delta);
-
-        setEditedQtyByRow((prev) => ({
-            ...prev,
-            [rowKey]: String(nextQty),
-        }));
-    };
+    const resetEditedQuantity = useCallback((rowKey: string) => {
+        setEditedQtyByRow((prev) => {
+            const next = { ...prev };
+            delete next[rowKey];
+            return next;
+        });
+    }, []);
 
     const handleQtyUpdate = useCallback(
         async (rowKey: string, row: IEndoListRow) => {
@@ -401,6 +389,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             }
 
             const nextQty = getResolvedQty(rowKey, row);
+
             setError("");
             setSuccessMessage("");
             setSavingRowKeys((prev) => new Set(prev).add(rowKey));
@@ -415,11 +404,8 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                     appUserId: user?.uid,
                 });
 
-                setEditedQtyByRow((prev) => {
-                    const next = { ...prev };
-                    delete next[rowKey];
-                    return next;
-                });
+                resetEditedQuantity(rowKey);
+
                 setFinalQtyByRow((prev) => ({
                     ...prev,
                     [rowKey]: nextQty,
@@ -442,71 +428,82 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                 });
             }
         },
-        [currentBranchCode, getResolvedQty, updateEndoListQty, user?.uid]
+        [
+            currentBranchCode,
+            getResolvedQty,
+            resetEditedQuantity,
+            updateEndoListQty,
+            user?.uid,
+        ]
     );
 
-    const handleSubmitRow = useCallback(async (rowKey: string, row: IEndoListRow) => {
-        const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
-        const qty =
-            finalQtyByRow[rowKey] ??
-            requestedQtyByRow[rowKey] ??
-            getRequestedQtyFromRow(row);
+    const handleSubmitRow = useCallback(
+        async (rowKey: string, row: IEndoListRow) => {
+            const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
 
-        if (!basketId) {
-            setError("Δεν βρέθηκε BASKETID για τη γραμμή");
-            return;
-        }
+            const qty =
+                finalQtyByRow[rowKey] ??
+                requestedQtyByRow[rowKey] ??
+                getRequestedQtyFromRow(row);
 
-        if (!canApproveRowWithQty(row, qty)) {
-            setError("Μη έγκυρα στοιχεία γραμμής για αποστολή SALDOC");
-            return;
-        }
+            if (!basketId) {
+                setError("Δεν βρέθηκε BASKETID για τη γραμμή");
+                return;
+            }
 
-        setError("");
-        setSuccessMessage("");
-        setSubmittingRowKeys((prev) => new Set(prev).add(rowKey));
+            if (!canApproveRowWithQty(row, qty)) {
+                setError("Μη έγκυρα στοιχεία γραμμής για αποστολή SALDOC");
+                return;
+            }
 
-        try {
-            const data = await submitEndoBasketOrder({
-                appUserId: user?.uid,
-                items: [
-                    {
-                        basketIds: [basketId],
-                        mtrl: parsePositiveValue(row.MTRL),
-                        qty,
-                        branch: parsePositiveValue(row.TO_BRANCH),
-                        toBranch: parsePositiveValue(row.BRANCH),
-                        itemCode: String(row.ITEM_CODE ?? "").trim() || undefined,
-                        itemDescr: String(row.ITEM_DESCR ?? "").trim() || undefined,
-                    },
-                ],
-            });
+            setError("");
+            setSuccessMessage("");
+            setSubmittingRowKeys((prev) => new Set(prev).add(rowKey));
 
-            await loadRows();
-            setSuccessMessage(
-                String(data.message ?? "").trim() ||
-                "Η ενδοδιακίνηση καταχωρήθηκε επιτυχώς"
-            );
-        } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Αποτυχία αποστολής SALDOC"
-            );
-        } finally {
-            setSubmittingRowKeys((prev) => {
-                const next = new Set(prev);
-                next.delete(rowKey);
-                return next;
-            });
-        }
-    }, [
-        finalQtyByRow,
-        loadRows,
-        requestedQtyByRow,
-        submitEndoBasketOrder,
-        user?.uid,
-    ]);
+            try {
+                const data = await submitEndoBasketOrder({
+                    appUserId: user?.uid,
+                    items: [
+                        {
+                            basketIds: [basketId],
+                            mtrl: parsePositiveValue(row.MTRL),
+                            qty,
+                            branch: parsePositiveValue(row.TO_BRANCH),
+                            toBranch: parsePositiveValue(row.BRANCH),
+                            itemCode: String(row.ITEM_CODE ?? "").trim() || undefined,
+                            itemDescr: String(row.ITEM_DESCR ?? "").trim() || undefined,
+                        },
+                    ],
+                });
+
+                await loadRows();
+
+                setSuccessMessage(
+                    String(data.message ?? "").trim() ||
+                    "Η ενδοδιακίνηση καταχωρήθηκε επιτυχώς"
+                );
+            } catch (err) {
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Αποτυχία αποστολής SALDOC"
+                );
+            } finally {
+                setSubmittingRowKeys((prev) => {
+                    const next = new Set(prev);
+                    next.delete(rowKey);
+                    return next;
+                });
+            }
+        },
+        [
+            finalQtyByRow,
+            loadRows,
+            requestedQtyByRow,
+            submitEndoBasketOrder,
+            user?.uid,
+        ]
+    );
 
     return (
         <div>
@@ -536,7 +533,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                         title={listConfig.title}
                         description={listConfig.subtitle}
                         count={rows.length}
-                        action={(
+                        action={
                             <DataTableSearchBar
                                 value={search}
                                 onChange={setSearch}
@@ -545,7 +542,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                 refreshDisabled={loading}
                                 placeholder="Αναζήτηση..."
                             />
-                        )}
+                        }
                     />
 
                     {loading ? (
@@ -584,12 +581,12 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                     {filteredRows.map((row, index) => {
                                         const rowKey = getRowKey(row, index);
-                                        const canEditQty = isReceivedScope && hasQtyUpdateFields(row);
+                                        const canEditQty =
+                                            isReceivedScope && hasQtyUpdateFields(row);
+
                                         const requestedQty =
                                             requestedQtyByRow[rowKey] ??
                                             getRequestedQtyFromRow(row);
-                                        const finalQty =
-                                            finalQtyByRow[rowKey] ?? requestedQty;
 
                                         return (
                                             <tr
@@ -633,15 +630,11 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                         const rowSaving = savingRowKeys.has(rowKey);
                                                         const rowSubmitting =
                                                             submittingRowKeys.has(rowKey);
-                                                        const draftValue =
-                                                            editedQtyByRow[rowKey] ??
-                                                            (finalQty === 0
-                                                                ? ""
-                                                                : String(finalQty));
                                                         const resolvedQty = getResolvedQty(rowKey, row);
                                                         const qtyChanged = isQtyChanged(rowKey, row);
                                                         const canApproveWithResolvedQty =
                                                             canApproveRowWithQty(row, resolvedQty);
+                                                        const rowBusy = rowSaving || rowSubmitting;
 
                                                         return (
                                                             <td
@@ -649,85 +642,28 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                 className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200"
                                                             >
                                                                 <div className="flex items-center gap-1">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() =>
-                                                                            handleQtyStep(
-                                                                                rowKey,
-                                                                                row,
-                                                                                -1
-                                                                            )
-                                                                        }
-                                                                        disabled={
-                                                                            rowSaving ||
-                                                                            rowSubmitting ||
-                                                                            resolvedQty <= 0
-                                                                        }
-                                                                        className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-100 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
-                                                                    >
-                                                                        <Minus className="h-3.5 w-3.5" />
-                                                                    </button>
-
-                                                                    <input
-                                                                        type="text"
-                                                                        inputMode="numeric"
-                                                                        value={draftValue}
+                                                                    <QuantityControl
+                                                                        value={resolvedQty}
+                                                                        onChange={(nextQty) => setEditedQuantity(rowKey, nextQty)}
+                                                                        min={0}
+                                                                        size="sm"
                                                                         placeholder="0"
-                                                                        disabled={rowSaving || rowSubmitting}
-                                                                        onChange={(event) =>
-                                                                            handleQtyInputChange(
-                                                                                rowKey,
-                                                                                event.target.value
-                                                                            )
+                                                                        displayZeroAsEmpty
+                                                                        disabled={rowBusy}
+                                                                        className={
+                                                                            qtyChanged
+                                                                                ? "border-brand-300 ring-1 ring-brand-200 dark:border-brand-500/50 dark:ring-brand-500/20"
+                                                                                : ""
                                                                         }
-                                                                        onKeyDown={(event) => {
-                                                                            if (
-                                                                                event.key === "Enter" &&
-                                                                                qtyChanged
-                                                                            ) {
-                                                                                event.preventDefault();
-                                                                                void handleQtyUpdate(
-                                                                                    rowKey,
-                                                                                    row
-                                                                                );
-                                                                            }
-                                                                        }}
-                                                                        className={`h-8 w-16 rounded-md border bg-white px-2 text-center text-xs font-medium text-gray-800 outline-none transition dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${qtyChanged
-                                                                            ? "border-brand-400 ring-1 ring-brand-200 dark:border-brand-500 dark:ring-brand-500/20"
-                                                                            : "border-gray-200 dark:border-gray-700"
-                                                                            }`}
                                                                     />
 
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() =>
-                                                                            handleQtyStep(
-                                                                                rowKey,
-                                                                                row,
-                                                                                1
-                                                                            )
-                                                                        }
-                                                                        disabled={rowSaving || rowSubmitting}
-                                                                        className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-100 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
-                                                                    >
-                                                                        <Plus className="h-3.5 w-3.5" />
-                                                                    </button>
-
-                                                                    <button
-                                                                        type="button"
                                                                         title="Ενημέρωση ποσότητας"
-                                                                        onClick={() =>
-                                                                            void handleQtyUpdate(
-                                                                                rowKey,
-                                                                                row
-                                                                            )
-                                                                        }
-                                                                        disabled={
-                                                                            rowSaving ||
-                                                                            rowSubmitting ||
-                                                                            !qtyChanged
-                                                                        }
-                                                                        className="ml-1 inline-flex h-8 items-center gap-1 rounded-md bg-brand-500 px-2 text-xs font-semibold text-white transition hover:bg-brand-600 disabled:opacity-40"
+                                                                        aria-label="Ενημέρωση ποσότητας"
+                                                                        onClick={() => void handleQtyUpdate(rowKey, row)}
+                                                                        disabled={rowBusy || !qtyChanged}
+                                                                        className="ml-1 inline-flex h-8 items-center justify-center gap-1 rounded-md bg-brand-500 px-2 text-xs font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
                                                                     >
                                                                         {rowSaving ? (
                                                                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -739,19 +675,16 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                     <button
                                                                         type="button"
                                                                         title="Αποστολή SALDOC"
+                                                                        aria-label="Αποστολή SALDOC"
                                                                         onClick={() =>
-                                                                            void handleSubmitRow(
-                                                                                rowKey,
-                                                                                row
-                                                                            )
+                                                                            void handleSubmitRow(rowKey, row)
                                                                         }
                                                                         disabled={
-                                                                            rowSaving ||
-                                                                            rowSubmitting ||
+                                                                            rowBusy ||
                                                                             qtyChanged ||
                                                                             !canApproveWithResolvedQty
                                                                         }
-                                                                        className="inline-flex h-8 items-center gap-1 rounded-md bg-green-600 px-2 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-40"
+                                                                        className="inline-flex h-8 items-center justify-center gap-1 rounded-md bg-green-600 px-2 text-xs font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
                                                                     >
                                                                         {rowSubmitting ? (
                                                                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -781,7 +714,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                         </div>
                     )}
                 </DataTable>
-
             </div>
         </div>
     );

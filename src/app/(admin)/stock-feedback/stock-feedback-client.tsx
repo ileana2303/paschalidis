@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
+import QuantityControl from "@/components/ui/quantity-control";
 import {
   AlertCircle,
   CalendarDays,
   Check,
   Loader2,
-  Minus,
   Package,
-  Plus,
   RefreshCw,
   Send,
   ShoppingCart,
@@ -245,28 +244,6 @@ export default function StockFeedbackClient() {
       [mtrl]: normalizedQty,
     }));
   }, []);
-
-  const handleRequestQuantityInput = useCallback(
-    (mtrl: string, value: string) => {
-      const normalizedValue = value.trim();
-
-      if (!normalizedValue) {
-        setRequestQuantity(mtrl, 0);
-        return;
-      }
-
-      if (!/^\d+$/.test(normalizedValue)) {
-        return;
-      }
-
-      setRequestQuantity(mtrl, Number(normalizedValue));
-      setRequestErrors((prev) => ({
-        ...prev,
-        [mtrl]: "",
-      }));
-    },
-    [setRequestQuantity]
-  );
 
   const handleSubmitStockRequest = useCallback(
     async (row: IStockFeedbackRow) => {
@@ -675,41 +652,24 @@ export default function StockFeedbackClient() {
                       <td className="px-5 py-4 align-top">
                         <div className="flex flex-col items-end gap-2">
                           <div className="flex w-full items-center justify-end gap-2">
-                            <div className="inline-flex items-center rounded-xl border border-gray-200/80 bg-gray-50/70 p-1 shadow-sm dark:border-gray-700/70 dark:bg-gray-900/60">
-                              <button
-                                type="button"
-                                onClick={() => setRequestQuantity(mtrlKey, requestQty - 1)}
-                                disabled={requestQty <= 0 || isSubmittingRequest}
-                                aria-label="Μείωση ποσότητας ανατροφοδοσίας"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-white hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-35 dark:hover:bg-gray-800 dark:hover:text-white"
-                              >
-                                <Minus className="h-4 w-4" />
-                              </button>
-
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={requestQty === 0 ? "" : requestQty}
+                            <div className="inline-flex items-center gap-2">
+                              <QuantityControl
+                                value={requestQty}
+                                onChange={(nextQty) => {
+                                  setRequestQuantity(mtrlKey, nextQty);
+                                  setRequestErrors((prev) => ({
+                                    ...prev,
+                                    [mtrlKey]: "",
+                                  }));
+                                }}
+                                min={0}
+                                size="sm"
+                                disabled={isSubmittingRequest}
+                                displayZeroAsEmpty
                                 placeholder="0"
-                                onChange={(event) =>
-                                  handleRequestQuantityInput(mtrlKey, event.target.value)
-                                }
-                                disabled={isSubmittingRequest}
-                                className="h-8 w-12 border-0 bg-transparent px-1 text-center text-sm font-semibold tabular-nums text-gray-900 outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-70 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                decrementLabel="Μείωση ποσότητας ανατροφοδοσίας"
+                                incrementLabel="Αύξηση ποσότητας ανατροφοδοσίας"
                               />
-
-                              <button
-                                type="button"
-                                onClick={() => setRequestQuantity(mtrlKey, requestQty + 1)}
-                                disabled={isSubmittingRequest}
-                                aria-label="Αύξηση ποσότητας ανατροφοδοσίας"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition hover:bg-white hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-35 dark:hover:bg-gray-800 dark:hover:text-white"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </button>
-
-                              <div className="mx-1 h-6 w-px bg-gray-200/70 dark:bg-gray-700/60" />
-
                               <button
                                 type="button"
                                 onClick={() => void handleSubmitStockRequest(row)}

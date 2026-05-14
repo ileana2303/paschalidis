@@ -1,4 +1,5 @@
-import { ChevronDown, Loader2, Minus, Plus, ShoppingCart } from "@/lib/icons/lucide";
+import QuantityControl from "@/components/ui/quantity-control";
+import { ChevronDown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
 import type { IItem } from "@/lib/interface";
 
 export type EndoBranchOption = {
@@ -19,13 +20,6 @@ interface EndoPartResultsProps {
     onAddToBasket: (branchCode: string) => void;
     isAdding: (branchCode: string) => boolean;
     inBasketQtyByBranch: Record<string, number>;
-}
-
-function clampQuantity(value: number, max: number) {
-    if (!Number.isFinite(value)) return 0;
-    if (value < 0) return 0;
-    if (value > max) return max;
-    return Math.floor(value);
 }
 
 export default function EndoPartResults({
@@ -123,54 +117,21 @@ export default function EndoPartResults({
 
                                     {!isDisabledSource && (
                                         <>
-                                            <div className="mt-2 flex items-center rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/50">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        onRequestedQtyChange(
-                                                            branch.code,
-                                                            clampQuantity(requestedQty - 1, branch.stock)
-                                                        )
+                                            <div className="mt-2">
+                                                <QuantityControl
+                                                    value={requestedQty}
+                                                    onChange={(nextQuantity) =>
+                                                        onRequestedQtyChange(branch.code, nextQuantity)
                                                     }
-                                                    disabled={requestedQty <= 0}
-                                                    className="flex h-8 w-8 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
-                                                >
-                                                    <Minus className="h-3.5 w-3.5" />
-                                                </button>
-                                                <input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    value={requestedQty === 0 ? "" : requestedQty}
+                                                    min={0}
+                                                    max={branch.stock}
+                                                    size="sm"
+                                                    fullWidth
+                                                    displayZeroAsEmpty
                                                     placeholder="0"
-                                                    onChange={(event) => {
-                                                        const next = event.target.value.trim();
-                                                        if (!next) {
-                                                            onRequestedQtyChange(branch.code, 0);
-                                                            return;
-                                                        }
-                                                        if (!/^\d+$/.test(next)) {
-                                                            return;
-                                                        }
-                                                        onRequestedQtyChange(
-                                                            branch.code,
-                                                            clampQuantity(Number(next), branch.stock)
-                                                        );
-                                                    }}
-                                                    className="h-8 w-full border-x border-gray-200 bg-transparent px-2 text-center text-xs font-medium text-gray-800 outline-none dark:border-gray-700 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                    decrementLabel="Μείωση ποσότητας ενδοδιακίνησης"
+                                                    incrementLabel="Αύξηση ποσότητας ενδοδιακίνησης"
                                                 />
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        onRequestedQtyChange(
-                                                            branch.code,
-                                                            clampQuantity(requestedQty + 1, branch.stock)
-                                                        )
-                                                    }
-                                                    disabled={branch.stock <= requestedQty}
-                                                    className="flex h-8 w-8 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-gray-800"
-                                                >
-                                                    <Plus className="h-3.5 w-3.5" />
-                                                </button>
                                             </div>
 
                                             <button

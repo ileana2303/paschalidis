@@ -1,9 +1,9 @@
 "use client";
 
-import { KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
+import QuantityControl from "@/components/ui/quantity-control";
 import {
     Loader2,
-    Minus,
     Plus,
     ShoppingCart,
     Trash2,
@@ -270,37 +270,35 @@ function BasketTableRow({
     const qty = Math.max(1, getBasketItemQty(item));
     const sku = item.ITEM_CODE || item.CODE2 || getBasketItemCode(item) || "—";
     const productName = item.ITEM_DESCR || getBasketItemName(item) || "Unnamed product";
-    const [qtyInput, setQtyInput] = useState(String(qty));
+    const [draftQty, setDraftQty] = useState(qty);
+    const unitPrice = getBasketItemEffectivePrice(item);
+    const rowTotal = getBasketItemLineTotal(item);
 
     useEffect(() => {
-        setQtyInput(String(qty));
+        setDraftQty(qty);
     }, [qty]);
 
-    const commitQty = () => {
-        const parsed = Number.parseInt(qtyInput, 10);
-        const nextQty = Number.isFinite(parsed) ? Math.max(1, parsed) : qty;
-        setQtyInput(String(nextQty));
+    const commitQty = (nextQty = draftQty) => {
+        const normalizedQty = Math.max(1, Math.floor(nextQty));
+        setDraftQty(normalizedQty);
 
-        if (nextQty !== qty) {
-            onUpdateQty(itemId, nextQty);
+        if (normalizedQty !== qty) {
+            onUpdateQty(itemId, normalizedQty);
         }
     };
 
     const handleQtyKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === "Enter") {
             event.preventDefault();
-            commitQty();
+            event.currentTarget.blur();
             return;
         }
 
         if (event.key === "Escape") {
-            setQtyInput(String(qty));
-            return;
+            event.preventDefault();
+            setDraftQty(qty);
         }
     };
-
-    const unitPrice = getBasketItemEffectivePrice(item);
-    const rowTotal = getBasketItemLineTotal(item);
 
     return (
         <tr className="transition hover:bg-gray-50/70 dark:hover:bg-gray-900/40">
@@ -325,41 +323,16 @@ function BasketTableRow({
             </td>
 
             <td className="px-4 py-3 align-middle">
-                <div className="inline-flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/40">
-                    <button
-                        type="button"
-                        onClick={() => onUpdateQty(itemId, qty - 1)}
-                        disabled={qty <= 1 || isUpdatingQty || isRemoving || isTableBusy}
-                        aria-label="Decrease quantity"
-                        className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-brand-50 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent dark:text-gray-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300 dark:disabled:text-gray-600"
-                    >
-                        <Minus className="h-4 w-4" />
-                    </button>
-
-                    <input
-                        value={qtyInput}
-                        onChange={(event) => {
-                            const digitsOnly = event.target.value.replace(/\D/g, "");
-                            setQtyInput(digitsOnly);
-                        }}
-                        onBlur={commitQty}
-                        onKeyDown={handleQtyKeyDown}
-                        inputMode="numeric"
-                        aria-label="Quantity"
-                        disabled={isUpdatingQty || isRemoving || isTableBusy}
-                        className="h-9 w-14 border-x border-gray-200 bg-gray-50 text-center text-sm font-semibold text-gray-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-inset focus:ring-brand-500/40 disabled:cursor-not-allowed disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-800/70 dark:text-white dark:focus:bg-gray-900"
-                    />
-
-                    <button
-                        type="button"
-                        onClick={() => onUpdateQty(itemId, qty + 1)}
-                        disabled={isUpdatingQty || isRemoving || isTableBusy}
-                        aria-label="Increase quantity"
-                        className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-brand-50 hover:text-brand-600 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent dark:text-gray-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-300 dark:disabled:text-gray-600"
-                    >
-                        <Plus className="h-4 w-4" />
-                    </button>
-                </div>
+                <QuantityControl
+                    value={draftQty}
+                    onChange={setDraftQty}
+                    min={1}
+                    disabled={isUpdatingQty || isRemoving || isTableBusy}
+                    onBlur={commitQty}
+                    inputLabel="Quantity"
+                    decrementLabel="Decrease quantity"
+                    incrementLabel="Increase quantity"
+                />
 
                 {isUpdatingQty && (
                     <span className="ml-2 inline-flex items-center gap-1 text-xs text-gray-400">

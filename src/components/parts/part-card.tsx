@@ -1,4 +1,4 @@
-import { BadgePercent, ChevronDown, Loader2, Minus, Plus, Send, ShoppingCart } from "@/lib/icons/lucide";
+import { BadgePercent, ChevronDown, Loader2, Send, ShoppingCart } from "@/lib/icons/lucide";
 import {
     getBasketItemApprovalStatus,
     getBasketItemQty,
@@ -6,9 +6,9 @@ import {
     hasBasketItemPriceRequest,
 } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
+import QuantityControl from "@/components/ui/quantity-control";
 import PartCardDetails from "./part-card-details";
 import PartStockQuantityContainer from "./request-stock-card";
-import { type KeyboardEvent, useEffect, useState } from "react";
 
 type StockBranchCode = "1001" | "1006" | "1007";
 type StockKey = "YP1001" | "YP1006" | "YP1007";
@@ -115,7 +115,6 @@ export default function PartResults({
     onSubmitStockRequest,
     formatPrice,
 }: PartResultsProps) {
-    const [quantityInput, setQuantityInput] = useState(String(qty));
     const requestedPrice =
         basketItem != null
             ? getBasketItemRequestedPrice(basketItem)
@@ -167,52 +166,6 @@ export default function PartResults({
     const basketActionClassName = isBasketActionMuted
         ? "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3.5 text-xs font-semibold text-green-700 transition disabled:cursor-not-allowed disabled:opacity-70 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-300"
         : "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3.5 text-xs font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-brand-500 dark:hover:bg-brand-400";
-
-    useEffect(() => {
-        setQuantityInput(String(qty));
-    }, [qty]);
-
-    const handleQuantityInputChange = (value: string) => {
-        const nextValue = value.replace(/\D/g, "");
-        setQuantityInput(nextValue);
-
-        if (nextValue === "") {
-            return;
-        }
-
-        onQuantityChange(Math.max(1, Number(nextValue)));
-    };
-
-    const handleQuantityInputBlur = () => {
-        if (quantityInput === "") {
-            setQuantityInput("1");
-            onQuantityChange(1);
-        }
-    };
-
-    const handleQuantityInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === "ArrowUp") {
-            event.preventDefault();
-            onQuantityChange(qty + 1);
-            return;
-        }
-
-        if (event.key === "ArrowDown") {
-            event.preventDefault();
-            onQuantityChange(Math.max(1, qty - 1));
-            return;
-        }
-
-        if (event.key === "Enter") {
-            event.currentTarget.blur();
-            return;
-        }
-
-        if (event.key === "Escape") {
-            setQuantityInput(String(qty));
-            event.currentTarget.blur();
-        }
-    };
 
     const expandToggleButton = (
         <button
@@ -320,39 +273,10 @@ export default function PartResults({
                                                 Ποσότητα
                                             </span>
 
-                                            <div className="inline-grid grid-cols-[2.25rem_3.25rem_2.25rem] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xs dark:border-gray-700 dark:bg-gray-900">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onQuantityChange(Math.max(1, qty - 1))}
-                                                    disabled={qty <= 1}
-                                                    aria-label="Μείωση ποσότητας"
-                                                    className="grid h-9 place-items-center border-r border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white dark:disabled:text-gray-700"
-                                                >
-                                                    <Minus className="h-3.5 w-3.5" />
-                                                </button>
-
-                                                <input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    pattern="[0-9]*"
-                                                    aria-label="Ποσότητα"
-                                                    value={quantityInput}
-                                                    onChange={(e) => handleQuantityInputChange(e.target.value)}
-                                                    onBlur={handleQuantityInputBlur}
-                                                    onFocus={(e) => e.target.select()}
-                                                    onKeyDown={handleQuantityInputKeyDown}
-                                                    className="h-9 min-w-0 border-0 bg-transparent px-1 text-center text-sm font-semibold tabular-nums text-gray-900 outline-none transition-colors focus:bg-brand-50/60 focus:ring-0 dark:text-white dark:focus:bg-brand-500/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                                />
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onQuantityChange(qty + 1)}
-                                                    aria-label="Αύξηση ποσότητας"
-                                                    className="grid h-9 place-items-center border-l border-gray-200 text-gray-500 transition-colors hover:bg-brand-50 hover:text-brand-600 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
-                                                >
-                                                    <Plus className="h-3.5 w-3.5" />
-                                                </button>
-                                            </div>
+                                            <QuantityControl
+                                                value={qty}
+                                                onChange={onQuantityChange}
+                                            />
                                         </div>
 
                                         <button
