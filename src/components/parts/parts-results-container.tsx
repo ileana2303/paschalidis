@@ -1,22 +1,13 @@
 import {
-    ChevronLeft,
-    GitCompareArrows,
     ListChevronsDownUp,
     ListChevronsUpDown,
     Plus,
 } from "@/lib/icons/lucide";
 import { getBasketItemQty } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
-import EndoPartResults from "@/components/endo/endo-part-results";
-import type { EndoBranchOption } from "@/components/endo/endo-part-results";
+import type { EndoBranchOption } from "@/components/parts/request-endo-card";
 import PartResults from "@/components/parts/part-card";
 import type { RefObject, UIEvent } from "react";
-
-type EndoBasketPreviewItem = {
-    mtrl: number;
-    fromBranch: string;
-    qty: number;
-};
 
 interface PartsResultsLayoutProps {
     hasCustomer: boolean;
@@ -32,8 +23,6 @@ interface PartsResultsStateProps {
     loading: boolean;
     hasSearched: boolean;
     currentBranchCode: string;
-    isEndoMode: boolean;
-    onToggleEndoMode: () => void;
     onToggleAllExpanded: () => void;
     areAllResultsExpanded: boolean;
     expandedItems: Set<string>;
@@ -42,8 +31,8 @@ interface PartsResultsStateProps {
 }
 
 interface PartsResultsEndoProps {
+    activeEndoItemKey: string | null;
     getBranchOptions: (item: IItem) => EndoBranchOption[];
-    endoBasketItems: EndoBasketPreviewItem[];
     getEndoRequestedQty: (mtrl: string | number, sourceBranch: string) => number;
     setEndoRequestedQty: (
         mtrl: string | number,
@@ -55,6 +44,10 @@ interface PartsResultsEndoProps {
         mtrl: string | number,
         sourceBranchCode: string
     ) => boolean;
+    endoBasketError: string;
+    endoBasketSuccess: string;
+    onOpenEndoForItem: (item: IItem) => void;
+    onCloseEndoForItem: () => void;
 }
 
 interface PartsResultsBasketProps {
@@ -104,8 +97,6 @@ export default function PartsResultsContainer({
         loading,
         hasSearched,
         currentBranchCode,
-        isEndoMode,
-        onToggleEndoMode,
         onToggleAllExpanded,
         areAllResultsExpanded,
         expandedItems,
@@ -114,12 +105,16 @@ export default function PartsResultsContainer({
     } = results;
 
     const {
+        activeEndoItemKey,
         getBranchOptions: getEndoBranchOptions,
-        endoBasketItems,
         getEndoRequestedQty,
         setEndoRequestedQty,
         onAddToEndoBasket,
         isAddingToEndoBasket,
+        endoBasketError,
+        endoBasketSuccess,
+        onOpenEndoForItem,
+        onCloseEndoForItem,
     } = endo;
 
     const {
@@ -153,7 +148,7 @@ export default function PartsResultsContainer({
                     <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
 
                         {items.length > 0 && (
-                            <div className="sticky top-0 z-10 mb-2 flex flex-col gap-2 border-b border-gray-100 bg-white py-2 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-[#0f172a]/95">
+                            <div className="sticky top-0 z-10 mb-2 flex items-center gap-2 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="button"
@@ -173,27 +168,6 @@ export default function PartsResultsContainer({
                                         Βρέθηκαν {items.length} αποτελέσματα
                                     </p>
                                 </div>
-
-                                <div className="flex items-center gap-2">
-                                    {hasCustomer && (
-                                        <button
-                                            type="button"
-                                            onClick={onToggleEndoMode}
-                                            aria-pressed={isEndoMode}
-                                            className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-semibold shadow-sm transition ${isEndoMode
-                                                    ? "border-brand-500 bg-brand-500 text-white hover:bg-brand-600"
-                                                    : "border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
-                                                }`}
-                                        >
-                                            {isEndoMode ? (
-                                                <ChevronLeft className="h-3.5 w-3.5" />
-                                            ) : (
-                                                <GitCompareArrows className="h-3.5 w-3.5" />
-                                            )}
-                                            <span>{isEndoMode ? "Καλάθι Πελάτη" : "Ενδοδιακίνηση"}</span>
-                                        </button>
-                                    )}
-                                </div>
                             </div>
                         )}
 
@@ -202,41 +176,7 @@ export default function PartsResultsContainer({
                                 const mtrlKey = String(item.MTRL);
                                 const expandedItemKey = getExpandedItemKey(item);
                                 const isExpanded = expandedItems.has(expandedItemKey);
-
-                                if (isEndoMode) {
-                                    const endoBranches = getEndoBranchOptions(item);
-                                    const inEndoBasketQtyByBranch = endoBasketItems
-                                        .filter((basketItem) => basketItem.mtrl === Number(item.MTRL))
-                                        .reduce<Record<string, number>>((acc, basketItem) => {
-                                            acc[basketItem.fromBranch] =
-                                                (acc[basketItem.fromBranch] ?? 0) + basketItem.qty;
-                                            return acc;
-                                        }, {});
-
-                                    return (
-                                        <EndoPartResults
-                                            key={`${item.ITEM_CODE}-${mtrlKey}`}
-                                            item={item}
-                                            isExpanded={isExpanded}
-                                            branches={endoBranches}
-                                            getRequestedQty={(branchCode) =>
-                                                getEndoRequestedQty(item.MTRL, branchCode)
-                                            }
-                                            onRequestedQtyChange={(branchCode, nextQty) =>
-                                                setEndoRequestedQty(item.MTRL, branchCode, nextQty)
-                                            }
-                                            onAddToBasket={(branchCode) =>
-                                                onAddToEndoBasket(item, branchCode)
-                                            }
-                                            isAdding={(branchCode) =>
-                                                isAddingToEndoBasket(item.MTRL, branchCode)
-                                            }
-                                            inBasketQtyByBranch={inEndoBasketQtyByBranch}
-                                            onToggleExpanded={() => toggleExpanded(expandedItemKey)}
-                                        />
-                                    );
-                                }
-
+                                const isEndoActive = activeEndoItemKey === expandedItemKey;
                                 const basketItem = findBasketItem(item);
                                 const qty = getQuantity(
                                     item.ITEM_CODE,
@@ -284,6 +224,23 @@ export default function PartsResultsContainer({
                                         }
                                         onSubmitStockRequest={() => onSubmitStockRequest(item)}
                                         formatPrice={formatPrice}
+                                        endoRequest={{
+                                            isActive: isEndoActive,
+                                            canStart: hasCustomer,
+                                            branches: getEndoBranchOptions(item),
+                                            error: isEndoActive ? endoBasketError : "",
+                                            successMessage: isEndoActive ? endoBasketSuccess : "",
+                                            getRequestedQty: (branchCode) =>
+                                                getEndoRequestedQty(item.MTRL, branchCode),
+                                            onRequestedQtyChange: (branchCode, nextQty) =>
+                                                setEndoRequestedQty(item.MTRL, branchCode, nextQty),
+                                            onStart: () => onOpenEndoForItem(item),
+                                            onCancel: onCloseEndoForItem,
+                                            onAddToBasket: (branchCode) =>
+                                                onAddToEndoBasket(item, branchCode),
+                                            isAdding: (branchCode) =>
+                                                isAddingToEndoBasket(item.MTRL, branchCode),
+                                        }}
                                     />
                                 );
                             })}

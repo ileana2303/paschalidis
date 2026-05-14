@@ -17,7 +17,8 @@ import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
 import { isAxiosError } from "axios";
 import EndoOrderSummary, { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
-import EndoPartResults, { EndoBranchOption } from "@/components/endo/endo-part-results";
+import EndoPartResults from "@/components/endo/endo-part-results";
+import type { EndoBranchOption } from "@/components/parts/request-endo-card";
 
 function parseStockValue(value: unknown) {
     const parsed = Number(String(value ?? "").trim().replace(",", "."));
@@ -458,20 +459,12 @@ export default function EndoPartsClient() {
 
     return (
         <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
-            {!hasScrolledResults && (
+            
                 <div className="shrink-0">
                     <PageBreadcrumb pageTitle="Ενδοδιακίνηση Ανταλλακτικών" />
                 </div>
-            )}
+          
 
-            <div className="mb-4 shrink-0 flex items-center gap-3 rounded-full border-2 border-brand-500 bg-brand-50 p-4 text-sm text-gray-700">
-                <span className="flex-1">
-                    Κατάστημα παραλαβής:{" "}
-                    <span className="font-semibold text-gray-800">
-                        {currentBranchName} ({currentBranchCode})
-                    </span>
-                </span>
-            </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
                 <div

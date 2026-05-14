@@ -6,6 +6,7 @@ import {
     hasBasketItemPriceRequest,
 } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
+import type { EndoBranchOption } from "@/components/parts/request-endo-card";
 import QuantityControl from "@/components/ui/quantity-control";
 import PartCardDetails from "./part-card-details";
 import PartStockQuantityContainer from "./request-stock-card";
@@ -64,6 +65,20 @@ function getStockBranchOrder(currentBranchCode: string) {
     return [currentBranch, ...remainingBranches];
 }
 
+interface PartEndoRequestProps {
+    isActive: boolean;
+    canStart: boolean;
+    branches: EndoBranchOption[];
+    error: string;
+    successMessage: string;
+    getRequestedQty: (branchCode: string) => number;
+    onRequestedQtyChange: (branchCode: string, nextQuantity: number) => void;
+    onStart: () => void;
+    onCancel: () => void;
+    onAddToBasket: (branchCode: string) => void;
+    isAdding: (branchCode: string) => boolean;
+}
+
 interface PartResultsProps {
     item: IItem;
     isExpanded: boolean;
@@ -88,6 +103,7 @@ interface PartResultsProps {
     onStoreOrderQuantityChange: (nextQuantity: number) => void;
     onSubmitStockRequest: () => void;
     formatPrice: (price: number | string | null | undefined) => string;
+    endoRequest: PartEndoRequestProps;
 }
 
 export default function PartResults({
@@ -114,6 +130,7 @@ export default function PartResults({
     onStoreOrderQuantityChange,
     onSubmitStockRequest,
     formatPrice,
+    endoRequest,
 }: PartResultsProps) {
     const requestedPrice =
         basketItem != null
@@ -416,6 +433,7 @@ export default function PartResults({
                 requestStatus={stockRequestStatus}
                 isSubmittingRequest={isSubmittingStockRequest}
                 requestError={stockRequestError}
+                endoRequest={endoRequest}
             />
         </div>
     );

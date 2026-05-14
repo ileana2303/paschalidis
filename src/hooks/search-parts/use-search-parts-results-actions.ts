@@ -1,18 +1,17 @@
 "use client";
 
 import { isAxiosError } from "axios";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import type { ExternalLoginUserAccount } from "@/lib/auth/types";
 import type { ICustomerInfo, IItem } from "@/lib/interface";
 import {
     useAddItemToEndoBasketMutation,
-    useFetchEndoListsMutation,
     useRequestStockQuantityMutation,
 } from "@/hooks/queries/useApiMutations";
 import type { SearchPartsResultsState } from "@/hooks/search-parts/use-search-parts-results-state";
 import {
     getEndoQtyKey,
-    mapEndoRequestedRows,
+    getEndoItemKey,
 } from "@/hooks/search-parts/search-parts-endo-utils";
 
 interface UseSearchPartsResultsActionsParams {
@@ -30,7 +29,6 @@ export function useSearchPartsResultsActions({
 }: UseSearchPartsResultsActionsParams) {
     const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
     const { mutateAsync: addItemToEndoBasket } = useAddItemToEndoBasketMutation();
-    const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
     const {
         addingToEndoBasket,
         currentBranchCode,
@@ -38,72 +36,18 @@ export function useSearchPartsResultsActions({
         getEndoRequestedQty,
         getStoreOrderQuantity,
         hasValidBranch,
-        isEndoMode,
         setAddingToEndoBasket,
         setEndoBasketError,
-        setEndoBasketItems,
         setEndoBasketSuccess,
         setEndoRequestedQty,
-        setEndoSummaryLoading,
+        setActiveEndoItemKey,
         setExpandedItems,
-        setIsEndoMode,
         setStockRequestErrors,
         setStockRequestStatuses,
         setSubmittingStockRequests,
     } = state;
 
-    const loadRequestedEndoLines = useCallback(async () => {
-        if (!hasValidBranch) {
-            setEndoBasketItems([]);
-            setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
-            setEndoSummaryLoading(false);
-            return;
-        }
-
-        setEndoSummaryLoading(true);
-
-        try {
-            const data = await fetchEndoLists({
-                branch: currentBranchCode,
-                scope: "requested",
-            });
-            setEndoBasketItems(
-                mapEndoRequestedRows(data.requested.rows ?? [], currentBranchCode)
-            );
-
-            if (String(data.message ?? "").trim()) {
-                setEndoBasketError(String(data.message).trim());
-            } else {
-                setEndoBasketError("");
-            }
-        } catch (error) {
-            setEndoBasketItems([]);
-            setEndoBasketError(
-                error instanceof Error
-                    ? error.message
-                    : "Αποτυχία φόρτωσης ENDO_LIST_ESO"
-            );
-        } finally {
-            setEndoSummaryLoading(false);
-        }
-    }, [
-        currentBranchCode,
-        fetchEndoLists,
-        hasValidBranch,
-        setEndoBasketError,
-        setEndoBasketItems,
-        setEndoSummaryLoading,
-    ]);
-
-    useEffect(() => {
-        if (!isEndoMode || !customer?.TRDR) {
-            return;
-        }
-
-        void loadRequestedEndoLines();
-    }, [customer?.TRDR, isEndoMode, loadRequestedEndoLines]);
-
-    const handleToggleEndoMode = useCallback(() => {
+    const handleOpenEndoForItem = useCallback((item: IItem) => {
         if (!customer) {
             onRequireCustomerSelection();
             return;
@@ -117,15 +61,25 @@ export function useSearchPartsResultsActions({
         setExpandedItems(new Set());
         setEndoBasketSuccess("");
         setEndoBasketError("");
-        setIsEndoMode((prev) => !prev);
+        setActiveEndoItemKey(getEndoItemKey(item));
     }, [
         customer,
         hasValidBranch,
         onRequireCustomerSelection,
+        setActiveEndoItemKey,
         setEndoBasketError,
         setEndoBasketSuccess,
         setExpandedItems,
-        setIsEndoMode,
+    ]);
+
+    const handleCloseEndoForItem = useCallback(() => {
+        setActiveEndoItemKey(null);
+        setEndoBasketSuccess("");
+        setEndoBasketError("");
+    }, [
+        setActiveEndoItemKey,
+        setEndoBasketError,
+        setEndoBasketSuccess,
     ]);
 
     const handleAddToEndoBasket = useCallback(async (item: IItem, sourceBranchCode: string) => {
@@ -179,7 +133,6 @@ export function useSearchPartsResultsActions({
             });
 
             setEndoRequestedQty(item.MTRL, sourceBranchCode, 0);
-            await loadRequestedEndoLines();
             setEndoBasketSuccess(response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης");
         } catch (error) {
             if (isAxiosError(error)) {
@@ -207,7 +160,6 @@ export function useSearchPartsResultsActions({
         currentBranchCode,
         getEndoBranchOptions,
         getEndoRequestedQty,
-        loadRequestedEndoLines,
         setAddingToEndoBasket,
         setEndoBasketError,
         setEndoBasketSuccess,
@@ -282,7 +234,8 @@ export function useSearchPartsResultsActions({
     ]);
 
     return {
-        handleToggleEndoMode,
+        handleOpenEndoForItem,
+        handleCloseEndoForItem,
         handleAddToEndoBasket,
         isAddingToEndoBasket,
         handleSubmitStockRequest,

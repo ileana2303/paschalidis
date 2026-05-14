@@ -122,7 +122,7 @@ function SegmentedControl<T extends string>({
                         className={[
                             "flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition",
                             selected
-                                ? "border-brand-500 bg-brand-50 text-brand-600 dark:border-brand-500 dark:bg-brand-500/10 dark:text-brand-400"
+                                ? "border-brand-200 bg-brand-50 text-brand-600 dark:border-brand-500 dark:bg-brand-500/10 dark:text-brand-400"
                                 : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700",
                         ].join(" ")}
                     >

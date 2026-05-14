@@ -1,19 +1,11 @@
 import type { ReactNode } from "react";
 import type { IBasket, ICustomerInfo } from "@/lib/interface";
 import OrderSummary from "@/components/order-summary/customer-order-summary";
-import EndoOrderSummary, { type EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 
 type ReceiptType = "receipt" | "invoice";
 
 interface PartsSummarySidebarProps {
     customer: ICustomerInfo | null;
-    isEndoMode: boolean;
-    currentBranchCode: string;
-    currentBranchName: string;
-    endoBasketItems: EndoBasketUiItem[];
-    endoSummaryLoading: boolean;
-    endoBasketError: string;
-    endoBasketSuccess: string;
     sidebarVisible: boolean;
     onToggleSidebar: () => void;
     basket: IBasket | null;
@@ -41,13 +33,6 @@ interface PartsSummarySidebarProps {
 
 export default function PartsSummarySidebar({
     customer,
-    isEndoMode,
-    currentBranchCode,
-    currentBranchName,
-    endoBasketItems,
-    endoSummaryLoading,
-    endoBasketError,
-    endoBasketSuccess,
     sidebarVisible,
     onToggleSidebar,
     basket,
@@ -74,22 +59,6 @@ export default function PartsSummarySidebar({
 }: PartsSummarySidebarProps) {
     if (!customer) {
         return null;
-    }
-
-    if (isEndoMode) {
-        return (
-            <EndoOrderSummary
-                currentBranchCode={currentBranchCode}
-                currentBranchName={currentBranchName}
-                basketItems={endoBasketItems}
-                loading={endoSummaryLoading}
-                error={endoBasketError}
-                successMessage={endoBasketSuccess}
-                collapsible
-                collapsed={!sidebarVisible}
-                onToggleCollapse={onToggleSidebar}
-            />
-        );
     }
 
     return (

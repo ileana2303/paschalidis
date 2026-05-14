@@ -1,6 +1,27 @@
 import QuantityControl from "@/components/ui/quantity-control";
-import { Loader2, Send } from "@/lib/icons/lucide";
-import type { StockRequestProps } from "@/lib/interface";
+import RequestEndoCard from "@/components/parts/request-endo-card";
+import type { RequestEndoCardProps } from "@/components/parts/request-endo-card";
+import { GitCompareArrows, Loader2, Send } from "@/lib/icons/lucide";
+import type { StockRequestStatus } from "@/lib/interface";
+
+interface EndoRequestCardProps extends RequestEndoCardProps {
+    isActive: boolean;
+    canStart: boolean;
+    onStart: () => void;
+    onCancel: () => void;
+}
+
+interface StockRequestProps {
+    mtrl: string;
+    stock: number;
+    quantity: number;
+    onQuantityChange: (nextQuantity: number) => void;
+    onSubmitRequest: () => void;
+    requestStatus: StockRequestStatus | null;
+    isSubmittingRequest: boolean;
+    requestError: string;
+    endoRequest: EndoRequestCardProps;
+}
 
 export default function StockRequest({
     stock,
@@ -10,6 +31,7 @@ export default function StockRequest({
     requestStatus,
     isSubmittingRequest,
     requestError,
+    endoRequest,
 }: StockRequestProps) {
     const statusClassName =
         requestStatus === "approved"
@@ -24,6 +46,21 @@ export default function StockRequest({
             : requestStatus === "deleted"
                 ? "Deleted"
                 : "Pending";
+
+    if (endoRequest.isActive) {
+        return (
+            <RequestEndoCard
+                branches={endoRequest.branches}
+                getRequestedQty={endoRequest.getRequestedQty}
+                onRequestedQtyChange={endoRequest.onRequestedQtyChange}
+                onAddToBasket={endoRequest.onAddToBasket}
+                isAdding={endoRequest.isAdding}
+                error={endoRequest.error}
+                successMessage={endoRequest.successMessage}
+                onBack={endoRequest.onCancel}
+            />
+        );
+    }
 
     return (
         <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-white/[0.02]">
@@ -83,6 +120,19 @@ export default function StockRequest({
                 <p className="mt-2 text-[10px] font-medium text-red-500">
                     {requestError}
                 </p>
+            )}
+
+            {endoRequest.canStart && (
+                <div className="mt-3 border-t border-gray-200 pt-3 dark:border-gray-800">
+                    <button
+                        type="button"
+                        onClick={endoRequest.onStart}
+                        className="inline-flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 shadow-xs transition hover:border-sky-300 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/30 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:bg-sky-500/15"
+                    >
+                        <GitCompareArrows className="h-3.5 w-3.5" />
+                        <span>Ενδοδιακίνηση</span>
+                    </button>
+                </div>
             )}
         </div>
     );

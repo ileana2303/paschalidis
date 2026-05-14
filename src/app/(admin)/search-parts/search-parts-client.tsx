@@ -290,8 +290,6 @@ export default function SearchPartsClient() {
                                 loading,
                                 hasSearched,
                                 currentBranchCode: resultsController.currentBranchCode,
-                                isEndoMode: resultsController.isEndoMode,
-                                onToggleEndoMode: resultsController.handleToggleEndoMode,
                                 onToggleAllExpanded: resultsController.toggleAllExpanded,
                                 areAllResultsExpanded: resultsController.areAllResultsExpanded,
                                 expandedItems: resultsController.expandedItems,
@@ -299,12 +297,16 @@ export default function SearchPartsClient() {
                                 toggleExpanded: resultsController.toggleExpanded,
                             }}
                             endo={{
+                                activeEndoItemKey: resultsController.activeEndoItemKey,
                                 getBranchOptions: resultsController.getEndoBranchOptions,
-                                endoBasketItems: resultsController.endoBasketItems,
                                 getEndoRequestedQty: resultsController.getEndoRequestedQty,
                                 setEndoRequestedQty: resultsController.setEndoRequestedQty,
                                 onAddToEndoBasket: resultsController.handleAddToEndoBasket,
                                 isAddingToEndoBasket: resultsController.isAddingToEndoBasket,
+                                endoBasketError: resultsController.endoBasketError,
+                                endoBasketSuccess: resultsController.endoBasketSuccess,
+                                onOpenEndoForItem: resultsController.handleOpenEndoForItem,
+                                onCloseEndoForItem: resultsController.handleCloseEndoForItem,
                             }}
                             basket={{
                                 findBasketItem: basketController.findBasketItem,
@@ -331,13 +333,6 @@ export default function SearchPartsClient() {
 
                 <PartsSummarySidebar
                     customer={customer}
-                    isEndoMode={resultsController.isEndoMode}
-                    currentBranchCode={resultsController.currentBranchCode}
-                    currentBranchName={resultsController.currentBranchName}
-                    endoBasketItems={resultsController.endoBasketItems}
-                    endoSummaryLoading={resultsController.endoSummaryLoading}
-                    endoBasketError={resultsController.endoBasketError}
-                    endoBasketSuccess={resultsController.endoBasketSuccess}
                     sidebarVisible={resultsController.sidebarVisible}
                     onToggleSidebar={resultsController.handleToggleSidebarVisibility}
                     basket={basketController.basket}
