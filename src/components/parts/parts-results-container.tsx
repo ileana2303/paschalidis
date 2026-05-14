@@ -9,7 +9,7 @@ import { getBasketItemQty } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
 import EndoPartResults from "@/components/endo/endo-part-results";
 import type { EndoBranchOption } from "@/components/endo/endo-part-results";
-import PartResults from "@/components/parts/part-results";
+import PartResults from "@/components/parts/part-card";
 import type { RefObject, UIEvent } from "react";
 
 type EndoBasketPreviewItem = {
