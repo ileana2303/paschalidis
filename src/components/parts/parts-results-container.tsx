@@ -5,7 +5,7 @@ import {
 } from "@/lib/icons/lucide";
 import { getBasketItemQty } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
-import type { EndoBranchOption } from "@/components/parts/request-endo-card";
+import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import PartResults from "@/components/parts/part-card";
 import type { RefObject, UIEvent } from "react";
 
@@ -150,24 +150,25 @@ export default function PartsResultsContainer({
                         {items.length > 0 && (
                             <div className="sticky top-0 z-10 mb-2 flex items-center gap-2 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">
                                 <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={onToggleAllExpanded}
-                                        aria-label={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                        title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
-                                    >
-                                        {areAllResultsExpanded ? (
-                                            <ListChevronsDownUp className="h-4 w-4" />
-                                        ) : (
-                                            <ListChevronsUpDown className="h-4 w-4" />
-                                        )}
-                                    </button>
+
 
                                     <p className="text-sm text-gray-500">
                                         Βρέθηκαν {items.length} αποτελέσματα
                                     </p>
                                 </div>
+                                <button
+                                    type="button"
+                                    onClick={onToggleAllExpanded}
+                                    aria-label={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
+                                    title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
+                                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                                >
+                                    {areAllResultsExpanded ? (
+                                        <ListChevronsDownUp className="h-4 w-4" />
+                                    ) : (
+                                        <ListChevronsUpDown className="h-4 w-4" />
+                                    )}
+                                </button>
                             </div>
                         )}
 

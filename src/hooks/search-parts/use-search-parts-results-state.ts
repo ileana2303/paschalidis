@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Dispatch, RefObject, SetStateAction, UIEvent } from "react";
 import type { ExternalLoginUserAccount } from "@/lib/auth/types";
 import type { IItem, StockRequestStatus } from "@/lib/interface";
-import type { EndoBranchOption } from "@/components/parts/request-endo-card";
+import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import {
     getBranchCodesFromItem,
     getEndoItemKey,

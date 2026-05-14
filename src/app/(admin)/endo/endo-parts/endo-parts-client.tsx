@@ -18,7 +18,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { isAxiosError } from "axios";
 import EndoOrderSummary, { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 import EndoPartResults from "@/components/endo/endo-part-results";
-import type { EndoBranchOption } from "@/components/parts/request-endo-card";
+import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 
 function parseStockValue(value: unknown) {
     const parsed = Number(String(value ?? "").trim().replace(",", "."));
@@ -459,11 +459,11 @@ export default function EndoPartsClient() {
 
     return (
         <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
-            
-                <div className="shrink-0">
-                    <PageBreadcrumb pageTitle="Ενδοδιακίνηση Ανταλλακτικών" />
-                </div>
-          
+
+            <div className="shrink-0">
+                <PageBreadcrumb pageTitle="Ενδοδιακίνηση Ανταλλακτικών" />
+            </div>
+
 
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">

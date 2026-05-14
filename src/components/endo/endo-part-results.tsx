@@ -1,5 +1,5 @@
-import RequestEndoCard from "@/components/parts/request-endo-card";
-import type { EndoBranchOption } from "@/components/parts/request-endo-card";
+import RequestEndoCard from "@/components/endo/request-endo-card";
+import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import { ChevronDown } from "@/lib/icons/lucide";
 import type { IItem } from "@/lib/interface";
 

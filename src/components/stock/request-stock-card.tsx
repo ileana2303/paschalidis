@@ -1,6 +1,6 @@
 import QuantityControl from "@/components/ui/quantity-control";
-import RequestEndoCard from "@/components/parts/request-endo-card";
-import type { RequestEndoCardProps } from "@/components/parts/request-endo-card";
+import RequestEndoCard from "@/components/endo/request-endo-card";
+import type { RequestEndoCardProps } from "@/components/endo/request-endo-card";
 import { GitCompareArrows, Loader2, Send } from "@/lib/icons/lucide";
 import type { StockRequestStatus } from "@/lib/interface";
 

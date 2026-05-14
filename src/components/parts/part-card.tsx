@@ -6,10 +6,10 @@ import {
     hasBasketItemPriceRequest,
 } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
-import type { EndoBranchOption } from "@/components/parts/request-endo-card";
+import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import QuantityControl from "@/components/ui/quantity-control";
 import PartCardDetails from "./part-card-details";
-import PartStockQuantityContainer from "./request-stock-card";
+import PartStockQuantityContainer from "../stock/request-stock-card";
 
 type StockBranchCode = "1001" | "1006" | "1007";
 type StockKey = "YP1001" | "YP1006" | "YP1007";
