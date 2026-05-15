@@ -12,7 +12,7 @@ import PartsSearchModal from "@/components/search/parts-search-modal";
 import CustomerSearchModal from "@/components/search/customer-search-modal";
 import SearchBar from "@/components/search/search-bar";
 import PartsResultsContainer from "@/components/parts/parts-results-container";
-import PartsSummarySidebar from "@/components/parts/parts-summary-sidebar";
+import CustomerOrderSummary from "@/components/order-summary/customer-order-summary";
 import { useSearchPartsBasketController } from "@/hooks/search-parts/use-search-parts-basket-controller";
 import { useSearchPartsResultsController } from "@/hooks/search-parts/use-search-parts-results-controller";
 import { useSearchPartsPageController } from "@/hooks/search-parts/use-search-parts-page-controller";
@@ -87,6 +87,7 @@ export default function SearchPartsClient() {
         currentBranchCode: resultsController.currentBranchCode,
         userId: user?.uid,
     });
+    const handleUpdateQty = basketController.handleUpdateQty;
 
     const resetScopedSearchState = resultsController.resetScopedResultsState;
 
@@ -334,50 +335,58 @@ export default function SearchPartsClient() {
                     </div>
                 </div>
 
-                <PartsSummarySidebar
-                    customer={customer}
-                    sidebarVisible={resultsController.sidebarVisible}
-                    onToggleSidebar={resultsController.handleToggleSidebarVisibility}
-                    basket={basketController.basket}
-                    basketLoading={basketController.basketLoading}
-                    basketError={basketController.basketError}
-                    basketSuccessMessage={
-                        basketController.orderSubmittedSuccess ? (
-                            <div className="space-y-3">
-                                <p className="font-semibold">
-                                    Η παραγγελία καταχωρήθηκε επιτυχώς.
-                                </p>
-                                <p className="text-xs opacity-90">
-                                    Μπορείτε να επιστρέψετε στην αρχική σελίδα ή να συνεχίσετε με νέα παραγγελία.
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={() => router.push("/")}
-                                    className="inline-flex items-center rounded-lg bg-green-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-green-700"
-                                >
-                                    Επιστροφή στην αρχική
-                                </button>
-                            </div>
-                        ) : undefined
-                    }
-                    onRefreshBasket={basketController.handleRefreshBasket}
-                    selectedItems={basketController.selectedItems}
-                    selectedCount={basketController.selectedItemsList.length}
-                    selectedTotal={basketController.selectedTotal}
-                    receiptType={basketController.receiptType}
-                    onReceiptTypeChange={basketController.setReceiptType}
-                    pickupPoint={basketController.pickupPoint}
-                    onPickupPointChange={basketController.setPickupPoint}
-                    notes={basketController.notes}
-                    onNotesChange={basketController.setNotes}
-                    onSendOrder={basketController.handleSendOrder}
-                    sendingOrder={basketController.sendingOrder}
-                    onToggleSelectedItem={basketController.handleToggleSelectedItem}
-                    onRemoveItem={basketController.handleRemoveItem}
-                    removingBasketItems={basketController.removingBasketItems}
-                    onRemoveSelectedItems={basketController.handleRemoveSelectedItems}
-                    removingSelectedBasketItems={basketController.removingSelectedBasketItems}
-                />
+                {customer && (
+                    <CustomerOrderSummary
+                        customer={customer}
+                        basket={basketController.basket}
+                        loading={basketController.basketLoading}
+                        error={basketController.basketError}
+                        successMessage={
+                            basketController.orderSubmittedSuccess ? (
+                                <div className="space-y-3">
+                                    <p className="font-semibold">
+                                        Η παραγγελία καταχωρήθηκε επιτυχώς.
+                                    </p>
+                                    <p className="text-xs opacity-90">
+                                        Μπορείτε να επιστρέψετε στην αρχική σελίδα ή να συνεχίσετε με νέα παραγγελία.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => router.push("/")}
+                                        className="inline-flex items-center rounded-lg bg-green-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-green-700"
+                                    >
+                                        Επιστροφή στην αρχική
+                                    </button>
+                                </div>
+                            ) : undefined
+                        }
+                        onRefresh={basketController.handleRefreshBasket}
+                        selectedItems={basketController.selectedItems}
+                        selectedCount={basketController.selectedItemsList.length}
+                        selectedTotal={basketController.selectedTotal}
+                        receiptType={basketController.receiptType}
+                        onReceiptTypeChange={basketController.setReceiptType}
+                        pickupPoint={basketController.pickupPoint}
+                        onPickupPointChange={basketController.setPickupPoint}
+                        notes={basketController.notes}
+                        onNotesChange={basketController.setNotes}
+                        onSendOrder={basketController.handleSendOrder}
+                        sendingOrder={basketController.sendingOrder}
+                        onToggleItem={basketController.handleToggleSelectedItem}
+                        onRemoveItem={basketController.handleRemoveItem}
+                        removingItems={basketController.removingBasketItems}
+                        onRemoveSelectedItems={basketController.handleRemoveSelectedItems}
+                        removingSelectedItems={basketController.removingSelectedBasketItems}
+                        onChangeQuantity={handleUpdateQty}
+                        requestedPriceValues={basketController.basketLineRequestedPrices}
+                        onRequestedPriceValueChange={basketController.setBasketLineRequestedPriceValue}
+                        onRequestPrice={basketController.handleRequestBasketLinePrice}
+                        submittingRequestedPrices={basketController.submittingBasketLineRequestedPrices}
+                        collapsible
+                        collapsed={!resultsController.sidebarVisible}
+                        onToggleCollapse={resultsController.handleToggleSidebarVisibility}
+                    />
+                )}
             </div>
 
             <PartsSearchModal

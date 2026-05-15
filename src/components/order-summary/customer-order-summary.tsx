@@ -48,6 +48,10 @@ export interface CustomerOrderSummaryProps {
     onRemoveSelectedItems?: () => void;
     removingItems?: Set<string>;
     removingSelectedItems?: boolean;
+    requestedPriceValues?: Record<string, string>;
+    onRequestedPriceValueChange?: (uid: string, value: string) => void;
+    onRequestPrice?: (uid: string) => void | Promise<void>;
+    submittingRequestedPrices?: Set<string>;
     collapsible?: boolean;
     collapsed?: boolean;
     onToggleCollapse?: () => void;
@@ -229,6 +233,10 @@ export default function CustomerOrderSummary({
     onRemoveSelectedItems,
     removingItems,
     removingSelectedItems = false,
+    requestedPriceValues,
+    onRequestedPriceValueChange,
+    onRequestPrice,
+    submittingRequestedPrices,
     collapsible = false,
     collapsed = false,
     onToggleCollapse,
@@ -332,12 +340,16 @@ export default function CustomerOrderSummary({
                 <BasketLines
                     items={basketItems}
                     selectedItems={selectedItems}
-                    onToggleItem={onToggleItem}
-                    onRemoveItem={onRemoveItem}
-                    onRemoveSelectedItems={onRemoveSelectedItems}
+                    onToggleItem={isOnBasketPage ? undefined : onToggleItem}
+                    onRemoveItem={isOnBasketPage ? undefined : onRemoveItem}
+                    onRemoveSelectedItems={isOnBasketPage ? undefined : onRemoveSelectedItems}
                     removingItems={removingItems}
                     removingSelectedItems={removingSelectedItems}
                     onChangeQuantity={onChangeQuantity}
+                    requestedPriceValues={isOnBasketPage ? undefined : requestedPriceValues}
+                    onRequestedPriceValueChange={isOnBasketPage ? undefined : onRequestedPriceValueChange}
+                    onRequestPrice={isOnBasketPage ? undefined : onRequestPrice}
+                    submittingRequestedPrices={isOnBasketPage ? undefined : submittingRequestedPrices}
                 />
             )}
 

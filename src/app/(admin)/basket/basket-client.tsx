@@ -15,6 +15,7 @@ import {
 import {
     useDeleteBasketItemsMutation,
     useFetchBasketItemsMutation,
+    useRequestPriceMutation,
     useSubmitBasketOrderMutation,
     useUpdateBasketItemQtyMutation,
 } from "@/hooks/queries/useApiMutations";
@@ -22,6 +23,16 @@ import BasketTable from "@/components/ui/basket-lines/basket-table";
 import CustomerOrderSummary from "@/components/order-summary/customer-order-summary";
 
 type ReceiptType = "receipt" | "invoice";
+
+function parseNumericValue(value: unknown): number | null {
+    const raw = String(value ?? "").trim();
+    if (!raw) {
+        return null;
+    }
+
+    const parsed = Number(raw.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+}
 
 export default function BasketClient() {
     const router = useRouter();
@@ -43,6 +54,8 @@ export default function BasketClient() {
     const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
     const [removingSelectedItems, setRemovingSelectedItems] = useState(false);
     const [updatingQtyItems, setUpdatingQtyItems] = useState<Set<string>>(new Set());
+    const [requestedPrices, setRequestedPrices] = useState<Record<string, string>>({});
+    const [submittingRequestedPrices, setSubmittingRequestedPrices] = useState<Set<string>>(new Set());
     const basketLoadInFlightRef = useRef<Promise<void> | null>(null);
     const basketLoadInFlightTrdrRef = useRef<string | null>(null);
     const basketLoadInFlightIdRef = useRef<number | null>(null);
@@ -51,6 +64,7 @@ export default function BasketClient() {
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
+    const { mutateAsync: requestPrice } = useRequestPriceMutation();
 
     const loadBasket = useCallback(async (trdr: string) => {
         const normalizedTrdr = String(trdr ?? "").trim();
@@ -129,6 +143,8 @@ export default function BasketClient() {
             setRemovingItems(new Set());
             setRemovingSelectedItems(false);
             setUpdatingQtyItems(new Set());
+            setRequestedPrices({});
+            setSubmittingRequestedPrices(new Set());
             setLoading(false);
             return;
         }
@@ -138,6 +154,8 @@ export default function BasketClient() {
             clearCustomer();
         }
 
+        setRequestedPrices({});
+        setSubmittingRequestedPrices(new Set());
         loadBasket(urlTrdr);
     }, [clearCustomer, customer, loadBasket, urlTrdr]);
 
@@ -219,11 +237,11 @@ export default function BasketClient() {
         setUpdatingQtyItems((prev) => new Set(prev).add(uid));
 
         try {
-            const result = await updateBasketItemQty({
+            await updateBasketItemQty({
                 BASKETID: item.BASKETID,
                 QTY: normalizedQty,
             });
-            setSuccessMessage(result.message ?? "Η ποσότητα ενημερώθηκε");
+            setSuccessMessage("Η ποσότητα ενημερώθηκε");
         } catch (err) {
             setBasketItemQty(uid, previousQty);
             setError(
@@ -233,6 +251,55 @@ export default function BasketClient() {
             );
         } finally {
             setUpdatingQtyItems((prev) => {
+                const next = new Set(prev);
+                next.delete(uid);
+                return next;
+            });
+        }
+    };
+
+    const setRequestedPriceValue = (uid: string, value: string) => {
+        setRequestedPrices((prev) => ({
+            ...prev,
+            [uid]: value,
+        }));
+    };
+
+    const handleRequestPrice = async (uid: string) => {
+        const item = basket?.items.find((basketItem) => getBasketItemId(basketItem) === uid);
+        const requestedPriceInput = requestedPrices[uid] ?? "";
+        const requestedPrice = parseNumericValue(requestedPriceInput);
+
+        if (!item) {
+            setError("Δεν βρέθηκε η γραμμή για αίτημα τιμής");
+            return;
+        }
+
+        if (!requestedPriceInput || requestedPrice == null || requestedPrice <= 0) {
+            return;
+        }
+
+        setError("");
+        setSuccessMessage("");
+        setOrderSubmittedSuccess(false);
+        setSubmittingRequestedPrices((prev) => new Set(prev).add(uid));
+
+        try {
+            await requestPrice({
+                BASKETID: item.BASKETID,
+                NEW_PRICE: requestedPrice,
+            });
+            setRequestedPrices((prev) => ({ ...prev, [uid]: "" }));
+            setSuccessMessage("Η αίτηση τιμής υποβλήθηκε");
+            await refreshBasket();
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Αποτυχία αιτήματος τιμής"
+            );
+        } finally {
+            setSubmittingRequestedPrices((prev) => {
                 const next = new Set(prev);
                 next.delete(uid);
                 return next;
@@ -297,13 +364,13 @@ export default function BasketClient() {
         setOrderSubmittedSuccess(false);
 
         try {
-            const result = await deleteBasketItems({
+            await deleteBasketItems({
                 basketIds,
                 tableAction: "USRCUST",
                 method: "DELETE",
                 s1Key: "1305",
             });
-            setSuccessMessage(result.message ?? "Οι επιλεγμένες γραμμές αφαιρέθηκαν");
+            setSuccessMessage("Αφαίρεση προϊόντος από το καλάθι");
             await loadBasket(urlTrdr);
         } catch (err) {
             setError(
@@ -397,6 +464,10 @@ export default function BasketClient() {
                     onRemove={handleRemoveItem}
                     onRemoveSelected={handleRemoveSelectedItems}
                     onAddMore={handleAddMoreProducts}
+                    requestedPriceValues={requestedPrices}
+                    onRequestedPriceValueChange={setRequestedPriceValue}
+                    onRequestPrice={handleRequestPrice}
+                    submittingRequestedPrices={submittingRequestedPrices}
                     loading={loading}
                     updatingQtyItems={updatingQtyItems}
                     removingItems={removingItems}

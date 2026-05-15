@@ -57,7 +57,9 @@ export function useSearchPartsBasketController({
     const [quantities, setQuantities] = useState<Record<string, number>>({});
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
     const [requestedPrices, setRequestedPrices] = useState<Record<string, string>>({});
+    const [basketLineRequestedPrices, setBasketLineRequestedPrices] = useState<Record<string, string>>({});
     const [submittingRequestedPrices, setSubmittingRequestedPrices] = useState<Set<string>>(new Set());
+    const [submittingBasketLineRequestedPrices, setSubmittingBasketLineRequestedPrices] = useState<Set<string>>(new Set());
     const [removingBasketItems, setRemovingBasketItems] = useState<Set<string>>(new Set());
     const [removingSelectedBasketItems, setRemovingSelectedBasketItems] = useState(false);
     const basketLoadInFlightRef = useRef<Promise<void> | null>(null);
@@ -161,6 +163,8 @@ export function useSearchPartsBasketController({
 
     useEffect(() => {
         if (customer?.TRDR) {
+            setBasketLineRequestedPrices({});
+            setSubmittingBasketLineRequestedPrices(new Set());
             void loadBasket(customer.TRDR);
             return;
         }
@@ -174,6 +178,8 @@ export function useSearchPartsBasketController({
         setOrderSubmittedSuccess(false);
         setNotes("");
         setSelectedItems(new Set());
+        setBasketLineRequestedPrices({});
+        setSubmittingBasketLineRequestedPrices(new Set());
         setBasketLoading(false);
     }, [customer?.TRDR, loadBasket]);
 
@@ -254,6 +260,74 @@ export function useSearchPartsBasketController({
             0
         );
     }, [selectedItemsList]);
+
+    const setBasketItemQty = useCallback((uid: string, qty: number) => {
+        const normalizedQty = Math.max(1, Math.floor(qty));
+        const qtyString = String(normalizedQty);
+
+        setBasket((prev) => {
+            if (!prev) {
+                return prev;
+            }
+
+            let changed = false;
+            const nextItems = prev.items.map((item) => {
+                if (getBasketItemId(item) !== uid) {
+                    return item;
+                }
+
+                changed = true;
+                return {
+                    ...item,
+                    QTY: qtyString,
+                    TOTAL_QTY: qtyString,
+                    BASKET_QTY: qtyString,
+                };
+            });
+
+            if (!changed) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                items: nextItems,
+            };
+        });
+    }, []);
+
+    const handleUpdateQty = useCallback(async (uid: string, qty: number) => {
+        const normalizedQty = Math.max(1, Math.floor(qty));
+        const item = basket?.items.find((basketItem) => getBasketItemId(basketItem) === uid);
+
+        if (!item) {
+            setBasketError("Δεν βρέθηκε η γραμμή για ενημέρωση ποσότητας");
+            return;
+        }
+
+        const previousQty = Math.max(1, getBasketItemQty(item));
+        if (previousQty === normalizedQty) {
+            return;
+        }
+
+        setBasketError("");
+        setOrderSubmittedSuccess(false);
+        setBasketItemQty(uid, normalizedQty);
+
+        try {
+            await updateBasketItemQty({
+                BASKETID: item.BASKETID,
+                QTY: normalizedQty,
+            });
+        } catch (error) {
+            setBasketItemQty(uid, previousQty);
+            setBasketError(
+                error instanceof Error
+                    ? error.message
+                    : "Αποτυχία ενημέρωσης ποσότητας"
+            );
+        }
+    }, [basket?.items, setBasketItemQty, updateBasketItemQty]);
 
     const handleSendOrder = useCallback(async () => {
         if (!customer || !basket || basket.items.length === 0 || selectedItems.size === 0) return;
@@ -378,6 +452,13 @@ export function useSearchPartsBasketController({
         }));
     }, []);
 
+    const setBasketLineRequestedPriceValue = useCallback((uid: string, value: string) => {
+        setBasketLineRequestedPrices((prev) => ({
+            ...prev,
+            [uid]: value,
+        }));
+    }, []);
+
     const handleRequestPrice = useCallback(async (item: IItem) => {
         if (!customer) return;
 
@@ -431,6 +512,63 @@ export function useSearchPartsBasketController({
         requestPrice,
     ]);
 
+    const handleRequestBasketLinePrice = useCallback(async (uid: string) => {
+        if (!customer) return;
+
+        const requestedPriceInput = basketLineRequestedPrices[uid] ?? "";
+        const requestedPrice = parseNumericValue(requestedPriceInput);
+        const basketItem = basket?.items.find((item) => getBasketItemId(item) === uid);
+
+        if (!basketItem) {
+            setBasketError("Δεν βρέθηκε η γραμμή για αίτημα τιμής");
+            return;
+        }
+
+        if (!requestedPriceInput || requestedPrice == null || requestedPrice <= 0) {
+            return;
+        }
+
+        setBasketError("");
+        setOrderSubmittedSuccess(false);
+        setSubmittingBasketLineRequestedPrices((prev) => new Set(prev).add(uid));
+
+        try {
+            await requestPrice({
+                BASKETID: basketItem.BASKETID,
+                NEW_PRICE: requestedPrice,
+            });
+
+            setBasketLineRequestedPrices((prev) => ({ ...prev, [uid]: "" }));
+            await loadBasket(customer.TRDR);
+        } catch (error) {
+            if (isAxiosError(error)) {
+                const responseMessage =
+                    typeof error.response?.data?.message === "string"
+                        ? error.response.data.message
+                        : undefined;
+                setBasketError(responseMessage ?? error.message);
+            } else {
+                setBasketError(
+                    error instanceof Error
+                        ? error.message
+                        : "Αποτυχία αιτήματος τιμής"
+                );
+            }
+        } finally {
+            setSubmittingBasketLineRequestedPrices((prev) => {
+                const next = new Set(prev);
+                next.delete(uid);
+                return next;
+            });
+        }
+    }, [
+        basket?.items,
+        basketLineRequestedPrices,
+        customer,
+        loadBasket,
+        requestPrice,
+    ]);
+
     const formatPrice = useCallback((price: number | string | null | undefined) => {
         if (price == null) return "—";
         const num = Number(price);
@@ -455,21 +593,26 @@ export function useSearchPartsBasketController({
         sendingOrder,
         addingToBasket,
         requestedPrices,
+        basketLineRequestedPrices,
         submittingRequestedPrices,
+        submittingBasketLineRequestedPrices,
         removingBasketItems,
         removingSelectedBasketItems,
         getQuantity,
         setQuantity,
         findBasketItem,
         setRequestedPriceValue,
+        setBasketLineRequestedPriceValue,
         formatPrice,
         handleAddToBasket,
         handleRequestPrice,
+        handleRequestBasketLinePrice,
         handleSendOrder,
         handleRefreshBasket,
         handleToggleSelectedItem,
         handleRemoveItem,
         handleRemoveSelectedItems,
+        handleUpdateQty,
         setSelectedItems,
     };
 }

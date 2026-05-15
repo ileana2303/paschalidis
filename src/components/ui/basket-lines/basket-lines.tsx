@@ -1,7 +1,9 @@
 "use client";
 
 import {
+    BadgePercent,
     Loader2,
+    Send,
     ShoppingCart,
     Trash2,
 } from "@/lib/icons/lucide";
@@ -23,6 +25,10 @@ interface BasketLinesProps {
     onRemoveItem?: (uid: string) => void;
     onRemoveSelectedItems?: () => void;
     onChangeQuantity?: (uid: string, quantity: number) => void;
+    requestedPriceValues?: Record<string, string>;
+    onRequestedPriceValueChange?: (uid: string, value: string) => void;
+    onRequestPrice?: (uid: string) => void | Promise<void>;
+    submittingRequestedPrices?: Set<string>;
     removingItems?: Set<string>;
     removingSelectedItems?: boolean;
     title?: string;
@@ -34,6 +40,11 @@ const formatPrice = (price: number | null) => {
     return `${price.toFixed(2)} €`;
 };
 
+const parsePriceInput = (value: string) => {
+    const parsed = Number(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
 const quantityOptions = Array.from({ length: 100 }, (_, index) => index + 1);
 
 export default function BasketLines({
@@ -43,6 +54,10 @@ export default function BasketLines({
     onRemoveItem,
     onRemoveSelectedItems,
     onChangeQuantity,
+    requestedPriceValues,
+    onRequestedPriceValueChange,
+    onRequestPrice,
+    submittingRequestedPrices,
     removingItems,
     removingSelectedItems = false,
     title = "Γραμμές Καλαθιού",
@@ -168,6 +183,12 @@ export default function BasketLines({
                                     : "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-500/20 dark:bg-yellow-500/10 dark:text-yellow-400";
 
                         const currentQuantity = Number(item.QTY ?? 1);
+                        const requestedPriceValue = requestedPriceValues?.[itemId] ?? "";
+                        const requestedPriceInput = parsePriceInput(requestedPriceValue);
+                        const isSubmittingRequestPrice =
+                            submittingRequestedPrices?.has(itemId) ?? false;
+                        const canRequestPrice =
+                            onRequestedPriceValueChange != null && onRequestPrice != null;
 
                         return (
                             <article
@@ -273,6 +294,50 @@ export default function BasketLines({
                                                 </div>
                                             )}
                                         </div>
+
+                                        {canRequestPrice && (
+                                            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-2 dark:border-gray-800">
+                                                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                                                    <BadgePercent className="h-3.5 w-3.5" />
+                                                    <span>Αίτημα</span>
+                                                </div>
+
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    step="0.01"
+                                                    value={requestedPriceValue}
+                                                    onChange={(event) =>
+                                                        onRequestedPriceValueChange?.(itemId, event.target.value)
+                                                    }
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === "Enter") {
+                                                            void onRequestPrice?.(itemId);
+                                                        }
+                                                    }}
+                                                    placeholder="Νέα τιμή..."
+                                                    className="h-8 min-w-0 flex-1 rounded-md border border-amber-200 bg-white px-2 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-amber-500/30 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                />
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void onRequestPrice?.(itemId)}
+                                                    disabled={
+                                                        isSubmittingRequestPrice ||
+                                                        requestedPriceInput == null ||
+                                                        requestedPriceInput <= 0
+                                                    }
+                                                    className="flex h-8 items-center gap-1.5 rounded-md bg-amber-500 px-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                                >
+                                                    {isSubmittingRequestPrice ? (
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    ) : (
+                                                        <Send className="h-3.5 w-3.5" />
+                                                    )}
+                                                    <span>Αίτημα</span>
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center justify-between gap-3 lg:justify-end">
