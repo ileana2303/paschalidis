@@ -10,7 +10,7 @@ import {
     Send,
     StickyNote,
 } from "@/lib/icons/lucide";
-import BasketLines from "@/components/ui/basket-list/basket-lines";
+import BasketLines from "@/components/ui/basket-lines/basket-lines";
 import SummaryPanel, {
     SummaryPanelMessage,
 } from "@/components/ui/summary-panel/summary-panel";
@@ -51,6 +51,7 @@ export interface CustomerOrderSummaryProps {
     collapsible?: boolean;
     collapsed?: boolean;
     onToggleCollapse?: () => void;
+    onChangeQuantity?: (uid: string, quantity: number) => void;
 }
 
 const receiptOptions = [
@@ -59,9 +60,9 @@ const receiptOptions = [
 ] satisfies Array<{ value: ReceiptType; label: string }>;
 
 const pickupPointOptions = [
-    { value: "warehouse", label: "Αποθήκη" },
-    { value: "store", label: "Κατάστημα" },
-    { value: "delivery", label: "Αποστολή" },
+    { value: "1006", label: "Λ.Αθηνών" },
+    { value: "1007", label: "Λ.Μεσογείων" },
+    { value: "1001", label: "Κασομούλη" },
 ];
 
 const formatPrice = (price: number | null) => {
@@ -231,6 +232,7 @@ export default function CustomerOrderSummary({
     collapsible = false,
     collapsed = false,
     onToggleCollapse,
+    onChangeQuantity
 }: CustomerOrderSummaryProps) {
     const pathname = usePathname();
     const isOnBasketPage = pathname === "/basket";
@@ -335,6 +337,7 @@ export default function CustomerOrderSummary({
                     onRemoveSelectedItems={onRemoveSelectedItems}
                     removingItems={removingItems}
                     removingSelectedItems={removingSelectedItems}
+                    onChangeQuantity={onChangeQuantity}
                 />
             )}
 

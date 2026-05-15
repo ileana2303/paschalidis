@@ -12,14 +12,14 @@ import {
     getBasketItemQty,
     normalizeBasket,
 } from "@/lib/utils/basket-helpers";
-import OrderSummary from "@/components/order-summary/customer-order-summary";
 import {
     useDeleteBasketItemsMutation,
     useFetchBasketItemsMutation,
     useSubmitBasketOrderMutation,
     useUpdateBasketItemQtyMutation,
 } from "@/hooks/queries/useApiMutations";
-import BasketTable from "@/components/ui/basket-list/basket-items-table";
+import BasketTable from "@/components/ui/basket-lines/basket-table";
+import CustomerOrderSummary from "@/components/order-summary/customer-order-summary";
 
 type ReceiptType = "receipt" | "invoice";
 
@@ -43,7 +43,6 @@ export default function BasketClient() {
     const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
     const [removingSelectedItems, setRemovingSelectedItems] = useState(false);
     const [updatingQtyItems, setUpdatingQtyItems] = useState<Set<string>>(new Set());
-    const [clearingBasket, setClearingBasket] = useState(false);
     const basketLoadInFlightRef = useRef<Promise<void> | null>(null);
     const basketLoadInFlightTrdrRef = useRef<string | null>(null);
     const basketLoadInFlightIdRef = useRef<number | null>(null);
@@ -130,7 +129,6 @@ export default function BasketClient() {
             setRemovingItems(new Set());
             setRemovingSelectedItems(false);
             setUpdatingQtyItems(new Set());
-            setClearingBasket(false);
             setLoading(false);
             return;
         }
@@ -357,22 +355,6 @@ export default function BasketClient() {
         }
     };
 
-    const handleClearBasket = async () => {
-        if (basketItems.length === 0) {
-            return;
-        }
-
-        setClearingBasket(true);
-        try {
-            await handleRemoveItems(
-                basketItems,
-                "Αποτυχία εκκαθάρισης καλαθιού"
-            );
-        } finally {
-            setClearingBasket(false);
-        }
-    };
-
     const handleToggleAllItems = () => {
         if (basketItems.length === 0) {
             return;
@@ -414,18 +396,16 @@ export default function BasketClient() {
                     onUpdateQty={handleUpdateQty}
                     onRemove={handleRemoveItem}
                     onRemoveSelected={handleRemoveSelectedItems}
-                    onClearAll={handleClearBasket}
                     onAddMore={handleAddMoreProducts}
                     loading={loading}
                     updatingQtyItems={updatingQtyItems}
                     removingItems={removingItems}
                     removingSelectedItems={removingSelectedItems}
-                    clearingAll={clearingBasket}
                     error={error}
                     successMessage={successMessage}
                 />
 
-                <OrderSummary
+                <CustomerOrderSummary
                     customer={selectedCustomer}
                     basket={basket}
                     loading={loading}
@@ -470,6 +450,7 @@ export default function BasketClient() {
                         )
                     }
                     removingSelectedItems={removingSelectedItems}
+                    onChangeQuantity={handleUpdateQty}
                 />
             </div>
         </div>

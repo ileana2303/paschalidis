@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import {
-    Check,
     ChevronDown,
-    Circle,
     Loader2,
     Send,
     ShoppingCart,
@@ -16,8 +14,7 @@ import SummaryPanel, {
 import SummaryInfoCard from "@/components/ui/summary-panel/summary-info-card";
 import SummaryMetricGrid from "@/components/ui/summary-panel/summary-metric-grid";
 import SummaryPrimaryAction from "@/components/ui/summary-panel/summary-primary-action";
-import BasketList from "@/components/ui/basket-list/basket-list";
-import BasketListItem from "@/components/ui/basket-list/basket-list-item";
+import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 
 export interface EndoBasketUiItem {
     uid: string;
@@ -88,6 +85,21 @@ export default function EndoOrderSummary({
         : basketItems;
     const selectedQty = selectedLines.reduce((sum, item) => sum + item.qty, 0);
     const sendDisabled = sendingOrder || selectedLines.length === 0;
+    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+    const toggleExpandedItem = (uid: string) => {
+        setExpandedItems((prev) => {
+            const next = new Set(prev);
+
+            if (next.has(uid)) {
+                next.delete(uid);
+            } else {
+                next.add(uid);
+            }
+
+            return next;
+        });
+    };
 
     return (
         <SummaryPanel
@@ -160,121 +172,143 @@ export default function EndoOrderSummary({
             )}
 
             {!loading && (
-                <BasketList
-                    title={linesLabel}
-                    count={basketItems.length}
-                    countLabel={`${basketItems.length} ${basketItems.length === 1 ? "γραμμή" : "γραμμές"}`}
-                    emptyTitle={emptyStateLabel}
-                    emptyIcon={<ShoppingCart className="h-8 w-8" />}
-                >
-                    {basketItems.map((item) => (
-                        <EndoBasketLineItem
-                            key={item.uid}
-                            item={item}
-                            isSelected={selectedSet.has(item.uid)}
-                            isSelectable={isSelectable}
-                            isRemovable={isRemovable}
-                            onToggle={onToggleItem}
-                            onRemove={onRemoveItem}
-                        />
-                    ))}
-                </BasketList>
+                <section className="mt-5">
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                            {linesLabel}
+                        </p>
+                        {basketItems.length > 0 && (
+                            <span className="text-xs text-gray-400">
+                                {basketItems.length} {basketItems.length === 1 ? "γραμμή" : "γραμμές"}
+                            </span>
+                        )}
+                    </div>
+
+                    {basketItems.length === 0 ? (
+                        <div className="mt-4 rounded-2xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
+                            <div className="mx-auto flex h-8 w-8 items-center justify-center text-gray-300 dark:text-gray-600">
+                                <ShoppingCart className="h-8 w-8" />
+                            </div>
+                            <p className="mt-3 text-sm text-gray-400">{emptyStateLabel}</p>
+                        </div>
+                    ) : (
+                        <div className="mt-4 space-y-3">
+                            {basketItems.map((item) => {
+                                const isSelected = selectedSet.has(item.uid);
+                                const isExpanded = expandedItems.has(item.uid);
+
+                                return (
+                                    <article
+                                        key={item.uid}
+                                        className={[
+                                            "group rounded-xl border p-3 transition-all",
+                                            isSelected
+                                                ? "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/40"
+                                                : "border-gray-200 bg-gray-50/50 opacity-60 dark:border-gray-800 dark:bg-gray-900/40",
+                                        ].join(" ")}
+                                    >
+                                        <div className="flex items-start gap-2">
+                                            {isSelectable && onToggleItem ? (
+                                                <DataTableSelectionCheckbox
+                                                    checked={isSelected}
+                                                    onCheckedChange={() => onToggleItem(item.uid)}
+                                                    ariaLabel={isSelected ? "Αποεπιλογή" : "Επιλογή"}
+                                                    className="mt-0.5"
+                                                />
+                                            ) : (
+                                                <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-brand-500/70" />
+                                            )}
+
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-sm font-medium text-gray-700 dark:text-white/90">
+                                                            {item.itemCode || String(item.mtrl)}
+                                                        </p>
+                                                        <p className="mt-1 line-clamp-2 text-xs text-gray-500">
+                                                            {item.itemDescr || "—"}
+                                                        </p>
+                                                    </div>
+
+                                                    {isRemovable && onRemoveItem && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onRemoveItem(item.uid)}
+                                                            aria-label="Αφαίρεση"
+                                                            className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-3">
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-xs font-semibold tabular-nums text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
+                                                        <span className="text-[10px] uppercase tracking-[0.14em] opacity-75">
+                                                            ΠΟΣΟΤΗΤΑ:
+                                                        </span>
+                                                        <span>{item.qty}</span>
+                                                    </span>
+                                                </div>
+
+                                                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-500">
+                                                    <span className="min-w-0">
+                                                        MTRL:{" "}
+                                                        <span className="font-medium text-gray-700 dark:text-white/90">
+                                                            {item.mtrl}
+                                                        </span>
+                                                    </span>
+                                                    <span className="min-w-0">
+                                                        ΑΠΟ:{" "}
+                                                        <span className="font-medium text-gray-700 dark:text-white/90">
+                                                            {item.fromBranch}
+                                                        </span>
+                                                    </span>
+                                                    <span className="min-w-0">
+                                                        ΠΡΟΣ:{" "}
+                                                        <span className="font-medium text-gray-700 dark:text-white/90">
+                                                            {item.toBranch}
+                                                        </span>
+                                                    </span>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleExpandedItem(item.uid)}
+                                                    aria-expanded={isExpanded}
+                                                    className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                                                >
+                                                    {isExpanded ? "Απόκρυψη στοιχείων" : "Περισσότερα στοιχεία"}
+                                                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                                                </button>
+
+                                                {isExpanded && (
+                                                    <div className="mt-2 grid grid-cols-1 gap-2 rounded-lg border border-gray-200 bg-white/70 p-3 dark:border-gray-800 dark:bg-gray-900/60">
+                                                        <p className="text-xs text-gray-700 dark:text-gray-200">
+                                                            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
+                                                                BASKET IDS:
+                                                            </span>{" "}
+                                                            {item.basketIds.join(", ") || "-"}
+                                                        </p>
+                                                        {item.manufacturer && (
+                                                            <p className="text-xs text-gray-700 dark:text-gray-200">
+                                                                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
+                                                                    Μάρκα:
+                                                                </span>{" "}
+                                                                {item.manufacturer}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </article>
+                                );
+                            })}
+                        </div>
+                    )}
+                </section>
             )}
         </SummaryPanel>
-    );
-}
-
-function EndoBasketLineItem({
-    item,
-    isSelected,
-    isSelectable,
-    isRemovable,
-    onToggle,
-    onRemove,
-}: {
-    item: EndoBasketUiItem;
-    isSelected: boolean;
-    isSelectable: boolean;
-    isRemovable: boolean;
-    onToggle?: (uid: string) => void;
-    onRemove?: (uid: string) => void;
-}) {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    return (
-        <BasketListItem
-            title={item.itemCode || String(item.mtrl)}
-            subtitle={item.itemDescr || "—"}
-            selected={isSelected}
-            quantity={item.qty}
-            leading={
-                isSelectable && onToggle ? (
-                    <button
-                        type="button"
-                        onClick={() => onToggle(item.uid)}
-                        aria-label={isSelected ? "Αποεπιλογή" : "Επιλογή"}
-                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition ${
-                            isSelected
-                                ? "border-brand-500 bg-brand-500 text-white"
-                                : "border-gray-300 text-transparent hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
-                        }`}
-                    >
-                        {isSelected ? (
-                            <Check className="h-3 w-3" />
-                        ) : (
-                            <Circle className="h-3 w-3" />
-                        )}
-                    </button>
-                ) : (
-                    <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-brand-500/70" />
-                )
-            }
-            actions={
-                isRemovable && onRemove ? (
-                    <button
-                        type="button"
-                        onClick={() => onRemove(item.uid)}
-                        aria-label="Αφαίρεση"
-                        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                    >
-                        <Trash2 className="h-3 w-3" />
-                    </button>
-                ) : undefined
-            }
-            meta={[
-                { label: "MTRL", value: item.mtrl },
-                { label: "ΑΠΟ", value: item.fromBranch },
-                { label: "ΠΡΟΣ", value: item.toBranch },
-            ]}
-        >
-            <button
-                type="button"
-                onClick={() => setIsExpanded((prev) => !prev)}
-                aria-expanded={isExpanded}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-            >
-                {isExpanded ? "Απόκρυψη στοιχείων" : "Περισσότερα στοιχεία"}
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-            </button>
-
-            {isExpanded && (
-                <div className="mt-2 grid grid-cols-1 gap-2 rounded-lg border border-gray-200 bg-white/70 p-3 dark:border-gray-800 dark:bg-gray-900/60">
-                    <p className="text-xs text-gray-700 dark:text-gray-200">
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
-                            BASKET IDS:
-                        </span>{" "}
-                        {item.basketIds.join(", ") || "-"}
-                    </p>
-                    {item.manufacturer && (
-                        <p className="text-xs text-gray-700 dark:text-gray-200">
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
-                                Μάρκα:
-                            </span>{" "}
-                            {item.manufacturer}
-                        </p>
-                    )}
-                </div>
-            )}
-        </BasketListItem>
     );
 }

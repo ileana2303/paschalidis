@@ -9,7 +9,7 @@ export default function DataTable({ children, className = "" }: DataTableProps) 
   return (
     <section
       className={[
-        "w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]",
+        "w-full overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]",
         className,
       ].join(" ")}
     >

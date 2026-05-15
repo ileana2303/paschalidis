@@ -4,6 +4,7 @@ interface DataTableEmptyStateProps {
   icon: ReactNode;
   title: string;
   description: string;
+  action?: ReactNode;
   className?: string;
 }
 
@@ -11,6 +12,7 @@ export default function DataTableEmptyState({
   icon,
   title,
   description,
+  action,
   className = "",
 }: DataTableEmptyStateProps) {
   return (
@@ -26,7 +28,8 @@ export default function DataTableEmptyState({
       <p className="mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">
         {description}
       </p>
+
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }
-
