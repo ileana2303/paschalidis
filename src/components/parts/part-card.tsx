@@ -382,7 +382,7 @@ export default function PartResults({
                         </div>
                     </div>
 
-                    <div className="mt-3 w-full rounded-xl border border-gray-200 bg-gray-50/70 p-3 text-left dark:border-gray-800 dark:bg-white/[0.02]">
+                    <div className="mt-3 w-full rounded-xl border border-gray-100 bg-gray-50/70 p-3 text-left dark:border-gray-800 dark:bg-white/[0.02]">
                         <div className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
                             Απόθεμα ανά κατάστημα
                         </div>
