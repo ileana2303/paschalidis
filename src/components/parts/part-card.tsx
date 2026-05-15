@@ -73,6 +73,7 @@ interface PartEndoRequestProps {
     successMessage: string;
     getRequestedQty: (branchCode: string) => number;
     onRequestedQtyChange: (branchCode: string, nextQuantity: number) => void;
+    pendingQtyByBranch?: Record<string, number>;
     onStart: () => void;
     onCancel: () => void;
     onAddToBasket: (branchCode: string) => void;
@@ -93,6 +94,7 @@ interface PartResultsProps {
     stockRequestStatus: StockRequestStatus | null;
     stockRequestError: string;
     isSubmittingStockRequest: boolean;
+    showStockRequestCard: boolean;
     requestedPriceValue: string;
     isSubmittingRequestPrice: boolean;
     onToggleExpanded: () => void;
@@ -120,6 +122,7 @@ export default function PartResults({
     stockRequestStatus,
     stockRequestError,
     isSubmittingStockRequest,
+    showStockRequestCard,
     requestedPriceValue,
     isSubmittingRequestPrice,
     onToggleExpanded,
@@ -208,7 +211,7 @@ export default function PartResults({
     );
 
     return (
-        <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_228px]">
+        <div className={`grid gap-2 ${showStockRequestCard ? "xl:grid-cols-[minmax(0,1fr)_228px]" : ""}`}>
 
             <div
                 className={`rounded-xl border transition hover:border-2 ${isInBasket
@@ -424,17 +427,19 @@ export default function PartResults({
 
             </div>
 
-            <PartStockQuantityContainer
-                mtrl={item.MTRL}
-                stock={storeStock}
-                quantity={storeOrderQty}
-                onQuantityChange={onStoreOrderQuantityChange}
-                onSubmitRequest={onSubmitStockRequest}
-                requestStatus={stockRequestStatus}
-                isSubmittingRequest={isSubmittingStockRequest}
-                requestError={stockRequestError}
-                endoRequest={endoRequest}
-            />
+            {showStockRequestCard && (
+                <PartStockQuantityContainer
+                    mtrl={item.MTRL}
+                    stock={storeStock}
+                    quantity={storeOrderQty}
+                    onQuantityChange={onStoreOrderQuantityChange}
+                    onSubmitRequest={onSubmitStockRequest}
+                    requestStatus={stockRequestStatus}
+                    isSubmittingRequest={isSubmittingStockRequest}
+                    requestError={stockRequestError}
+                    endoRequest={endoRequest}
+                />
+            )}
         </div>
     );
 }

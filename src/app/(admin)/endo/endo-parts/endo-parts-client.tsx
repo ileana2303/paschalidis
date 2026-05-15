@@ -98,6 +98,33 @@ function mapEndoRequestedRows(
         .filter((row) => row.mtrl > 0 && row.qty > 0);
 }
 
+function mergeEndoBasketItem(
+    items: EndoBasketUiItem[],
+    nextItem: EndoBasketUiItem
+) {
+    const existingIndex = items.findIndex((item) =>
+        item.mtrl === nextItem.mtrl &&
+        item.fromBranch === nextItem.fromBranch &&
+        item.toBranch === nextItem.toBranch
+    );
+
+    if (existingIndex === -1) {
+        return [...items, nextItem];
+    }
+
+    return items.map((item, index) => {
+        if (index !== existingIndex) {
+            return item;
+        }
+
+        return {
+            ...item,
+            qty: item.qty + nextItem.qty,
+            basketIds: Array.from(new Set([...item.basketIds, ...nextItem.basketIds])),
+        };
+    });
+}
+
 export default function EndoPartsClient() {
     const [modalSearch, setModalSearch] = useState("");
     const [loading, setLoading] = useState(false);
@@ -370,7 +397,6 @@ export default function EndoPartsClient() {
                     label,
                     stock: parseStockValue(getItemFieldValue(item, `YP${code}`)),
                     location,
-                    isCurrent: currentBranchCode === code,
                 };
             });
     };
@@ -425,8 +451,23 @@ export default function EndoPartsClient() {
                 MNF_DESCR: item.MNF_DESCR,
             });
 
+            const basketId = String(response.basketId ?? response.id ?? "").trim();
+            const nextBasketItem: EndoBasketUiItem = {
+                uid: basketId
+                    ? `endo-${basketId}`
+                    : `endo-pending-${item.MTRL}-${sourceBranchCode}-${Date.now()}`,
+                basketIds: basketId ? [basketId] : [],
+                mtrl: Number(item.MTRL),
+                qty: requestedQty,
+                fromBranch: sourceBranchCode,
+                toBranch: currentBranchCode,
+                itemCode: String(item.ITEM_CODE ?? item.MTRL),
+                itemDescr: String(item.ITEM_DESCR ?? "—"),
+                manufacturer: String(item.MNF_DESCR ?? "").trim(),
+            };
+
+            setBasketItems((prev) => mergeEndoBasketItem(prev, nextBasketItem));
             setRequestedQty(item.MTRL, sourceBranchCode, 0);
-            await loadRequestedEndoLines();
             setBasketSuccess(response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης");
         } catch (error) {
             if (isAxiosError(error)) {
@@ -529,8 +570,16 @@ export default function EndoPartsClient() {
                                         const inBasketQtyByBranch = basketItems
                                             .filter((basketItem) => basketItem.mtrl === Number(item.MTRL))
                                             .reduce<Record<string, number>>((acc, basketItem) => {
-                                                acc[basketItem.fromBranch] =
-                                                    (acc[basketItem.fromBranch] ?? 0) + basketItem.qty;
+                                                const sourceBranch =
+                                                    basketItem.fromBranch === currentBranchCode
+                                                        ? basketItem.toBranch
+                                                        : basketItem.fromBranch || basketItem.toBranch;
+
+                                                if (sourceBranch) {
+                                                    acc[sourceBranch] =
+                                                        (acc[sourceBranch] ?? 0) + basketItem.qty;
+                                                }
+
                                                 return acc;
                                             }, {});
 

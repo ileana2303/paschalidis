@@ -1,6 +1,8 @@
 import {
     ListChevronsDownUp,
     ListChevronsUpDown,
+    PanelRightClose,
+    PanelRightOpen,
     Plus,
 } from "@/lib/icons/lucide";
 import { getBasketItemQty } from "@/lib/utils/basket-helpers";
@@ -23,6 +25,8 @@ interface PartsResultsStateProps {
     loading: boolean;
     hasSearched: boolean;
     currentBranchCode: string;
+    stockRequestCardsVisible: boolean;
+    onToggleStockRequestCardsVisibility: () => void;
     onToggleAllExpanded: () => void;
     areAllResultsExpanded: boolean;
     expandedItems: Set<string>;
@@ -34,6 +38,7 @@ interface PartsResultsEndoProps {
     activeEndoItemKey: string | null;
     getBranchOptions: (item: IItem) => EndoBranchOption[];
     getEndoRequestedQty: (mtrl: string | number, sourceBranch: string) => number;
+    getEndoPendingQty: (mtrl: string | number, sourceBranch: string) => number;
     setEndoRequestedQty: (
         mtrl: string | number,
         sourceBranch: string,
@@ -97,6 +102,8 @@ export default function PartsResultsContainer({
         loading,
         hasSearched,
         currentBranchCode,
+        stockRequestCardsVisible,
+        onToggleStockRequestCardsVisibility,
         onToggleAllExpanded,
         areAllResultsExpanded,
         expandedItems,
@@ -108,6 +115,7 @@ export default function PartsResultsContainer({
         activeEndoItemKey,
         getBranchOptions: getEndoBranchOptions,
         getEndoRequestedQty,
+        getEndoPendingQty,
         setEndoRequestedQty,
         onAddToEndoBasket,
         isAddingToEndoBasket,
@@ -148,27 +156,55 @@ export default function PartsResultsContainer({
                     <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
 
                         {items.length > 0 && (
-                            <div className="sticky top-0 z-10 mb-2 flex items-center gap-2 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">
-                                <div className="flex items-center gap-2">
-
-
-                                    <p className="text-sm text-gray-500">
+                            <div className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-3 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">
+                                <div className="flex min-w-0 items-center gap-2">
+                                    <p className="truncate text-sm text-gray-500">
                                         Βρέθηκαν {items.length} αποτελέσματα
                                     </p>
+
+                                    <button
+                                        type="button"
+                                        onClick={onToggleAllExpanded}
+                                        aria-label={areAllResultsExpanded ? "Κλείσιμο λεπτομερειών" : "Άνοιγμα λεπτομερειών"}
+                                        title={areAllResultsExpanded ? "Κλείσιμο λεπτομερειών" : "Άνοιγμα λεπτομερειών"}
+                                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                                    >
+                                        {areAllResultsExpanded ? (
+                                            <ListChevronsDownUp className="h-4 w-4" />
+                                        ) : (
+                                            <ListChevronsUpDown className="h-4 w-4" />
+                                        )}
+                                    </button>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={onToggleAllExpanded}
-                                    aria-label={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                    title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
-                                >
-                                    {areAllResultsExpanded ? (
-                                        <ListChevronsDownUp className="h-4 w-4" />
-                                    ) : (
-                                        <ListChevronsUpDown className="h-4 w-4" />
-                                    )}
-                                </button>
+
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={onToggleStockRequestCardsVisibility}
+                                        aria-pressed={stockRequestCardsVisible}
+                                        aria-label={
+                                            stockRequestCardsVisible
+                                                ? "Απόκρυψη καρτών ανατροφοδοσίας"
+                                                : "Προβολή καρτών ανατροφοδοσίας"
+                                        }
+                                        title={
+                                            stockRequestCardsVisible
+                                                ? "Απόκρυψη καρτών ανατροφοδοσίας"
+                                                : "Προβολή καρτών ανατροφοδοσίας"
+                                        }
+                                        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${
+                                            stockRequestCardsVisible
+                                                ? "bg-brand-500 text-white hover:bg-brand-600"
+                                                : "border border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
+                                        }`}
+                                    >
+                                        {stockRequestCardsVisible ? (
+                                            <PanelRightClose className="h-3.5 w-3.5" />
+                                        ) : (
+                                            <PanelRightOpen className="h-3.5 w-3.5" />
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         )}
 
@@ -177,7 +213,8 @@ export default function PartsResultsContainer({
                                 const mtrlKey = String(item.MTRL);
                                 const expandedItemKey = getExpandedItemKey(item);
                                 const isExpanded = expandedItems.has(expandedItemKey);
-                                const isEndoActive = activeEndoItemKey === expandedItemKey;
+                                const isEndoActive =
+                                    stockRequestCardsVisible && activeEndoItemKey === expandedItemKey;
                                 const basketItem = findBasketItem(item);
                                 const qty = getQuantity(
                                     item.ITEM_CODE,
@@ -192,6 +229,17 @@ export default function PartsResultsContainer({
                                 const isSubmittingStockRequest = submittingStockRequests.has(mtrlKey);
                                 const requestedPriceValue = requestedPrices[item.ITEM_CODE] ?? "";
                                 const isSubmittingRequestPrice = submittingRequestedPrices.has(item.ITEM_CODE);
+                                const endoBranches = getEndoBranchOptions(item);
+                                const pendingEndoQtyByBranch =
+                                    endoBranches.reduce<Record<string, number>>((acc, branch) => {
+                                        const pendingQty = getEndoPendingQty(item.MTRL, branch.code);
+
+                                        if (pendingQty > 0) {
+                                            acc[branch.code] = pendingQty;
+                                        }
+
+                                        return acc;
+                                    }, {});
 
                                 return (
                                     <PartResults
@@ -209,6 +257,7 @@ export default function PartsResultsContainer({
                                         stockRequestStatus={stockRequestStatus}
                                         stockRequestError={stockRequestError}
                                         isSubmittingStockRequest={isSubmittingStockRequest}
+                                        showStockRequestCard={stockRequestCardsVisible}
                                         requestedPriceValue={requestedPriceValue}
                                         isSubmittingRequestPrice={isSubmittingRequestPrice}
                                         onToggleExpanded={() => toggleExpanded(expandedItemKey)}
@@ -228,9 +277,10 @@ export default function PartsResultsContainer({
                                         endoRequest={{
                                             isActive: isEndoActive,
                                             canStart: hasCustomer,
-                                            branches: getEndoBranchOptions(item),
+                                            branches: endoBranches,
                                             error: isEndoActive ? endoBasketError : "",
                                             successMessage: isEndoActive ? endoBasketSuccess : "",
+                                            pendingQtyByBranch: pendingEndoQtyByBranch,
                                             getRequestedQty: (branchCode) =>
                                                 getEndoRequestedQty(item.MTRL, branchCode),
                                             onRequestedQtyChange: (branchCode, nextQty) =>

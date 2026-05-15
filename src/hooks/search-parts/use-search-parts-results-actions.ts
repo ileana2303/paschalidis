@@ -1,24 +1,47 @@
 "use client";
 
 import { isAxiosError } from "axios";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import type { ExternalLoginUserAccount } from "@/lib/auth/types";
 import type { ICustomerInfo, IItem } from "@/lib/interface";
 import {
     useAddItemToEndoBasketMutation,
+    useFetchEndoListsMutation,
     useRequestStockQuantityMutation,
 } from "@/hooks/queries/useApiMutations";
 import type { SearchPartsResultsState } from "@/hooks/search-parts/use-search-parts-results-state";
 import {
     getEndoQtyKey,
     getEndoItemKey,
+    mapEndoRequestedRows,
 } from "@/hooks/search-parts/search-parts-endo-utils";
+import type { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 
 interface UseSearchPartsResultsActionsParams {
     customer: ICustomerInfo | null;
     user: ExternalLoginUserAccount | null;
     onRequireCustomerSelection: () => void;
     state: SearchPartsResultsState;
+}
+
+function buildEndoPendingQuantities(
+    items: EndoBasketUiItem[],
+    currentBranchCode: string
+) {
+    return items.reduce<Record<string, number>>((acc, item) => {
+        const fromBranch = String(item.fromBranch ?? "").trim();
+        const toBranch = String(item.toBranch ?? "").trim();
+        const sourceBranch =
+            fromBranch === currentBranchCode ? toBranch : fromBranch || toBranch;
+
+        if (!sourceBranch || item.mtrl <= 0 || item.qty <= 0) {
+            return acc;
+        }
+
+        const key = getEndoQtyKey(item.mtrl, sourceBranch);
+        acc[key] = (acc[key] ?? 0) + item.qty;
+        return acc;
+    }, {});
 }
 
 export function useSearchPartsResultsActions({
@@ -29,6 +52,7 @@ export function useSearchPartsResultsActions({
 }: UseSearchPartsResultsActionsParams) {
     const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
     const { mutateAsync: addItemToEndoBasket } = useAddItemToEndoBasketMutation();
+    const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
     const {
         addingToEndoBasket,
         currentBranchCode,
@@ -39,6 +63,7 @@ export function useSearchPartsResultsActions({
         setAddingToEndoBasket,
         setEndoBasketError,
         setEndoBasketSuccess,
+        setEndoPendingQuantities,
         setEndoRequestedQty,
         setActiveEndoItemKey,
         setExpandedItems,
@@ -46,6 +71,37 @@ export function useSearchPartsResultsActions({
         setStockRequestStatuses,
         setSubmittingStockRequests,
     } = state;
+
+    const refreshEndoPendingQuantities = useCallback(async () => {
+        if (!hasValidBranch) {
+            setEndoPendingQuantities({});
+            return;
+        }
+
+        const data = await fetchEndoLists({
+            branch: currentBranchCode,
+            scope: "requested",
+        });
+        const requestedItems = mapEndoRequestedRows(
+            data.requested.rows ?? [],
+            currentBranchCode
+        );
+
+        setEndoPendingQuantities(
+            buildEndoPendingQuantities(requestedItems, currentBranchCode)
+        );
+    }, [
+        currentBranchCode,
+        fetchEndoLists,
+        hasValidBranch,
+        setEndoPendingQuantities,
+    ]);
+
+    useEffect(() => {
+        void refreshEndoPendingQuantities().catch(() => {
+            setEndoPendingQuantities({});
+        });
+    }, [refreshEndoPendingQuantities, setEndoPendingQuantities]);
 
     const handleOpenEndoForItem = useCallback((item: IItem) => {
         if (!customer) {
@@ -132,6 +188,10 @@ export function useSearchPartsResultsActions({
                 MNF_DESCR: item.MNF_DESCR,
             });
 
+            setEndoPendingQuantities((prev) => ({
+                ...prev,
+                [requestKey]: (prev[requestKey] ?? 0) + requestedQty,
+            }));
             setEndoRequestedQty(item.MTRL, sourceBranchCode, 0);
             setEndoBasketSuccess(response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης");
         } catch (error) {
@@ -163,6 +223,7 @@ export function useSearchPartsResultsActions({
         setAddingToEndoBasket,
         setEndoBasketError,
         setEndoBasketSuccess,
+        setEndoPendingQuantities,
         setEndoRequestedQty,
         user?.uid,
     ]);

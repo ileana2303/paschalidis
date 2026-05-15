@@ -6,8 +6,17 @@ export type EndoBranchOption = {
     label: string;
     stock: number;
     location: string;
-    isCurrent: boolean;
 };
+
+const BRANCH_RENDER_PRIORITY: Record<string, number> = {
+    "1006": 0,
+    "1001": 1,
+    "1007": 2,
+};
+
+function getBranchRenderPriority(branchCode: string) {
+    return BRANCH_RENDER_PRIORITY[branchCode] ?? 1000 + Number(branchCode);
+}
 
 export interface RequestEndoCardProps {
     branches: EndoBranchOption[];
@@ -16,6 +25,7 @@ export interface RequestEndoCardProps {
     onAddToBasket: (branchCode: string) => void;
     isAdding: (branchCode: string) => boolean;
     inBasketQtyByBranch?: Record<string, number>;
+    pendingQtyByBranch?: Record<string, number>;
     error?: string;
     successMessage?: string;
     onBack?: () => void;
@@ -32,6 +42,7 @@ export default function RequestEndoCard({
     onAddToBasket,
     isAdding,
     inBasketQtyByBranch = {},
+    pendingQtyByBranch,
     error = "",
     successMessage = "",
     onBack,
@@ -40,6 +51,19 @@ export default function RequestEndoCard({
     branchCardClassName = "rounded-lg border border-gray-200 bg-white p-3 shadow-xs dark:border-gray-700 dark:bg-gray-900/40",
     emptyMessage = "Δεν υπάρχει διαθέσιμο άλλο κατάστημα.",
 }: RequestEndoCardProps) {
+    const sortedBranches = branches
+        .filter((branch) => branch.stock > 0)
+        .sort((a, b) => {
+            const priorityDiff =
+                getBranchRenderPriority(a.code) - getBranchRenderPriority(b.code);
+
+            if (priorityDiff !== 0) {
+                return priorityDiff;
+            }
+
+            return a.code.localeCompare(b.code, "el-GR", { numeric: true });
+        });
+
     return (
         <div className={className}>
             <div className="mb-3 flex items-start justify-between gap-2">
@@ -48,7 +72,7 @@ export default function RequestEndoCard({
                         Ενδοδιακίνηση
                     </div>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Ζήτηση από διαθέσιμα αποθέματα άλλων καταστημάτων
+                        Διαθεσιμότητα καταστημάτων:
                     </p>
                 </div>
 
@@ -65,13 +89,13 @@ export default function RequestEndoCard({
                 )}
             </div>
 
-            {branches.length > 0 ? (
+            {sortedBranches.length > 0 ? (
                 <div className={branchesClassName}>
-                    {branches.map((branch) => {
+                    {sortedBranches.map((branch) => {
                         const requestedQty = getRequestedQty(branch.code);
                         const inBasketQty = inBasketQtyByBranch[branch.code] ?? 0;
+                        const pendingQty = pendingQtyByBranch?.[branch.code] ?? inBasketQty;
                         const disabled =
-                            branch.isCurrent ||
                             isAdding(branch.code) ||
                             requestedQty <= 0 ||
                             requestedQty > branch.stock ||
@@ -87,11 +111,13 @@ export default function RequestEndoCard({
                                         {branch.label}
                                     </span>
 
-                                    {branch.isCurrent && (
-                                        <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                            Το κατάστημά μου
-                                        </span>
-                                    )}
+                                    <div className="flex shrink-0 items-center gap-1">
+                                        {pendingQty > 0 && (
+                                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                                                Pending: {pendingQty}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="mt-2 flex items-end justify-between gap-2">
@@ -109,41 +135,39 @@ export default function RequestEndoCard({
                                     </p>
                                 </div>
 
-                                {!branch.isCurrent && (
-                                    <div className="mt-2 flex items-center gap-2">
-                                        <QuantityControl
-                                            value={requestedQty}
-                                            onChange={(nextQuantity) =>
-                                                onRequestedQtyChange(branch.code, nextQuantity)
-                                            }
-                                            min={0}
-                                            max={branch.stock}
-                                            displayZeroAsEmpty
-                                            fullWidth
-                                            size="sm"
-                                            placeholder="0"
-                                            decrementLabel="Μείωση ποσότητας ενδοδιακίνησης"
-                                            incrementLabel="Αύξηση ποσότητας ενδοδιακίνησης"
-                                        />
+                                <div className="mt-2 flex items-center gap-2">
+                                    <QuantityControl
+                                        value={requestedQty}
+                                        onChange={(nextQuantity) =>
+                                            onRequestedQtyChange(branch.code, nextQuantity)
+                                        }
+                                        min={0}
+                                        max={branch.stock}
+                                        displayZeroAsEmpty
+                                        fullWidth
+                                        size="sm"
+                                        placeholder="0"
+                                        decrementLabel="Μείωση ποσότητας ενδοδιακίνησης"
+                                        incrementLabel="Αύξηση ποσότητας ενδοδιακίνησης"
+                                    />
 
-                                        <button
-                                            type="button"
-                                            onClick={() => onAddToBasket(branch.code)}
-                                            disabled={disabled}
-                                            title="Προσθήκη στο καλάθι ενδοδιακίνησης"
-                                            aria-label="Προσθήκη στο καλάθι ενδοδιακίνησης"
-                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 text-brand-600 shadow-xs transition hover:border-brand-300 hover:bg-brand-100 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/15"
-                                        >
-                                            {isAdding(branch.code) ? (
-                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                            ) : (
-                                                <ShoppingCart className="h-3.5 w-3.5" />
-                                            )}
-                                        </button>
-                                    </div>
-                                )}
+                                    <button
+                                        type="button"
+                                        onClick={() => onAddToBasket(branch.code)}
+                                        disabled={disabled}
+                                        title="Προσθήκη στο καλάθι ενδοδιακίνησης"
+                                        aria-label="Προσθήκη στο καλάθι ενδοδιακίνησης"
+                                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-500 text-white shadow-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        {isAdding(branch.code) ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                            <ShoppingCart className="h-3.5 w-3.5" />
+                                        )}
+                                    </button>
+                                </div>
 
-                                {inBasketQty > 0 && (
+                                {inBasketQty > 0 && pendingQty <= 0 && (
                                     <p className="mt-2 text-[10px] font-medium text-green-600 dark:text-green-400">
                                         Στο καλάθι: {inBasketQty} τεμ.
                                     </p>

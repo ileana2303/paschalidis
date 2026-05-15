@@ -46,6 +46,9 @@ export default function StockRequest({
             : requestStatus === "deleted"
                 ? "Deleted"
                 : "Pending";
+    const hasRequestableEndoStock = endoRequest.branches.some(
+        (branch) => branch.stock > 0
+    );
 
     if (endoRequest.isActive) {
         return (
@@ -55,6 +58,8 @@ export default function StockRequest({
                 onRequestedQtyChange={endoRequest.onRequestedQtyChange}
                 onAddToBasket={endoRequest.onAddToBasket}
                 isAdding={endoRequest.isAdding}
+                inBasketQtyByBranch={endoRequest.inBasketQtyByBranch}
+                pendingQtyByBranch={endoRequest.pendingQtyByBranch}
                 error={endoRequest.error}
                 successMessage={endoRequest.successMessage}
                 onBack={endoRequest.onCancel}
@@ -105,7 +110,7 @@ export default function StockRequest({
                         disabled={isSubmittingRequest || quantity <= 0}
                         title="Καταχώρηση αιτήματος"
                         aria-label="Καταχώρηση αιτήματος"
-                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 text-brand-600 shadow-xs transition hover:border-brand-300 hover:bg-brand-100 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/15"
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-500 text-white shadow-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {isSubmittingRequest ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -127,7 +132,13 @@ export default function StockRequest({
                     <button
                         type="button"
                         onClick={endoRequest.onStart}
-                        className="inline-flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 shadow-xs transition hover:border-sky-300 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/30 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:bg-sky-500/15"
+                        disabled={!hasRequestableEndoStock}
+                        title={
+                            hasRequestableEndoStock
+                                ? "Ενδοδιακίνηση"
+                                : "Δεν υπάρχει διαθέσιμο απόθεμα σε άλλο κατάστημα"
+                        }
+                        className="inline-flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 text-xs font-semibold text-brand-700 shadow-xs transition hover:border-brand-300 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-70 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/15 dark:disabled:border-gray-800 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
                     >
                         <GitCompareArrows className="h-3.5 w-3.5" />
                         <span>Ενδοδιακίνηση</span>
