@@ -20,10 +20,10 @@ export default function DataTableHeader({
   const shouldRenderCount = count != null;
 
   return (
-    <div className={["border-b border-gray-100 px-5 py-4 dark:border-gray-800", className].join(" ")}>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
+    <div className={["min-w-0 border-b border-gray-100 px-5 py-4 dark:border-gray-800", className].join(" ")}>
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
             <h2 className="text-base font-semibold text-gray-900 dark:text-white">
               {title}
             </h2>
@@ -50,9 +50,8 @@ export default function DataTableHeader({
           )}
         </div>
 
-        {action && <div>{action}</div>}
+        {action && <div className="min-w-0">{action}</div>}
       </div>
     </div>
   );
 }
-

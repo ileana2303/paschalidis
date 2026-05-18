@@ -445,7 +445,7 @@ export default function BasketClient() {
     const customerName = selectedCustomer?.NAME ?? (urlTrdr ? `TRDR ${urlTrdr}` : "—");
 
     return (
-        <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
+        <div className="flex h-[calc(100dvh-8rem)] min-w-0 max-w-full flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
             <div className="shrink-0">
                 <PageBreadcrumb
                     pageTitle={`Καλάθι ${customerName}`}
@@ -454,7 +454,7 @@ export default function BasketClient() {
                 />
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col gap-5 xl:flex-row">
+            <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-5 xl:flex-row">
                 <BasketTable
                     items={basketItems}
                     selectedItems={selectedItems}

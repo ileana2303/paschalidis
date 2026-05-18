@@ -91,7 +91,7 @@ export default function SummaryPanel({
 }: SummaryPanelProps) {
     if (collapsible && collapsed) {
         return (
-            <aside className={["hidden shrink-0 xl:flex", asideClassName].join(" ")}>
+            <aside className={["hidden min-w-0 shrink-0 xl:flex", asideClassName].join(" ")}>
                 <button
                     type="button"
                     onClick={onToggleCollapse}
@@ -119,23 +119,23 @@ export default function SummaryPanel({
     return (
         <aside
             className={[
-                "min-h-[280px] w-full xl:min-h-0 xl:basis-1/3 xl:min-w-[320px]",
+                "min-h-[280px] min-w-0 max-w-full w-full xl:min-h-0 xl:basis-1/3 xl:min-w-[320px]",
                 asideClassName,
             ].join(" ")}
         >
-            <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className="flex h-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
                 <div className="shrink-0 border-b border-gray-100 px-5 py-5 dark:border-gray-800">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
                         {href ? (
-                            <Link href={href} className="group/link">
+                            <Link href={href} className="group/link min-w-0">
                                 {heading}
                             </Link>
                         ) : (
-                            <div>{heading}</div>
+                            <div className="min-w-0">{heading}</div>
                         )}
 
                         {hasHeaderActions && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex shrink-0 items-center gap-1">
                                 {actions}
                                 {collapsible && onToggleCollapse && (
                                     <button
@@ -153,7 +153,7 @@ export default function SummaryPanel({
                     </div>
                 </div>
 
-                <div className={["flex-1 overflow-y-auto px-5 py-5", contentClassName].join(" ")}>
+                <div className={["min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-5", contentClassName].join(" ")}>
                     {error && <SummaryPanelMessage tone="error">{error}</SummaryPanelMessage>}
                     {successMessage && (
                         <SummaryPanelMessage tone="success">
@@ -169,7 +169,7 @@ export default function SummaryPanel({
                 </div>
 
                 {footer && (
-                    <div className="shrink-0 border-t border-gray-100 px-5 py-5 dark:border-gray-800">
+                    <div className="min-w-0 shrink-0 border-t border-gray-100 px-5 py-5 dark:border-gray-800">
                         {footer}
                     </div>
                 )}

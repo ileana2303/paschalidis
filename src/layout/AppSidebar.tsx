@@ -58,12 +58,12 @@ const navItems: NavItem[] = [
 
       {
         icon: Send,
-        name: "Διαχείριση Αιτημάτων ",
+        name: "Εισερχόμενα Αιτήματα",
         path: "/endo/endo-lists-received",
       },
       {
         icon: ClipboardList,
-        name: "Λίστα Αιτημάτων ",
+        name: "Εξερχόμενα Αιτήματα",
         path: "/endo/endo-lists-requested",
       },
     ],

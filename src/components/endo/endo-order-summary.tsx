@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import {
-    ChevronDown,
     Loader2,
     Send,
     ShoppingCart,
-    Trash2,
 } from "@/lib/icons/lucide";
 import SummaryPanel, {
     SummaryPanelMessage,
@@ -14,7 +11,6 @@ import SummaryPanel, {
 import SummaryInfoCard from "@/components/ui/summary-panel/summary-info-card";
 import SummaryMetricGrid from "@/components/ui/summary-panel/summary-metric-grid";
 import SummaryPrimaryAction from "@/components/ui/summary-panel/summary-primary-action";
-import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 
 export interface EndoBasketUiItem {
     uid: string;
@@ -32,7 +28,6 @@ interface EndoOrderSummaryProps {
     currentBranchCode: string;
     currentBranchName: string;
     basketItems: EndoBasketUiItem[];
-    selectedItems?: Set<string>;
     loading: boolean;
     error: string;
     successMessage: string;
@@ -43,8 +38,6 @@ interface EndoOrderSummaryProps {
     linesLabel?: string;
     sendButtonLabel?: string;
     emptyStateLabel?: string;
-    onToggleItem?: (uid: string) => void;
-    onRemoveItem?: (uid: string) => void;
     onSendOrder?: () => void;
     onClearSelection?: () => void;
     clearButtonLabel?: string;
@@ -57,19 +50,16 @@ export default function EndoOrderSummary({
     currentBranchCode,
     currentBranchName,
     basketItems,
-    selectedItems,
     loading,
     error,
     successMessage,
     sendingOrder = false,
-    summaryLabel = "Σύνοψη Ενδοδιακίνησης",
-    summaryTitle = "Καλάθι Ενδοπαραγγελίας",
-    branchCardLabel = "Κατάστημα Παραλαβής",
+    summaryLabel = "Σύνοψη Ενδοδιακίνησης Καταστήματος",
+    summaryTitle = "Εξερχόμενα Αιτήματα Ενδοδιακίνησης",
+    branchCardLabel = "ΚΑΤΑΣΤΗΜΑ ΠΑΡΑΛΑΒΗΣ",
     linesLabel = "Γραμμές Καλαθιού",
     sendButtonLabel = "Αποστολή Ενδοπαραγγελίας",
     emptyStateLabel = "Το καλάθι είναι κενό",
-    onToggleItem,
-    onRemoveItem,
     onSendOrder,
     onClearSelection,
     clearButtonLabel = "Καθαρισμός",
@@ -77,29 +67,8 @@ export default function EndoOrderSummary({
     collapsed = false,
     onToggleCollapse,
 }: EndoOrderSummaryProps) {
-    const isSelectable = Boolean(onToggleItem);
-    const isRemovable = Boolean(onRemoveItem);
-    const selectedSet = selectedItems ?? new Set(basketItems.map((item) => item.uid));
-    const selectedLines = isSelectable
-        ? basketItems.filter((item) => selectedSet.has(item.uid))
-        : basketItems;
-    const selectedQty = selectedLines.reduce((sum, item) => sum + item.qty, 0);
-    const sendDisabled = sendingOrder || selectedLines.length === 0;
-    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-
-    const toggleExpandedItem = (uid: string) => {
-        setExpandedItems((prev) => {
-            const next = new Set(prev);
-
-            if (next.has(uid)) {
-                next.delete(uid);
-            } else {
-                next.add(uid);
-            }
-
-            return next;
-        });
-    };
+    const totalQty = basketItems.reduce((sum, item) => sum + item.qty, 0);
+    const sendDisabled = sendingOrder || basketItems.length === 0;
 
     return (
         <SummaryPanel
@@ -139,7 +108,7 @@ export default function EndoOrderSummary({
             <SummaryInfoCard
                 label={branchCardLabel}
                 title={currentBranchName || "—"}
-                description={`Κωδικός: ${currentBranchCode || "—"}`}
+                description={` ${currentBranchCode || "—"}`}
             />
 
             <SummaryMetricGrid
@@ -147,13 +116,12 @@ export default function EndoOrderSummary({
                     {
                         id: "lines",
                         label: "Γραμμές",
-                        value: selectedLines.length,
-                        trailingValue: isSelectable ? ` / ${basketItems.length}` : undefined,
+                        value: basketItems.length,
                     },
                     {
                         id: "qty",
                         label: "Τεμάχια",
-                        value: selectedQty,
+                        value: totalQty,
                         tone: "brand",
                     },
                 ]}
@@ -194,112 +162,75 @@ export default function EndoOrderSummary({
                     ) : (
                         <div className="mt-4 space-y-3">
                             {basketItems.map((item) => {
-                                const isSelected = selectedSet.has(item.uid);
-                                const isExpanded = expandedItems.has(item.uid);
-
                                 return (
                                     <article
                                         key={item.uid}
-                                        className={[
-                                            "group rounded-xl border p-3 transition-all",
-                                            isSelected
-                                                ? "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/40"
-                                                : "border-gray-200 bg-gray-50/50 opacity-60 dark:border-gray-800 dark:bg-gray-900/40",
-                                        ].join(" ")}
+                                        className="group rounded-2xl border border-gray-200 bg-white p-3.5 shadow-xs transition-all hover:border-brand-200 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900/50 dark:hover:border-brand-500/30"
                                     >
-                                        <div className="flex items-start gap-2">
-                                            {isSelectable && onToggleItem ? (
-                                                <DataTableSelectionCheckbox
-                                                    checked={isSelected}
-                                                    onCheckedChange={() => onToggleItem(item.uid)}
-                                                    ariaLabel={isSelected ? "Αποεπιλογή" : "Επιλογή"}
-                                                    className="mt-0.5"
-                                                />
-                                            ) : (
-                                                <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-brand-500/70" />
-                                            )}
+                                        <div className="flex items-start gap-3">
+                                            {/* <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-500/70 ring-4 ring-brand-500/10" /> */}
 
                                             <div className="min-w-0 flex-1">
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="truncate text-sm font-medium text-gray-700 dark:text-white/90">
+                                                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-semibold text-gray-800 dark:text-white/90">
                                                             {item.itemCode || String(item.mtrl)}
                                                         </p>
-                                                        <p className="mt-1 line-clamp-2 text-xs text-gray-500">
+
+                                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                                                             {item.itemDescr || "—"}
                                                         </p>
-                                                    </div>
-
-                                                    {isRemovable && onRemoveItem && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => onRemoveItem(item.uid)}
-                                                            aria-label="Αφαίρεση"
-                                                            className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                                                        >
-                                                            <Trash2 className="h-3 w-3" />
-                                                        </button>
-                                                    )}
-                                                </div>
-
-                                                <div className="mt-3">
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-xs font-semibold tabular-nums text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
-                                                        <span className="text-[10px] uppercase tracking-[0.14em] opacity-75">
-                                                            ΠΟΣΟΤΗΤΑ:
-                                                        </span>
-                                                        <span>{item.qty}</span>
-                                                    </span>
-                                                </div>
-
-                                                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-500">
-                                                    <span className="min-w-0">
-                                                        MTRL:{" "}
-                                                        <span className="font-medium text-gray-700 dark:text-white/90">
-                                                            {item.mtrl}
-                                                        </span>
-                                                    </span>
-                                                    <span className="min-w-0">
-                                                        ΑΠΟ:{" "}
-                                                        <span className="font-medium text-gray-700 dark:text-white/90">
-                                                            {item.fromBranch}
-                                                        </span>
-                                                    </span>
-                                                    <span className="min-w-0">
-                                                        ΠΡΟΣ:{" "}
-                                                        <span className="font-medium text-gray-700 dark:text-white/90">
-                                                            {item.toBranch}
-                                                        </span>
-                                                    </span>
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleExpandedItem(item.uid)}
-                                                    aria-expanded={isExpanded}
-                                                    className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                                                >
-                                                    {isExpanded ? "Απόκρυψη στοιχείων" : "Περισσότερα στοιχεία"}
-                                                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-                                                </button>
-
-                                                {isExpanded && (
-                                                    <div className="mt-2 grid grid-cols-1 gap-2 rounded-lg border border-gray-200 bg-white/70 p-3 dark:border-gray-800 dark:bg-gray-900/60">
-                                                        <p className="text-xs text-gray-700 dark:text-gray-200">
-                                                            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
-                                                                BASKET IDS:
-                                                            </span>{" "}
-                                                            {item.basketIds.join(", ") || "-"}
+                                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                                                            MTRL: {item.mtrl || "—"}
                                                         </p>
-                                                        {item.manufacturer && (
-                                                            <p className="text-xs text-gray-700 dark:text-gray-200">
-                                                                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
-                                                                    Μάρκα:
-                                                                </span>{" "}
-                                                                {item.manufacturer}
-                                                            </p>
-                                                        )}
                                                     </div>
-                                                )}
+
+                                                    <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end">
+                                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-semibold tabular-nums text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
+                                                            <span className="text-[10px] uppercase tracking-[0.14em] opacity-75">
+                                                                QTY
+                                                            </span>
+                                                            <span>{item.qty}</span>
+                                                        </span>
+
+                                                        <span className="inline-flex max-w-[220px] items-center gap-1.5 truncate rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300">
+                                                            <span className="text-[10px] uppercase tracking-[0.14em] text-gray-400">
+                                                                Basket
+                                                            </span>
+                                                            <span className="truncate tabular-nums">
+                                                                {item.basketIds.join(", ") || "-"}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Branch transfer visualization */}
+                                                <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 dark:border-gray-800 dark:bg-white/[0.03]">
+                                                    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+                                                        <div className="min-w-0">
+                                                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                                                ΠΡΟΣ:
+                                                            </p>
+                                                            <p className="mt-1 truncate text-sm font-semibold text-gray-700 dark:text-white/90">
+                                                                {item.fromBranch || "-"}
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-brand-200 bg-white text-brand-600 shadow-xs dark:border-brand-500/30 dark:bg-gray-900 dark:text-brand-300">
+                                                            <span className="text-sm font-bold">→</span>
+                                                        </div>
+
+                                                        <div className="min-w-0 text-right">
+                                                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                                                ΑΠΟ:
+                                                            </p>
+                                                            <p className="mt-1 truncate text-sm font-semibold text-gray-700 dark:text-white/90">
+                                                                {item.toBranch || "-"}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                             </div>
                                         </div>
                                     </article>

@@ -23,10 +23,10 @@ export default function AdminLayout({
       <AppSidebar />
       <Backdrop />
       <div
-        className={`flex-1 transition-all  duration-300 ease-in-out ${mainContentMargin}`}
+        className={`min-w-0 flex-1 transition-all  duration-300 ease-in-out ${mainContentMargin}`}
       >
         <AppHeader />
-        <div className="mx-auto w-full max-w-[1800px] p-4 md:p-6 xl:max-w-none xl:px-8 2xl:px-10">{children}</div>
+        <div className="mx-auto min-w-0 w-full max-w-[1800px] p-4 md:p-6 xl:max-w-none xl:px-8 2xl:px-10">{children}</div>
       </div>
     </div>
   );

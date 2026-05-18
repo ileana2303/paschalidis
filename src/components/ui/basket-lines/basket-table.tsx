@@ -153,7 +153,7 @@ export default function BasketTable({
     };
 
     return (
-        <DataTable className="flex min-h-0 w-full flex-col xl:min-w-0 xl:basis-2/3">
+        <DataTable className="flex min-h-0 min-w-0 max-w-full flex-col xl:basis-2/3">
             <DataTableHeader
                 title="Γραμμές Καλαθιού"
                 description="Ενημέρωση ποσοτήτων και επιλογή γραμμών για παραγγελία."
@@ -211,7 +211,7 @@ export default function BasketTable({
                 />
             ) : (
                 <>
-                    <div className="min-h-0 flex-1 overflow-auto">
+                    <div className="min-h-0 min-w-0 max-w-full flex-1 overflow-x-auto overflow-y-auto">
                         <table className="w-full min-w-[1360px] divide-y divide-gray-100 text-sm dark:divide-gray-800">
                             <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                 <tr>

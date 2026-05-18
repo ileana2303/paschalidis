@@ -114,7 +114,7 @@ function SegmentedControl<T extends string>({
     onChange?: (value: T) => void;
 }) {
     return (
-        <div className="flex gap-2">
+        <div className="flex min-w-0 gap-2">
             {options.map((option) => {
                 const selected = option.value === value;
 
@@ -125,7 +125,7 @@ function SegmentedControl<T extends string>({
                         onClick={() => onChange?.(option.value)}
                         aria-pressed={selected}
                         className={[
-                            "flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition",
+                            "min-w-0 flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition",
                             selected
                                 ? "border-brand-200 bg-brand-50 text-brand-600 dark:border-brand-500 dark:bg-brand-500/10 dark:text-brand-400"
                                 : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700",

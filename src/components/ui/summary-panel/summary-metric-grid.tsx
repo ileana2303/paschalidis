@@ -38,13 +38,13 @@ function getValueClassName(tone: SummaryMetricTone) {
 
 function SummaryMetricCard({ metric }: { metric: SummaryMetric }) {
     return (
-        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40">
-            <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
+        <div className="min-w-0 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40">
+            <p className="truncate text-xs uppercase tracking-[0.18em] text-gray-500">
                 {metric.label}
             </p>
             <p
                 className={[
-                    "mt-2 text-2xl font-semibold tabular-nums",
+                    "mt-2 break-words text-2xl font-semibold tabular-nums",
                     getValueClassName(metric.tone ?? "default"),
                 ].join(" ")}
             >
@@ -71,7 +71,7 @@ export default function SummaryMetricGrid({
     return (
         <div
             className={[
-                "mt-5 grid gap-3",
+                "mt-5 grid min-w-0 gap-3",
                 columns === 1 ? "grid-cols-1" : "grid-cols-2",
                 className,
             ].join(" ")}

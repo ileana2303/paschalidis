@@ -101,13 +101,13 @@ export default function BasketLines({
     };
 
     return (
-        <section className="mt-5">
-            <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+        <section className="mt-5 min-w-0 max-w-full">
+            <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="min-w-0 text-sm font-semibold text-gray-800 dark:text-white/90">
                     {title}
                 </p>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex max-w-full flex-wrap items-center gap-2">
                     {canToggleAllBasketItems && (
                         <button
                             type="button"
@@ -151,7 +151,7 @@ export default function BasketLines({
                     <p className="mt-3 text-sm text-gray-400">{emptyStateLabel}</p>
                 </div>
             ) : (
-                <div className="mt-4 space-y-2.5">
+                <div className="mt-4 min-w-0 max-w-full space-y-2.5">
                     {items.map((item) => {
                         const itemId = getBasketItemId(item);
                         const selected = selectedItems?.has(itemId) ?? true;
@@ -194,55 +194,93 @@ export default function BasketLines({
                             <article
                                 key={itemId}
                                 className={[
-                                    "group rounded-2xl border bg-white p-3 shadow-xs transition-all dark:bg-gray-900/50",
+                                    "group min-w-0 max-w-full overflow-hidden rounded-2xl border bg-white p-3 shadow-xs transition-all dark:bg-gray-900/50",
                                     selected
                                         ? "border-gray-200 hover:border-brand-200 hover:shadow-sm dark:border-gray-800 dark:hover:border-brand-500/30"
                                         : "border-gray-200 opacity-60 dark:border-gray-800",
                                 ].join(" ")}
                             >
-                                <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(260px,0.9fr)_minmax(220px,0.7fr)] lg:items-center">
+                                <div className="grid grid-cols-1 gap-3">
+                                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                        <div className="flex min-w-0 items-start gap-3">
+                                            <div className="flex shrink-0 flex-col items-center gap-2 pt-1">
+                                                {onToggleItem && (
+                                                    <DataTableSelectionCheckbox
+                                                        checked={selected}
+                                                        onCheckedChange={() => onToggleItem(itemId)}
+                                                        ariaLabel={selected ? "Αποεπιλογή" : "Επιλογή"}
+                                                    />
+                                                )}
 
-                                    <div className="flex min-w-0 items-start gap-3">
-                                        <div className="flex shrink-0 flex-col items-center gap-2 pt-1">
-                                            {onToggleItem && (
-                                                <DataTableSelectionCheckbox
-                                                    checked={selected}
-                                                    onCheckedChange={() => onToggleItem(itemId)}
-                                                    ariaLabel={selected ? "Αποεπιλογή" : "Επιλογή"}
-                                                />
-                                            )}
-
-                                            {onRemoveItem && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onRemoveItem(itemId)}
-                                                    disabled={removingItems?.has(itemId)}
-                                                    aria-label="Αφαίρεση"
-                                                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                                                >
-                                                    {removingItems?.has(itemId) ? (
-                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    ) : (
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    )}
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <p className="truncate text-sm font-semibold text-gray-800 dark:text-white/90">
-                                                    {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
-                                                </p>
+                                                {onRemoveItem && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onRemoveItem(itemId)}
+                                                        disabled={removingItems?.has(itemId)}
+                                                        aria-label="Αφαίρεση"
+                                                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                                    >
+                                                        {removingItems?.has(itemId) ? (
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        )}
+                                                    </button>
+                                                )}
                                             </div>
 
-                                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                                                {item.ITEM_DESCR || item.NAME || "-"}
-                                            </p>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="truncate text-sm font-semibold text-gray-800 dark:text-white/90">
+                                                        {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
+                                                    </p>
+                                                </div>
+
+                                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                                                    {item.ITEM_DESCR || item.NAME || "-"}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid min-w-0 w-full grid-cols-[minmax(4rem,1fr)_minmax(7rem,auto)] items-end gap-3 sm:w-auto sm:shrink-0">
+                                            <div>
+                                                <label
+                                                    htmlFor={`basket-qty-${itemId}`}
+                                                    className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400"
+                                                >
+                                                    Ποσότητα
+                                                </label>
+
+                                                <select
+                                                    id={`basket-qty-${itemId}`}
+                                                    value={Number.isFinite(currentQuantity) ? currentQuantity : 1}
+                                                    onChange={(event) =>
+                                                        onChangeQuantity?.(itemId, Number(event.target.value))
+                                                    }
+                                                    disabled={!onChangeQuantity}
+                                                    className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
+                                                >
+                                                    {quantityOptions.map((quantity) => (
+                                                        <option key={quantity} value={quantity}>
+                                                            {quantity}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div className="text-right">
+                                                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                                    Σύνολο
+                                                </p>
+
+                                                <p className="inline-flex h-8 max-w-full items-center truncate rounded-full border border-brand-200 bg-brand-50 px-3 text-sm font-bold tabular-nums text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
+                                                    {formatPrice(lineTotal)}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-2.5 py-2 dark:border-gray-800 dark:bg-white/[0.03]">
+                                    <div className="min-w-0 rounded-xl border border-gray-100 bg-gray-50 px-2.5 py-2 dark:border-gray-800 dark:bg-white/[0.03]">
                                         <div className="mb-2 flex items-center justify-between gap-2">
                                             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
                                                 Τιμές
@@ -250,7 +288,7 @@ export default function BasketLines({
 
                                             {hasPriceRequest && (
                                                 <span
-                                                    className={`inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${requestStatusClassName}`}
+                                                    className={`inline-flex max-w-full shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${requestStatusClassName}`}
                                                 >
                                                     {requestStatusLabel}
                                                 </span>
@@ -296,7 +334,7 @@ export default function BasketLines({
                                         </div>
 
                                         {canRequestPrice && (
-                                            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-2 dark:border-gray-800">
+                                            <div className="mt-2 grid min-w-0 grid-cols-1 gap-2 border-t border-gray-200 pt-2 dark:border-gray-800">
                                                 <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
                                                     <BadgePercent className="h-3.5 w-3.5" />
                                                     <span>Αίτημα</span>
@@ -316,7 +354,7 @@ export default function BasketLines({
                                                         }
                                                     }}
                                                     placeholder="Νέα τιμή..."
-                                                    className="h-8 min-w-0 flex-1 rounded-md border border-amber-200 bg-white px-2 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-amber-500/30 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                    className="h-8 min-w-0 rounded-md border border-amber-200 bg-white px-2 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-amber-500/30 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                                 />
 
                                                 <button
@@ -327,7 +365,7 @@ export default function BasketLines({
                                                         requestedPriceInput == null ||
                                                         requestedPriceInput <= 0
                                                     }
-                                                    className="flex h-8 items-center gap-1.5 rounded-md bg-amber-500 px-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                                    className="flex h-8 items-center justify-center gap-1.5 rounded-md bg-amber-500 px-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
                                                 >
                                                     {isSubmittingRequestPrice ? (
                                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -340,53 +378,12 @@ export default function BasketLines({
                                         )}
                                     </div>
 
-                                    <div className="flex items-center justify-between gap-3 lg:justify-end">
-                                        <div className="grid grid-cols-[50px_minmax(110px,auto)] items-end gap-3">
-                                            <div>
-                                                <label
-                                                    htmlFor={`basket-qty-${itemId}`}
-                                                    className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400"
-                                                >
-                                                    Ποσότητα
-                                                </label>
-
-                                                <select
-                                                    id={`basket-qty-${itemId}`}
-                                                    value={Number.isFinite(currentQuantity) ? currentQuantity : 1}
-                                                    onChange={(event) =>
-                                                        onChangeQuantity?.(itemId, Number(event.target.value))
-                                                    }
-                                                    disabled={!onChangeQuantity}
-                                                    className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
-                                                >
-                                                    {quantityOptions.map((quantity) => (
-                                                        <option key={quantity} value={quantity}>
-                                                            {quantity}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            <div className="text-right">
-                                                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
-                                                    Σύνολο
-                                                </p>
-
-                                                <p className="inline-flex h-8 items-center rounded-full border border-brand-200 bg-brand-50 px-3 text-sm font-bold tabular-nums text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
-                                                    {formatPrice(lineTotal)}
-                                                </p>
-                                            </div>
-                                        </div>
-
-
-                                    </div>
                                 </div>
                             </article>
                         );
                     })}
                 </div>
-            )
-            }
-        </section >
+            )}
+        </section>
     );
 }
