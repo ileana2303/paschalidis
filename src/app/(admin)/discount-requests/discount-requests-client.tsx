@@ -13,7 +13,6 @@ import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import type { IRequestedPriceListRow } from "@/lib/interface";
 import {
-    useDeleteBasketItemsMutation,
     useFetchRequestedPriceRequestsMutation,
     useUpdateRequestedPriceRequestMutation,
 } from "@/hooks/queries/useApiMutations";
@@ -61,8 +60,6 @@ export default function DiscountRequestsClient() {
         useFetchRequestedPriceRequestsMutation();
     const { mutateAsync: updateRequestedPriceRequest } =
         useUpdateRequestedPriceRequestMutation();
-    const { mutateAsync: deleteBasketItems } =
-        useDeleteBasketItemsMutation();
 
     const [rows, setRows] = useState<IRequestedPriceListRow[]>([]);
     const [loading, setLoading] = useState(true);
@@ -190,7 +187,7 @@ export default function DiscountRequestsClient() {
         }
     };
 
-    const handleDelete = async (row: IRequestedPriceListRow) => {
+    const handleReject = (row: IRequestedPriceListRow) => {
         const basketId = normalizeBasketId(row.BASKETID);
 
         if (basketId == null) {
@@ -198,36 +195,21 @@ export default function DiscountRequestsClient() {
             return;
         }
 
-        if (!window.confirm(`Διαγραφή αιτήματος ID ${row.BASKETID};`)) {
+        if (!window.confirm(`Απόρριψη αιτήματος τιμής ID ${row.BASKETID};`)) {
             return;
         }
 
-        setUpdatingId(row.BASKETID);
         setError("");
         setSuccessMessage("");
 
-        try {
-            const response = await deleteBasketItems({
-                basketIds: [basketId],
-            });
+        setSuccessMessage("Το αίτημα αφαιρέθηκε από τον πίνακα αιτημάτων.");
+        setRows((currentRows) =>
+            currentRows.filter((currentRow) => currentRow.BASKETID !== row.BASKETID)
+        );
 
-            setSuccessMessage(response.message ?? "Το αίτημα διαγράφηκε.");
-            setRows((currentRows) =>
-                currentRows.filter((currentRow) => currentRow.BASKETID !== row.BASKETID)
-            );
-
-            if (editingId === row.BASKETID) {
-                setEditingId("");
-                setEditedPrice("");
-            }
-        } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Αποτυχία διαγραφής αιτήματος"
-            );
-        } finally {
-            setUpdatingId("");
+        if (editingId === row.BASKETID) {
+            setEditingId("");
+            setEditedPrice("");
         }
     };
 
@@ -252,7 +234,7 @@ export default function DiscountRequestsClient() {
             <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <DataTableHeader
                     title="Εκκρεμή Αιτήματα:"
-                    description="Έγκριση ή διαγραφή αιτημάτων τιμής πελατών."
+                    description="Έγκριση ή απόρριψη αιτημάτων τιμής πελατών."
                     count={rows.length}
                     action={(
                         <DataTableSearchBar
@@ -409,13 +391,13 @@ export default function DiscountRequestsClient() {
                                                         disabled={Boolean(editingId)}
                                                         onEdit={() => handleStartEdit(row)}
                                                         onApprove={() => void handleApprove(row)}
-                                                        onDelete={() => void handleDelete(row)}
+                                                        onDelete={() => handleReject(row)}
                                                         editTitle="Αλλαγή τιμής"
                                                         approveTitle="Έγκριση αιτήματος"
-                                                        deleteTitle="Διαγραφή αιτήματος"
+                                                        deleteTitle="Απόρριψη αιτήματος"
                                                         editAriaLabel={`Αλλαγή τιμής για αίτημα ${row.BASKETID}`}
                                                         approveAriaLabel={`Έγκριση αιτήματος ${row.BASKETID}`}
-                                                        deleteAriaLabel={`Διαγραφή αιτήματος ${row.BASKETID}`}
+                                                        deleteAriaLabel={`Απόρριψη αιτήματος ${row.BASKETID}`}
                                                     />
                                                 )}
                                             </td>
