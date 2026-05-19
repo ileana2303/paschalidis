@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import DiscountRequestsClient from "./discount-requests-client";
 
-const title = "Αιτήματα Έκπτωσης";
+const title = "Αιτήματα Τιμών";
 
 export const metadata: Metadata = {
   title: `${title} | Paschalidis ERP`,

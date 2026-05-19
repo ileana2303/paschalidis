@@ -217,14 +217,14 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         () =>
             scope === "requested"
                 ? {
-                    pageTitle: "Αιτήματα Ενδοδιακίνησης",
+                    pageTitle: "Εξερχόμενα Αιτήματα Ενδοδιακίνησης",
                     title: "Λίστα εκκρεμών αιτημάτων ενδοδιακίνησης καταστήματος",
-                    subtitle: "ENDO_LIST_ESO",
+                    subtitle: "ENDO_LIST_ESO :: Τι έχω ζητήσει",
                 }
                 : {
-                    pageTitle: "Διαχείριση Ενδοδιακίνησης",
+                    pageTitle: "Εισερχόμενα Αιτήματα Ενδοδιακίνησης",
                     title: "Διαχείριση αιτημάτων ενδοδιακίνησης προς άλλα καταστήματα",
-                    subtitle: "ENDO_LIST_EXO",
+                    subtitle: "ENDO_LIST_EXO :: Τι μου ζητάνε",
                 },
         [scope]
     );

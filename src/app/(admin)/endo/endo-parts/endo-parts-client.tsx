@@ -13,6 +13,7 @@ import {
     useDeleteBasketItemsMutation,
     useFetchEndoListsMutation,
     useSearchItemsMutation,
+    useUpdateEndoListQtyMutation,
 } from "@/hooks/queries/useApiMutations";
 import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
@@ -99,33 +100,6 @@ function mapEndoRequestedRows(
         .filter((row) => row.mtrl > 0 && row.qty > 0);
 }
 
-function mergeEndoBasketItem(
-    items: EndoBasketUiItem[],
-    nextItem: EndoBasketUiItem
-) {
-    const existingIndex = items.findIndex((item) =>
-        item.mtrl === nextItem.mtrl &&
-        item.fromBranch === nextItem.fromBranch &&
-        item.toBranch === nextItem.toBranch
-    );
-
-    if (existingIndex === -1) {
-        return [...items, nextItem];
-    }
-
-    return items.map((item, index) => {
-        if (index !== existingIndex) {
-            return item;
-        }
-
-        return {
-            ...item,
-            qty: item.qty + nextItem.qty,
-            basketIds: Array.from(new Set([...item.basketIds, ...nextItem.basketIds])),
-        };
-    });
-}
-
 export default function EndoPartsClient() {
     const [modalSearch, setModalSearch] = useState("");
     const [loading, setLoading] = useState(false);
@@ -139,6 +113,7 @@ export default function EndoPartsClient() {
     const [selectedBasketItemIds, setSelectedBasketItemIds] = useState<Set<string>>(new Set());
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
     const [removingSelectedBasketItems, setRemovingSelectedBasketItems] = useState(false);
+    const [updatingBasketItemIds, setUpdatingBasketItemIds] = useState<Set<string>>(new Set());
     const [summaryLoading, setSummaryLoading] = useState(true);
     const [basketError, setBasketError] = useState("");
     const [basketSuccess, setBasketSuccess] = useState("");
@@ -157,10 +132,12 @@ export default function EndoPartsClient() {
     const modalInputRef = useRef<HTMLInputElement>(null);
     const resultsContainerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const basketSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const { mutateAsync: searchItems } = useSearchItemsMutation();
     const { mutateAsync: addItemToEndoBasket } = useAddItemToEndoBasketMutation();
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
+    const { mutateAsync: updateEndoListQty } = useUpdateEndoListQtyMutation();
 
     const currentBranchCode = useMemo(
         () => normalizeBranchCode(user?.s1code),
@@ -180,6 +157,30 @@ export default function EndoPartsClient() {
 
         return resolveBranchName(normalizedCurrent, fromProfile);
     }, [currentBranchCode, hasValidBranch, user?.listBranches]);
+
+    const clearBasketSuccessTimeout = useCallback(() => {
+        if (basketSuccessTimeoutRef.current) {
+            clearTimeout(basketSuccessTimeoutRef.current);
+            basketSuccessTimeoutRef.current = null;
+        }
+    }, []);
+
+    const resetBasketSuccess = useCallback(() => {
+        clearBasketSuccessTimeout();
+        setBasketSuccess("");
+    }, [clearBasketSuccessTimeout]);
+
+    const showBasketSuccess = useCallback(
+        (message: string, duration = 3000) => {
+            clearBasketSuccessTimeout();
+            setBasketSuccess(message);
+            basketSuccessTimeoutRef.current = setTimeout(() => {
+                setBasketSuccess("");
+                basketSuccessTimeoutRef.current = null;
+            }, duration);
+        },
+        [clearBasketSuccessTimeout]
+    );
 
     const loadRequestedEndoLines = useCallback(async () => {
         if (!hasValidBranch) {
@@ -225,6 +226,12 @@ export default function EndoPartsClient() {
         }
     }, [currentBranchCode, fetchEndoLists, hasValidBranch]);
 
+    useEffect(() => {
+        return () => {
+            clearBasketSuccessTimeout();
+        };
+    }, [clearBasketSuccessTimeout]);
+
     const handleToggleBasketItem = (uid: string) => {
         setSelectedBasketItemIds((prev) => {
             const next = new Set(prev);
@@ -254,7 +261,7 @@ export default function EndoPartsClient() {
 
         setRemovingSelectedBasketItems(true);
         setBasketError("");
-        setBasketSuccess("");
+        resetBasketSuccess();
 
         try {
             if (basketIds.length > 0) {
@@ -278,7 +285,7 @@ export default function EndoPartsClient() {
                 });
             }
 
-            setBasketSuccess(
+            showBasketSuccess(
                 itemsToRemove.length === 1
                     ? "Η γραμμή αφαιρέθηκε από το καλάθι"
                     : "Οι επιλεγμένες γραμμές αφαιρέθηκαν από το καλάθι"
@@ -291,6 +298,70 @@ export default function EndoPartsClient() {
             );
         } finally {
             setRemovingSelectedBasketItems(false);
+        }
+    };
+
+    const handleUpdateBasketQty = async (uid: string, nextQty: number) => {
+        const normalizedQty = Number.isFinite(nextQty)
+            ? Math.max(1, Math.floor(nextQty))
+            : 1;
+        const basketItem = basketItems.find((item) => item.uid === uid);
+
+        if (!basketItem) {
+            setBasketError("Δεν βρέθηκε η γραμμή καλαθιού για ενημέρωση ποσότητας");
+            return;
+        }
+
+        if (basketItem.basketIds.length !== 1) {
+            setBasketError("Η ενημέρωση ποσότητας απαιτεί μοναδική γραμμή καλαθιού.");
+            return;
+        }
+
+        setBasketError("");
+        resetBasketSuccess();
+        setUpdatingBasketItemIds((prev) => new Set(prev).add(uid));
+
+        try {
+            await updateEndoListQty({
+                basketId: basketItem.basketIds[0],
+                qty: normalizedQty,
+                mtrl: basketItem.mtrl,
+                toBranch: basketItem.fromBranch,
+                branch: basketItem.toBranch || currentBranchCode,
+                appUserId: user?.uid,
+            });
+
+            setBasketItems((prev) =>
+                prev.map((item) =>
+                    item.uid === uid
+                        ? {
+                            ...item,
+                            qty: normalizedQty,
+                        }
+                        : item
+                )
+            );
+            showBasketSuccess("Η ποσότητα ανανεώθηκε");
+        } catch (error) {
+            if (isAxiosError(error)) {
+                const responseMessage =
+                    typeof error.response?.data?.message === "string"
+                        ? error.response.data.message
+                        : undefined;
+                setBasketError(responseMessage ?? error.message);
+            } else {
+                setBasketError(
+                    error instanceof Error
+                        ? error.message
+                        : "Αποτυχία ενημέρωσης ποσότητας ενδοδιακίνησης"
+                );
+            }
+        } finally {
+            setUpdatingBasketItemIds((prev) => {
+                const next = new Set(prev);
+                next.delete(uid);
+                return next;
+            });
         }
     };
 
@@ -513,7 +584,7 @@ export default function EndoPartsClient() {
         const requestKey = getQtyKey(item.MTRL, sourceBranchCode);
         setAddingToBasket((prev) => new Set(prev).add(requestKey));
         setBasketError("");
-        setBasketSuccess("");
+        resetBasketSuccess();
 
         try {
             const response = await addItemToEndoBasket({
@@ -542,17 +613,14 @@ export default function EndoPartsClient() {
                 manufacturer: String(item.MNF_DESCR ?? "").trim(),
             };
 
-            const existingBasketItem = basketItems.find((basketItem) =>
-                basketItem.mtrl === nextBasketItem.mtrl &&
-                basketItem.fromBranch === nextBasketItem.fromBranch &&
-                basketItem.toBranch === nextBasketItem.toBranch
-            );
-            setBasketItems((prev) => mergeEndoBasketItem(prev, nextBasketItem));
+            setBasketItems((prev) => [...prev, nextBasketItem]);
             setSelectedBasketItemIds((prev) =>
-                new Set(prev).add(existingBasketItem?.uid ?? nextBasketItem.uid)
+                new Set(prev).add(nextBasketItem.uid)
             );
             setRequestedQty(item.MTRL, sourceBranchCode, 0);
-            setBasketSuccess(response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης");
+            showBasketSuccess(
+                response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης"
+            );
         } catch (error) {
             if (isAxiosError(error)) {
                 const responseMessage =
@@ -727,6 +795,10 @@ export default function EndoPartsClient() {
                         void handleRemoveBasketItems(Array.from(selectedBasketItemIds))
                     }
                     removingSelectedItems={removingSelectedBasketItems}
+                    onChangeQuantity={(uid, quantity) =>
+                        void handleUpdateBasketQty(uid, quantity)
+                    }
+                    updatingItems={updatingBasketItemIds}
                     collapsible
                     collapsed={!sidebarVisible}
                     onToggleCollapse={() => setSidebarVisible((prev) => !prev)}

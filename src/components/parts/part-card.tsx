@@ -1,6 +1,7 @@
-import { BadgePercent, ChevronDown, Loader2, Send, ShoppingCart } from "@/lib/icons/lucide";
+import { BadgePercent, ChevronDown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
 import {
     getBasketItemApprovalStatus,
+    getBasketItemBasePrice,
     getBasketItemQty,
     getBasketItemRequestedPrice,
     hasBasketItemPriceRequest,
@@ -8,6 +9,7 @@ import {
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
 import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import QuantityControl from "@/components/ui/quantity-control";
+import RequestPriceBox from "@/components/ui/request-price-box";
 import PartCardDetails from "./part-card-details";
 import PartStockQuantityContainer from "../stock/request-stock-card";
 
@@ -135,10 +137,6 @@ export default function PartResults({
     formatPrice,
     endoRequest,
 }: PartResultsProps) {
-    const requestedPrice =
-        basketItem != null
-            ? getBasketItemRequestedPrice(basketItem)
-            : null;
     const requestStatus =
         basketItem != null
             ? getBasketItemApprovalStatus(basketItem)
@@ -147,6 +145,18 @@ export default function PartResults({
         basketItem != null
             ? hasBasketItemPriceRequest(basketItem)
             : false;
+    const erpPrice =
+        basketItem != null
+            ? getBasketItemBasePrice(basketItem)
+            : Number(item.PRICE_WHOLE);
+    const requestedPrice =
+        basketItem != null && hasPriceRequest
+            ? getBasketItemRequestedPrice(basketItem)
+            : null;
+    const hasRequestedPrice =
+        requestedPrice != null &&
+        requestedPrice > 0 &&
+        Math.abs(requestedPrice - erpPrice) > 0.0001;
     const requestStatusLabel =
         requestStatus === "approved"
             ? "Accepted"
@@ -215,7 +225,7 @@ export default function PartResults({
 
             <div
                 className={`rounded-xl border transition hover:border-2 ${isInBasket
-                    ? "border-green-400 bg-green-50 hover:bg-green-100 hover:border-green-500 dark:border-green-600 dark:bg-green-500/[0.06] dark:hover:bg-green-500/10 dark:hover:border-green-500"
+                    ? "border-green-400 bg-white hover:border-green-500 hover:bg-green-50 dark:border-green-600 dark:bg-white/[0.03] dark:hover:border-green-500 dark:hover:bg-green-500/10"
                     : "border-gray-200 bg-white hover:bg-brand-100/40 hover:border-brand-500 dark:border-gray-800 dark:bg-white/[0.03]"
                     }`}
             >
@@ -330,52 +340,18 @@ export default function PartResults({
                                     </div>
 
                                     {basketItem && (
-                                        <div className="flex w-full flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/90 px-2 py-2 dark:border-amber-500/20 dark:bg-amber-500/10 lg:w-auto lg:justify-end">
-                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                                                <BadgePercent className="h-3.5 w-3.5" />
-                                                <span>Αίτημα τιμής</span>
-                                            </div>
-
-                                            {hasPriceRequest && requestedPrice != null && requestedPrice > 0 && (
-                                                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                                                    {formatPrice(requestedPrice)}
-                                                </span>
-                                            )}
-
-                                            {hasPriceRequest && (
-                                                <span className={`text-[10px] font-semibold ${requestStatusClassName}`}>
-                                                    {requestStatusLabel}
-                                                </span>
-                                            )}
-
-                                            <input
-                                                type="number"
-                                                min={0}
-                                                step="0.01"
-                                                value={requestedPriceValue}
-                                                onChange={(e) => onRequestedPriceValueChange(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === "Enter") {
-                                                        onRequestPrice();
-                                                    }
-                                                }}
-                                                placeholder="Νέα τιμή..."
-                                                className="h-8 w-32 rounded-md border border-amber-200 bg-white px-2 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-amber-500/30 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={onRequestPrice}
-                                                disabled={isSubmittingRequestPrice || !requestedPriceValue || Number(requestedPriceValue) <= 0}
-                                                className="flex h-8 items-center gap-1.5 rounded-md bg-amber-500 px-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                            >
-                                                {isSubmittingRequestPrice ? (
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                ) : (
-                                                    <Send className="h-3.5 w-3.5" />
-                                                )}
-                                                <span>Αίτημα</span>
-                                            </button>
-                                        </div>
+                                        <RequestPriceBox
+                                            status={requestStatus}
+                                            hasPriceRequest={hasPriceRequest}
+                                            hasRequestedPrice={hasRequestedPrice}
+                                            requestedPrice={requestedPrice}
+                                            value={requestedPriceValue}
+                                            onChange={onRequestedPriceValueChange}
+                                            onSubmit={onRequestPrice}
+                                            submitting={isSubmittingRequestPrice}
+                                            formatPrice={(price) => formatPrice(price)}
+                                            stableWidth
+                                        />
                                     )}
                                 </div>
                             )}

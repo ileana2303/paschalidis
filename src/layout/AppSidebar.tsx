@@ -83,7 +83,7 @@ const navItems: NavItem[] = [
         icon: ClipboardList,
       },
       {
-        name: "Αιτήματα εκπτώσεων",
+        name: "Αιτήματα τιμών",
         path: "/discount-requests",
         icon: BadgePercent,
       },

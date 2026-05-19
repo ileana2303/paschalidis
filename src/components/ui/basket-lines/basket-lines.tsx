@@ -1,13 +1,12 @@
 "use client";
 
 import {
-    BadgePercent,
     Loader2,
-    Send,
     ShoppingCart,
     Trash2,
 } from "@/lib/icons/lucide";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
+import RequestPriceBox from "@/components/ui/request-price-box";
 import {
     getBasketItemApprovalStatus,
     getBasketItemBasePrice,
@@ -38,11 +37,6 @@ interface BasketLinesProps {
 const formatPrice = (price: number | null) => {
     if (price == null) return "--";
     return `${price.toFixed(2)} €`;
-};
-
-const parsePriceInput = (value: string) => {
-    const parsed = Number(value.replace(",", "."));
-    return Number.isFinite(parsed) ? parsed : null;
 };
 
 const quantityOptions = Array.from({ length: 100 }, (_, index) => index + 1);
@@ -163,6 +157,10 @@ export default function BasketLines({
                         const requestedPrice = hasPriceRequest
                             ? getBasketItemRequestedPrice(item)
                             : null;
+                        const hasRequestedPrice =
+                            requestedPrice != null &&
+                            requestedPrice > 0 &&
+                            Math.abs(requestedPrice - erpPrice) > 0.0001;
 
                         const lineTotal = getBasketItemLineTotal(item);
 
@@ -184,7 +182,6 @@ export default function BasketLines({
 
                         const currentQuantity = Number(item.QTY ?? 1);
                         const requestedPriceValue = requestedPriceValues?.[itemId] ?? "";
-                        const requestedPriceInput = parsePriceInput(requestedPriceValue);
                         const isSubmittingRequestPrice =
                             submittingRequestedPrices?.has(itemId) ?? false;
                         const canRequestPrice =
@@ -334,47 +331,20 @@ export default function BasketLines({
                                         </div>
 
                                         {canRequestPrice && (
-                                            <div className="mt-2 grid min-w-0 grid-cols-1 gap-2 border-t border-gray-200 pt-2 dark:border-gray-800">
-                                                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                                                    <BadgePercent className="h-3.5 w-3.5" />
-                                                    <span>Αίτημα</span>
-                                                </div>
-
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    step="0.01"
-                                                    value={requestedPriceValue}
-                                                    onChange={(event) =>
-                                                        onRequestedPriceValueChange?.(itemId, event.target.value)
-                                                    }
-                                                    onKeyDown={(event) => {
-                                                        if (event.key === "Enter") {
-                                                            void onRequestPrice?.(itemId);
-                                                        }
-                                                    }}
-                                                    placeholder="Νέα τιμή..."
-                                                    className="h-8 min-w-0 rounded-md border border-amber-200 bg-white px-2 text-sm text-gray-800 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-amber-500/30 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                                />
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => void onRequestPrice?.(itemId)}
-                                                    disabled={
-                                                        isSubmittingRequestPrice ||
-                                                        requestedPriceInput == null ||
-                                                        requestedPriceInput <= 0
-                                                    }
-                                                    className="flex h-8 items-center justify-center gap-1.5 rounded-md bg-amber-500 px-2.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                                >
-                                                    {isSubmittingRequestPrice ? (
-                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    ) : (
-                                                        <Send className="h-3.5 w-3.5" />
-                                                    )}
-                                                    <span>Αίτημα</span>
-                                                </button>
-                                            </div>
+                                            <RequestPriceBox
+                                                status={approvalStatus}
+                                                hasPriceRequest={hasPriceRequest}
+                                                hasRequestedPrice={hasRequestedPrice}
+                                                requestedPrice={requestedPrice}
+                                                value={requestedPriceValue}
+                                                onChange={(value) =>
+                                                    onRequestedPriceValueChange?.(itemId, value)
+                                                }
+                                                onSubmit={() => onRequestPrice?.(itemId)}
+                                                submitting={isSubmittingRequestPrice}
+                                                formatPrice={formatPrice}
+                                                className="mt-2"
+                                            />
                                         )}
                                     </div>
 

@@ -4,6 +4,7 @@ import {
     Loader2,
     Send,
     ShoppingCart,
+    Trash2,
 } from "@/lib/icons/lucide";
 import SummaryPanel, {
     SummaryPanelMessage,
@@ -11,6 +12,9 @@ import SummaryPanel, {
 import SummaryInfoCard from "@/components/ui/summary-panel/summary-info-card";
 import SummaryMetricGrid from "@/components/ui/summary-panel/summary-metric-grid";
 import SummaryPrimaryAction from "@/components/ui/summary-panel/summary-primary-action";
+import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
+
+const quantityOptions = Array.from({ length: 100 }, (_, index) => index + 1);
 
 export interface EndoBasketUiItem {
     uid: string;
@@ -28,6 +32,7 @@ interface EndoOrderSummaryProps {
     currentBranchCode: string;
     currentBranchName: string;
     basketItems: EndoBasketUiItem[];
+    selectedItems?: Set<string>;
     loading: boolean;
     error: string;
     successMessage: string;
@@ -38,6 +43,12 @@ interface EndoOrderSummaryProps {
     linesLabel?: string;
     sendButtonLabel?: string;
     emptyStateLabel?: string;
+    onToggleItem?: (uid: string) => void;
+    onRemoveItem?: (uid: string) => void;
+    onRemoveSelectedItems?: () => void;
+    removingSelectedItems?: boolean;
+    onChangeQuantity?: (uid: string, quantity: number) => void;
+    updatingItems?: Set<string>;
     onSendOrder?: () => void;
     onClearSelection?: () => void;
     clearButtonLabel?: string;
@@ -50,6 +61,7 @@ export default function EndoOrderSummary({
     currentBranchCode,
     currentBranchName,
     basketItems,
+    selectedItems,
     loading,
     error,
     successMessage,
@@ -60,6 +72,12 @@ export default function EndoOrderSummary({
     linesLabel = "Γραμμές Καλαθιού",
     sendButtonLabel = "Αποστολή Ενδοπαραγγελίας",
     emptyStateLabel = "Το καλάθι είναι κενό",
+    onToggleItem,
+    onRemoveItem,
+    onRemoveSelectedItems,
+    removingSelectedItems = false,
+    onChangeQuantity,
+    updatingItems,
     onSendOrder,
     onClearSelection,
     clearButtonLabel = "Καθαρισμός",
@@ -67,8 +85,34 @@ export default function EndoOrderSummary({
     collapsed = false,
     onToggleCollapse,
 }: EndoOrderSummaryProps) {
-    const totalQty = basketItems.reduce((sum, item) => sum + item.qty, 0);
-    const sendDisabled = sendingOrder || basketItems.length === 0;
+    const selectedSet = selectedItems ?? new Set(basketItems.map((item) => item.uid));
+    const selectedBasketItems =
+        selectedItems != null
+            ? basketItems.filter((item) => selectedSet.has(item.uid))
+            : basketItems;
+    const totalQty = selectedBasketItems.reduce((sum, item) => sum + item.qty, 0);
+    const sendDisabled = sendingOrder || selectedBasketItems.length === 0;
+    const canToggleItems = selectedItems != null && onToggleItem != null;
+    const canToggleAllBasketItems = canToggleItems && basketItems.length > 0;
+    const areAllBasketItemsSelected =
+        canToggleAllBasketItems &&
+        basketItems.every((item) => selectedSet.has(item.uid));
+    const canRemoveSelectedItems =
+        onRemoveSelectedItems != null && selectedBasketItems.length > 0;
+
+    const handleToggleAllBasketItems = () => {
+        if (selectedItems == null || onToggleItem == null || basketItems.length === 0) {
+            return;
+        }
+
+        basketItems.forEach((item) => {
+            const isSelected = selectedItems.has(item.uid);
+
+            if (areAllBasketItemsSelected ? isSelected : !isSelected) {
+                onToggleItem(item.uid);
+            }
+        });
+    };
 
     return (
         <SummaryPanel
@@ -116,7 +160,11 @@ export default function EndoOrderSummary({
                     {
                         id: "lines",
                         label: "Γραμμές",
-                        value: basketItems.length,
+                        value: selectedBasketItems.length,
+                        trailingValue:
+                            selectedItems != null
+                                ? ` / ${basketItems.length}`
+                                : undefined,
                     },
                     {
                         id: "qty",
@@ -145,11 +193,41 @@ export default function EndoOrderSummary({
                         <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
                             {linesLabel}
                         </p>
-                        {basketItems.length > 0 && (
-                            <span className="text-xs text-gray-400">
-                                {basketItems.length} {basketItems.length === 1 ? "γραμμή" : "γραμμές"}
-                            </span>
-                        )}
+
+                        <div className="flex items-center gap-2">
+                            {canToggleAllBasketItems && (
+                                <button
+                                    type="button"
+                                    onClick={handleToggleAllBasketItems}
+                                    className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-500/30 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
+                                >
+                                    {areAllBasketItemsSelected ? "Αποεπιλογή όλων" : "Επιλογή όλων"}
+                                </button>
+                            )}
+
+                            {canRemoveSelectedItems && (
+                                <button
+                                    type="button"
+                                    onClick={onRemoveSelectedItems}
+                                    disabled={removingSelectedItems}
+                                    title="Διαγραφή επιλεγμένων"
+                                    aria-label="Διαγραφή επιλεγμένων γραμμών"
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-200 bg-white text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 dark:border-red-500/30 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
+                                >
+                                    {removingSelectedItems ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    )}
+                                </button>
+                            )}
+
+                            {basketItems.length > 0 && (
+                                <span className="text-xs text-gray-400">
+                                    {basketItems.length} {basketItems.length === 1 ? "γραμμή" : "γραμμές"}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {basketItems.length === 0 ? (
@@ -162,13 +240,34 @@ export default function EndoOrderSummary({
                     ) : (
                         <div className="mt-4 space-y-3">
                             {basketItems.map((item) => {
+                                const isSelected = selectedSet.has(item.uid);
+                                const isUpdatingQuantity =
+                                    updatingItems?.has(item.uid) ?? false;
+                                const canChangeQuantity =
+                                    onChangeQuantity != null &&
+                                    item.basketIds.length === 1;
+
                                 return (
                                     <article
                                         key={item.uid}
-                                        className="group rounded-2xl border border-gray-200 bg-white p-3.5 shadow-xs transition-all hover:border-brand-200 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900/50 dark:hover:border-brand-500/30"
+                                        className={[
+                                            "group rounded-2xl border bg-white p-3.5 shadow-xs transition-all dark:bg-gray-900/50",
+                                            isSelected
+                                                ? "border-gray-200 hover:border-brand-200 hover:shadow-sm dark:border-gray-800 dark:hover:border-brand-500/30"
+                                                : "border-gray-200 opacity-60 dark:border-gray-800",
+                                        ].join(" ")}
                                     >
                                         <div className="flex items-start gap-3">
-                                            {/* <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-500/70 ring-4 ring-brand-500/10" /> */}
+                                            {canToggleItems && onToggleItem ? (
+                                                <DataTableSelectionCheckbox
+                                                    checked={isSelected}
+                                                    onCheckedChange={() => onToggleItem(item.uid)}
+                                                    ariaLabel={isSelected ? "Αποεπιλογή" : "Επιλογή"}
+                                                    className="mt-0.5"
+                                                />
+                                            ) : (
+                                                <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-500/70 ring-4 ring-brand-500/10" />
+                                            )}
 
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -186,12 +285,42 @@ export default function EndoOrderSummary({
                                                     </div>
 
                                                     <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end">
-                                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-semibold tabular-nums text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
-                                                            <span className="text-[10px] uppercase tracking-[0.14em] opacity-75">
-                                                                QTY
-                                                            </span>
-                                                            <span>{item.qty}</span>
-                                                        </span>
+                                                        <div>
+                                                            <label
+                                                                htmlFor={`endo-basket-qty-${item.uid}`}
+                                                                className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400"
+                                                            >
+                                                                Ποσότητα
+                                                            </label>
+
+                                                            <select
+                                                                id={`endo-basket-qty-${item.uid}`}
+                                                                value={Number.isFinite(item.qty) ? item.qty : 1}
+                                                                onChange={(event) =>
+                                                                    onChangeQuantity?.(
+                                                                        item.uid,
+                                                                        Number(event.target.value)
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    !canChangeQuantity ||
+                                                                    isUpdatingQuantity ||
+                                                                    removingSelectedItems
+                                                                }
+                                                                title={
+                                                                    item.basketIds.length > 1
+                                                                        ? "Η γραμμή πρέπει να αντιστοιχεί σε ένα BASKETID για ενημέρωση ποσότητας."
+                                                                        : undefined
+                                                                }
+                                                                className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
+                                                            >
+                                                                {quantityOptions.map((quantity) => (
+                                                                    <option key={quantity} value={quantity}>
+                                                                        {quantity}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
 
                                                         <span className="inline-flex max-w-[220px] items-center gap-1.5 truncate rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300">
                                                             <span className="text-[10px] uppercase tracking-[0.14em] text-gray-400">
@@ -201,10 +330,25 @@ export default function EndoOrderSummary({
                                                                 {item.basketIds.join(", ") || "-"}
                                                             </span>
                                                         </span>
+
+                                                        {onRemoveItem && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => onRemoveItem(item.uid)}
+                                                                disabled={removingSelectedItems}
+                                                                aria-label="Αφαίρεση"
+                                                                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                                            >
+                                                                {removingSelectedItems ? (
+                                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                                ) : (
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                )}
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
 
-                                                {/* Branch transfer visualization */}
                                                 <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 dark:border-gray-800 dark:bg-white/[0.03]">
                                                     <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
                                                         <div className="min-w-0">

@@ -216,7 +216,7 @@ export default function DiscountRequestsClient() {
     return (
         <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
             <div className="shrink-0">
-                <PageBreadcrumb pageTitle="Αιτήματα Έκπτωσης" />
+                <PageBreadcrumb pageTitle="Αιτήματα Τιμών" />
             </div>
 
             {error && (
