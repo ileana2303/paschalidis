@@ -788,6 +788,8 @@ export default function StockRequestsClient() {
                         getStatusStyle={getStatusStyle}
                         getRequestedQty={getRequestedQty}
                         formatDateTime={formatDateTime}
+                        loading={loading}
+                        onRefresh={loadRows}
                         sendingOrder={submittingAnatrof}
                         onSendOrder={() => void handleSubmitAnatrofOrder()}
                     />

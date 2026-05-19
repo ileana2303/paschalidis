@@ -23,6 +23,7 @@ interface BasketLinesProps {
     onToggleItem?: (uid: string) => void;
     onRemoveItem?: (uid: string) => void;
     onRemoveSelectedItems?: () => void;
+    onOpenItem?: (item: IBasketItem) => void;
     onChangeQuantity?: (uid: string, quantity: number) => void;
     requestedPriceValues?: Record<string, string>;
     onRequestedPriceValueChange?: (uid: string, value: string) => void;
@@ -47,6 +48,7 @@ export default function BasketLines({
     onToggleItem,
     onRemoveItem,
     onRemoveSelectedItems,
+    onOpenItem,
     onChangeQuantity,
     requestedPriceValues,
     onRequestedPriceValueChange,
@@ -228,9 +230,19 @@ export default function BasketLines({
 
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex items-center gap-2">
-                                                    <p className="truncate text-sm font-semibold text-gray-800 dark:text-white/90">
-                                                        {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
-                                                    </p>
+                                                    {onOpenItem ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onOpenItem(item)}
+                                                            className="truncate text-left text-sm font-semibold text-gray-800 transition hover:text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 dark:text-white/90 dark:hover:text-brand-400"
+                                                        >
+                                                            {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
+                                                        </button>
+                                                    ) : (
+                                                        <p className="truncate text-sm font-semibold text-gray-800 dark:text-white/90">
+                                                            {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
+                                                        </p>
+                                                    )}
                                                 </div>
 
                                                 <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-gray-400">

@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
     Loader2,
@@ -243,6 +243,7 @@ export default function CustomerOrderSummary({
     onChangeQuantity
 }: CustomerOrderSummaryProps) {
     const pathname = usePathname();
+    const router = useRouter();
     const isOnBasketPage = pathname === "/basket";
     const basketHref = customer?.TRDR
         ? `/basket?trdr=${customer.TRDR}`
@@ -260,6 +261,30 @@ export default function CustomerOrderSummary({
     const sendDisabled =
         sendingOrder ||
         (selectedItems ? selectedItems.size === 0 : (basket?.items.length ?? 0) === 0);
+
+    const handleOpenBasketLineItem = (item: IBasketItem) => {
+        const partSearch = String(
+            item.ITEM_CODE ||
+            item.CODE ||
+            item.CODE2 ||
+            item.MTRL ||
+            ""
+        ).trim();
+
+        if (!partSearch) {
+            return;
+        }
+
+        const params = new URLSearchParams();
+        const trdr = String(customer?.TRDR ?? "").trim();
+
+        if (trdr) {
+            params.set("trdr", trdr);
+        }
+
+        params.set("part", partSearch);
+        router.push(`/search-parts?${params.toString()}`);
+    };
 
     return (
         <SummaryPanel
@@ -345,6 +370,7 @@ export default function CustomerOrderSummary({
                     onRemoveSelectedItems={isOnBasketPage ? undefined : onRemoveSelectedItems}
                     removingItems={removingItems}
                     removingSelectedItems={removingSelectedItems}
+                    onOpenItem={handleOpenBasketLineItem}
                     onChangeQuantity={onChangeQuantity}
                     requestedPriceValues={isOnBasketPage ? undefined : requestedPriceValues}
                     onRequestedPriceValueChange={isOnBasketPage ? undefined : onRequestedPriceValueChange}

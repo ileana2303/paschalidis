@@ -163,6 +163,7 @@ export function useSearchPartsPageController({
         closeCustomerModal,
         handleOpenSearchModal,
         handleOpenCustomerModal,
+        runSearch,
         handleSearch,
         handleModalSearch,
         handleCustomerModalSearch,

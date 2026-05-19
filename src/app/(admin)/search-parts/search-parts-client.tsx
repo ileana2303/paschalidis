@@ -43,6 +43,7 @@ export default function SearchPartsClient() {
     const resultsContainerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const pendingScopedNavigationRef = useRef(false);
+    const lastUrlPartSearchRef = useRef<string | null>(null);
 
     const pageController = useSearchPartsPageController({
         customer,
@@ -68,6 +69,7 @@ export default function SearchPartsClient() {
         closeCustomerModal,
         handleOpenSearchModal,
         handleOpenCustomerModal,
+        runSearch: runPageDirectSearch,
         handleSearch: runPageSearch,
         handleModalSearch: runPageModalSearch,
         handleCustomerModalSearch,
@@ -90,16 +92,56 @@ export default function SearchPartsClient() {
     const handleUpdateQty = basketController.handleUpdateQty;
 
     const resetScopedSearchState = resultsController.resetScopedResultsState;
+    const prepareResultsForSearch = resultsController.prepareForSearch;
 
     const handleSearch = async () => {
-        resultsController.prepareForSearch();
+        prepareResultsForSearch();
         await runPageSearch();
     };
 
     const handleModalSearch = async () => {
-        resultsController.prepareForSearch();
+        prepareResultsForSearch();
         await runPageModalSearch();
     };
+
+    useEffect(() => {
+        const urlPart = String(searchParams.get("part") ?? "").trim();
+
+        if (!urlPart) {
+            lastUrlPartSearchRef.current = null;
+            return;
+        }
+
+        const urlTrdr = String(searchParams.get("trdr") ?? "").trim();
+        const customerTrdr = String(customer?.TRDR ?? "").trim();
+        const searchKey = [urlTrdr, customerTrdr, urlPart].join("|");
+
+        if (lastUrlPartSearchRef.current === searchKey) {
+            return;
+        }
+
+        lastUrlPartSearchRef.current = searchKey;
+        pendingScopedNavigationRef.current = Boolean(urlTrdr);
+        prepareResultsForSearch();
+
+        void runPageDirectSearch(urlPart).then((hasRunSearch) => {
+            if (!hasRunSearch) {
+                return;
+            }
+
+            requestAnimationFrame(() => {
+                resultsContainerRef.current?.scrollTo({
+                    top: 0,
+                    behavior: "smooth",
+                });
+            });
+        });
+    }, [
+        customer?.TRDR,
+        prepareResultsForSearch,
+        runPageDirectSearch,
+        searchParams,
+    ]);
 
     useEffect(() => {
         if (!hasMounted) return;

@@ -40,6 +40,7 @@ interface BasketTableProps {
     onUpdateQty: (uid: string, qty: number) => void;
     onRemove: (uid: string) => void;
     onRemoveSelected: (ids: string[]) => void;
+    onOpenItem?: (item: IBasketItem) => void;
     onAddMore: () => void;
     requestedPriceValues?: Record<string, string>;
     onRequestedPriceValueChange?: (uid: string, value: string) => void;
@@ -82,6 +83,7 @@ export default function BasketTable({
     onUpdateQty,
     onRemove,
     onRemoveSelected,
+    onOpenItem,
     onAddMore,
     requestedPriceValues,
     onRequestedPriceValueChange,
@@ -285,6 +287,7 @@ export default function BasketTable({
                                             onToggleItem={onToggleItem}
                                             onUpdateQty={onUpdateQty}
                                             onRemove={onRemove}
+                                            onOpenItem={onOpenItem}
                                             isUpdatingQty={updatingQtyItems?.has(itemId) ?? false}
                                             isRemoving={removingItems?.has(itemId) ?? false}
                                             isTableBusy={tableBusy}
@@ -325,6 +328,7 @@ function BasketTableRow({
     onToggleItem,
     onUpdateQty,
     onRemove,
+    onOpenItem,
     isUpdatingQty,
     isRemoving,
     isTableBusy,
@@ -340,6 +344,7 @@ function BasketTableRow({
     onToggleItem: (uid: string) => void;
     onUpdateQty: (uid: string, qty: number) => void;
     onRemove: (uid: string) => void;
+    onOpenItem?: (item: IBasketItem) => void;
     isUpdatingQty: boolean;
     isRemoving: boolean;
     isTableBusy: boolean;
@@ -440,12 +445,30 @@ function BasketTableRow({
                 </td>
 
                 <td className="px-4 py-3 align-middle">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                        {sku}
-                    </p>
-                    <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                    {onOpenItem ? (
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => onOpenItem(item)}
+                                className="block text-left text-sm font-semibold text-gray-800 transition hover:text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 dark:text-white/90 dark:hover:text-brand-400"
+                            >
+                                {sku}
+                            </button>
+                              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                         {productName}
                     </p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                        
+                                {sku}
+                            </p>
+                            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                                {productName}
+                            </p>
+                        </>
+                    )}
                 </td>
 
                 <td className="px-4 py-3 align-middle">

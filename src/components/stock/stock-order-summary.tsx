@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Send } from "@/lib/icons/lucide";
+import { Check, RefreshCw, Send } from "@/lib/icons/lucide";
 import SummaryPanel from "@/components/ui/summary-panel/summary-panel";
 import SummaryInfoCard from "@/components/ui/summary-panel/summary-info-card";
 import SummaryMetricGrid from "@/components/ui/summary-panel/summary-metric-grid";
@@ -14,8 +14,13 @@ export interface StockOrderSummaryProps {
     getStatusStyle: (status: string) => string;
     getRequestedQty: (row: IStockRequestListRow) => string;
     formatDateTime: (value?: string) => string;
+    loading: boolean;
+    onRefresh: () => void;
     sendingOrder?: boolean;
     onSendOrder?: () => void;
+    collapsible?: boolean;
+    collapsed?: boolean;
+    onToggleCollapse?: () => void;
 }
 
 export default function StockOrderSummary({
@@ -25,8 +30,13 @@ export default function StockOrderSummary({
     getStatusStyle,
     getRequestedQty,
     formatDateTime,
+    loading,
+    onRefresh,
     sendingOrder = false,
     onSendOrder,
+    collapsible = false,
+    collapsed = false,
+    onToggleCollapse,
 }: StockOrderSummaryProps) {
     const sendDisabled = sendingOrder || rows.length === 0;
 
@@ -35,10 +45,21 @@ export default function StockOrderSummary({
             label="Σύνοψη Ανατροφοδοσίας"
             title="Αποστολή Ανατροφοδοσίας :: S1"
             asideClassName="xl:!basis-[25%] xl:!min-w-[272px]"
+            collapsible={collapsible}
+            collapsed={collapsed}
+            onToggleCollapse={onToggleCollapse}
+            collapseTitle="Απόκρυψη καλαθιού"
             actions={
-                <span className="rounded-full bg-gray-900/10 px-2 py-1 text-[10px] font-semibold text-gray-700 dark:bg-gray-100/10 dark:text-gray-200">
-                    {rows.length}
-                </span>
+                <button
+                    type="button"
+                    onClick={onRefresh}
+                    disabled={loading}
+                    title="Ανανέωση"
+                    aria-label="Ανανέωση ανατροφοδοσίας"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                >
+                    <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                </button>
             }
             footer={
                 onSendOrder ? (

@@ -5,7 +5,6 @@ import PageBreadcrumb from "@/components/template-components/common/PageBreadCru
 import QuantityControl from "@/components/ui/quantity-control";
 import {
   AlertCircle,
-  CalendarDays,
   Check,
   Loader2,
   Package,
@@ -366,50 +365,12 @@ export default function StockFeedbackClient() {
                   Ανατροφοδοσία Καταστήματος
                 </h1>
                 <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                  Έλεγχος πωλήσεων και διαθέσιμων ποσοτήτων για το ενεργό
-                  κατάστημα.
+                  Έλεγχος πωλήσεων και διαθέσιμων ποσοτήτων ανά κατάστημα.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Περίοδος
-              </span>
-
-              <div className="relative">
-                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-
-                <select
-                  value={days}
-                  onChange={(event) => setDays(Number(event.target.value))}
-                  className="h-10 min-w-[190px] rounded-xl border border-gray-300 bg-white pl-9 pr-8 text-sm font-medium text-gray-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                >
-                  {DAY_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {formatDaysLabel(option)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </label>
-
-            <button
-              type="button"
-              onClick={loadRows}
-              disabled={loading}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              Ανανέωση
-            </button>
-          </div>
         </div>
       </div>
 
@@ -425,7 +386,7 @@ export default function StockFeedbackClient() {
 
       <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-          title="Είδη"
+          title="ΠΡΟΪΌΝΤΑ"
           value={formatNumber(rows.length)}
           description="Σύνολο γραμμών αποτελεσμάτων"
           icon={Package}
@@ -455,17 +416,35 @@ export default function StockFeedbackClient() {
 
       <DataTable>
         <DataTableHeader
-          title="Λίστα Ειδών"
+          title="Πίνακας Τελευταίων Πωλήσεων"
           description={`${filteredRows.length} από ${rows.length} είδη · ${formatDaysLabel(days)}`}
           action={(
-            <DataTableSearchBar
-              value={searchTerm}
-              onChange={setSearchTerm}
-              onRefresh={loadRows}
-              isRefreshing={loading}
-              refreshDisabled={loading}
-              placeholder="Αναζήτηση με κωδικό, MTRL ή περιγραφή..."
-            />
+            <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
+              <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                Περίοδος:
+                <select
+                  value={days}
+                  onChange={(event) => setDays(Number(event.target.value))}
+                  disabled={loading}
+                  className="min-w-[140px] border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
+                >
+                  {DAY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {formatDaysLabel(option)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <DataTableSearchBar
+                value={searchTerm}
+                onChange={setSearchTerm}
+                onRefresh={loadRows}
+                isRefreshing={loading}
+                refreshDisabled={loading}
+                placeholder="Αναζήτηση με κωδικό, MTRL ή περιγραφή..."
+              />
+            </div>
           )}
         />
 
@@ -474,7 +453,7 @@ export default function StockFeedbackClient() {
         ) : filteredRows.length === 0 ? (
           <DataTableEmptyState
             icon={<Package className="h-7 w-7" />}
-            title="Δεν βρέθηκαν είδη"
+            title="Δεν βρέθηκαν ανταλλακτικά"
             description="Δεν υπάρχουν δεδομένα για τα επιλεγμένα φίλτρα ή η αναζήτηση δεν επέστρεψε αποτελέσματα."
           />
         ) : (

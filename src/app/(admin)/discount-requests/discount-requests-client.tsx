@@ -77,7 +77,13 @@ export default function DiscountRequestsClient() {
 
         try {
             const data = await fetchRequestedPriceRequests();
-            setRows(data.rows ?? []);
+            setRows(
+                [...(data.rows ?? [])].sort(
+                    (a, b) =>
+                        (normalizeBasketId(b.BASKETID) ?? 0) -
+                        (normalizeBasketId(a.BASKETID) ?? 0)
+                )
+            );
             setEditingId("");
             setEditedPrice("");
         } catch (err) {
