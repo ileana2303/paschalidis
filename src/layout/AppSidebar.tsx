@@ -132,6 +132,7 @@ const AppSidebar: React.FC = () => {
                         <Link
                           key={subItem.name}
                           href={subItem.path}
+                          prefetch={false}
                           className={`group flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] transition-all duration-200 active:scale-[0.98]
 
             ${isActive(subItem.path)
@@ -164,6 +165,7 @@ const AppSidebar: React.FC = () => {
               nav.path ? (
                 <Link
                   href={nav.path}
+                  prefetch={false}
                   className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200
                     ${isGroupActive
                       ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
@@ -210,6 +212,7 @@ const AppSidebar: React.FC = () => {
               nav.path && (
                 <Link
                   href={nav.path}
+                  prefetch={false}
                   className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 
                     ${isActive(nav.path!)
                       ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
@@ -241,6 +244,7 @@ const AppSidebar: React.FC = () => {
                       <li key={subItem.name}>
                         <Link
                           href={subItem.path}
+                          prefetch={false}
                           className={`group flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] transition-all duration-200
                             ${isActive(subItem.path)
                               ? "bg-white text-brand-700 shadow-sm dark:bg-brand-800/40 dark:text-brand-100"
@@ -284,7 +288,7 @@ const AppSidebar: React.FC = () => {
         className={`py-8 flex  ${showExpandedLogo ? "justify-start" : "lg:justify-center"
           }`}
       >
-        <Link href="/">
+        <Link href="/" prefetch={false}>
           <div
             className={`relative h-10 transition-all duration-300 ${showExpandedLogo ? "w-[150px]" : "w-10"
               }`}
