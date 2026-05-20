@@ -84,7 +84,7 @@ const navItems: NavItem[] = [
       },
       {
         name: "Αιτήματα τιμών",
-        path: "/discount-requests",
+        path: "/price-requests",
         icon: BadgePercent,
       },
     ],

@@ -31,6 +31,7 @@ type EndoListScope = Exclude<EndoListRoutePayload["scope"], "both" | undefined>;
 
 const REQUESTED_QTY_COLUMN_KEY = "__REQUESTED_QTY";
 const QTY_ACTIONS_COLUMN_KEY = "__QTY_ACTIONS";
+const quantityOptions = Array.from({ length: 100 }, (_, index) => index + 1);
 
 interface EndoListPageClientProps {
     scope: EndoListScope;
@@ -138,16 +139,28 @@ function getRowKey(row: IEndoListRow, index: number) {
     return String(row.BASKETID || row.ID || `${row.MTRL ?? "row"}-${index}`);
 }
 
-function hasQtyUpdateFields(row: IEndoListRow) {
+function hasQtyUpdateFields(row: IEndoListRow, allowBranchFallbackForToBranch = false) {
     const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
     const mtrl = String(row.MTRL ?? "").trim();
-    const toBranch = String(row.TO_BRANCH ?? "").trim();
+    const toBranch =
+        String(row.TO_BRANCH ?? "").trim() ||
+        (allowBranchFallbackForToBranch ? String(row.BRANCH ?? "").trim() : "");
 
     return Boolean(basketId && mtrl && toBranch);
 }
 
 function getRequestedQtyFromRow(row: IEndoListRow) {
     return parseQtyValue(row.QTY_REQUESTED || row.QTY || "0");
+}
+
+function getRequestedBasketQtyFromRow(row: IEndoListRow) {
+    return parseQtyValue(row.QTY || row.QTY_REQUESTED || "0");
+}
+
+function getTrackedQtyFromRow(row: IEndoListRow, scope: EndoListScope) {
+    return scope === "requested"
+        ? getRequestedBasketQtyFromRow(row)
+        : getRequestedQtyFromRow(row);
 }
 
 function canApproveRowWithQty(row: IEndoListRow, qty: number) {
@@ -263,7 +276,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
             nextRows.forEach((row, index) => {
                 const rowKey = getRowKey(row, index);
-                const requestedQty = getRequestedQtyFromRow(row);
+                const requestedQty = getTrackedQtyFromRow(row, scope);
 
                 nextRequestedQtyByRow[rowKey] = requestedQty;
                 nextFinalQtyByRow[rowKey] = requestedQty;
@@ -323,7 +336,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             const fallbackQty =
                 finalQtyByRow[rowKey] ??
                 requestedQtyByRow[rowKey] ??
-                getRequestedQtyFromRow(row);
+                getTrackedQtyFromRow(row, scope);
 
             if (draft === undefined) {
                 return fallbackQty;
@@ -335,7 +348,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
             return parseQtyValue(draft);
         },
-        [editedQtyByRow, finalQtyByRow, requestedQtyByRow]
+        [editedQtyByRow, finalQtyByRow, requestedQtyByRow, scope]
     );
 
     const isQtyChanged = useCallback(
@@ -347,13 +360,13 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             const currentQty =
                 finalQtyByRow[rowKey] ??
                 requestedQtyByRow[rowKey] ??
-                getRequestedQtyFromRow(row);
+                getTrackedQtyFromRow(row, scope);
 
             const editedQty = getResolvedQty(rowKey, row);
 
             return currentQty !== editedQty;
         },
-        [editedQtyByRow, finalQtyByRow, getResolvedQty, requestedQtyByRow]
+        [editedQtyByRow, finalQtyByRow, getResolvedQty, requestedQtyByRow, scope]
     );
 
     const setEditedQuantity = useCallback((rowKey: string, nextQuantity: number) => {
@@ -376,19 +389,30 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
     }, []);
 
     const handleQtyUpdate = useCallback(
-        async (rowKey: string, row: IEndoListRow) => {
+        async (rowKey: string, row: IEndoListRow, quantityOverride?: number) => {
             const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
             const mtrl = String(row.MTRL ?? "").trim();
-            const toBranch = String(row.TO_BRANCH ?? "").trim();
+            const toBranch =
+                String(row.TO_BRANCH ?? "").trim() ||
+                (!isReceivedScope ? String(row.BRANCH ?? "").trim() : "");
             const branch =
                 String(row.BRANCH ?? "").trim() || String(currentBranchCode).trim();
 
             if (!basketId || !mtrl || !toBranch) {
+                if (quantityOverride != null) {
+                    resetEditedQuantity(rowKey);
+                }
+
                 setError("Λείπουν απαραίτητα στοιχεία γραμμής για ενημέρωση ποσότητας");
                 return;
             }
 
-            const nextQty = getResolvedQty(rowKey, row);
+            const nextQty =
+                quantityOverride == null
+                    ? getResolvedQty(rowKey, row)
+                    : Number.isFinite(quantityOverride)
+                        ? Math.max(1, Math.floor(quantityOverride))
+                        : 1;
 
             setError("");
             setSuccessMessage("");
@@ -415,6 +439,10 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                     String(data.message ?? "").trim() || "Η ποσότητα ενημερώθηκε"
                 );
             } catch (err) {
+                if (quantityOverride != null) {
+                    resetEditedQuantity(rowKey);
+                }
+
                 setError(
                     err instanceof Error
                         ? err.message
@@ -431,10 +459,27 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         [
             currentBranchCode,
             getResolvedQty,
+            isReceivedScope,
             resetEditedQuantity,
             updateEndoListQty,
             user?.uid,
         ]
+    );
+
+    const handleRequestedQtyChange = useCallback(
+        async (rowKey: string, row: IEndoListRow, nextQuantity: number) => {
+            const normalizedQty = Number.isFinite(nextQuantity)
+                ? Math.max(1, Math.floor(nextQuantity))
+                : 1;
+
+            setEditedQtyByRow((prev) => ({
+                ...prev,
+                [rowKey]: String(normalizedQty),
+            }));
+
+            await handleQtyUpdate(rowKey, row, normalizedQty);
+        },
+        [handleQtyUpdate]
     );
 
     const handleSubmitRow = useCallback(
@@ -583,6 +628,9 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                         const rowKey = getRowKey(row, index);
                                         const canEditQty =
                                             isReceivedScope && hasQtyUpdateFields(row);
+                                        const canEditRequestedQty =
+                                            !isReceivedScope &&
+                                            hasQtyUpdateFields(row, true);
 
                                         const requestedQty =
                                             requestedQtyByRow[rowKey] ??
@@ -608,6 +656,47 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                     variant="brand"
                                                                     className="min-w-[64px]"
                                                                 />
+                                                            </td>
+                                                        );
+                                                    }
+
+                                                    if (!isReceivedScope && column === "QTY") {
+                                                        const rowSaving = savingRowKeys.has(rowKey);
+                                                        const currentQuantity = getResolvedQty(rowKey, row);
+
+                                                        return (
+                                                            <td
+                                                                key={`${rowKey}-${column}`}
+                                                                className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200"
+                                                            >
+                                                                <div className="flex w-24 items-center gap-2">
+                                                                    <select
+                                                                        id={`endo-list-requested-qty-${rowKey}`}
+                                                                        value={Number.isFinite(currentQuantity) ? currentQuantity : 1}
+                                                                        onChange={(event) =>
+                                                                            void handleRequestedQtyChange(
+                                                                                rowKey,
+                                                                                row,
+                                                                                Number(event.target.value)
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            rowSaving ||
+                                                                            !canEditRequestedQty
+                                                                        }
+                                                                        className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
+                                                                    >
+                                                                        {quantityOptions.map((quantity) => (
+                                                                            <option key={quantity} value={quantity}>
+                                                                                {quantity}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+
+                                                                    {rowSaving && (
+                                                                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-brand-500" />
+                                                                    )}
+                                                                </div>
                                                             </td>
                                                         );
                                                     }

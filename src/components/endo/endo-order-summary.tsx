@@ -120,6 +120,7 @@ export default function EndoOrderSummary({
             title={summaryTitle}
             collapsible={collapsible}
             collapsed={collapsed}
+            href="/endo/endo-lists-requested"
             onToggleCollapse={onToggleCollapse}
             collapseTitle="Απόκρυψη καλαθιού"
             footer={
@@ -263,29 +264,52 @@ export default function EndoOrderSummary({
                                                     checked={isSelected}
                                                     onCheckedChange={() => onToggleItem(item.uid)}
                                                     ariaLabel={isSelected ? "Αποεπιλογή" : "Επιλογή"}
-                                                    className="mt-0.5"
+                                                    className="mt-1"
                                                 />
                                             ) : (
                                                 <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-500/70 ring-4 ring-brand-500/10" />
                                             )}
 
                                             <div className="min-w-0 flex-1">
-                                                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
                                                     <div className="min-w-0">
                                                         <p className="truncate text-sm font-semibold text-gray-800 dark:text-white/90">
                                                             {item.itemCode || String(item.mtrl)}
                                                         </p>
 
                                                         <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                                                            {item.itemDescr || "—"}
+                                                            {item.itemDescr || "—"} 
+
+                                                            {item.manufacturer && (
+                                                                <>
+                                                                    <span className="mx-1.5 text-gray-500 dark:text-gray-600">•</span>
+                                                                    <span className="font-medium text-gray-500 dark:text-gray-300">
+                                                                        {item.manufacturer}
+                                                                    </span>
+                                                                </>
+                                                            )}
                                                         </p>
-                                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                                                            MTRL: {item.mtrl || "—"}
-                                                        </p>
+
+                                                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                                            <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-500 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-400">
+                                                                MTRL:&nbsp;
+                                                                <span className="font-semibold tabular-nums text-gray-700 dark:text-white/90">
+                                                                    {item.mtrl || "—"}
+                                                                </span>
+                                                            </span>
+
+                                                            <span className="inline-flex max-w-[260px] items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-500 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-400">
+                                                                Basket ID:&nbsp;
+                                                                <span className="truncate font-semibold tabular-nums text-gray-700 dark:text-white/90">
+                                                                    {item.basketIds.join(", ") || "-"}
+                                                                </span>
+                                                            </span>
+
+                                                        </div>
                                                     </div>
 
-                                                    <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end">
-                                                        <div>
+                                                    <div className="flex shrink-0 items-end gap-2 sm:justify-end">
+                                                        <div className="w-20">
                                                             <label
                                                                 htmlFor={`endo-basket-qty-${item.uid}`}
                                                                 className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400"
@@ -322,22 +346,13 @@ export default function EndoOrderSummary({
                                                             </select>
                                                         </div>
 
-                                                        <span className="inline-flex max-w-[220px] items-center gap-1.5 truncate rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300">
-                                                            <span className="text-[10px] uppercase tracking-[0.14em] text-gray-400">
-                                                                Basket
-                                                            </span>
-                                                            <span className="truncate tabular-nums">
-                                                                {item.basketIds.join(", ") || "-"}
-                                                            </span>
-                                                        </span>
-
                                                         {onRemoveItem && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => onRemoveItem(item.uid)}
                                                                 disabled={removingSelectedItems}
                                                                 aria-label="Αφαίρεση"
-                                                                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                                                className="mb-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                                                             >
                                                                 {removingSelectedItems ? (
                                                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -353,7 +368,7 @@ export default function EndoOrderSummary({
                                                     <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
                                                         <div className="min-w-0">
                                                             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
-                                                                ΠΡΟΣ:
+                                                                Αίτημα από
                                                             </p>
                                                             <p className="mt-1 truncate text-sm font-semibold text-gray-700 dark:text-white/90">
                                                                 {item.fromBranch || "-"}
@@ -366,7 +381,7 @@ export default function EndoOrderSummary({
 
                                                         <div className="min-w-0 text-right">
                                                             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
-                                                                ΑΠΟ:
+                                                                Προς
                                                             </p>
                                                             <p className="mt-1 truncate text-sm font-semibold text-gray-700 dark:text-white/90">
                                                                 {item.toBranch || "-"}
@@ -374,7 +389,6 @@ export default function EndoOrderSummary({
                                                         </div>
                                                     </div>
                                                 </div>
-
                                             </div>
                                         </div>
                                     </article>

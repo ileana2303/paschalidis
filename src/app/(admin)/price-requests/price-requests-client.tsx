@@ -55,7 +55,7 @@ function normalizeBasketId(value: unknown) {
     return parsed;
 }
 
-export default function DiscountRequestsClient() {
+export default function PriceRequestsClient() {
     const { mutateAsync: fetchRequestedPriceRequests } =
         useFetchRequestedPriceRequestsMutation();
     const { mutateAsync: updateRequestedPriceRequest } =
