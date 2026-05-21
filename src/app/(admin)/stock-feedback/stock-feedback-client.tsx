@@ -19,9 +19,14 @@ import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import StatusBadge from "@/components/ui/data-table/status-badge";
-import type { IStockFeedbackRow, StockRequestStatus } from "@/lib/interface";
+import type {
+  IStockFeedbackRow,
+  IStockRequestListRow,
+  StockRequestStatus,
+} from "@/lib/interface";
 import {
   useFetchStockFeedbackMutation,
+  useFetchStockRequestsMutation,
   useRequestStockQuantityMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
@@ -63,6 +68,47 @@ function isCurrentBranchStockColumn(
   branchCode: "1001" | "1006" | "1007"
 ) {
   return currentBranchCode === branchCode;
+}
+
+function isPendingStockRequestStatus(status: string | null | undefined) {
+  const normalized = String(status ?? "").trim().toUpperCase();
+  return normalized.includes("ΕΚΚΡΕΜ") || normalized.includes("PENDING");
+}
+
+function toPositiveInteger(value: unknown) {
+  const parsed = Number(String(value ?? "").trim().replace(",", "."));
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return 0;
+  }
+
+  return parsed;
+}
+
+function buildPendingStockState(rows: IStockRequestListRow[] | undefined) {
+  const nextPendingStatuses: Record<string, StockRequestStatus> = {};
+  const nextPendingQty: Record<string, number> = {};
+
+  for (const requestRow of rows ?? []) {
+    const mtrl = String(requestRow.MTRL ?? "").trim();
+
+    if (!mtrl || !isPendingStockRequestStatus(requestRow.STATUS)) {
+      continue;
+    }
+
+    const requestedQty = toPositiveInteger(requestRow.QTY_REQUESTED);
+
+    if (requestedQty <= 0) {
+      continue;
+    }
+
+    nextPendingStatuses[mtrl] = "pending";
+    nextPendingQty[mtrl] = (nextPendingQty[mtrl] ?? 0) + requestedQty;
+  }
+
+  return {
+    statuses: nextPendingStatuses,
+    requestedQty: nextPendingQty,
+  };
 }
 
 function KpiCard({
@@ -121,6 +167,7 @@ function TableSkeleton() {
 export default function StockFeedbackClient() {
   const user = useAuthStore((state) => state.user);
   const { mutateAsync: fetchStockFeedback } = useFetchStockFeedbackMutation();
+  const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
   const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
 
   const currentBranchCode = useMemo(
@@ -186,8 +233,26 @@ export default function StockFeedbackClient() {
       );
 
       setRows(nextRows);
+
+      try {
+        const stockRequestData = await fetchStockRequests({
+          branch: currentBranchCode,
+        });
+        const pendingState = buildPendingStockState(stockRequestData.rows);
+        setRequestStatuses(pendingState.statuses);
+        setRequestedStatusQty(pendingState.requestedQty);
+      } catch (stockRequestError) {
+        console.error(
+          "[stock-feedback] Failed to hydrate pending request statuses",
+          stockRequestError
+        );
+        setRequestStatuses({});
+        setRequestedStatusQty({});
+      }
     } catch (err) {
       setRows([]);
+      setRequestStatuses({});
+      setRequestedStatusQty({});
       setError(
         err instanceof Error
           ? err.message
@@ -196,7 +261,7 @@ export default function StockFeedbackClient() {
     } finally {
       setLoading(false);
     }
-  }, [currentBranchCode, days, fetchStockFeedback]);
+  }, [currentBranchCode, days, fetchStockFeedback, fetchStockRequests]);
 
   useEffect(() => {
     loadRows();

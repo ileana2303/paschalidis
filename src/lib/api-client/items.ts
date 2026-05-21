@@ -24,11 +24,21 @@ const stockFeedbackInFlightRequests = new Map<
     string,
     Promise<StockFeedbackResponse>
 >();
+const stockRequestListInFlightRequests = new Map<
+    string,
+    Promise<StockRequestListResponse>
+>();
 
 function getStockFeedbackRequestKey(payload: StockFeedbackRoutePayload) {
     return JSON.stringify({
         branch: String(payload.branch ?? "").trim(),
         days: String(payload.days ?? "").trim(),
+    });
+}
+
+function getStockRequestListRequestKey(payload: StockRequestListRoutePayload) {
+    return JSON.stringify({
+        branch: String(payload.branch ?? "").trim(),
     });
 }
 
@@ -113,16 +123,33 @@ export async function requestStockQuantity(
 export async function fetchStockRequests(
     payload: StockRequestListRoutePayload
 ): Promise<StockRequestListResponse> {
-    const { data } = await httpClient.post<StockRequestListResponse>(
-        "/api/items/stock-requests",
-        payload
-    );
+    const requestKey = getStockRequestListRequestKey(payload);
+    const inFlightRequest = stockRequestListInFlightRequests.get(requestKey);
 
-    if (!data?.success) {
-        throw new Error(data?.message ?? 'Αποτυχία φόρτωσης αιτημάτων αποθέματος.');
+    if (inFlightRequest) {
+        return inFlightRequest;
     }
 
-    return data;
+    const requestPromise = (async () => {
+        const { data } = await httpClient.post<StockRequestListResponse>(
+            "/api/items/stock-requests",
+            payload
+        );
+
+        if (!data?.success) {
+            throw new Error(data?.message ?? 'Αποτυχία φόρτωσης αιτημάτων αποθέματος.');
+        }
+
+        return data;
+    })();
+
+    stockRequestListInFlightRequests.set(requestKey, requestPromise);
+
+    try {
+        return await requestPromise;
+    } finally {
+        stockRequestListInFlightRequests.delete(requestKey);
+    }
 }
 
 export async function updateStockRequest(
