@@ -46,6 +46,11 @@ const navItems: NavItem[] = [
     path: "/search-parts",
   },
   {
+    icon: GitCompareArrows,
+    name: "Ορισμός Ομοίων",
+    path: "/search-set-similar",
+  },
+  {
     icon: Warehouse,
     name: "Ανατροφοδοσία",
     path: "/stock-feedback",
