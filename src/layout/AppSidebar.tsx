@@ -9,6 +9,7 @@ import {
   ClipboardList,
   MoreHorizontal,
   PackageSearch,
+  Pencil,
   Search,
   Settings,
   Users,
@@ -49,6 +50,11 @@ const navItems: NavItem[] = [
     icon: GitCompareArrows,
     name: "Ορισμός Ομοίων",
     path: "/search-set-similar",
+  },
+  {
+    icon: Pencil,
+    name: "Επεξεργασία Ειδών",
+    path: "/edit-items",
   },
   {
     icon: Warehouse,
