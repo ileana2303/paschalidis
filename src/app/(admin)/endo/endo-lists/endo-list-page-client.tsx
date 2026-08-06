@@ -26,6 +26,7 @@ import type {
     EndoListRoutePayload,
     IEndoListRow,
 } from "@/lib/interface";
+import toast from "react-hot-toast";
 
 type EndoListScope = Exclude<EndoListRoutePayload["scope"], "both" | undefined>;
 
@@ -435,19 +436,21 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                     [rowKey]: nextQty,
                 }));
 
-                setSuccessMessage(
+                const message =
                     String(data.message ?? "").trim() || "Η ποσότητα ενημερώθηκε"
-                );
+                setSuccessMessage(message);
+                toast.success(message);
             } catch (err) {
                 if (quantityOverride != null) {
                     resetEditedQuantity(rowKey);
                 }
 
-                setError(
+                const message =
                     err instanceof Error
                         ? err.message
-                        : "Αποτυχία ενημέρωσης ποσότητας"
-                );
+                        : "Αποτυχία ενημέρωσης ποσότητας";
+                setError(message);
+                toast.error(message);
             } finally {
                 setSavingRowKeys((prev) => {
                     const next = new Set(prev);
@@ -523,16 +526,18 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
                 await loadRows();
 
-                setSuccessMessage(
+                const message =
                     String(data.message ?? "").trim() ||
-                    "Η ενδοδιακίνηση καταχωρήθηκε επιτυχώς"
-                );
+                    "Η ενδοδιακίνηση καταχωρήθηκε επιτυχώς";
+                setSuccessMessage(message);
+                toast.success(message);
             } catch (err) {
-                setError(
+                const message =
                     err instanceof Error
                         ? err.message
-                        : "Αποτυχία αποστολής SALDOC"
-                );
+                        : "Αποτυχία αποστολής SALDOC";
+                setError(message);
+                toast.error(message);
             } finally {
                 setSubmittingRowKeys((prev) => {
                     const next = new Set(prev);

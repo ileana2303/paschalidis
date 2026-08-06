@@ -12,6 +12,7 @@ import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import type { IRequestedPriceListRow } from "@/lib/interface";
+import toast from "react-hot-toast";
 import {
     useFetchRequestedPriceRequestsMutation,
     useUpdateRequestedPriceRequestMutation,
@@ -176,18 +177,21 @@ export default function PriceRequestsClient() {
                     basketId,
                 });
 
-            setSuccessMessage(response.message ?? "Το αίτημα εγκρίθηκε.");
+            const message = response.message ?? "Το αίτημα εγκρίθηκε.";
+            setSuccessMessage(message);
+            toast.success(message);
             setRows((currentRows) =>
                 currentRows.filter((currentRow) => currentRow.BASKETID !== row.BASKETID)
             );
             setEditingId("");
             setEditedPrice("");
         } catch (err) {
-            setError(
+            const message =
                 err instanceof Error
                     ? err.message
-                    : "Αποτυχία έγκρισης αιτήματος"
-            );
+                    : "Αποτυχία έγκρισης αιτήματος";
+            setError(message);
+            toast.error(message);
         } finally {
             setUpdatingId("");
         }
@@ -208,7 +212,9 @@ export default function PriceRequestsClient() {
         setError("");
         setSuccessMessage("");
 
-        setSuccessMessage("Το αίτημα αφαιρέθηκε από τον πίνακα αιτημάτων.");
+        const message = "Το αίτημα αφαιρέθηκε από τον πίνακα αιτημάτων.";
+        setSuccessMessage(message);
+        toast.success(message);
         setRows((currentRows) =>
             currentRows.filter((currentRow) => currentRow.BASKETID !== row.BASKETID)
         );

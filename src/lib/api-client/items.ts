@@ -2,6 +2,11 @@ import {
     IItem,
     IItemTRDR,
     ApiResponse,
+    ItemEditLoadResponse,
+    ItemEditSaveResponse,
+    ItemEditUpdatePayload,
+    SetSimilarItemPayload,
+    SetSimilarItemResponse,
     StockFeedbackResponse,
     StockFeedbackRoutePayload,
     StockRequestListResponse,
@@ -70,6 +75,51 @@ export async function searchItemsByTrdr(
         "/api/items/search",
         { search, trdr: Number(trdr) }
     );
+    return data;
+}
+
+export async function fetchEditableItem(
+    key: string
+): Promise<ItemEditLoadResponse> {
+    const { data } = await httpClient.post<ItemEditLoadResponse>(
+        "/api/items/edit",
+        { key }
+    );
+
+    if (!data.success || !data.item) {
+        throw new Error(data.message || "Το προϊόν δεν βρέθηκε.");
+    }
+
+    return data;
+}
+
+export async function updateEditableItem(
+    payload: ItemEditUpdatePayload
+): Promise<ItemEditSaveResponse> {
+    const { data } = await httpClient.patch<ItemEditSaveResponse>(
+        "/api/items/edit",
+        payload
+    );
+
+    if (!data.success) {
+        throw new Error(data.message || "Η αποθήκευση δεν ολοκληρώθηκε.");
+    }
+
+    return data;
+}
+
+export async function setSimilarItem(
+    payload: SetSimilarItemPayload
+): Promise<SetSimilarItemResponse> {
+    const { data } = await httpClient.post<SetSimilarItemResponse>(
+        "/api/items/set-similar",
+        payload
+    );
+
+    if (!data.success) {
+        throw new Error(data.message || "Η ενημέρωση δεν ολοκληρώθηκε.");
+    }
+
     return data;
 }
 

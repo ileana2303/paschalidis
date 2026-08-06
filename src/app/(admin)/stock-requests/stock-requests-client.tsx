@@ -24,6 +24,7 @@ import {
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
 import { normalizeBranchCode } from "@/lib/auth/branches";
+import toast from "react-hot-toast";
 
 type StockBranchCode = "1001" | "1006" | "1007";
 type StockBranchStockKey = "YP1001" | "YP1006" | "YP1007";
@@ -324,7 +325,9 @@ export default function StockRequestsClient() {
                 );
                 setEditingId("");
                 setEditedQty("");
-                setSuccessMessage("Η ποσότητα ενημερώθηκε");
+                const message = "Η ποσότητα ενημερώθηκε";
+                setSuccessMessage(message);
+                toast.success(message);
                 return;
             }
 
@@ -347,15 +350,19 @@ export default function StockRequestsClient() {
                 );
                 setEditingId("");
                 setEditedQty("");
-                setSuccessMessage("Το αίτημα εγκρίθηκε");
+                const message = "Το αίτημα εγκρίθηκε";
+                setSuccessMessage(message);
+                toast.success(message);
                 return;
             }
 
             await loadRows();
+            toast.success("Το αίτημα διαγράφηκε");
         } catch (err) {
-            setError(
+            const message =
                 err instanceof Error ? err.message : "Αποτυχία ενημέρωσης αιτήματος"
-            );
+            setError(message);
+            toast.error(message);
         } finally {
             setUpdatingId("");
         }
@@ -426,16 +433,18 @@ export default function StockRequestsClient() {
             });
 
             await loadRows();
-            setSuccessMessage(
+            const message =
                 String(data.message ?? "").trim() ||
-                "Η ανατροφοδοσία καταχωρήθηκε επιτυχώς."
-            );
+                "Η ανατροφοδοσία καταχωρήθηκε επιτυχώς.";
+            setSuccessMessage(message);
+            toast.success(message);
         } catch (err) {
-            setError(
+            const message =
                 err instanceof Error
                     ? err.message
-                    : "Αποτυχία αποστολής ανατροφοδοσίας"
-            );
+                    : "Αποτυχία αποστολής ανατροφοδοσίας";
+            setError(message);
+            toast.error(message);
         } finally {
             setSubmittingAnatrof(false);
         }

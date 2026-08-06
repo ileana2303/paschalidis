@@ -16,6 +16,7 @@ import {
     mapEndoRequestedRows,
 } from "@/hooks/search-parts/search-parts-endo-utils";
 import type { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
+import toast from "react-hot-toast";
 
 interface UseSearchPartsResultsActionsParams {
     customer: ICustomerInfo | null;
@@ -193,20 +194,26 @@ export function useSearchPartsResultsActions({
                 [requestKey]: (prev[requestKey] ?? 0) + requestedQty,
             }));
             setEndoRequestedQty(item.MTRL, sourceBranchCode, 0);
-            setEndoBasketSuccess(response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης");
+            const message =
+                response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης";
+            setEndoBasketSuccess(message);
+            toast.success(message);
         } catch (error) {
             if (isAxiosError(error)) {
                 const responseMessage =
                     typeof error.response?.data?.message === "string"
                         ? error.response.data.message
                         : undefined;
-                setEndoBasketError(responseMessage ?? error.message);
+                const message = responseMessage ?? error.message;
+                setEndoBasketError(message);
+                toast.error(message);
             } else {
-                setEndoBasketError(
+                const message =
                     error instanceof Error
                         ? error.message
-                        : "Αποτυχία προσθήκης στο καλάθι ενδοδιακίνησης"
-                );
+                        : "Αποτυχία προσθήκης στο καλάθι ενδοδιακίνησης";
+                setEndoBasketError(message);
+                toast.error(message);
             }
         } finally {
             setAddingToEndoBasket((prev) => {
@@ -269,14 +276,17 @@ export function useSearchPartsResultsActions({
                 ...prev,
                 [mtrlKey]: "pending",
             }));
+            toast.success("Το αίτημα αποθέματος καταχωρήθηκε.");
         } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Αποτυχία υποβολής αιτήματος αποθέματος.";
             setStockRequestErrors((prev) => ({
                 ...prev,
-                [mtrlKey]:
-                    error instanceof Error
-                        ? error.message
-                        : 'Αποτυχία υποβολής αιτήματος αποθέματος.',
+                [mtrlKey]: message,
             }));
+            toast.error(message);
         } finally {
             setSubmittingStockRequests((prev) => {
                 const next = new Set(prev);

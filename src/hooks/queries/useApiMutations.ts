@@ -12,6 +12,8 @@ import type {
     EndoBasketSubmitRoutePayload,
     EndoListRoutePayload,
     EndoListUpdateQtyRoutePayload,
+    ItemEditUpdatePayload,
+    SetSimilarItemPayload,
     StockFeedbackRoutePayload,
     RequestedPriceUpdateRoutePayload,
     StockRequestListRoutePayload,
@@ -41,10 +43,13 @@ import { searchCustomers } from "@/lib/api-client/customers";
 import {
     fetchStockFeedback,
     fetchStockRequests,
+    fetchEditableItem,
     requestStockQuantity,
     searchItems,
     searchItemsByTrdr,
+    setSimilarItem,
     submitAnatrofOrder,
+    updateEditableItem,
     updateStockRequest,
 } from "@/lib/api-client/items";
 
@@ -62,6 +67,22 @@ export const useSearchItemsByTrdrMutation = () =>
     useMutation({
         mutationFn: ({ search, trdr }: { search: string; trdr: string }) =>
             searchItemsByTrdr(search, trdr),
+    });
+
+export const useFetchEditableItemMutation = () =>
+    useMutation({
+        mutationFn: (key: string) => fetchEditableItem(key),
+    });
+
+export const useUpdateEditableItemMutation = () =>
+    useMutation({
+        mutationFn: (payload: ItemEditUpdatePayload) =>
+            updateEditableItem(payload),
+    });
+
+export const useSetSimilarItemMutation = () =>
+    useMutation({
+        mutationFn: (payload: SetSimilarItemPayload) => setSimilarItem(payload),
     });
 
 export const useFetchStockFeedbackMutation = () =>

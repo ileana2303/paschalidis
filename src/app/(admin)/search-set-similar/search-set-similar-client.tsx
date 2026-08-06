@@ -5,15 +5,13 @@ import PageBreadcrumb from "@/components/template-components/common/PageBreadCru
 import SearchBar from "@/components/search/search-bar";
 import type { IItem } from "@/lib/interface";
 import { Check, GitCompareArrows } from "@/lib/icons/lucide";
-import { searchItems } from "@/lib/api-client/items";
-import { httpClient } from "@/lib/http/client";
+import {
+    useSearchItemsMutation,
+    useSetSimilarItemMutation,
+} from "@/hooks/queries/useApiMutations";
+import toast from "react-hot-toast";
 
 type SearchSide = "left" | "right";
-
-type SetSimilarResponse = {
-    success: boolean;
-    message?: string;
-};
 
 function value(value: unknown): string {
     return String(value ?? "").trim();
@@ -65,7 +63,6 @@ export default function SearchSetSimilarClient() {
     const [leftItems, setLeftItems] = useState<IItem[]>([]);
     const [rightItems, setRightItems] = useState<IItem[]>([]);
     const [selectedLeft, setSelectedLeft] = useState<IItem | null>(null);
-    const [loadingSide, setLoadingSide] = useState<SearchSide | null>(null);
     const [updatingMtrl, setUpdatingMtrl] = useState("");
     const [hasSearched, setHasSearched] = useState<Record<SearchSide, boolean>>({
         left: false,
@@ -73,18 +70,24 @@ export default function SearchSetSimilarClient() {
     });
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const { mutateAsync: searchLeftItems, isPending: isSearchingLeft } =
+        useSearchItemsMutation();
+    const { mutateAsync: searchRightItems, isPending: isSearchingRight } =
+        useSearchItemsMutation();
+    const { mutateAsync: setSimilarItem } = useSetSimilarItemMutation();
 
     const runSearch = async (side: SearchSide) => {
         const term = (side === "left" ? leftSearch : rightSearch).trim();
-        if (!term || loadingSide) return;
+        if (!term || isSearchingLeft || isSearchingRight) return;
 
-        setLoadingSide(side);
         setError("");
         setSuccess("");
         setHasSearched((current) => ({ ...current, [side]: true }));
 
         try {
-            const result = await searchItems(term);
+            const result = await (
+                side === "left" ? searchLeftItems(term) : searchRightItems(term)
+            );
             const rows = result.success && Array.isArray(result.rows) ? result.rows : [];
 
             if (side === "left") {
@@ -109,8 +112,6 @@ export default function SearchSetSimilarClient() {
             } else {
                 setRightItems([]);
             }
-        } finally {
-            setLoadingSide(null);
         }
     };
 
@@ -129,21 +130,14 @@ export default function SearchSetSimilarClient() {
         setSuccess("");
 
         try {
-            const { data } = await httpClient.post<SetSimilarResponse>(
-                "/api/items/set-similar",
-                {
-                    mtrl: selectedLeft.MTRL,
-                    code: selectedLeft.ITEM_CODE,
-                    name: selectedLeft.ITEM_DESCR,
-                    code1: newCode1,
-                    code2: selectedLeft.ITEM_CODE2,
-                    apvCode: similarItem.ITEM_OMOIO,
-                }
-            );
-
-            if (!data.success) {
-                throw new Error(data.message || "Η ενημέρωση δεν ολοκληρώθηκε.");
-            }
+            await setSimilarItem({
+                mtrl: selectedLeft.MTRL,
+                code: selectedLeft.ITEM_CODE,
+                name: selectedLeft.ITEM_DESCR,
+                code1: newCode1,
+                code2: selectedLeft.ITEM_CODE2,
+                apvCode: similarItem.ITEM_OMOIO,
+            });
 
             const updatedLeft = {
                 ...selectedLeft,
@@ -156,15 +150,17 @@ export default function SearchSetSimilarClient() {
                     value(item.MTRL) === value(updatedLeft.MTRL) ? updatedLeft : item
                 )
             );
-            setSuccess(
-                `${value(updatedLeft.ITEM_CODE)}: ενημερώθηκαν το CODE1 και ο κωδικός ομοίου.`
-            );
+            const message =
+                `${value(updatedLeft.ITEM_CODE)}: ενημερώθηκαν το CODE1 και ο κωδικός ομοίου.`;
+            setSuccess(message);
+            toast.success(message);
         } catch (requestError) {
-            setError(
+            const message =
                 requestError instanceof Error
                     ? requestError.message
-                    : "Η ενημέρωση δεν είναι διαθέσιμη προσωρινά."
-            );
+                    : "Η ενημέρωση δεν είναι διαθέσιμη προσωρινά.";
+            setError(message);
+            toast.error(message);
         } finally {
             setUpdatingMtrl("");
         }
@@ -178,6 +174,12 @@ export default function SearchSetSimilarClient() {
         }
         return count === 0 ? "Δεν βρέθηκαν αποτελέσματα." : "";
     };
+
+    const loadingSide = isSearchingLeft
+        ? "left"
+        : isSearchingRight
+          ? "right"
+          : null;
 
     return (
         <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
@@ -199,7 +201,7 @@ export default function SearchSetSimilarClient() {
             )}
 
             <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-3">
-                <section className="flex min-h-[480px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] lg:col-span-2 lg:min-h-0">
+                <section className="flex min-h-[480px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3 lg:col-span-2 lg:min-h-0">
                     <header className="shrink-0 border-b border-gray-100 p-5 dark:border-gray-800">
                         <div className="mb-4">
                             <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">
@@ -265,7 +267,7 @@ export default function SearchSetSimilarClient() {
                     </div>
                 </section>
 
-                <section className="flex min-h-[480px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] lg:min-h-0">
+                <section className="flex min-h-[480px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3 lg:min-h-0">
                     <header className="shrink-0 border-b border-gray-100 p-5 dark:border-gray-800">
                         <div className="mb-4">
                             <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">

@@ -21,6 +21,7 @@ import { isAxiosError } from "axios";
 import EndoOrderSummary, { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 import EndoPartResults from "@/components/endo/endo-part-results";
 import type { EndoBranchOption } from "@/components/endo/request-endo-card";
+import toast from "react-hot-toast";
 
 function parseStockValue(value: unknown) {
     const parsed = Number(String(value ?? "").trim().replace(",", "."));
@@ -174,6 +175,7 @@ export default function EndoPartsClient() {
         (message: string, duration = 3000) => {
             clearBasketSuccessTimeout();
             setBasketSuccess(message);
+            toast.success(message, { duration });
             basketSuccessTimeoutRef.current = setTimeout(() => {
                 setBasketSuccess("");
                 basketSuccessTimeoutRef.current = null;

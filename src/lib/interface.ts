@@ -66,6 +66,41 @@ export interface IItemTRDR extends IItem {
     BASKET_ERP_PRICE: string;
 }
 
+export type ItemEditValue = string | number | boolean | null;
+export type ItemEditFields = Record<string, ItemEditValue>;
+
+export interface ItemEditLoadResponse {
+    success: boolean;
+    message?: string;
+    key?: string;
+    item?: ItemEditFields;
+}
+
+export interface ItemEditUpdatePayload {
+    key: string;
+    fields: ItemEditFields;
+}
+
+export interface ItemEditSaveResponse {
+    success: boolean;
+    id?: string | number;
+    message?: string;
+}
+
+export interface SetSimilarItemPayload {
+    mtrl: string;
+    code: string;
+    name: string;
+    code1: string;
+    code2: string;
+    apvCode: string;
+}
+
+export interface SetSimilarItemResponse {
+    success: boolean;
+    message?: string;
+}
+
 // BASKET_OUT :: Basket items for a selected customer.
 export interface IBasketItem {
     BASKETID: string;

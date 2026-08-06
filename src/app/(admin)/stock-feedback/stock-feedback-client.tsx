@@ -5,7 +5,6 @@ import PageBreadcrumb from "@/components/template-components/common/PageBreadCru
 import QuantityControl from "@/components/ui/quantity-control";
 import {
   AlertCircle,
-  Check,
   Loader2,
   Package,
   RefreshCw,
@@ -30,6 +29,7 @@ import {
   useRequestStockQuantityMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
+import toast from "react-hot-toast";
 import { normalizeBranchCode } from "@/lib/auth/branches";
 
 const DAY_OPTIONS = [0, 1, 2, 3, 4, 5] as const;
@@ -190,24 +190,9 @@ export default function StockFeedbackClient() {
     Record<string, number>
   >({});
   const [requestErrors, setRequestErrors] = useState<Record<string, string>>({});
-  const [successToastMessage, setSuccessToastMessage] = useState("");
   const [submittingRequests, setSubmittingRequests] = useState<Set<string>>(
     new Set()
   );
-
-  useEffect(() => {
-    if (!successToastMessage) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setSuccessToastMessage("");
-    }, 3200);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [successToastMessage]);
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -361,17 +346,19 @@ export default function StockFeedbackClient() {
           [mtrlKey]: (prev[mtrlKey] ?? 0) + qty,
         }));
         setRequestQuantity(mtrlKey, 0);
-        setSuccessToastMessage(
+        toast.success(
           `Το αίτημα για ${qty} τεμ. καταχωρήθηκε για το είδος ${row.CODE}.`
         );
       } catch (submitError) {
+        const message =
+          submitError instanceof Error
+            ? submitError.message
+            : "Αποτυχία καταχώρησης αιτήματος ανατροφοδοσίας.";
         setRequestErrors((prev) => ({
           ...prev,
-          [mtrlKey]:
-            submitError instanceof Error
-              ? submitError.message
-              : "Αποτυχία καταχώρησης αιτήματος ανατροφοδοσίας.",
+          [mtrlKey]: message,
         }));
+        toast.error(message);
       } finally {
         setSubmittingRequests((prev) => {
           const next = new Set(prev);
@@ -401,20 +388,6 @@ export default function StockFeedbackClient() {
 
   return (
     <div className="w-full max-w-none space-y-6">
-      {successToastMessage && (
-        <div className="fixed right-6 top-6 z-[100000]">
-          <div
-            role="status"
-            className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-lg dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
-          >
-            <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
-              <Check className="h-3.5 w-3.5" />
-            </span>
-            <p className="max-w-[280px] leading-5">{successToastMessage}</p>
-          </div>
-        </div>
-      )}
-
       <PageBreadcrumb pageTitle="Ανατροφοδοσία Καταστήματος" />
 
       <div className="w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">

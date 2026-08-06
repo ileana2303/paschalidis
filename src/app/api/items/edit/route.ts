@@ -10,6 +10,32 @@ import {
 type EditableValue = string | number | boolean | null;
 type ItemFields = Record<string, EditableValue>;
 
+const EDITABLE_FIELD_NAMES = new Set([
+    "CODE",
+    "CODE1",
+    "CODE2",
+    "MTRUNIT1",
+    "NAME",
+    "PRICER",
+    "STANDCOST",
+    "PRICER01",
+    "PRICER02",
+    "PRICER03",
+    "PRICER04",
+    "PRICER05",
+    "PRICER08",
+    "PRICER09",
+    "PRICER10",
+    "PRICER11",
+    "PRICER12",
+    "MTRMANFCTR",
+    "VARCHAR1",
+    "VARCHAR2",
+    "VARCHAR3",
+    "BOOL03",
+    "CCCSUFIX",
+]);
+
 function normalizeKey(value: unknown): string {
     return typeof value === "string" || typeof value === "number"
         ? String(value).trim()
@@ -31,6 +57,9 @@ function normalizeFields(value: unknown): ItemFields | null {
         const name = rawName.trim().toUpperCase();
 
         if (!/^[A-Z][A-Z0-9_]*$/.test(name)) {
+            return null;
+        }
+        if (!EDITABLE_FIELD_NAMES.has(name)) {
             return null;
         }
 

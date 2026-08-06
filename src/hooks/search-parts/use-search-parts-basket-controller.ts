@@ -17,6 +17,7 @@ import {
     useSubmitBasketOrderMutation,
     useUpdateBasketItemQtyMutation,
 } from "@/hooks/queries/useApiMutations";
+import toast from "react-hot-toast";
 
 export type ReceiptType = "receipt" | "invoice";
 
@@ -219,17 +220,25 @@ export function useSearchPartsBasketController({
 
             clearQuantityOverride(item.ITEM_CODE);
             await loadBasket(customer.TRDR);
+            toast.success(
+                basketItem
+                    ? "Η ποσότητα στο καλάθι ενημερώθηκε."
+                    : "Το είδος προστέθηκε στο καλάθι."
+            );
         } catch (error) {
             if (isAxiosError(error)) {
                 const responseMessage =
                     typeof error.response?.data?.message === "string"
                         ? error.response.data.message
                         : undefined;
-                setBasketError(responseMessage ?? error.message);
+                const message = responseMessage ?? error.message;
+                setBasketError(message);
+                toast.error(message);
             } else {
-                setBasketError(
-                    error instanceof Error ? error.message : "Αποτυχία προσθήκης στο καλάθι"
-                );
+                const message =
+                    error instanceof Error ? error.message : "Αποτυχία προσθήκης στο καλάθι";
+                setBasketError(message);
+                toast.error(message);
             }
         } finally {
             setAddingToBasket((prev) => {
@@ -319,13 +328,15 @@ export function useSearchPartsBasketController({
                 BASKETID: item.BASKETID,
                 QTY: normalizedQty,
             });
+            toast.success("Η ποσότητα ενημερώθηκε.");
         } catch (error) {
             setBasketItemQty(uid, previousQty);
-            setBasketError(
+            const message =
                 error instanceof Error
                     ? error.message
-                    : "Αποτυχία ενημέρωσης ποσότητας"
-            );
+                    : "Αποτυχία ενημέρωσης ποσότητας";
+            setBasketError(message);
+            toast.error(message);
         }
     }, [basket?.items, setBasketItemQty, updateBasketItemQty]);
 
@@ -348,15 +359,17 @@ export function useSearchPartsBasketController({
             setOrderSubmittedSuccess(true);
             setNotes("");
             await loadBasket(customer.TRDR);
+            toast.success("Η παραγγελία καταχωρήθηκε επιτυχώς.");
         } catch (error) {
             if (!submittedSuccessfully) {
                 setOrderSubmittedSuccess(false);
             }
-            setBasketError(
+            const message =
                 error instanceof Error
                     ? error.message
-                    : "Αποτυχία αποστολής παραγγελίας"
-            );
+                    : "Αποτυχία αποστολής παραγγελίας";
+            setBasketError(message);
+            toast.error(message);
         } finally {
             setSendingOrder(false);
         }
@@ -403,12 +416,14 @@ export function useSearchPartsBasketController({
                 s1Key: "1305",
             });
             await loadBasket(customer.TRDR);
+            toast.success("Το είδος αφαιρέθηκε από το καλάθι.");
         } catch (error) {
-            setBasketError(
+            const message =
                 error instanceof Error
                     ? error.message
-                    : fallbackErrorMessage
-            );
+                    : fallbackErrorMessage;
+            setBasketError(message);
+            toast.error(message);
         }
     }, [customer, deleteBasketItems, loadBasket]);
 
@@ -483,19 +498,21 @@ export function useSearchPartsBasketController({
 
             setRequestedPrices((prev) => ({ ...prev, [item.ITEM_CODE]: "" }));
             await loadBasket(customer.TRDR);
+            toast.success("Η αίτηση τιμής υποβλήθηκε.");
         } catch (error) {
             if (isAxiosError(error)) {
                 const responseMessage =
                     typeof error.response?.data?.message === "string"
                         ? error.response.data.message
                         : undefined;
-                setBasketError(responseMessage ?? error.message);
+                const message = responseMessage ?? error.message;
+                setBasketError(message);
+                toast.error(message);
             } else {
-                setBasketError(
-                    error instanceof Error
-                        ? error.message
-                        : "Αποτυχία αιτήματος τιμής"
-                );
+                const message =
+                    error instanceof Error ? error.message : "Αποτυχία αιτήματος τιμής";
+                setBasketError(message);
+                toast.error(message);
             }
         } finally {
             setSubmittingRequestedPrices((prev) => {
@@ -540,19 +557,21 @@ export function useSearchPartsBasketController({
 
             setBasketLineRequestedPrices((prev) => ({ ...prev, [uid]: "" }));
             await loadBasket(customer.TRDR);
+            toast.success("Η αίτηση τιμής υποβλήθηκε.");
         } catch (error) {
             if (isAxiosError(error)) {
                 const responseMessage =
                     typeof error.response?.data?.message === "string"
                         ? error.response.data.message
                         : undefined;
-                setBasketError(responseMessage ?? error.message);
+                const message = responseMessage ?? error.message;
+                setBasketError(message);
+                toast.error(message);
             } else {
-                setBasketError(
-                    error instanceof Error
-                        ? error.message
-                        : "Αποτυχία αιτήματος τιμής"
-                );
+                const message =
+                    error instanceof Error ? error.message : "Αποτυχία αιτήματος τιμής";
+                setBasketError(message);
+                toast.error(message);
             }
         } finally {
             setSubmittingBasketLineRequestedPrices((prev) => {

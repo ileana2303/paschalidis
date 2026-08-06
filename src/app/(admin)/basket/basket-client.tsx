@@ -21,6 +21,7 @@ import {
 } from "@/hooks/queries/useApiMutations";
 import BasketTable from "@/components/ui/basket-lines/basket-table";
 import CustomerOrderSummary from "@/components/order-summary/customer-order-summary";
+import toast from "react-hot-toast";
 
 type ReceiptType = "receipt" | "invoice";
 
@@ -241,14 +242,17 @@ export default function BasketClient() {
                 BASKETID: item.BASKETID,
                 QTY: normalizedQty,
             });
-            setSuccessMessage("Η ποσότητα ενημερώθηκε");
+            const message = "Η ποσότητα ενημερώθηκε";
+            setSuccessMessage(message);
+            toast.success(message);
         } catch (err) {
             setBasketItemQty(uid, previousQty);
-            setError(
+            const message =
                 err instanceof Error
                     ? err.message
-                    : "Αποτυχία ενημέρωσης ποσότητας"
-            );
+                    : "Αποτυχία ενημέρωσης ποσότητας";
+            setError(message);
+            toast.error(message);
         } finally {
             setUpdatingQtyItems((prev) => {
                 const next = new Set(prev);
@@ -290,14 +294,17 @@ export default function BasketClient() {
                 NEW_PRICE: requestedPrice,
             });
             setRequestedPrices((prev) => ({ ...prev, [uid]: "" }));
-            setSuccessMessage("Η αίτηση τιμής υποβλήθηκε");
+            const message = "Η αίτηση τιμής υποβλήθηκε";
+            setSuccessMessage(message);
+            toast.success(message);
             await refreshBasket();
         } catch (err) {
-            setError(
+            const message =
                 err instanceof Error
                     ? err.message
-                    : "Αποτυχία αιτήματος τιμής"
-            );
+                    : "Αποτυχία αιτήματος τιμής";
+            setError(message);
+            toast.error(message);
         } finally {
             setSubmittingRequestedPrices((prev) => {
                 const next = new Set(prev);
@@ -324,13 +331,15 @@ export default function BasketClient() {
             });
             setOrderSubmittedSuccess(true);
             setNotes("");
+            toast.success("Η παραγγελία καταχωρήθηκε επιτυχώς.");
             await loadBasket(urlTrdr);
         } catch (err) {
-            setError(
+            const message =
                 err instanceof Error
                     ? err.message
-                    : "Αποτυχία αποστολής παραγγελίας"
-            );
+                    : "Αποτυχία αποστολής παραγγελίας";
+            setError(message);
+            toast.error(message);
         } finally {
             setSendingOrder(false);
         }
@@ -370,14 +379,17 @@ export default function BasketClient() {
                 method: "DELETE",
                 s1Key: "1305",
             });
-            setSuccessMessage("Αφαίρεση προϊόντος από το καλάθι");
+            const message = "Αφαίρεση προϊόντος από το καλάθι";
+            setSuccessMessage(message);
+            toast.success(message);
             await loadBasket(urlTrdr);
         } catch (err) {
-            setError(
+            const message =
                 err instanceof Error
                     ? err.message
-                    : fallbackErrorMessage
-            );
+                    : fallbackErrorMessage;
+            setError(message);
+            toast.error(message);
         }
     };
 
