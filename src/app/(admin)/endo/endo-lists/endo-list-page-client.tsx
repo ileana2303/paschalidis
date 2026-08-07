@@ -23,160 +23,33 @@ import {
 import { normalizeBranchCode } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
 import type {
-    EndoListRoutePayload,
     IEndoListRow,
 } from "@/lib/interface";
 import toast from "react-hot-toast";
+import { useSessionState } from "@/hooks/useSessionState";
+import {
+    QTY_ACTIONS_COLUMN_KEY,
+    REQUESTED_QTY_COLUMN_KEY,
+    buildColumns,
+    canApproveRowWithQty,
+    filterRows,
+    formatColumnLabel,
+    formatDateTime,
+    getRequestedQtyFromRow,
+    getRowKey,
+    getTrackedQtyFromRow,
+    hasQtyUpdateFields,
+    isDateColumnKey,
+    isStatusColumnKey,
+    parsePositiveValue,
+    parseQtyValue,
+    type EndoListScope,
+} from "@/lib/utils/endo-lists";
 
-type EndoListScope = Exclude<EndoListRoutePayload["scope"], "both" | undefined>;
-
-const REQUESTED_QTY_COLUMN_KEY = "__REQUESTED_QTY";
-const QTY_ACTIONS_COLUMN_KEY = "__QTY_ACTIONS";
 const quantityOptions = Array.from({ length: 100 }, (_, index) => index + 1);
 
 interface EndoListPageClientProps {
     scope: EndoListScope;
-}
-
-function formatColumnLabel(key: string) {
-    if (key === REQUESTED_QTY_COLUMN_KEY) {
-        return "Requested QTY";
-    }
-
-    if (key === QTY_ACTIONS_COLUMN_KEY) {
-        return "Update / SALDOC";
-    }
-
-    return key.replace(/_/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function formatDateTime(value?: string) {
-    if (!value) return "—";
-
-    const parsed = new Date(value);
-
-    if (Number.isNaN(parsed.getTime())) {
-        return value;
-    }
-
-    return parsed.toLocaleString("el-GR", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-}
-
-function buildColumns(rows: IEndoListRow[]) {
-    const keys = new Set<string>();
-
-    rows.forEach((row) => {
-        Object.keys(row).forEach((key) => keys.add(key));
-    });
-
-    const preferredOrder = [
-        "BASKETID",
-        "ID",
-        "INS_DATE",
-        "BRANCH",
-        "TO_BRANCH",
-        "MTRL",
-        "ITEM_CODE",
-        "ITEM_DESCR",
-        "QTY",
-        "QTY_REQUESTED",
-        "STATUS",
-        "STATUS_LABEL",
-    ];
-
-    return Array.from(keys).sort((a, b) => {
-        const aIndex = preferredOrder.indexOf(a);
-        const bIndex = preferredOrder.indexOf(b);
-
-        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-        if (aIndex !== -1) return -1;
-        if (bIndex !== -1) return 1;
-
-        return a.localeCompare(b, "el-GR");
-    });
-}
-
-function filterRows(rows: IEndoListRow[], searchTerm: string) {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    if (!normalizedSearch) {
-        return rows;
-    }
-
-    return rows.filter((row) =>
-        Object.values(row).some((value) =>
-            String(value ?? "").toLowerCase().includes(normalizedSearch)
-        )
-    );
-}
-
-function parseQtyValue(value: unknown) {
-    const parsed = Number(String(value ?? "").trim().replace(",", "."));
-
-    if (!Number.isFinite(parsed) || parsed < 0) {
-        return 0;
-    }
-
-    return Math.floor(parsed);
-}
-
-function parsePositiveValue(value: unknown) {
-    const parsed = Number(String(value ?? "").trim().replace(",", "."));
-
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-        return 0;
-    }
-
-    return Math.floor(parsed);
-}
-
-function getRowKey(row: IEndoListRow, index: number) {
-    return String(row.BASKETID || row.ID || `${row.MTRL ?? "row"}-${index}`);
-}
-
-function hasQtyUpdateFields(row: IEndoListRow, allowBranchFallbackForToBranch = false) {
-    const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
-    const mtrl = String(row.MTRL ?? "").trim();
-    const toBranch =
-        String(row.TO_BRANCH ?? "").trim() ||
-        (allowBranchFallbackForToBranch ? String(row.BRANCH ?? "").trim() : "");
-
-    return Boolean(basketId && mtrl && toBranch);
-}
-
-function getRequestedQtyFromRow(row: IEndoListRow) {
-    return parseQtyValue(row.QTY_REQUESTED || row.QTY || "0");
-}
-
-function getRequestedBasketQtyFromRow(row: IEndoListRow) {
-    return parseQtyValue(row.QTY || row.QTY_REQUESTED || "0");
-}
-
-function getTrackedQtyFromRow(row: IEndoListRow, scope: EndoListScope) {
-    return scope === "requested"
-        ? getRequestedBasketQtyFromRow(row)
-        : getRequestedQtyFromRow(row);
-}
-
-function canApproveRowWithQty(row: IEndoListRow, qty: number) {
-    const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
-    const mtrl = parsePositiveValue(row.MTRL);
-    const sourceBranch = parsePositiveValue(row.BRANCH);
-    const destinationBranch = parsePositiveValue(row.TO_BRANCH);
-
-    return Boolean(
-        basketId &&
-        mtrl > 0 &&
-        qty > 0 &&
-        sourceBranch > 0 &&
-        destinationBranch > 0
-    );
 }
 
 function renderCell(key: string, value: unknown) {
@@ -186,11 +59,11 @@ function renderCell(key: string, value: unknown) {
 
     const displayValue = String(value);
 
-    if (/DATE|TS|TIME/i.test(key)) {
+    if (isDateColumnKey(key)) {
         return formatDateTime(displayValue);
     }
 
-    if (/STATUS/i.test(key)) {
+    if (isStatusColumnKey(key)) {
         return <StatusBadge status={displayValue} />;
     }
 
@@ -203,7 +76,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
     const [error, setError] = useState("");
     const [warning, setWarning] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useSessionState(`endo-list-search-${scope}`, "");
 
     const [editedQtyByRow, setEditedQtyByRow] = useState<Record<string, string>>({});
     const [requestedQtyByRow, setRequestedQtyByRow] = useState<Record<string, number>>({});

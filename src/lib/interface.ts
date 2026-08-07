@@ -74,11 +74,13 @@ export interface ItemEditLoadResponse {
     message?: string;
     key?: string;
     item?: ItemEditFields;
+    itemExtra?: ItemEditFields;
 }
 
 export interface ItemEditUpdatePayload {
     key: string;
-    fields: ItemEditFields;
+    fields?: ItemEditFields;
+    itemExtra?: ItemEditFields;
 }
 
 export interface ItemEditSaveResponse {

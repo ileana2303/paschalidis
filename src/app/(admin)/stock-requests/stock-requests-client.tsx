@@ -25,133 +25,21 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import { normalizeBranchCode } from "@/lib/auth/branches";
 import toast from "react-hot-toast";
-
-type StockBranchCode = "1001" | "1006" | "1007";
-type StockBranchStockKey = "YP1001" | "YP1006" | "YP1007";
-
-const STOCK_REQUEST_BRANCH_OPTIONS: Array<{ code: StockBranchCode; label: string }> = [
-    { code: "1001", label: "Κασομούλη" },
-    { code: "1006", label: "Λ. Αθηνών" },
-    { code: "1007", label: "Λ. Μεσογείων" },
-];
-const STOCK_BRANCH_COLUMNS: Array<{
-    code: StockBranchCode;
-    label: string;
-    stockKey: StockBranchStockKey;
-}> = [
-        { code: "1001", label: "Κασομούλη", stockKey: "YP1001" },
-        { code: "1006", label: "Λ.Αθηνών", stockKey: "YP1006" },
-        { code: "1007", label: "Λ.Μεσογείων", stockKey: "YP1007" },
-    ];
-
-function getStatusStyle(status: string) {
-    const normalized = status.toUpperCase();
-
-    if (normalized.includes("ΕΓΚΡΙΘ")) {
-        return "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400";
-    }
-
-    if (
-        normalized.includes("ΔΙΑΓΡ") ||
-        normalized.includes("DELETE") ||
-        normalized.includes("ΑΠΟΡΡΙ")
-    ) {
-        return "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
-    }
-
-    return "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
-}
-
-function canUpdate(status: string) {
-    return status.toUpperCase().includes("ΕΚΚΡΕΜ");
-}
-
-function canSubmitAnatrofRow(status: string) {
-    const normalized = status.toUpperCase();
-
-    return normalized.includes("ΕΓΚΡΙΘ") || normalized.includes("APPROV");
-}
-
-function getStatusPriority(status: string) {
-    const normalized = status.toUpperCase();
-
-    if (normalized.includes("ΕΚΚΡΕΜ") || normalized.includes("PENDING")) {
-        return 0;
-    }
-
-    if (normalized.includes("ΕΓΚΡΙΘ") || normalized.includes("APPROV")) {
-        return 1;
-    }
-
-    if (
-        normalized.includes("ΔΙΑΓΡ") ||
-        normalized.includes("DELETE") ||
-        normalized.includes("ΑΠΟΡΡΙ")
-    ) {
-        return 2;
-    }
-
-    return 3;
-}
-
-function parseDateValue(value: string) {
-    const timestamp = new Date(value).getTime();
-
-    return Number.isNaN(timestamp) ? 0 : timestamp;
-}
-
-function sortStockRequestRows(rows: IStockRequestListRow[]) {
-    return [...rows].sort((a, b) => {
-        const statusRankDiff =
-            getStatusPriority(a.STATUS) - getStatusPriority(b.STATUS);
-
-        if (statusRankDiff !== 0) return statusRankDiff;
-
-        const statusNameDiff = a.STATUS.localeCompare(b.STATUS, "el-GR");
-
-        if (statusNameDiff !== 0) return statusNameDiff;
-
-        return parseDateValue(b.INS_DATE) - parseDateValue(a.INS_DATE);
-    });
-}
-
-function formatDateTime(value?: string) {
-    if (!value) return "—";
-
-    const parsed = new Date(value);
-
-    if (Number.isNaN(parsed.getTime())) return value;
-
-    return parsed.toLocaleString("el-GR", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-}
-
-function getValidatedQty(value: string) {
-    const parsed = Number(String(value).trim());
-
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-        return null;
-    }
-
-    return String(parsed);
-}
-
-function getRequestedQty(row: IStockRequestListRow) {
-    return String(row.QTY_REQUESTED ?? "").trim() || "—";
-}
-
-function getActionQty(row: IStockRequestListRow) {
-    return getValidatedQty(getRequestedQty(row));
-}
-
-function isStockRequestBranchCode(value: string): value is StockBranchCode {
-    return STOCK_REQUEST_BRANCH_OPTIONS.some((branch) => branch.code === value);
-}
+import { useSessionState } from "@/hooks/useSessionState";
+import {
+    STOCK_BRANCH_COLUMNS,
+    STOCK_REQUEST_BRANCH_OPTIONS,
+    canSubmitAnatrofRow,
+    canUpdate,
+    formatDateTime,
+    getActionQty,
+    getRequestedQty,
+    getStatusStyle,
+    getValidatedQty,
+    isStockRequestBranchCode,
+    sortStockRequestRows,
+    type StockBranchCode,
+} from "@/lib/utils/stock-requests";
 
 export default function StockRequestsClient() {
     const user = useAuthStore((state) => state.user);
@@ -174,7 +62,10 @@ export default function StockRequestsClient() {
     const [submittingAnatrof, setSubmittingAnatrof] = useState(false);
     const [editingId, setEditingId] = useState("");
     const [editedQty, setEditedQty] = useState("");
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useSessionState(
+        "stock-requests-search",
+        ""
+    );
     const [selectedBranchCode, setSelectedBranchCode] = useState<StockBranchCode | "">("");
 
     const selectedBranchLabel = useMemo(() => {

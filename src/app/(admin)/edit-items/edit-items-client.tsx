@@ -1,17 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import flatpickr from "flatpickr";
+import type { Instance as FlatpickrInstance } from "flatpickr/dist/types/instance";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import SearchBar from "@/components/search/search-bar";
-import { Check, Loader2 } from "@/lib/icons/lucide";
+import { Calendar, Check, ChevronDown, Loader2 } from "@/lib/icons/lucide";
 import { Modal } from "@/components/ui/modal";
+import { Dropdown } from "@/components/ui/dropdown/Dropdown";
+import { DropdownItem } from "@/components/ui/dropdown/dropdown-item";
 import toast from "react-hot-toast";
 import {
     useFetchEditableItemMutation,
     useSearchItemsMutation,
     useUpdateEditableItemMutation,
 } from "@/hooks/queries/useApiMutations";
-import type { IItem, ItemEditFields, ItemEditValue } from "@/lib/interface";
+import type { IItem, ItemEditFields } from "@/lib/interface";
+import { useEditItemsSearchStore } from "@/stores/editItemsSearchStore";
+import {
+    DISABLED_ITEM_FIELDS,
+    EDIT_ITEM_CATALOG_PRICE_PAIRS,
+    formatMarkupPercent,
+    formatSoftOneDate,
+    getEmptyItemExtraFields,
+    getSalePriceMarkupPercent,
+    normalizeItemExtra,
+    parseSoftOneDate,
+    SALE_TO_COMPUTED_PRICE,
+    toItemEditInputValue,
+} from "@/lib/utils/edit-items";
 
 const EDITABLE_FIELDS = [
     { name: "CODE", label: "Κωδικός" },
@@ -19,11 +36,15 @@ const EDITABLE_FIELDS = [
     { name: "CODE2", label: "Κωδικός 2" },
     { name: "MTRUNIT1", label: "Μονάδα μέτρησης" },
     { name: "NAME", label: "Περιγραφή" },
-    { name: "PRICER", label: "Τιμή" },
-    { name: "STANDCOST", label: "Τιμή αγοράς βάσης" },
-    ...[1, 2, 3, 4, 5, 8, 9, 10, 11, 12].map((priceList) => ({
-        name: `PRICER${String(priceList).padStart(2, "0")}`,
-        label: `Τιμοκατάλογος ${String(priceList).padStart(2, "0")}`,
+    { name: "PRICEW", label: "Τιμή χονδρικής (€)" },
+    { name: "STANDCOST", label: "Υπολογισμός τιμών βάσει SUFIX (€)" },
+    ...[1, 2, 3, 4, 5].map((priceList) => ({
+        name: `PRICEW${String(priceList).padStart(2, "0")}`,
+        label: `Τιμές πώλησης ${String(priceList).padStart(2, "0")}`,
+    })),
+    ...[8, 9, 10, 11, 12].map((priceList) => ({
+        name: `PRICEW${String(priceList).padStart(2, "0")}`,
+        label: `Υπολογισμένες τιμές πώλησης ${String(priceList).padStart(2, "0")} (€)`,
     })),
     { name: "MTRMANFCTR", label: "Κατασκευαστής" },
     { name: "VARCHAR1", label: "VARCHAR1" },
@@ -33,26 +54,158 @@ const EDITABLE_FIELDS = [
     { name: "CCCSUFIX", label: "CCCSUFIX" },
 ] as const;
 
-const CATALOG_PRICE_PAIRS = [
-    ["PRICER01", "PRICER08"],
-    ["PRICER02", "PRICER09"],
-    ["PRICER03", "PRICER10"],
-    ["PRICER04", "PRICER11"],
-    ["PRICER05", "PRICER12"],
+const ITEEXTRA_FIELD_NAMES = [
+    "VARCHAR01",
+    "VARCHAR02",
+    "VARCHAR03",
+    "BOOL03",
+    "DATE03",
 ] as const;
 
-function toInputValue(value: ItemEditValue): string {
-    return value == null ? "" : String(value);
+const BOOL03_OPTIONS = [
+    { value: "1", label: "ΝΑΙ" },
+    { value: "0", label: "ΟΧΙ" },
+] as const;
+
+const INPUT_CLASS_NAME =
+    "h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white";
+
+function Bool03Dropdown({
+    value,
+    onChange,
+}: {
+    value: string;
+    onChange: (nextValue: string) => void;
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedLabel =
+        BOOL03_OPTIONS.find((option) => option.value === value)?.label ??
+        "Επιλέξτε";
+
+    return (
+        <div className="relative">
+            <button
+                type="button"
+                onClick={() => setIsOpen((current) => !current)}
+                className={`${INPUT_CLASS_NAME} dropdown-toggle flex items-center justify-between gap-2 text-left`}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+            >
+                <span className={value ? "" : "text-gray-400"}>{selectedLabel}</span>
+                <ChevronDown
+                    className={`h-4 w-4 shrink-0 text-gray-500 transition ${isOpen ? "rotate-180" : ""}`}
+                />
+            </button>
+
+            <Dropdown
+                isOpen={isOpen}
+                onClose={() => setIsOpen(false)}
+                className="left-0 right-0 z-50 mt-2 w-full p-1"
+            >
+                {BOOL03_OPTIONS.map((option) => (
+                    <DropdownItem
+                        key={option.value}
+                        onItemClick={() => {
+                            onChange(option.value);
+                            setIsOpen(false);
+                        }}
+                        className={`rounded-lg px-3 py-2.5 ${
+                            value === option.value
+                                ? "bg-brand-50 font-medium text-brand-700 dark:bg-brand-950/40 dark:text-brand-300"
+                                : ""
+                        }`}
+                    >
+                        {option.label}
+                    </DropdownItem>
+                ))}
+            </Dropdown>
+        </div>
+    );
+}
+
+function Date03Picker({
+    value,
+    onChange,
+}: {
+    value: string;
+    onChange: (nextValue: string) => void;
+}) {
+    const inputRef = useRef<HTMLInputElement>(null);
+    const pickerRef = useRef<FlatpickrInstance | null>(null);
+
+    useEffect(() => {
+        if (!inputRef.current) {
+            return;
+        }
+
+        pickerRef.current = flatpickr(inputRef.current, {
+            dateFormat: "Y-m-d",
+            allowInput: false,
+            maxDate: "today",
+            defaultDate: parseSoftOneDate(value),
+            onReady: (_selectedDates, _dateStr, instance) => {
+                instance.calendarContainer.style.zIndex = "100001";
+            },
+            onChange: (selectedDates) => {
+                const selected = selectedDates[0];
+                onChange(selected ? formatSoftOneDate(selected) : "");
+            },
+        });
+
+        return () => {
+            pickerRef.current?.destroy();
+            pickerRef.current = null;
+        };
+        // Initialize once; sync later via setDate.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        const picker = pickerRef.current;
+        if (!picker) {
+            return;
+        }
+
+        const parsed = parseSoftOneDate(value);
+        if (parsed) {
+            picker.setDate(parsed, false);
+        } else {
+            picker.clear(false);
+        }
+    }, [value]);
+
+    return (
+        <div className="relative">
+            <input
+                ref={inputRef}
+                type="text"
+                readOnly
+                placeholder="Επιλέξτε ημερομηνία"
+                className={`${INPUT_CLASS_NAME} cursor-pointer pr-10`}
+            />
+            <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        </div>
+    );
 }
 
 export default function EditItemsClient() {
-    const [searchKey, setSearchKey] = useState("");
-    const [searchResults, setSearchResults] = useState<IItem[]>([]);
-    const [hasSearched, setHasSearched] = useState(false);
+    const searchKey = useEditItemsSearchStore((state) => state.searchKey);
+    const setSearchKey = useEditItemsSearchStore((state) => state.setSearchKey);
+    const searchResults = useEditItemsSearchStore((state) => state.searchResults);
+    const setSearchResults = useEditItemsSearchStore(
+        (state) => state.setSearchResults
+    );
+    const hasSearched = useEditItemsSearchStore((state) => state.hasSearched);
+    const setHasSearched = useEditItemsSearchStore((state) => state.setHasSearched);
+    const clearSearchState = useEditItemsSearchStore((state) => state.clearState);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [loadedKey, setLoadedKey] = useState("");
     const [originalFields, setOriginalFields] = useState<ItemEditFields>({});
     const [fields, setFields] = useState<ItemEditFields>({});
+    const [originalItemExtra, setOriginalItemExtra] = useState<ItemEditFields>(
+        getEmptyItemExtraFields
+    );
+    const [itemExtra, setItemExtra] = useState<ItemEditFields>(getEmptyItemExtraFields);
     const { mutateAsync: searchItemsRequest, isPending: searchingItems } =
         useSearchItemsMutation();
     const { mutateAsync: fetchEditableItem, isPending: loadingItem } =
@@ -62,8 +215,10 @@ export default function EditItemsClient() {
     const loading = searchingItems || loadingItem;
 
     const hasChanges = useMemo(
-        () => JSON.stringify(fields) !== JSON.stringify(originalFields),
-        [fields, originalFields]
+        () =>
+            JSON.stringify(fields) !== JSON.stringify(originalFields) ||
+            JSON.stringify(itemExtra) !== JSON.stringify(originalItemExtra),
+        [fields, itemExtra, originalFields, originalItemExtra]
     );
 
     const searchItems = async () => {
@@ -74,6 +229,8 @@ export default function EditItemsClient() {
         setLoadedKey("");
         setOriginalFields({});
         setFields({});
+        setOriginalItemExtra(getEmptyItemExtraFields());
+        setItemExtra(getEmptyItemExtraFields());
 
         try {
             const data = await searchItemsRequest(search);
@@ -104,9 +261,13 @@ export default function EditItemsClient() {
                 throw new Error("Το προϊόν δεν περιέχει επεξεργάσιμα στοιχεία.");
             }
 
+            const nextItemExtra = normalizeItemExtra(data.itemExtra);
+
             setLoadedKey(data.key || key);
             setOriginalFields(item);
             setFields(item);
+            setOriginalItemExtra(nextItemExtra);
+            setItemExtra(nextItemExtra);
         } catch (requestError) {
             const message =
                 requestError instanceof Error
@@ -125,6 +286,10 @@ export default function EditItemsClient() {
         setFields((current) => ({ ...current, [name]: nextValue }));
     };
 
+    const updateItemExtraField = (name: string, nextValue: string) => {
+        setItemExtra((current) => ({ ...current, [name]: nextValue }));
+    };
+
     const renderField = (name: string, className = "") => {
         const field = EDITABLE_FIELDS.find((candidate) => candidate.name === name);
 
@@ -132,16 +297,46 @@ export default function EditItemsClient() {
             return null;
         }
 
+        const isDisabled = DISABLED_ITEM_FIELDS.has(name);
+        const markupPercent = getSalePriceMarkupPercent(fields, name);
+        const showMarkup = markupPercent != null;
+
         return (
             <label key={name} className={`block ${className}`}>
-                <span className="mb-1.5 flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-300">
-                    {field.label}
+                <span className="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
+                    <span>
+                        {Object.prototype.hasOwnProperty.call(
+                            SALE_TO_COMPUTED_PRICE,
+                            name
+                        )
+                            ? `${field.label} (€)`
+                            : field.label}
+                    </span>
+                    {showMarkup && (
+                        <span
+                            className={
+                                markupPercent > 0
+                                    ? "font-medium text-emerald-600 dark:text-emerald-400"
+                                    : markupPercent < 0
+                                      ? "font-semibold text-red-600 dark:text-red-400"
+                                      : "font-medium text-gray-400 dark:text-gray-500"
+                            }
+                        >
+                            {formatMarkupPercent(markupPercent)}
+                        </span>
+                    )}
                 </span>
                 <input
                     type="text"
-                    value={toInputValue(fields[name])}
+                    value={toItemEditInputValue(fields[name])}
                     onChange={(event) => updateField(name, event.target.value)}
-                    className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                    disabled={isDisabled}
+                    readOnly={isDisabled}
+                    className={`${INPUT_CLASS_NAME} ${
+                        isDisabled
+                            ? "cursor-not-allowed bg-gray-50 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400"
+                            : ""
+                    }`}
                 />
             </label>
         );
@@ -155,16 +350,52 @@ export default function EditItemsClient() {
                 Object.entries(fields).filter(
                     ([name, fieldValue]) =>
                         EDITABLE_FIELDS.some((field) => field.name === name) &&
+                        !DISABLED_ITEM_FIELDS.has(name) &&
                         (!(name in originalFields) ||
                             fieldValue !== originalFields[name])
                 )
             );
-            const data = await updateEditableItem({
-                key: loadedKey,
-                fields: changedFields,
-            });
+            const changedItemExtra = Object.fromEntries(
+                Object.entries(itemExtra).filter(([name, fieldValue]) => {
+                    if (
+                        !ITEEXTRA_FIELD_NAMES.includes(
+                            name as (typeof ITEEXTRA_FIELD_NAMES)[number]
+                        )
+                    ) {
+                        return false;
+                    }
+
+                    return (
+                        !(name in originalItemExtra) ||
+                        fieldValue !== originalItemExtra[name]
+                    );
+                })
+            );
+
+            const payload: {
+                key: string;
+                fields?: ItemEditFields;
+                itemExtra?: ItemEditFields;
+            } = { key: loadedKey };
+
+            if (Object.keys(changedFields).length > 0) {
+                payload.fields = changedFields;
+            }
+
+            if (Object.keys(changedItemExtra).length > 0) {
+                payload.itemExtra = {
+                    ...changedItemExtra,
+                    ...(itemExtra.LINENUM != null
+                        ? { LINENUM: itemExtra.LINENUM }
+                        : {}),
+                    ...(itemExtra.MTRL != null ? { MTRL: itemExtra.MTRL } : {}),
+                };
+            }
+
+            const data = await updateEditableItem(payload);
 
             setOriginalFields(fields);
+            setOriginalItemExtra(itemExtra);
             const message = data.message || "Το προϊόν ενημερώθηκε επιτυχώς.";
             toast.success(message);
         } catch (requestError) {
@@ -177,13 +408,13 @@ export default function EditItemsClient() {
     };
 
     const clearSearch = () => {
-        setSearchKey("");
-        setSearchResults([]);
-        setHasSearched(false);
+        clearSearchState();
         setIsEditModalOpen(false);
         setLoadedKey("");
         setOriginalFields({});
         setFields({});
+        setOriginalItemExtra(getEmptyItemExtraFields());
+        setItemExtra(getEmptyItemExtraFields());
     };
 
     return (
@@ -267,7 +498,7 @@ export default function EditItemsClient() {
             <Modal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
-                className="m-4 max-h-[calc(100dvh-2rem)] max-w-4xl overflow-y-auto"
+                className="m-4 max-w-4xl"
             >
                 <div className="p-6 sm:p-8">
                     <h3 className="pr-10 text-xl font-semibold text-gray-900 dark:text-white">
@@ -298,12 +529,12 @@ export default function EditItemsClient() {
                                 {renderField("CODE2")}
                                 {renderField("MTRUNIT1")}
                                 {renderField("NAME", "md:col-span-2")}
-                                {renderField("PRICER")}
+                                {renderField("PRICEW")}
                                 {renderField("STANDCOST")}
                             </div>
 
                             <div className="mt-4 grid gap-4 md:grid-cols-2">
-                                {CATALOG_PRICE_PAIRS.flatMap(([leftName, rightName]) => [
+                                {EDIT_ITEM_CATALOG_PRICE_PAIRS.flatMap(([leftName, rightName]) => [
                                     renderField(leftName),
                                     renderField(rightName),
                                 ])}
@@ -316,6 +547,59 @@ export default function EditItemsClient() {
                                 {renderField("VARCHAR3")}
                                 {renderField("BOOL03")}
                                 {renderField("CCCSUFIX")}
+                            </div>
+
+                            <div className="mt-6 border-t border-gray-100 pt-6 dark:border-gray-800">
+                                <div className="block">
+                                    <span className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                        Θέσεις/Ραφια
+                                    </span>
+                                    <div className="grid gap-3 sm:grid-cols-3">
+                                        {(["VARCHAR01", "VARCHAR02", "VARCHAR03"] as const).map(
+                                            (name) => (
+                                                <input
+                                                    key={name}
+                                                    type="text"
+                                                    value={toItemEditInputValue(itemExtra[name])}
+                                                    onChange={(event) =>
+                                                        updateItemExtraField(
+                                                            name,
+                                                            event.target.value
+                                                        )
+                                                    }
+                                                    className={INPUT_CLASS_NAME}
+                                                    aria-label={`Θέσεις/Ραφια ${name}`}
+                                                />
+                                            )
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                                    <div className="block">
+                                        <span className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                            Έλεγχος
+                                        </span>
+                                        <Bool03Dropdown
+                                            value={toItemEditInputValue(itemExtra.BOOL03)}
+                                            onChange={(nextValue) =>
+                                                updateItemExtraField("BOOL03", nextValue)
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="block">
+                                        <span className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                            Ημερομηνία ελέγχου
+                                        </span>
+                                        <Date03Picker
+                                            value={toItemEditInputValue(itemExtra.DATE03)}
+                                            onChange={(nextValue) =>
+                                                updateItemExtraField("DATE03", nextValue)
+                                            }
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="mt-7 flex justify-end">

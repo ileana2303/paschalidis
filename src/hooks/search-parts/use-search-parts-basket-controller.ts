@@ -18,6 +18,7 @@ import {
     useUpdateBasketItemQtyMutation,
 } from "@/hooks/queries/useApiMutations";
 import toast from "react-hot-toast";
+import { parseSoftOneNumber } from "@/lib/utils/number";
 
 export type ReceiptType = "receipt" | "invoice";
 
@@ -25,20 +26,6 @@ interface UseSearchPartsBasketControllerParams {
     customer: ICustomerInfo | null;
     currentBranchCode: string;
     userId?: string;
-}
-
-function parseNumericValue(value: unknown): number | null {
-    const raw = String(value ?? "").trim();
-    if (!raw) {
-        return null;
-    }
-
-    const parsed = Number(raw.replace(",", "."));
-    if (!Number.isFinite(parsed)) {
-        return null;
-    }
-
-    return parsed;
 }
 
 export function useSearchPartsBasketController({
@@ -478,7 +465,7 @@ export function useSearchPartsBasketController({
         if (!customer) return;
 
         const requestedPriceInput = requestedPrices[item.ITEM_CODE] ?? "";
-        const requestedPrice = parseNumericValue(requestedPriceInput);
+        const requestedPrice = parseSoftOneNumber(requestedPriceInput);
         const basketItem = findBasketItem(item);
         if (!basketItem) return;
 
@@ -533,7 +520,7 @@ export function useSearchPartsBasketController({
         if (!customer) return;
 
         const requestedPriceInput = basketLineRequestedPrices[uid] ?? "";
-        const requestedPrice = parseNumericValue(requestedPriceInput);
+        const requestedPrice = parseSoftOneNumber(requestedPriceInput);
         const basketItem = basket?.items.find((item) => getBasketItemId(item) === uid);
 
         if (!basketItem) {

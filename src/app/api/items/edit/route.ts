@@ -16,18 +16,12 @@ const EDITABLE_FIELD_NAMES = new Set([
     "CODE2",
     "MTRUNIT1",
     "NAME",
-    "PRICER",
-    "STANDCOST",
-    "PRICER01",
-    "PRICER02",
-    "PRICER03",
-    "PRICER04",
-    "PRICER05",
-    "PRICER08",
-    "PRICER09",
-    "PRICER10",
-    "PRICER11",
-    "PRICER12",
+    "PRICEW",
+    "PRICEW01",
+    "PRICEW02",
+    "PRICEW03",
+    "PRICEW04",
+    "PRICEW05",
     "MTRMANFCTR",
     "VARCHAR1",
     "VARCHAR2",
@@ -35,6 +29,22 @@ const EDITABLE_FIELD_NAMES = new Set([
     "BOOL03",
     "CCCSUFIX",
 ]);
+
+const ITEEXTRA_EDITABLE_FIELD_NAMES = new Set([
+    "VARCHAR01",
+    "VARCHAR02",
+    "VARCHAR03",
+    "BOOL03",
+    "DATE03",
+]);
+
+const EMPTY_ITEEXTRA_FIELDS: ItemFields = {
+    VARCHAR01: "",
+    VARCHAR02: "",
+    VARCHAR03: "",
+    BOOL03: "",
+    DATE03: "",
+};
 
 function normalizeKey(value: unknown): string {
     return typeof value === "string" || typeof value === "number"
@@ -46,7 +56,19 @@ function isAuthenticated(req: NextRequest): boolean {
     return Boolean(req.cookies.get(SESSION_COOKIE_NAME)?.value?.trim());
 }
 
-function normalizeFields(value: unknown): ItemFields | null {
+function isEditableValue(value: unknown): value is EditableValue {
+    return (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean" ||
+        value === null
+    );
+}
+
+function normalizeFields(
+    value: unknown,
+    allowedNames: Set<string>
+): ItemFields | null {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
         return null;
     }
@@ -59,16 +81,10 @@ function normalizeFields(value: unknown): ItemFields | null {
         if (!/^[A-Z][A-Z0-9_]*$/.test(name)) {
             return null;
         }
-        if (!EDITABLE_FIELD_NAMES.has(name)) {
-            return null;
+        if (!allowedNames.has(name)) {
+            continue;
         }
-
-        if (
-            typeof rawValue !== "string" &&
-            typeof rawValue !== "number" &&
-            typeof rawValue !== "boolean" &&
-            rawValue !== null
-        ) {
+        if (!isEditableValue(rawValue)) {
             return null;
         }
 
@@ -76,6 +92,41 @@ function normalizeFields(value: unknown): ItemFields | null {
     }
 
     return fields;
+}
+
+function asItemFields(value: unknown): ItemFields | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return null;
+    }
+
+    const fields: ItemFields = {};
+
+    for (const [rawName, rawValue] of Object.entries(value)) {
+        const name = rawName.trim().toUpperCase();
+
+        if (!/^[A-Z][A-Z0-9_]*$/.test(name) || !isEditableValue(rawValue)) {
+            continue;
+        }
+
+        fields[name] = rawValue;
+    }
+
+    return fields;
+}
+
+function pickItemExtra(value: unknown): ItemFields {
+    const source = asItemFields(value) ?? {};
+
+    return {
+        ...EMPTY_ITEEXTRA_FIELDS,
+        ...Object.fromEntries(
+            Object.entries(source).filter(([name]) =>
+                ITEEXTRA_EDITABLE_FIELD_NAMES.has(name)
+            )
+        ),
+        ...(source.LINENUM != null ? { LINENUM: source.LINENUM } : {}),
+        ...(source.MTRL != null ? { MTRL: source.MTRL } : {}),
+    };
 }
 
 export async function POST(req: NextRequest) {
@@ -125,7 +176,7 @@ export async function POST(req: NextRequest) {
         const data = await parseJsonWithEncodingFallback<{
             success?: boolean;
             message?: string;
-            data?: { ITEM?: unknown[] };
+            data?: { ITEM?: unknown[]; ITEEXTRA?: unknown[] };
         }>(response);
 
         if (data?.success === false) {
@@ -150,7 +201,9 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        return NextResponse.json({ success: true, key, item });
+        const itemExtra = pickItemExtra(data?.data?.ITEEXTRA?.[0]);
+
+        return NextResponse.json({ success: true, key, item, itemExtra });
     } catch (error) {
         console.error("[items/edit] getData server error:", error);
         return NextResponse.json(
@@ -169,9 +222,18 @@ export async function PATCH(req: NextRequest) {
             );
         }
 
-        const body = (await req.json()) as { key?: unknown; fields?: unknown };
+        const body = (await req.json()) as {
+            key?: unknown;
+            fields?: unknown;
+            itemExtra?: unknown;
+        };
         const key = normalizeKey(body.key);
-        const fields = normalizeFields(body.fields);
+        const fields = body.fields
+            ? normalizeFields(body.fields, EDITABLE_FIELD_NAMES)
+            : null;
+        const itemExtra = body.itemExtra
+            ? normalizeFields(body.itemExtra, ITEEXTRA_EDITABLE_FIELD_NAMES)
+            : null;
         const clientID = getSoftOneSetDataClientID();
 
         if (!key) {
@@ -181,7 +243,12 @@ export async function PATCH(req: NextRequest) {
             );
         }
 
-        if (!fields || Object.keys(fields).length === 0) {
+        const hasItemFields = Boolean(fields && Object.keys(fields).length > 0);
+        const hasItemExtraFields = Boolean(
+            itemExtra && Object.keys(itemExtra).length > 0
+        );
+
+        if (!hasItemFields && !hasItemExtraFields) {
             return NextResponse.json(
                 {
                     success: false,
@@ -201,13 +268,35 @@ export async function PATCH(req: NextRequest) {
             );
         }
 
+        const setDataPayload: {
+            ITEM?: ItemFields[];
+            ITEEXTRA?: ItemFields[];
+        } = {};
+
+        if (hasItemFields && fields) {
+            setDataPayload.ITEM = [fields];
+        }
+
+        if (hasItemExtraFields && itemExtra) {
+            const identity = asItemFields(body.itemExtra) ?? {};
+            setDataPayload.ITEEXTRA = [
+                {
+                    ...(identity.LINENUM != null
+                        ? { LINENUM: identity.LINENUM }
+                        : {}),
+                    ...(identity.MTRL != null ? { MTRL: identity.MTRL } : {}),
+                    ...itemExtra,
+                },
+            ];
+        }
+
         const response = await postSoftOne({
             service: "setData",
             clientID,
             appId: "1305",
             OBJECT: "ITEM",
             KEY: key,
-            data: { ITEM: [fields] },
+            data: setDataPayload,
         });
 
         if (!response.ok) {

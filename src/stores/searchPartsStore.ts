@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { IItem } from "@/lib/interface";
 
 type SearchPartsStore = {
@@ -13,20 +14,28 @@ type SearchPartsStore = {
     clearState: () => void;
 };
 
-export const useSearchPartsStore = create<SearchPartsStore>((set) => ({
-    trdr: null,
-    searchTerm: "",
-    items: [],
-    hasSearched: false,
-    setTrdr: (trdr) => set({ trdr }),
-    setSearchTerm: (searchTerm) => set({ searchTerm }),
-    setItems: (items) => set({ items }),
-    setHasSearched: (hasSearched) => set({ hasSearched }),
-    clearState: () =>
-        set({
+export const useSearchPartsStore = create<SearchPartsStore>()(
+    persist(
+        (set) => ({
             trdr: null,
             searchTerm: "",
             items: [],
             hasSearched: false,
+            setTrdr: (trdr) => set({ trdr }),
+            setSearchTerm: (searchTerm) => set({ searchTerm }),
+            setItems: (items) => set({ items }),
+            setHasSearched: (hasSearched) => set({ hasSearched }),
+            clearState: () =>
+                set({
+                    trdr: null,
+                    searchTerm: "",
+                    items: [],
+                    hasSearched: false,
+                }),
         }),
-}));
+        {
+            name: "search-parts-storage",
+            storage: createJSONStorage(() => sessionStorage),
+        }
+    )
+);

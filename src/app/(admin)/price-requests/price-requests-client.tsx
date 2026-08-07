@@ -17,44 +17,12 @@ import {
     useFetchRequestedPriceRequestsMutation,
     useUpdateRequestedPriceRequestMutation,
 } from "@/hooks/queries/useApiMutations";
-
-function parsePositivePrice(value: unknown): number | null {
-    const raw = String(value ?? "").trim();
-
-    if (!raw) {
-        return null;
-    }
-
-    const parsed = Number(raw.replace(",", "."));
-
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-        return null;
-    }
-
-    return parsed;
-}
-
-function formatPrice(value: unknown) {
-    const parsed = parsePositivePrice(value);
-
-    if (parsed == null) {
-        const fallback = String(value ?? "").trim();
-
-        return fallback || "—";
-    }
-
-    return `${parsed.toFixed(2)} €`;
-}
-
-function normalizeBasketId(value: unknown) {
-    const parsed = Number(value);
-
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-        return null;
-    }
-
-    return parsed;
-}
+import { useSessionState } from "@/hooks/useSessionState";
+import {
+    formatPrice,
+    normalizeBasketId,
+    parsePositivePrice,
+} from "@/lib/utils/price-requests";
 
 export default function PriceRequestsClient() {
     const { mutateAsync: fetchRequestedPriceRequests } =
@@ -70,7 +38,10 @@ export default function PriceRequestsClient() {
     const [updatingId, setUpdatingId] = useState("");
     const [editingId, setEditingId] = useState("");
     const [editedPrice, setEditedPrice] = useState("");
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useSessionState(
+        "price-requests-search",
+        ""
+    );
 
     const loadRows = useCallback(async () => {
         setLoading(true);

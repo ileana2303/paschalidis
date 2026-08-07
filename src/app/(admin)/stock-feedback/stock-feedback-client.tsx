@@ -20,7 +20,6 @@ import NumberBadge from "@/components/ui/data-table/number-badge";
 import StatusBadge from "@/components/ui/data-table/status-badge";
 import type {
   IStockFeedbackRow,
-  IStockRequestListRow,
   StockRequestStatus,
 } from "@/lib/interface";
 import {
@@ -31,85 +30,17 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import toast from "react-hot-toast";
 import { normalizeBranchCode } from "@/lib/auth/branches";
+import { useSessionState } from "@/hooks/useSessionState";
+import {
+  buildPendingStockState,
+  formatDaysLabel,
+  formatNumber,
+  getRequestStatusLabel,
+  isCurrentBranchStockColumn,
+  toNumber,
+} from "@/lib/utils/stock-feedback";
 
 const DAY_OPTIONS = [0, 1, 2, 3, 4, 5] as const;
-
-function formatDaysLabel(days: number) {
-  if (days === 0) return "Σήμερα";
-  if (days === 1) return "1 ημέρα πριν";
-  return `${days} ημέρες πριν`;
-}
-
-function toNumber(value: string | number | null | undefined) {
-  const parsed = Number(String(value ?? "").trim().replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function formatNumber(value: string | number | null | undefined) {
-  return new Intl.NumberFormat("el-GR", {
-    maximumFractionDigits: 2,
-  }).format(toNumber(value));
-}
-
-function getRequestStatusLabel(
-  status: StockRequestStatus,
-  requestedQty?: number
-) {
-  if (status === "approved") return "Approved";
-  if (status === "deleted") return "Deleted";
-  if (Number.isInteger(requestedQty) && Number(requestedQty) > 0) {
-    return `Pending: ${requestedQty}`;
-  }
-  return "Pending";
-}
-
-function isCurrentBranchStockColumn(
-  currentBranchCode: string,
-  branchCode: "1001" | "1006" | "1007"
-) {
-  return currentBranchCode === branchCode;
-}
-
-function isPendingStockRequestStatus(status: string | null | undefined) {
-  const normalized = String(status ?? "").trim().toUpperCase();
-  return normalized.includes("ΕΚΚΡΕΜ") || normalized.includes("PENDING");
-}
-
-function toPositiveInteger(value: unknown) {
-  const parsed = Number(String(value ?? "").trim().replace(",", "."));
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return 0;
-  }
-
-  return parsed;
-}
-
-function buildPendingStockState(rows: IStockRequestListRow[] | undefined) {
-  const nextPendingStatuses: Record<string, StockRequestStatus> = {};
-  const nextPendingQty: Record<string, number> = {};
-
-  for (const requestRow of rows ?? []) {
-    const mtrl = String(requestRow.MTRL ?? "").trim();
-
-    if (!mtrl || !isPendingStockRequestStatus(requestRow.STATUS)) {
-      continue;
-    }
-
-    const requestedQty = toPositiveInteger(requestRow.QTY_REQUESTED);
-
-    if (requestedQty <= 0) {
-      continue;
-    }
-
-    nextPendingStatuses[mtrl] = "pending";
-    nextPendingQty[mtrl] = (nextPendingQty[mtrl] ?? 0) + requestedQty;
-  }
-
-  return {
-    statuses: nextPendingStatuses,
-    requestedQty: nextPendingQty,
-  };
-}
 
 function KpiCard({
   title,
@@ -179,7 +110,10 @@ export default function StockFeedbackClient() {
   const [rows, setRows] = useState<IStockFeedbackRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useSessionState(
+    "stock-feedback-search",
+    ""
+  );
   const [requestQuantities, setRequestQuantities] = useState<
     Record<string, number>
   >({});

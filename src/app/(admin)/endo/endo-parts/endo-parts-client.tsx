@@ -3,8 +3,16 @@
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Plus } from "@/lib/icons/lucide";
-import type { IEndoListRow, IItem } from "@/lib/interface";
+import type { IItem } from "@/lib/interface";
 import { useSearchEndoStore } from "@/stores/searchEndoStore";
+import {
+    getBranchCodesFromItem,
+    getEndoItemKey,
+    getEndoQtyKey,
+    getItemFieldValue,
+    mapEndoRequestedRows,
+    parseStockValue,
+} from "@/lib/utils/endo";
 import { useModal } from "@/hooks/useModal";
 import PartsSearchModal from "@/components/search/parts-search-modal";
 import SearchBar from "@/components/search/search-bar";
@@ -22,84 +30,6 @@ import EndoOrderSummary, { EndoBasketUiItem } from "@/components/endo/endo-order
 import EndoPartResults from "@/components/endo/endo-part-results";
 import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import toast from "react-hot-toast";
-
-function parseStockValue(value: unknown) {
-    const parsed = Number(String(value ?? "").trim().replace(",", "."));
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-        return 0;
-    }
-
-    return Math.floor(parsed);
-}
-
-function getItemFieldValue(item: IItem, key: string) {
-    return (item as unknown as Record<string, unknown>)[key];
-}
-
-function getBranchCodesFromItem(item: IItem) {
-    const codes = new Set<string>();
-
-    Object.keys(item).forEach((key) => {
-        const match = key.match(/^YP(\d+)$/i);
-        if (match?.[1]) {
-            codes.add(match[1]);
-        }
-    });
-
-    return Array.from(codes);
-}
-
-function getItemKey(item: IItem) {
-    return `${item.ITEM_CODE}-${item.MTRL}`;
-}
-
-function getQtyKey(mtrl: string | number, sourceBranch: string) {
-    return `${mtrl}:${sourceBranch}`;
-}
-
-function parsePositiveInt(value: unknown) {
-    const parsed = Number(String(value ?? "").trim().replace(",", "."));
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-        return 0;
-    }
-
-    return Math.floor(parsed);
-}
-
-function mapEndoRequestedRows(
-    rows: IEndoListRow[],
-    currentBranchCode: string
-): EndoBasketUiItem[] {
-    return rows
-        .map((row, index) => {
-            const basketId = String(row.BASKETID ?? row.ID ?? "").trim();
-            const mtrl = parsePositiveInt(row.MTRL);
-            const qty = parsePositiveInt(row.QTY || row.QTY_REQUESTED);
-            const rowBranch = String(row.BRANCH ?? "").trim();
-            const rowToBranch = String(row.TO_BRANCH ?? "").trim();
-            let fromBranch = rowToBranch || rowBranch;
-            let toBranch = rowBranch || currentBranchCode;
-
-            if (!fromBranch) {
-                fromBranch = "-";
-            }
-
-            return {
-                uid: basketId ? `endo-${basketId}` : `endo-row-${index}`,
-                basketIds: basketId ? [basketId] : [],
-                mtrl,
-                qty,
-                fromBranch,
-                toBranch,
-                itemCode: String(row.ITEM_CODE ?? row.CODE ?? mtrl ?? "").trim(),
-                itemDescr: String(
-                    row.ITEM_DESCR ?? row.ITEM_NAME ?? row.NAME ?? "—"
-                ).trim(),
-                manufacturer: String(row.MNF_DESCR ?? row.MANUFACTURER ?? "").trim(),
-            } as EndoBasketUiItem;
-        })
-        .filter((row) => row.mtrl > 0 && row.qty > 0);
-}
 
 export default function EndoPartsClient() {
     const [modalSearch, setModalSearch] = useState("");
@@ -494,25 +424,25 @@ export default function EndoPartsClient() {
     };
 
     const areAllResultsExpanded =
-        items.length > 0 && items.every((item) => expandedItems.has(getItemKey(item)));
+        items.length > 0 && items.every((item) => expandedItems.has(getEndoItemKey(item)));
 
     const toggleAllExpanded = () => {
         setExpandedItems((prev) => {
             const next = new Set(prev);
             if (areAllResultsExpanded) {
-                items.forEach((item) => next.delete(getItemKey(item)));
+                items.forEach((item) => next.delete(getEndoItemKey(item)));
             } else {
-                items.forEach((item) => next.add(getItemKey(item)));
+                items.forEach((item) => next.add(getEndoItemKey(item)));
             }
             return next;
         });
     };
 
     const getRequestedQty = (mtrl: string | number, sourceBranch: string) =>
-        quantities[getQtyKey(mtrl, sourceBranch)] ?? 0;
+        quantities[getEndoQtyKey(mtrl, sourceBranch)] ?? 0;
 
     const setRequestedQty = (mtrl: string | number, sourceBranch: string, next: number) => {
-        const qtyKey = getQtyKey(mtrl, sourceBranch);
+        const qtyKey = getEndoQtyKey(mtrl, sourceBranch);
         const normalizedQty = Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0;
 
         setQuantities((prev) => {
@@ -583,7 +513,7 @@ export default function EndoPartsClient() {
             return;
         }
 
-        const requestKey = getQtyKey(item.MTRL, sourceBranchCode);
+        const requestKey = getEndoQtyKey(item.MTRL, sourceBranchCode);
         setAddingToBasket((prev) => new Set(prev).add(requestKey));
         setBasketError("");
         resetBasketSuccess();
@@ -719,7 +649,7 @@ export default function EndoPartsClient() {
 
                                 <div className="space-y-2">
                                     {items.map((item) => {
-                                        const itemKey = getItemKey(item);
+                                        const itemKey = getEndoItemKey(item);
                                         const branches = getBranchOptions(item);
                                         const inBasketQtyByBranch = basketItems
                                             .filter((basketItem) => basketItem.mtrl === Number(item.MTRL))
@@ -753,7 +683,7 @@ export default function EndoPartsClient() {
                                                     handleAddToBasket(item, branchCode)
                                                 }
                                                 isAdding={(branchCode) =>
-                                                    addingToBasket.has(getQtyKey(item.MTRL, branchCode))
+                                                    addingToBasket.has(getEndoQtyKey(item.MTRL, branchCode))
                                                 }
                                                 inBasketQtyByBranch={inBasketQtyByBranch}
                                                 onToggleExpanded={() => toggleExpanded(itemKey)}

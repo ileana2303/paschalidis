@@ -9,13 +9,11 @@ import {
     useSearchItemsMutation,
     useSetSimilarItemMutation,
 } from "@/hooks/queries/useApiMutations";
+import { useSearchSetSimilarStore } from "@/stores/searchSetSimilarStore";
 import toast from "react-hot-toast";
+import { value } from "@/lib/utils/search-set-similar";
 
 type SearchSide = "left" | "right";
-
-function value(value: unknown): string {
-    return String(value ?? "").trim();
-}
 
 function ItemDetails({ item }: { item: IItem }) {
     return (
@@ -58,16 +56,21 @@ function ItemDetails({ item }: { item: IItem }) {
 }
 
 export default function SearchSetSimilarClient() {
-    const [leftSearch, setLeftSearch] = useState("");
-    const [rightSearch, setRightSearch] = useState("");
-    const [leftItems, setLeftItems] = useState<IItem[]>([]);
-    const [rightItems, setRightItems] = useState<IItem[]>([]);
-    const [selectedLeft, setSelectedLeft] = useState<IItem | null>(null);
+    const leftSearch = useSearchSetSimilarStore((state) => state.leftSearch);
+    const setLeftSearch = useSearchSetSimilarStore((state) => state.setLeftSearch);
+    const rightSearch = useSearchSetSimilarStore((state) => state.rightSearch);
+    const setRightSearch = useSearchSetSimilarStore((state) => state.setRightSearch);
+    const leftItems = useSearchSetSimilarStore((state) => state.leftItems);
+    const setLeftItems = useSearchSetSimilarStore((state) => state.setLeftItems);
+    const rightItems = useSearchSetSimilarStore((state) => state.rightItems);
+    const setRightItems = useSearchSetSimilarStore((state) => state.setRightItems);
+    const selectedLeft = useSearchSetSimilarStore((state) => state.selectedLeft);
+    const setSelectedLeft = useSearchSetSimilarStore((state) => state.setSelectedLeft);
+    const hasSearched = useSearchSetSimilarStore((state) => state.hasSearched);
+    const setHasSearchedSide = useSearchSetSimilarStore(
+        (state) => state.setHasSearchedSide
+    );
     const [updatingMtrl, setUpdatingMtrl] = useState("");
-    const [hasSearched, setHasSearched] = useState<Record<SearchSide, boolean>>({
-        left: false,
-        right: false,
-    });
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const { mutateAsync: searchLeftItems, isPending: isSearchingLeft } =
@@ -82,7 +85,7 @@ export default function SearchSetSimilarClient() {
 
         setError("");
         setSuccess("");
-        setHasSearched((current) => ({ ...current, [side]: true }));
+        setHasSearchedSide(side, true);
 
         try {
             const result = await (
@@ -145,8 +148,8 @@ export default function SearchSetSimilarClient() {
                 ITEM_OMOIO: similarItem.ITEM_OMOIO,
             };
             setSelectedLeft(updatedLeft);
-            setLeftItems((items) =>
-                items.map((item) =>
+            setLeftItems(
+                leftItems.map((item) =>
                     value(item.MTRL) === value(updatedLeft.MTRL) ? updatedLeft : item
                 )
             );
@@ -219,7 +222,7 @@ export default function SearchSetSimilarClient() {
                                 setLeftSearch("");
                                 setLeftItems([]);
                                 setSelectedLeft(null);
-                                setHasSearched((current) => ({ ...current, left: false }));
+                                setHasSearchedSide("left", false);
                             }}
                             placeholder="Κωδικός, όνομα ή περιγραφή..."
                             loading={loadingSide === "left"}
@@ -284,7 +287,7 @@ export default function SearchSetSimilarClient() {
                             onClear={() => {
                                 setRightSearch("");
                                 setRightItems([]);
-                                setHasSearched((current) => ({ ...current, right: false }));
+                                setHasSearchedSide("right", false);
                             }}
                             placeholder="Αναζήτηση ομοίου..."
                             loading={loadingSide === "right"}

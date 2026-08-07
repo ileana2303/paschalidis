@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { ICustomerInfo } from "@/lib/interface";
 
 type CustomerSearchStore = {
@@ -11,17 +12,25 @@ type CustomerSearchStore = {
     clearSearchState: () => void;
 };
 
-export const useCustomerSearchStore = create<CustomerSearchStore>((set) => ({
-    search: "",
-    customers: [],
-    hasSearched: false,
-    setSearch: (search) => set({ search }),
-    setCustomers: (customers) => set({ customers }),
-    setHasSearched: (hasSearched) => set({ hasSearched }),
-    clearSearchState: () =>
-        set({
+export const useCustomerSearchStore = create<CustomerSearchStore>()(
+    persist(
+        (set) => ({
             search: "",
             customers: [],
             hasSearched: false,
+            setSearch: (search) => set({ search }),
+            setCustomers: (customers) => set({ customers }),
+            setHasSearched: (hasSearched) => set({ hasSearched }),
+            clearSearchState: () =>
+                set({
+                    search: "",
+                    customers: [],
+                    hasSearched: false,
+                }),
         }),
-}));
+        {
+            name: "customer-search-storage",
+            storage: createJSONStorage(() => sessionStorage),
+        }
+    )
+);

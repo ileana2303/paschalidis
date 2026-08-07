@@ -12,59 +12,21 @@ import {
   Loader2,
   ShoppingCart,
 } from "@/lib/icons/lucide";
-import type { BasketAllResponse } from "@/lib/interface";
 import { useFetchAllClientBasketsMutation } from "@/hooks/queries/useApiMutations";
 import { normalizeBranchCode } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
-
-const DEFAULT_SEARCH = "*";
-const DEFAULT_PAGE_SIZE = 25;
-type BasketBranchCode = "1001" | "1006" | "1007";
-
-const BASKET_BRANCH_OPTIONS: Array<{ code: BasketBranchCode; label: string }> = [
-  { code: "1001", label: "Κασομούλη" },
-  { code: "1006", label: "Λ. Αθηνών" },
-  { code: "1007", label: "Λ. Μεσογείων" },
-];
-
-type BasketListRow = {
-  TRDR: string;
-  MAXDATE: string;
-  MINDATE: string;
-  CUSTOMER_NAME: string;
-  TOT_QTY: string;
-  TOTAL_VALUE: string;
-  BASKETROWS: string;
-};
-
-function formatPrice(value: unknown) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? `${parsed.toFixed(2)} €` : "0.00 €";
-}
-
-function formatDate(value: unknown) {
-  if (!value) return "—";
-
-  const parsed = new Date(String(value));
-
-  if (Number.isNaN(parsed.getTime())) {
-    return String(value);
-  }
-
-  return parsed.toLocaleDateString("el-GR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
-
-function getBasketRows(data: BasketAllResponse): BasketListRow[] {
-  return Array.isArray(data.rows) ? (data.rows as BasketListRow[]) : [];
-}
-
-function isBasketBranchCode(value: string): value is BasketBranchCode {
-  return BASKET_BRANCH_OPTIONS.some((branch) => branch.code === value);
-}
+import { useSessionState } from "@/hooks/useSessionState";
+import {
+  BASKET_BRANCH_OPTIONS,
+  DEFAULT_PAGE_SIZE,
+  DEFAULT_SEARCH,
+  formatDate,
+  formatPrice,
+  getBasketRows,
+  isBasketBranchCode,
+  type BasketBranchCode,
+  type BasketListRow,
+} from "@/lib/utils/all-baskets";
 
 export default function AllBasketsClient() {
   const user = useAuthStore((state) => state.user);
@@ -75,8 +37,14 @@ export default function AllBasketsClient() {
   const { mutateAsync: fetchAllClientBaskets } =
     useFetchAllClientBasketsMutation();
 
-  const [searchInput, setSearchInput] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState(DEFAULT_SEARCH);
+  const [searchInput, setSearchInput] = useSessionState(
+    "all-baskets-search-input",
+    ""
+  );
+  const [appliedSearch, setAppliedSearch] = useSessionState(
+    "all-baskets-applied-search",
+    DEFAULT_SEARCH
+  );
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [totalcount, setTotalcount] = useState(0);

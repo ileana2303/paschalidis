@@ -22,18 +22,10 @@ import {
 import BasketTable from "@/components/ui/basket-lines/basket-table";
 import CustomerOrderSummary from "@/components/order-summary/customer-order-summary";
 import toast from "react-hot-toast";
+import { useSessionState } from "@/hooks/useSessionState";
+import { parseSoftOneNumber } from "@/lib/utils/number";
 
 type ReceiptType = "receipt" | "invoice";
-
-function parseNumericValue(value: unknown): number | null {
-    const raw = String(value ?? "").trim();
-    if (!raw) {
-        return null;
-    }
-
-    const parsed = Number(raw.replace(",", "."));
-    return Number.isFinite(parsed) ? parsed : null;
-}
 
 export default function BasketClient() {
     const router = useRouter();
@@ -48,9 +40,12 @@ export default function BasketClient() {
     const [successMessage, setSuccessMessage] = useState("");
     const [orderSubmittedSuccess, setOrderSubmittedSuccess] = useState(false);
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-    const [receiptType, setReceiptType] = useState<ReceiptType>("receipt");
-    const [pickupPoint, setPickupPoint] = useState("");
-    const [notes, setNotes] = useState("");
+    const [receiptType, setReceiptType] = useSessionState<ReceiptType>(
+        "basket-receipt-type",
+        "receipt"
+    );
+    const [pickupPoint, setPickupPoint] = useSessionState("basket-pickup-point", "");
+    const [notes, setNotes] = useSessionState("basket-notes", "");
     const [sendingOrder, setSendingOrder] = useState(false);
     const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
     const [removingSelectedItems, setRemovingSelectedItems] = useState(false);
@@ -272,7 +267,7 @@ export default function BasketClient() {
     const handleRequestPrice = async (uid: string) => {
         const item = basket?.items.find((basketItem) => getBasketItemId(basketItem) === uid);
         const requestedPriceInput = requestedPrices[uid] ?? "";
-        const requestedPrice = parseNumericValue(requestedPriceInput);
+        const requestedPrice = parseSoftOneNumber(requestedPriceInput);
 
         if (!item) {
             setError("Δεν βρέθηκε η γραμμή για αίτημα τιμής");

@@ -25,9 +25,8 @@ export default function SearchCustomerClient() {
     const searchCustomersMutation = useSearchCustomersMutation();
 
     useEffect(() => {
-        clearSearchState();
         searchInputRef.current?.focus();
-    }, [clearSearchState]);
+    }, []);
 
     const handleSearch = async () => {
         const trimmedSearch = search.trim();
