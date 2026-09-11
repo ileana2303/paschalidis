@@ -32,7 +32,6 @@ import {
 
 const EDITABLE_FIELDS = [
     { name: "CODE", label: "Κωδικός" },
-    { name: "CODE1", label: "Κωδικός 1" },
     { name: "CODE2", label: "Κωδικός 2" },
     { name: "MTRUNIT1", label: "Μονάδα μέτρησης" },
     { name: "NAME", label: "Περιγραφή" },
@@ -42,9 +41,9 @@ const EDITABLE_FIELDS = [
         name: `PRICEW${String(priceList).padStart(2, "0")}`,
         label: `Τιμές πώλησης ${String(priceList).padStart(2, "0")}`,
     })),
-    ...[8, 9, 10, 11, 12].map((priceList) => ({
+    ...[8, 9, 10, 11, 12].map((priceList, index) => ({
         name: `PRICEW${String(priceList).padStart(2, "0")}`,
-        label: `Υπολογισμένες τιμές πώλησης ${String(priceList).padStart(2, "0")} (€)`,
+        label: `Υπολογισμένες τιμές πώλησης ${String(index + 1).padStart(2, "0")} (€)`,
     })),
     { name: "MTRMANFCTR", label: "Κατασκευαστής" },
     { name: "VARCHAR1", label: "VARCHAR1" },
@@ -69,6 +68,9 @@ const BOOL03_OPTIONS = [
 
 const INPUT_CLASS_NAME =
     "h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white";
+
+const READONLY_VALUE_CLASS_NAME =
+    "flex h-11 w-full items-center text-sm font-medium text-gray-900 dark:text-white";
 
 function Bool03Dropdown({
     value,
@@ -301,9 +303,14 @@ export default function EditItemsClient() {
         const markupPercent = getSalePriceMarkupPercent(fields, name);
         const showMarkup = markupPercent != null;
 
+        const fieldValue = toItemEditInputValue(fields[name]);
+
         return (
-            <label key={name} className={`block ${className}`}>
-                <span className="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
+            <div
+                key={name}
+                className={`grid grid-rows-[minmax(2.5rem,auto)_2.75rem] gap-1.5 ${className}`}
+            >
+                <span className="flex flex-wrap items-end gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
                     <span>
                         {Object.prototype.hasOwnProperty.call(
                             SALE_TO_COMPUTED_PRICE,
@@ -326,19 +333,19 @@ export default function EditItemsClient() {
                         </span>
                     )}
                 </span>
-                <input
-                    type="text"
-                    value={toItemEditInputValue(fields[name])}
-                    onChange={(event) => updateField(name, event.target.value)}
-                    disabled={isDisabled}
-                    readOnly={isDisabled}
-                    className={`${INPUT_CLASS_NAME} ${
-                        isDisabled
-                            ? "cursor-not-allowed bg-gray-50 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400"
-                            : ""
-                    }`}
-                />
-            </label>
+                {isDisabled ? (
+                    <p className={READONLY_VALUE_CLASS_NAME}>
+                        {fieldValue || "—"}
+                    </p>
+                ) : (
+                    <input
+                        type="text"
+                        value={fieldValue}
+                        onChange={(event) => updateField(name, event.target.value)}
+                        className={`${INPUT_CLASS_NAME} h-full`}
+                    />
+                )}
+            </div>
         );
     };
 
@@ -525,9 +532,8 @@ export default function EditItemsClient() {
 
                             <div className="mt-6 grid gap-4 md:grid-cols-2">
                                 {renderField("CODE")}
-                                {renderField("CODE1")}
-                                {renderField("CODE2")}
                                 {renderField("MTRUNIT1")}
+                                {renderField("CODE2")}
                                 {renderField("NAME", "md:col-span-2")}
                                 {renderField("PRICEW")}
                                 {renderField("STANDCOST")}

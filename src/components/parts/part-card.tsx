@@ -171,13 +171,6 @@ export default function PartResults({
                 : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
     const manufacturerDescription = String(item.MNF_DESCR ?? "").trim();
     const itemDescription = String(item.ITEM_DESCR ?? "").trim();
-    const hasManufacturerDescription = manufacturerDescription.length > 0;
-    const primaryDescription = hasManufacturerDescription
-        ? manufacturerDescription
-        : itemDescription;
-    const primaryDescriptionClassName = hasManufacturerDescription
-        ? "min-w-0 text-sm font-medium text-gray-800 dark:text-white/90"
-        : "min-w-0 text-xs text-gray-500";
     const basketQuantity = basketItem != null
         ? Math.max(1, getBasketItemQty(basketItem))
         : null;
@@ -202,163 +195,154 @@ export default function PartResults({
             ? "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3.5 text-xs font-semibold text-brand-700 shadow-xs transition hover:border-brand-300 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/15"
             : "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-600 shadow-xs transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10 dark:hover:text-brand-300";
 
-    const expandToggleButton = (
-        <button
-            type="button"
-            onClick={onToggleExpanded}
-            onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                }
-            }}
-            aria-label={isExpanded ? "Απόκρυψη λεπτομερειών" : "Προβολή λεπτομερειών"}
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none dark:hover:bg-gray-800 dark:hover:text-gray-200"
-        >
-            <ChevronDown
-                className={`h-4 w-4 transition-transform duration-100 ${isExpanded ? "rotate-180" : ""}`}
-            />
-        </button>
-    );
+    const statusBadgeClassName =
+        item.STATUS_NOW === "1"
+            ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+            : item.STATUS_NOW === "0"
+                ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400";
 
     return (
         <div className={`grid gap-2 ${showStockRequestCard ? "xl:grid-cols-[minmax(0,1fr)_228px]" : ""}`}>
 
             <div
-                className={`rounded-xl border transition hover:border-2 ${isInBasket
-                    ? "border-green-400 bg-white hover:border-green-500 hover:bg-green-50 dark:border-green-600 dark:bg-white/[0.03] dark:hover:border-green-500 dark:hover:bg-green-500/10"
-                    : "border-gray-200 bg-white hover:bg-brand-100/40 hover:border-brand-500 dark:border-gray-800 dark:bg-white/[0.03]"
+                className={`overflow-hidden rounded-xl border shadow-sm transition ${isInBasket
+                    ? "border-green-400 bg-white hover:border-green-500 dark:border-green-600 dark:bg-white/[0.03] dark:hover:border-green-500"
+                    : "border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
                     }`}
             >
-                <div className="p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="grid min-w-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-                            <div className="min-w-0">
-                                <button
-                                    type="button"
-                                    onClick={onToggleExpanded}
-                                    className="flex flex-wrap items-center gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
-                                >
-                                    <span className="text-sm font-bold text-brand-600 dark:text-brand-400">
-                                        {item.ITEM_CODE}
-                                    </span>
-                                    <span
-                                        className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight ${item.STATUS_NOW === "1"
-                                            ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                                            : item.STATUS_NOW === "0"
-                                                ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                                                : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
-                                            }`}
-                                    >
-                                        {item.STATUS_LABEL}
-                                    </span>
+                <button
+                    type="button"
+                    onClick={onToggleExpanded}
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? "Απόκρυψη λεπτομερειών" : "Προβολή λεπτομερειών"}
+                    className={`group flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/40 ${
+                        isExpanded
+                            ? "border-brand-200 bg-brand-50/70 dark:border-brand-500/30 dark:bg-brand-500/10"
+                            : "border-gray-100 bg-gray-50/80 hover:bg-brand-50/60 dark:border-gray-800 dark:bg-white/[0.02] dark:hover:bg-brand-500/5"
+                    }`}
+                >
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-sm font-bold text-brand-600 dark:text-brand-400">
+                                {item.ITEM_CODE}
+                            </span>
 
-                                    {isInBasket && basketItem && (
-                                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold leading-tight text-green-700 dark:bg-green-500/10 dark:text-green-400">
-                                            <ShoppingCart className="h-3 w-3" />
-                                            Στο καλάθι: {getBasketItemQty(basketItem)} τεμ.
+                            {(itemDescription || manufacturerDescription) && (
+                                <span className="min-w-0 text-sm text-gray-700 dark:text-gray-200">
+                                    {itemDescription}
+                                    {itemDescription && manufacturerDescription ? ", " : ""}
+                                    {manufacturerDescription && (
+                                        <span className="font-medium text-gray-800 dark:text-white/90">
+                                            {manufacturerDescription}
                                         </span>
                                     )}
+                                </span>
+                            )}
 
-                                    {basketItem && hasPriceRequest && (
-                                        <>
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                                                <BadgePercent className="h-3 w-3" />
-                                                Αίτημα: {formatPrice(requestedPrice)}
-                                            </span>
-                                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${requestStatusClassName}`}>
-                                                {requestStatusLabel}
-                                            </span>
-                                        </>
-                                    )}
-                                </button>
+                            <span
+                                className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight ${statusBadgeClassName}`}
+                            >
+                                {item.STATUS_LABEL}
+                            </span>
 
-                                <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
-                                    <button
-                                        type="button"
-                                        onClick={onToggleExpanded}
-                                        className={`${primaryDescriptionClassName} text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40`}
-                                    >
-                                        {primaryDescription}
-                                    </button>
-                                    {expandToggleButton}
-                                </div>
+                            {isInBasket && basketItem && (
+                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold leading-tight text-green-700 dark:bg-green-500/10 dark:text-green-400">
+                                    <ShoppingCart className="h-3 w-3" />
+                                    Στο καλάθι: {getBasketItemQty(basketItem)} τεμ.
+                                </span>
+                            )}
 
-                                {hasManufacturerDescription && itemDescription && (
-                                    <button
-                                        type="button"
-                                        onClick={onToggleExpanded}
-                                        className="mt-0.5 block text-left text-xs text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
-                                    >
-                                        {itemDescription}
-                                    </button>
-                                )}
-                            </div>
-
-                            {hasCustomer && (
-                                <div className="grid min-w-0 gap-2 lg:justify-items-end">
-                                    <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 lg:justify-end">
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                                                Τιμή μονάδας
-                                            </span>
-                                            <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
-                                                {formatPrice(item.PRICE_WHOLE)}
-                                            </span>
-                                        </div>
-
-                                        <div className="hidden h-6 w-px bg-gray-200 dark:bg-gray-700 sm:block" />
-
-                                        <div className="flex items-center gap-2.5">
-                                            <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                                Ποσότητα
-                                            </span>
-
-                                            <QuantityControl
-                                                value={qty}
-                                                onChange={onQuantityChange}
-                                            />
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={onAddToBasket}
-                                            disabled={isBasketActionDisabled}
-                                            className={basketActionClassName}
-                                        >
-                                            {isAdding ? (
-                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                            ) : (
-                                                <ShoppingCart
-                                                    className={isBasketActionMuted
-                                                        ? "h-3.5 w-3.5 text-green-500 dark:text-green-300"
-                                                        : "h-3.5 w-3.5"}
-                                                />
-                                            )}
-
-                                            <span>{basketActionLabel}</span>
-                                        </button>
-                                    </div>
-
-                                    {basketItem && (
-                                        <RequestPriceBox
-                                            status={requestStatus}
-                                            hasPriceRequest={hasPriceRequest}
-                                            hasRequestedPrice={hasRequestedPrice}
-                                            requestedPrice={requestedPrice}
-                                            value={requestedPriceValue}
-                                            onChange={onRequestedPriceValueChange}
-                                            onSubmit={onRequestPrice}
-                                            submitting={isSubmittingRequestPrice}
-                                            formatPrice={(price) => formatPrice(price)}
-                                            stableWidth
-                                        />
-                                    )}
-                                </div>
+                            {basketItem && hasPriceRequest && (
+                                <>
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                                        <BadgePercent className="h-3 w-3" />
+                                        Αίτημα: {formatPrice(requestedPrice)}
+                                    </span>
+                                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${requestStatusClassName}`}>
+                                        {requestStatusLabel}
+                                    </span>
+                                </>
                             )}
                         </div>
                     </div>
 
-                    <div className="mt-3 w-full rounded-xl border border-gray-100 bg-gray-50/70 p-3 text-left dark:border-gray-800 dark:bg-white/[0.02]">
+                    <div className="flex shrink-0 flex-col items-center gap-0.5">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 transition-colors group-hover:text-brand-500 dark:group-hover:text-brand-400">
+                            {isExpanded ? "Κλείσιμο" : "Λεπτομέρειες"}
+                        </span>
+                        <span className="grid h-8 w-8 place-items-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition group-hover:border-brand-300 group-hover:text-brand-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:group-hover:border-brand-500 dark:group-hover:text-brand-400">
+                            <ChevronDown
+                                className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                            />
+                        </span>
+                    </div>
+                </button>
+
+                <div className="p-4">
+                    {hasCustomer && (
+                        <div className="grid min-w-0 gap-2 lg:justify-items-end">
+                            <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 lg:justify-end">
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                                        Τιμή μονάδας
+                                    </span>
+                                    <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
+                                        {formatPrice(item.PRICE_WHOLE)}
+                                    </span>
+                                </div>
+
+                                <div className="hidden h-6 w-px bg-gray-200 dark:bg-gray-700 sm:block" />
+
+                                <div className="flex items-center gap-2.5">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                        Ποσότητα
+                                    </span>
+
+                                    <QuantityControl
+                                        value={qty}
+                                        onChange={onQuantityChange}
+                                    />
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={onAddToBasket}
+                                    disabled={isBasketActionDisabled}
+                                    className={basketActionClassName}
+                                >
+                                    {isAdding ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <ShoppingCart
+                                            className={isBasketActionMuted
+                                                ? "h-3.5 w-3.5 text-green-500 dark:text-green-300"
+                                                : "h-3.5 w-3.5"}
+                                        />
+                                    )}
+
+                                    <span>{basketActionLabel}</span>
+                                </button>
+                            </div>
+
+                            {basketItem && (
+                                <RequestPriceBox
+                                    status={requestStatus}
+                                    hasPriceRequest={hasPriceRequest}
+                                    hasRequestedPrice={hasRequestedPrice}
+                                    requestedPrice={requestedPrice}
+                                    value={requestedPriceValue}
+                                    onChange={onRequestedPriceValueChange}
+                                    onSubmit={onRequestPrice}
+                                    submitting={isSubmittingRequestPrice}
+                                    formatPrice={(price) => formatPrice(price)}
+                                    stableWidth
+                                />
+                            )}
+                        </div>
+                    )}
+
+                    <div className={`w-full rounded-xl border border-gray-100 bg-gray-50/70 p-3 text-left dark:border-gray-800 dark:bg-white/[0.02] ${hasCustomer ? "mt-3" : ""}`}>
                         <div className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
                             Απόθεμα ανά κατάστημα
                         </div>

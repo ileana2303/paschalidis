@@ -120,7 +120,7 @@ export default function CustomerInfoContainer({
             className="mb-4 w-full shrink-0 flex items-center gap-3 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-left text-sm text-gray-500 transition-colors hover:border-brand-400 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-brand-500/60 dark:hover:bg-gray-900"
         >
             <span className="flex-1">
-                Δεν έχει επιλεγεί πελάτης — Αναζήτηση πελάτη (προετικό)
+                Δεν έχει επιλεγεί πελάτης — Αναζήτηση πελάτη (προαιρετικό)
             </span>
 
             <span

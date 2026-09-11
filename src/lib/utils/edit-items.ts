@@ -15,6 +15,7 @@ export const SALE_TO_COMPUTED_PRICE: Record<string, string> = Object.fromEntries
 
 export const DISABLED_ITEM_FIELDS = new Set([
     "STANDCOST",
+    "MTRUNIT1",
     "PRICEW08",
     "PRICEW09",
     "PRICEW10",

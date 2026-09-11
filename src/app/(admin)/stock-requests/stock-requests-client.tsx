@@ -376,7 +376,7 @@ export default function StockRequestsClient() {
                 </div>
             ) : (
                 <div className="flex min-h-0 flex-1 flex-col gap-5 xl:flex-row">
-                    <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-[1.6]">
+                    <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-[2]">
                         <DataTableHeader
                             title="Εκκρεμή Αιτήματα Ανατροφοδοσίας"
                             description={`Διαχείριση αιτημάτων, ποσοτήτων και έγκρισης ανατροφοδοσίας. Κατάστημα: ${selectedBranchLabel}`}
@@ -436,40 +436,27 @@ export default function StockRequestsClient() {
                                 className="flex-1"
                             />
                         ) : (
-                            <div className="min-h-0 flex-1 overflow-y-auto">
-                                <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
-                                    <colgroup>
-                                        <col className="w-[5%]" />
-                                        <col className="w-[8%]" />
-                                        <col className="w-[27%]" />
-                                        <col className="w-[8%]" />
-                                        <col className="w-[7%]" />
-                                        <col className="w-[6%]" />
-                                        <col className="w-[6%]" />
-                                        <col className="w-[6%]" />
-                                        <col className="w-[8%]" />
-                                        <col className="w-[7%]" />
-                                    </colgroup>
-
+                            <div className="min-h-0 flex-1 overflow-auto">
+                                <table className="min-w-[1320px] w-full divide-y divide-gray-100 text-sm dark:divide-gray-800">
                                     <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                         <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 ID
                                             </th>
 
-                                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 Ημ/νία Αιτήματος
                                             </th>
 
-                                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="min-w-[280px] px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 Είδος
                                             </th>
 
-                                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 ΠΡΟΣ
                                             </th>
 
-                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="whitespace-nowrap px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 Διαθέσιμα
                                             </th>
 
@@ -477,7 +464,7 @@ export default function StockRequestsClient() {
                                                 <th
                                                     key={branchColumn.code}
                                                     className={[
-                                                        "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
+                                                        "whitespace-nowrap px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
                                                         branchColumn.code === selectedBranchCode
                                                             ? "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
                                                             : "text-gray-500 dark:text-gray-400",
@@ -487,11 +474,11 @@ export default function StockRequestsClient() {
                                                 </th>
                                             ))}
 
-                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="whitespace-nowrap px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 Αιτούμενη Ποσότητα
                                             </th>
 
-                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="whitespace-nowrap px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 Ενέργειες
                                             </th>
                                         </tr>
@@ -526,9 +513,9 @@ export default function StockRequestsClient() {
                                                         {formatDateTime(row.INS_DATE)}
                                                     </td>
 
-                                                    <td className="px-5 py-4 align-top">
+                                                    <td className="min-w-[280px] px-5 py-4 align-top">
                                                         <div className="pr-4">
-                                                            <p className="break-words font-medium leading-5 text-gray-900 dark:text-white">
+                                                            <p className="wrap-break-word font-medium leading-5 text-gray-900 dark:text-white">
                                                                 {row.ITEM_NAME}
                                                             </p>
 

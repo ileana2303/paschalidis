@@ -4,12 +4,14 @@ import {
     PanelRightClose,
     PanelRightOpen,
     Plus,
+    Search,
 } from "@/lib/icons/lucide";
 import { getBasketItemQty } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
 import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import PartResults from "@/components/parts/part-card";
-import type { RefObject, UIEvent } from "react";
+import Checkbox from "@/components/template-components/form/input/Checkbox";
+import { useMemo, useState, type RefObject, type UIEvent } from "react";
 
 interface PartsResultsLayoutProps {
     hasCustomer: boolean;
@@ -145,6 +147,86 @@ export default function PartsResultsContainer({
         formatPrice,
     } = basket;
 
+    const [textFilter, setTextFilter] = useState("");
+    const [statusFilterSelection, setStatusFilterSelection] = useState<Set<string> | null>(null);
+
+    const availableStatusLabels = useMemo(() => {
+        const labels = new Set<string>();
+
+        for (const item of items) {
+            const label = String(item.STATUS_LABEL ?? "").trim();
+
+            if (label) {
+                labels.add(label);
+            }
+        }
+
+        return Array.from(labels).sort((a, b) => a.localeCompare(b, "el"));
+    }, [items]);
+
+    const availableStatusLabelsKey = availableStatusLabels.join("\0");
+    const [syncedStatusLabelsKey, setSyncedStatusLabelsKey] = useState(availableStatusLabelsKey);
+
+    if (syncedStatusLabelsKey !== availableStatusLabelsKey) {
+        setSyncedStatusLabelsKey(availableStatusLabelsKey);
+        setStatusFilterSelection(null);
+    }
+
+    const selectedStatusLabels = useMemo(
+        () => statusFilterSelection ?? new Set(availableStatusLabels),
+        [statusFilterSelection, availableStatusLabels],
+    );
+
+    const normalizedTextFilter = textFilter.trim().toLowerCase();
+    const isStatusFilterActive =
+        statusFilterSelection !== null &&
+        statusFilterSelection.size < availableStatusLabels.length;
+
+    const filteredItems = useMemo(() => {
+        return items.filter((item) => {
+            const statusLabel = String(item.STATUS_LABEL ?? "").trim();
+
+            if (
+                isStatusFilterActive &&
+                statusLabel &&
+                !selectedStatusLabels.has(statusLabel)
+            ) {
+                return false;
+            }
+
+            if (!normalizedTextFilter) {
+                return true;
+            }
+
+            const itemCode = String(item.ITEM_CODE ?? "").toLowerCase();
+            const itemDescr = String(item.ITEM_DESCR ?? "").toLowerCase();
+            const manufacturerDescr = String(item.MNF_DESCR ?? "").toLowerCase();
+
+            return (
+                itemCode.includes(normalizedTextFilter) ||
+                itemDescr.includes(normalizedTextFilter) ||
+                manufacturerDescr.includes(normalizedTextFilter)
+            );
+        });
+    }, [items, isStatusFilterActive, normalizedTextFilter, selectedStatusLabels]);
+
+    const hasActiveFilters = normalizedTextFilter.length > 0 || isStatusFilterActive;
+
+    const toggleStatusLabel = (statusLabel: string) => {
+        setStatusFilterSelection((prev) => {
+            const current = prev ?? new Set(availableStatusLabels);
+            const next = new Set(current);
+
+            if (next.has(statusLabel)) {
+                next.delete(statusLabel);
+            } else {
+                next.add(statusLabel);
+            }
+
+            return next;
+        });
+    };
+
     return (
         <div className="relative min-h-0 flex-1">
             <div
@@ -156,10 +238,12 @@ export default function PartsResultsContainer({
                     <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
 
                         {items.length > 0 && (
-                            <div className="sticky top-0 z-10 mb-2 flex items-center justify-between gap-3 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">
-                                <div className="flex min-w-0 items-center gap-2">
+                            <div className="sticky top-0 z-10 mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">
+                                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                                     <p className="truncate text-sm text-gray-500">
-                                        Βρέθηκαν {items.length} αποτελέσματα
+                                        {hasActiveFilters
+                                            ? `Βρέθηκαν ${filteredItems.length} αποτελέσματα`
+                                            : `Βρέθηκαν ${items.length} αποτελέσματα`}
                                     </p>
 
                                     <button
@@ -175,6 +259,36 @@ export default function PartsResultsContainer({
                                             <ListChevronsUpDown className="h-4 w-4" />
                                         )}
                                     </button>
+
+                                    <div className="relative min-w-0 max-w-[220px] flex-1 sm:max-w-[280px]">
+                                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            value={textFilter}
+                                            onChange={(event) => setTextFilter(event.target.value)}
+                                            placeholder="Κωδικός, περιγραφή, κατασκευαστής..."
+                                            aria-label="Φιλτράρισμα ανταλλακτικών"
+                                            className="h-8 w-full rounded-lg border border-gray-200 bg-white pl-8 pr-2.5 text-xs text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200"
+                                        />
+                                    </div>
+
+                                    {availableStatusLabels.length > 0 && (
+                                        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 [&_label]:gap-2 [&_span]:text-xs">
+                                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                                Κατάσταση
+                                            </span>
+                                            {availableStatusLabels.map((statusLabel) => (
+                                                <Checkbox
+                                                    key={statusLabel}
+                                                    id={`status-filter-${statusLabel}`}
+                                                    label={statusLabel}
+                                                    checked={selectedStatusLabels.has(statusLabel)}
+                                                    onChange={() => toggleStatusLabel(statusLabel)}
+                                                    className="h-4 w-4"
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex shrink-0 items-center gap-2">
@@ -209,7 +323,7 @@ export default function PartsResultsContainer({
                         )}
 
                         <div className="space-y-2">
-                            {items.map((item) => {
+                            {filteredItems.map((item) => {
                                 const mtrlKey = String(item.MTRL);
                                 const expandedItemKey = getExpandedItemKey(item);
                                 const isExpanded = expandedItems.has(expandedItemKey);
@@ -300,6 +414,12 @@ export default function PartsResultsContainer({
                         {hasSearched && !loading && items.length === 0 && (
                             <p className="mt-6 text-center text-sm text-gray-400">
                                 Δεν βρέθηκαν ανταλλακτικά
+                            </p>
+                        )}
+
+                        {hasSearched && !loading && items.length > 0 && filteredItems.length === 0 && (
+                            <p className="mt-6 text-center text-sm text-gray-400">
+                                Δεν βρέθηκαν ανταλλακτικά με τα επιλεγμένα φίλτρα
                             </p>
                         )}
                     </div>

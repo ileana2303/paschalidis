@@ -191,7 +191,7 @@ export default function StockFeedbackClient() {
     const visibleRows = !query
       ? rows
       : rows.filter((row) => {
-        return [row.MTRL, row.CODE, row.NAME]
+        return [row.CODE, row.NAME]
           .join(" ")
           .toLowerCase()
           .includes(query);
@@ -414,7 +414,7 @@ export default function StockFeedbackClient() {
                 onRefresh={loadRows}
                 isRefreshing={loading}
                 refreshDisabled={loading}
-                placeholder="Αναζήτηση με κωδικό, MTRL ή περιγραφή..."
+                placeholder="Αναζήτηση με κωδικό ή περιγραφή..."
               />
             </div>
           )}
@@ -432,8 +432,7 @@ export default function StockFeedbackClient() {
           <div className="max-h-[70vh] w-full overflow-y-auto">
             <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
               <colgroup>
-                <col className="w-[24%]" />
-                <col className="w-[8%]" />
+                <col className="w-[32%]" />
                 <col className="w-[7%]" />
                 <col className="w-[8%]" />
                 <col className="w-[7%]" />
@@ -448,9 +447,6 @@ export default function StockFeedbackClient() {
                 <tr>
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Είδος
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    MTRL
                   </th>
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Πωλήσεις
@@ -529,10 +525,6 @@ export default function StockFeedbackClient() {
                             </span>
                           </p>
                         </div>
-                      </td>
-
-                      <td className="whitespace-nowrap px-5 py-4 align-top text-gray-600 dark:text-gray-300">
-                        {row.MTRL}
                       </td>
 
                       <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums font-semibold text-gray-900 dark:text-white">

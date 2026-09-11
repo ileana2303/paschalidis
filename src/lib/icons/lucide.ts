@@ -18,6 +18,7 @@ export {
   Eye,
   EyeOff,
   FileText,
+  Filter,
   FolderOpen,
   GitCompareArrows,
   LayoutDashboard,

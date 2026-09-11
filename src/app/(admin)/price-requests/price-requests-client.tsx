@@ -86,7 +86,6 @@ export default function PriceRequestsClient() {
                 row.BASKETID,
                 row.TRDR,
                 row.CUSTOMER_NAME,
-                row.MTRL,
                 row.ITEM_CODE,
                 row.ITEM_DESCR,
                 row.KATASTIMA,
@@ -226,7 +225,7 @@ export default function PriceRequestsClient() {
                             onRefresh={() => void loadRows()}
                             isRefreshing={loading}
                             refreshDisabled={loading || Boolean(updatingId)}
-                            placeholder="Αναζήτηση με BASKETID, MTRL, πελάτη..."
+                            placeholder="Αναζήτηση με BASKETID, πελάτη..."
                         />
                     )}
                 />
@@ -256,14 +255,13 @@ export default function PriceRequestsClient() {
                             <colgroup>
                                 <col className="w-[9%]" />
                                 <col className="w-[8%]" />
-                                <col className="w-[14%]" />
-                                <col className="w-[8%]" />
-                                <col className="w-[11%]" />
-                                <col className="w-[19%]" />
+                                <col className="w-[16%]" />
+                                <col className="w-[13%]" />
+                                <col className="w-[21%]" />
                                 <col className="w-[9%]" />
                                 <col className="w-[8%]" />
                                 <col className="w-[8%]" />
-                                <col className="w-[10%]" />
+                                <col className="w-[8%]" />
                             </colgroup>
 
                             <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
@@ -271,7 +269,6 @@ export default function PriceRequestsClient() {
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">BASKETID</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">TRDR</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Πελάτης</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">MTRL</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Κωδικός</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Περιγραφή</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Κατάστημα</th>
@@ -303,7 +300,6 @@ export default function PriceRequestsClient() {
                                             </td>
                                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.TRDR}</td>
                                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.CUSTOMER_NAME}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.MTRL}</td>
                                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.ITEM_CODE}</td>
                                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.ITEM_DESCR}</td>
                                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.KATASTIMA}</td>
