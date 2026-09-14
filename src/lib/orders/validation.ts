@@ -1,6 +1,5 @@
 import type {
     MassDeleteTableAction,
-    OrderSubmitLine,
     OrderSubmitType,
 } from "./order-submit-types";
 
@@ -43,7 +42,7 @@ export function validateBasketIds(basketIds: string[]) {
     }
 }
 
-export function uniqueBasketIds(lines: OrderSubmitLine[]) {
+export function uniqueBasketIds(lines: Array<{ basketId: string }>) {
     return [...new Set(lines.map((line) => String(line.basketId).trim()))];
 }
 
@@ -69,64 +68,4 @@ export function isMassDeleteTableAction(
     value: unknown
 ): value is MassDeleteTableAction {
     return value === "USRCUST" || value === "ENDO" || value === "ANATROF";
-}
-
-export function normalizeSubmitLine(
-    rawItem: {
-        basketId?: unknown;
-        basketIds?: unknown;
-        mtrl?: unknown;
-        MTRL?: unknown;
-        qty?: unknown;
-        QTY1?: unknown;
-        sourceBranch?: unknown;
-        destinationBranch?: unknown;
-        branch?: unknown;
-        toBranch?: unknown;
-    },
-    submitType: OrderSubmitType
-): OrderSubmitLine | null {
-    const mtrl = jsonSafeNumber(rawItem.mtrl ?? rawItem.MTRL);
-    const qty = jsonSafeNumber(rawItem.qty ?? rawItem.QTY1);
-
-    const basketId =
-        String(rawItem.basketId ?? "").trim() ||
-        (Array.isArray(rawItem.basketIds)
-            ? String(rawItem.basketIds[0] ?? "").trim()
-            : "");
-
-    if (!mtrl || !qty || !basketId) {
-        return null;
-    }
-
-    if (submitType === "endo") {
-        const sourceBranch = jsonSafeNumber(
-            rawItem.sourceBranch ?? rawItem.toBranch
-        );
-        const destinationBranch = jsonSafeNumber(
-            rawItem.destinationBranch ?? rawItem.branch
-        );
-
-        if (!sourceBranch || !destinationBranch) {
-            return null;
-        }
-
-        if (sourceBranch === destinationBranch) {
-            return null;
-        }
-
-        return {
-            basketId,
-            mtrl,
-            qty,
-            sourceBranch,
-            destinationBranch,
-        };
-    }
-
-    return {
-        basketId,
-        mtrl,
-        qty,
-    };
 }

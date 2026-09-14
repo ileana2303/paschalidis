@@ -474,14 +474,6 @@ export interface StockRequestSubmitRoutePayload {
   deliveryDate?: string;
   notes?: string;
   branch?: string | number;
-  trdr?: number;
-  trdBranch?: number;
-  payment?: number;
-  trucks?: number;
-  shipKind?: number;
-  socash?: number;
-  branchSec?: number;
-  whouseSec?: number;
   items: IStockRequestListRow[];
 }
 
@@ -540,8 +532,10 @@ export interface EndoBasketSubmitLineRoutePayload {
     basketIds: string[];
     mtrl: number;
     qty: number;
-    branch: number;
-    toBranch: number;
+    /** Branch that holds and sends the items (ENDO row BRANCH) -> TRDBRANCH. */
+    supplyingBranch: number;
+    /** Branch that asked for them (ENDO row TO_BRANCH) -> BRANCHSEC/WHOUSESEC. */
+    requestingBranch: number;
     itemCode?: string;
     itemDescr?: string;
 }

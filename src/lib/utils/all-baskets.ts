@@ -5,10 +5,10 @@ import { formatEuro } from "@/lib/utils/number";
 export const DEFAULT_SEARCH = "*";
 export const DEFAULT_PAGE_SIZE = 25;
 
-export type BasketBranchCode = "1001" | "1006" | "1007";
+export type BasketBranchCode = "1000" | "1006" | "1007";
 
 export const BASKET_BRANCH_OPTIONS: Array<{ code: BasketBranchCode; label: string }> = [
-    { code: "1001", label: "Κασομούλη" },
+    { code: "1000", label: "Κασομούλη" },
     { code: "1006", label: "Λ. Αθηνών" },
     { code: "1007", label: "Λ. Μεσογείων" },
 ];

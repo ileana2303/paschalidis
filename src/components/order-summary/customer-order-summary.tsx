@@ -17,6 +17,8 @@ import SummaryPanel, {
 import SummaryInfoCard from "@/components/ui/summary-panel/summary-info-card";
 import SummaryMetricGrid from "@/components/ui/summary-panel/summary-metric-grid";
 import SummaryPrimaryAction from "@/components/ui/summary-panel/summary-primary-action";
+import SummaryFormField from "@/components/ui/summary-panel/summary-form-field";
+import SummaryTextareaField from "@/components/ui/summary-panel/summary-textarea-field";
 import {
     getBasketItemId,
     getBasketItemLineTotal,
@@ -66,7 +68,7 @@ const receiptOptions = [
 const pickupPointOptions = [
     { value: "1006", label: "Λ.Αθηνών" },
     { value: "1007", label: "Λ.Μεσογείων" },
-    { value: "1001", label: "Κασομούλη" },
+    { value: "1000", label: "Κασομούλη" },
 ];
 
 const formatPrice = (price: number | null) => {
@@ -76,33 +78,6 @@ const formatPrice = (price: number | null) => {
 
 const getBasketItemsTotal = (items: IBasketItem[]) =>
     items.reduce((sum, item) => sum + getBasketItemLineTotal(item), 0);
-
-function FormField({
-    label,
-    icon,
-    htmlFor,
-    className = "",
-    children,
-}: {
-    label: ReactNode;
-    icon?: ReactNode;
-    htmlFor?: string;
-    className?: string;
-    children: ReactNode;
-}) {
-    return (
-        <div className={className}>
-            <label
-                htmlFor={htmlFor}
-                className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-                {icon && <span className="text-gray-400">{icon}</span>}
-                {label}
-            </label>
-            {children}
-        </div>
-    );
-}
 
 function SegmentedControl<T extends string>({
     value,
@@ -159,7 +134,7 @@ function SelectField<T extends string>({
     fieldClassName?: string;
 }) {
     return (
-        <FormField label={label} icon={icon} htmlFor={id} className={fieldClassName}>
+        <SummaryFormField label={label} icon={icon} htmlFor={id} className={fieldClassName}>
             <select
                 id={id}
                 value={value}
@@ -173,40 +148,7 @@ function SelectField<T extends string>({
                     </option>
                 ))}
             </select>
-        </FormField>
-    );
-}
-
-function TextareaField({
-    id,
-    label,
-    icon,
-    value,
-    onChange,
-    rows,
-    placeholder,
-    fieldClassName = "",
-}: {
-    id: string;
-    label: ReactNode;
-    icon?: ReactNode;
-    value: string;
-    onChange?: (value: string) => void;
-    rows?: number;
-    placeholder?: string;
-    fieldClassName?: string;
-}) {
-    return (
-        <FormField label={label} icon={icon} htmlFor={id} className={fieldClassName}>
-            <textarea
-                id={id}
-                value={value}
-                onChange={(event) => onChange?.(event.target.value)}
-                rows={rows}
-                placeholder={placeholder}
-                className="w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:placeholder-gray-500"
-            />
-        </FormField>
+        </SummaryFormField>
     );
 }
 
@@ -387,7 +329,7 @@ export default function CustomerOrderSummary({
                 </div>
             )}
 
-            <FormField
+            <SummaryFormField
                 label="Τύπος Παραστατικού"
                 icon={<Receipt className="h-4 w-4" />}
                 className="mt-5"
@@ -397,7 +339,7 @@ export default function CustomerOrderSummary({
                     onChange={onReceiptTypeChange}
                     options={receiptOptions}
                 />
-            </FormField>
+            </SummaryFormField>
 
             <SelectField
                 id="pickup-point"
@@ -410,7 +352,7 @@ export default function CustomerOrderSummary({
                 fieldClassName="mt-5"
             />
 
-            <TextareaField
+            <SummaryTextareaField
                 id="order-notes"
                 label="Σημειώσεις"
                 icon={<StickyNote className="h-4 w-4" />}

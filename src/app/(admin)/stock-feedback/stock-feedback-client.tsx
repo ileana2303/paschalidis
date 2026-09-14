@@ -457,7 +457,7 @@ export default function StockFeedbackClient() {
                   <th
                     className={[
                       "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
-                      isCurrentBranchStockColumn(currentBranchCode, "1001")
+                      isCurrentBranchStockColumn(currentBranchCode, "1000")
                         ? "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
                         : "text-gray-500 dark:text-gray-400",
                     ].join(" ")}
@@ -538,7 +538,7 @@ export default function StockFeedbackClient() {
                       <td
                         className={[
                           "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
-                          isCurrentBranchStockColumn(currentBranchCode, "1001")
+                          isCurrentBranchStockColumn(currentBranchCode, "1000")
                             ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
                             : "text-gray-700 dark:text-gray-200",
                         ].join(" ")}

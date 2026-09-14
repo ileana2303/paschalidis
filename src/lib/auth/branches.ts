@@ -1,5 +1,5 @@
 const BRANCH_NAME_BY_CODE = {
-  "1001": "Κασομούλη",
+  "1000": "Κασομούλη",
   "1006": "Λ. Αθηνών",
   "1007": "Λ. Μεσογείων",
 } as const;
@@ -7,13 +7,19 @@ const BRANCH_NAME_BY_CODE = {
 type KnownBranchCode = keyof typeof BRANCH_NAME_BY_CODE;
 
 const TRD_BRANCH_BY_BRANCH_CODE: Partial<Record<KnownBranchCode, number>> = {
-  "1001": 15,
+  "1000": 15,
   "1006": 13,
   "1007": 14,
 } as const;
 
+const ENDO_BRANCH_LABEL_BY_CODE: Partial<Record<KnownBranchCode, string>> = {
+  "1000": "Κασομούλη",
+  "1006": "Πάροδος Λ.Αθηνών 65",
+  "1007": "Λ.Μεσογείων 573",
+} as const;
+
 const SALDOC_SERIES_BY_BRANCH_CODE: Partial<Record<KnownBranchCode, string>> = {
-  "1001": "7002",
+  "1000": "7002",
   "1006": "17002",
   "1007": "27002",
 } as const;
@@ -70,4 +76,11 @@ export function formatBranchLabel(
 
   const resolvedName = resolveBranchName(code, branchName);
   return resolvedName === code ? code : `${resolvedName} (${code})`;
+}
+
+export function getEndoBranchLabel(
+  branchCode: string | number | null | undefined
+) {
+  const code = normalizeBranchCode(branchCode) as KnownBranchCode;
+  return ENDO_BRANCH_LABEL_BY_CODE[code] ?? resolveBranchName(code);
 }

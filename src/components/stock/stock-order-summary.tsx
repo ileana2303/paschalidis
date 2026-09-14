@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, RefreshCw, Send } from "@/lib/icons/lucide";
+import { Check, RefreshCw, Send, StickyNote } from "@/lib/icons/lucide";
 import SummaryPanel from "@/components/ui/summary-panel/summary-panel";
 import SummaryInfoCard from "@/components/ui/summary-panel/summary-info-card";
 import SummaryMetricGrid from "@/components/ui/summary-panel/summary-metric-grid";
 import SummaryPrimaryAction from "@/components/ui/summary-panel/summary-primary-action";
+import SummaryTextareaField from "@/components/ui/summary-panel/summary-textarea-field";
 import type { IStockRequestListRow } from "@/lib/interface";
 
 export interface StockOrderSummaryProps {
@@ -18,6 +19,9 @@ export interface StockOrderSummaryProps {
     onRefresh: () => void;
     sendingOrder?: boolean;
     onSendOrder?: () => void;
+    /** Sent as the SALDOC REMARKS of the ANATROF document. */
+    notes?: string;
+    onNotesChange?: (value: string) => void;
     collapsible?: boolean;
     collapsed?: boolean;
     onToggleCollapse?: () => void;
@@ -34,6 +38,8 @@ export default function StockOrderSummary({
     onRefresh,
     sendingOrder = false,
     onSendOrder,
+    notes = "",
+    onNotesChange,
     collapsible = false,
     collapsed = false,
     onToggleCollapse,
@@ -182,6 +188,17 @@ export default function StockOrderSummary({
                     </div>
                 )}
             </section>
+
+            <SummaryTextareaField
+                id="anatrof-notes"
+                label="Σημειώσεις"
+                icon={<StickyNote className="h-4 w-4" />}
+                value={notes}
+                onChange={(value) => onNotesChange?.(value)}
+                rows={3}
+                placeholder="Προσθέστε σημειώσεις για την ανατροφοδοσία..."
+                fieldClassName="mt-5"
+            />
         </SummaryPanel>
     );
 }

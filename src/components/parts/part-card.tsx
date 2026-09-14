@@ -13,17 +13,17 @@ import RequestPriceBox from "@/components/ui/request-price-box";
 import PartCardDetails from "./part-card-details";
 import PartStockQuantityContainer from "../stock/request-stock-card";
 
-type StockBranchCode = "1001" | "1006" | "1007";
+type StockBranchCode = "1000" | "1006" | "1007";
 type StockKey = "YP1001" | "YP1006" | "YP1007";
 type LocationKey = "THESI1001" | "THESI1006" | "THESI1007";
 
-const STOCK_BRANCH_CODES: StockBranchCode[] = ["1001", "1006", "1007"];
+const STOCK_BRANCH_CODES: StockBranchCode[] = ["1000", "1006", "1007"];
 
 const STOCK_BRANCH_META: Record<
     StockBranchCode,
     { label: string; badgeClassName: string; stockKey: StockKey; locationKey: LocationKey }
 > = {
-    "1001": {
+    "1000": {
         label: "Ν.Κόσμος",
         badgeClassName:
             "rounded-full bg-sky-100 px-2 py-0.5 font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
@@ -48,7 +48,7 @@ const STOCK_BRANCH_META: Record<
 
 const SECONDARY_BRANCH_PRIORITY: Record<StockBranchCode, number> = {
     "1006": 0,
-    "1001": 1,
+    "1000": 1,
     "1007": 2,
 };
 

@@ -19,12 +19,10 @@ import {
     StockRequestUpdateRoutePayload,
 } from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
-import type { OrderSubmitRequestBody } from "@/lib/orders/order-submit-types";
+import type { AnatrofOrderRequestBody } from "@/lib/orders/anatrof/submit-anatrof-order";
 
-const DEFAULT_ANATROF_PAYMENT = 1006;
-const DEFAULT_ANATROF_TRUCKS = 2;
-const DEFAULT_ANATROF_SHIPKIND = 1000;
-const DEFAULT_ANATROF_SOCASH = 1005;
+// PAYMENT / TRUCKS / SHIPKIND / SOCASH / SERIES are decided server-side in
+// lib/orders/anatrof/anatrof-constants.ts - the UI only sends who and what.
 const stockFeedbackInFlightRequests = new Map<
     string,
     Promise<StockFeedbackResponse>
@@ -45,16 +43,6 @@ function getStockRequestListRequestKey(payload: StockRequestListRoutePayload) {
     return JSON.stringify({
         branch: String(payload.branch ?? "").trim(),
     });
-}
-
-function asPositiveNumber(value: unknown): number | undefined {
-    const parsed = Number(value);
-
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-        return undefined;
-    }
-
-    return parsed;
 }
 
 export async function searchItems(
@@ -220,20 +208,11 @@ export async function updateStockRequest(
 export async function submitAnatrofOrder(
     payload: StockRequestSubmitRoutePayload
 ): Promise<StockRequestSubmitResponse> {
-    const branch = asPositiveNumber(payload.branch);
-    const body: OrderSubmitRequestBody = {
-        submitType: "anatrof",
+    const body: AnatrofOrderRequestBody = {
         appUserId: String(payload.appUserId ?? "").trim(),
         deliveryDate: payload.deliveryDate,
         notes: payload.notes,
-        trdr: payload.trdr,
-        trdBranch: payload.trdBranch,
-        payment: payload.payment ?? DEFAULT_ANATROF_PAYMENT,
-        trucks: payload.trucks ?? DEFAULT_ANATROF_TRUCKS,
-        shipKind: payload.shipKind ?? DEFAULT_ANATROF_SHIPKIND,
-        socash: payload.socash ?? DEFAULT_ANATROF_SOCASH,
-        branchSec: payload.branchSec ?? branch,
-        whouseSec: payload.whouseSec ?? branch,
+        branch: payload.branch,
         items: payload.items.map((item) => ({
             basketId: item.BASKETID,
             mtrl: item.MTRL,
@@ -243,7 +222,7 @@ export async function submitAnatrofOrder(
     };
 
     const { data } = await httpClient.post<StockRequestSubmitResponse>(
-        "/api/orders/submit",
+        "/api/orders/anatrof",
         body
     );
 

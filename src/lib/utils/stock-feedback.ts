@@ -29,7 +29,7 @@ export function getRequestStatusLabel(
 
 export function isCurrentBranchStockColumn(
     currentBranchCode: string,
-    branchCode: "1001" | "1006" | "1007"
+    branchCode: "1000" | "1006" | "1007"
 ) {
     return currentBranchCode === branchCode;
 }

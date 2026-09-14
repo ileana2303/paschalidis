@@ -10,7 +10,7 @@ export type EndoBranchOption = {
 
 const BRANCH_RENDER_PRIORITY: Record<string, number> = {
     "1006": 0,
-    "1001": 1,
+    "1000": 1,
     "1007": 2,
 };
 

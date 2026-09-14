@@ -66,6 +66,7 @@ export default function StockRequestsClient() {
         "stock-requests-search",
         ""
     );
+    const [notes, setNotes] = useSessionState("stock-requests-notes", "");
     const [selectedBranchCode, setSelectedBranchCode] = useState<StockBranchCode | "">("");
 
     const selectedBranchLabel = useMemo(() => {
@@ -318,11 +319,11 @@ export default function StockRequestsClient() {
             const data = await submitAnatrofOrder({
                 appUserId: user?.uid,
                 branch: currentBranchCode,
-                branchSec: Number(currentBranchCode),
-                whouseSec: Number(currentBranchCode),
+                notes,
                 items: approvedRows,
             });
 
+            setNotes("");
             await loadRows();
             const message =
                 String(data.message ?? "").trim() ||
@@ -343,6 +344,8 @@ export default function StockRequestsClient() {
         approvedRows,
         currentBranchCode,
         loadRows,
+        notes,
+        setNotes,
         submitAnatrofOrder,
         user?.uid,
     ]);
@@ -679,6 +682,8 @@ export default function StockRequestsClient() {
                         onRefresh={loadRows}
                         sendingOrder={submittingAnatrof}
                         onSendOrder={() => void handleSubmitAnatrofOrder()}
+                        notes={notes}
+                        onNotesChange={setNotes}
                     />
                 </div>
             )}
