@@ -322,7 +322,7 @@ export default function BasketClient() {
                 TRDR: urlTrdr,
                 NOTES: notes,
                 APPUSER_ID: user?.uid,
-                items: basketItems,
+                items: selectedItemsList,
             });
             setOrderSubmittedSuccess(true);
             setNotes("");
