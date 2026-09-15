@@ -6,7 +6,9 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BadgePercent,
+  BookOpenText,
   ClipboardList,
+  ExternalLink,
   MoreHorizontal,
   PackageSearch,
   Pencil,
@@ -334,7 +336,7 @@ const AppSidebar: React.FC = () => {
           </div>
         </Link>
       </div>
-      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
@@ -355,6 +357,35 @@ const AppSidebar: React.FC = () => {
           </div>
         </nav>
       </div>
+
+      {/* <div className="mb-5 mt-3 shrink-0">
+        <a
+          href="https://oval-guide.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Οδηγός εφαρμογής"
+          title="Οδηγός εφαρμογής"
+          className={`group flex items-center border border-brand-200/80 bg-brand-50/80 text-brand-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-100/80 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 dark:border-brand-500/25 dark:bg-brand-500/10 dark:text-brand-200 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/15 ${isSidebarExpanded ? "min-h-16 gap-3 rounded-2xl px-3 py-2.5" : "mx-auto h-10 w-10 justify-center rounded-full"}`}
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm transition group-hover:bg-brand-700 dark:bg-brand-500 dark:group-hover:bg-brand-400">
+            <BookOpenText className="h-4 w-4" />
+          </span>
+
+          {isSidebarExpanded && (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold leading-5">
+                  Οδηγός εφαρμογής
+                </span>
+                <span className="block text-[11px] font-normal leading-4 text-gray-500 dark:text-gray-400">
+                  Platform Guide & FAQs
+                </span>
+              </span>
+              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-brand-500 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 dark:text-brand-300" />
+            </>
+          )}
+        </a>
+      </div> */}
     </aside>
   );
 };

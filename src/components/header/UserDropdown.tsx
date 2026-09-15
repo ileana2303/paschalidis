@@ -5,6 +5,7 @@ import { DropdownItem } from "@/components/ui/dropdown/dropdown-item";
 import { useAuthStore } from "@/stores/authStore";
 import { useLogoutMutation } from "@/hooks/queries/useAuthQueries";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
+import { BookOpenText, ExternalLink } from "@/lib/icons/lucide";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -85,6 +86,22 @@ export default function UserDropdown() {
               </svg>
               Λογαριασμός
             </DropdownItem>
+          </li>
+          <li>
+            <a
+              href="https://oval-guide.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={closeDropdown}
+              className="group flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+            >
+              <BookOpenText
+                strokeWidth={1.5}
+                className="h-6 w-6 shrink-0 text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300"
+              />
+              <span className="flex-1 text-theme-sm">Οδηγός εφαρμογής</span>
+              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-gray-400 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand-500" />
+            </a>
           </li>
         </ul>
         <button

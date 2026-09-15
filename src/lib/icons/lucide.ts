@@ -17,6 +17,7 @@ export {
   Ellipsis,
   Eye,
   EyeOff,
+  ExternalLink,
   FileText,
   Filter,
   FolderOpen,
