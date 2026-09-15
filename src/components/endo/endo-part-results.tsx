@@ -9,25 +9,12 @@ import {
     ShoppingCart,
     Warehouse,
 } from "@/lib/icons/lucide";
+import {
+    FALLBACK_BRANCH_ACCENT,
+    getBranchColor,
+} from "@/lib/branch-colors";
 import type { IItem } from "@/lib/interface";
 import { sortEndoBranches } from "@/lib/utils/endo";
-
-/**
- * Branch accents mirror the colour coding used on the parts search cards so a
- * branch keeps the same colour wherever stock is shown in the app.
- */
-const BRANCH_ACCENT_BY_CODE: Record<string, string> = {
-    "1000": "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
-    "1006": "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
-    "1007": "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
-};
-
-const FALLBACK_BRANCH_ACCENT =
-    "bg-gray-100 text-gray-700 dark:bg-gray-700/40 dark:text-gray-200";
-
-function getBranchAccent(branchCode: string) {
-    return BRANCH_ACCENT_BY_CODE[branchCode] ?? FALLBACK_BRANCH_ACCENT;
-}
 
 function getStatusBadgeClassName(statusNow: string) {
     if (statusNow === "1") {
@@ -80,7 +67,7 @@ function SourceBranchCard({
         >
             <div className="flex items-center justify-between gap-2">
                 <span
-                    className={`min-w-0 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold ${isOutOfStock ? FALLBACK_BRANCH_ACCENT : getBranchAccent(branch.code)}`}
+                    className={`min-w-0 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold ${isOutOfStock ? FALLBACK_BRANCH_ACCENT : getBranchColor(branch.code)}`}
                 >
                     {branch.label}
                 </span>

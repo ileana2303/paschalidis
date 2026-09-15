@@ -24,6 +24,7 @@ import {
     useUpdateEndoListQtyMutation,
 } from "@/hooks/queries/useApiMutations";
 import { normalizeBranchCode } from "@/lib/auth/branches";
+import { getBranchColor } from "@/lib/branch-colors";
 import { useAuthStore } from "@/stores/authStore";
 import type {
     IEndoListRow,
@@ -189,11 +190,12 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
     const tableColumns = useMemo(() => {
         if (!isReceivedScope) {
-            return columns;
+            return columns.filter((column) => column !== "TO_BRANCH");
         }
 
         const withoutQtyColumns = columns.filter(
             (column) =>
+                column !== "BRANCH" &&
                 column !== "QTY" &&
                 column !== "QTY_REQUESTED" &&
                 !/^YP\d+$/i.test(column) &&
@@ -630,7 +632,11 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                 key={column}
                                                 className="whitespace-nowrap px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
                                             >
-                                                {formatColumnLabel(column)}
+                                                {isReceivedScope && column === "TO_BRANCH"
+                                                    ? "ΑΠΟΣΤΟΛΗ ΠΡΟΣ"
+                                                    : !isReceivedScope && column === "BRANCH"
+                                                        ? "ΑΙΤΗΜΑ ΠΡΟΣ"
+                                                        : formatColumnLabel(column)}
                                             </th>
                                         ))}
                                     </tr>
@@ -813,6 +819,34 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                         )}
                                                                     </button>
                                                                 </div>
+                                                            </td>
+                                                        );
+                                                    }
+
+                                                    if (
+                                                        (isReceivedScope &&
+                                                            column === "TO_BRANCH") ||
+                                                        (!isReceivedScope &&
+                                                            column === "BRANCH")
+                                                    ) {
+                                                        const branchCode = String(
+                                                            row[column] ?? ""
+                                                        ).trim();
+
+                                                        return (
+                                                            <td
+                                                                key={`${rowKey}-${column}`}
+                                                                className="whitespace-nowrap px-4 py-3 text-sm"
+                                                            >
+                                                                {branchCode ? (
+                                                                    <span
+                                                                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${getBranchColor(branchCode)}`}
+                                                                    >
+                                                                        {branchCode}
+                                                                    </span>
+                                                                ) : (
+                                                                    "—"
+                                                                )}
                                                             </td>
                                                         );
                                                     }

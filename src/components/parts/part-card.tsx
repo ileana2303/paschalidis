@@ -1,4 +1,5 @@
 import { BadgePercent, ChevronDown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
+import { getBranchColor } from "@/lib/branch-colors";
 import {
     getBasketItemApprovalStatus,
     getBasketItemBasePrice,
@@ -25,22 +26,19 @@ const STOCK_BRANCH_META: Record<
 > = {
     "1000": {
         label: "Ν.Κόσμος",
-        badgeClassName:
-            "rounded-full bg-sky-100 px-2 py-0.5 font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+        badgeClassName: `rounded-full px-2 py-0.5 font-semibold ${getBranchColor("1000")}`,
         stockKey: "YP1000",
         locationKey: "THESI1000",
     },
     "1006": {
         label: "Λ.Αθηνών",
-        badgeClassName:
-            "rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+        badgeClassName: `rounded-full px-2 py-0.5 font-semibold ${getBranchColor("1006")}`,
         stockKey: "YP1006",
         locationKey: "THESI1006",
     },
     "1007": {
         label: "Λ.Μεσογείων",
-        badgeClassName:
-            "rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+        badgeClassName: `rounded-full px-2 py-0.5 font-semibold ${getBranchColor("1007")}`,
         stockKey: "YP1007",
         locationKey: "THESI1007",
     },
