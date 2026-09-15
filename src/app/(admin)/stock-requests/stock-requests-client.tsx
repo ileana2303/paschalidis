@@ -1,9 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import StockOrderSummary from "@/components/stock/stock-order-summary";
-import { Check, Loader2 } from "@/lib/icons/lucide";
+import {
+    Check,
+    ChevronDown,
+    ListChevronsDownUp,
+    ListChevronsUpDown,
+    Loader2,
+} from "@/lib/icons/lucide";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableActions, {
     RowActionGroup,
@@ -24,6 +30,7 @@ import {
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
 import { normalizeBranchCode } from "@/lib/auth/branches";
+import { getBranchColor } from "@/lib/branch-colors";
 import toast from "react-hot-toast";
 import { useSessionState } from "@/hooks/useSessionState";
 import {
@@ -62,6 +69,7 @@ export default function StockRequestsClient() {
     const [submittingAnatrof, setSubmittingAnatrof] = useState(false);
     const [editingId, setEditingId] = useState("");
     const [editedQty, setEditedQty] = useState("");
+    const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useSessionState(
         "stock-requests-search",
         ""
@@ -178,6 +186,37 @@ export default function StockRequestsClient() {
                 .includes(query);
         });
     }, [pendingRows, searchTerm]);
+
+    const areAllRowsExpanded =
+        filteredPendingRows.length > 0 &&
+        filteredPendingRows.every((row) => expandedRowIds.has(row.BASKETID));
+
+    const toggleAllRowsExpanded = () => {
+        setExpandedRowIds((currentIds) => {
+            if (
+                filteredPendingRows.length > 0 &&
+                filteredPendingRows.every((row) => currentIds.has(row.BASKETID))
+            ) {
+                return new Set();
+            }
+
+            return new Set(filteredPendingRows.map((row) => row.BASKETID));
+        });
+    };
+
+    const toggleRowExpanded = (basketId: string) => {
+        setExpandedRowIds((currentIds) => {
+            const nextIds = new Set(currentIds);
+
+            if (nextIds.has(basketId)) {
+                nextIds.delete(basketId);
+            } else {
+                nextIds.add(basketId);
+            }
+
+            return nextIds;
+        });
+    };
 
     const hasRowInEditMode = Boolean(editingId);
 
@@ -374,11 +413,20 @@ export default function StockRequestsClient() {
                     Φόρτωση αιτημάτων...
                 </div>
             ) : (
-                <div className="flex min-h-0 flex-1 flex-col gap-5 xl:flex-row">
-                    <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-[2]">
+                <div className="flex min-h-0 flex-1 flex-col gap-5 min-[1800px]:flex-row">
+                    <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col min-[1800px]:flex-[2]">
                         <DataTableHeader
-                            title="Εκκρεμή Αιτήματα Ανατροφοδοσίας"
-                            description={`Διαχείριση αιτημάτων ανατροφοδοσίας. Κατάστημα: ${selectedBranchLabel}`}
+                            title={(
+                                <span className="flex flex-wrap items-center gap-2">
+                                    <span>Επιλεγμένο Κατάστημα:</span>
+                                    <span
+                                        className={`rounded-full px-2.5 py-1 text-sm font-semibold ${getBranchColor(selectedBranchCode)}`}
+                                    >
+                                        {selectedBranchLabel}
+                                    </span>
+                                </span>
+                            )}
+                            description="Διαχείριση αιτημάτων ανατροφοδοσίας."
                             count={pendingRows.length}
                             countClassName="bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
                             action={(
@@ -440,18 +488,30 @@ export default function StockRequestsClient() {
                             />
                         ) : (
                             <div className="min-h-0 flex-1 overflow-auto">
-                                <table className="min-w-[1320px] w-full divide-y divide-gray-100 text-sm dark:divide-gray-800">
+                                <table className="w-full min-w-[1020px] divide-y divide-gray-100 text-xs dark:divide-gray-800 xl:text-sm">
                                     <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                         <tr>
-                                            <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="w-14 px-2 py-3 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={toggleAllRowsExpanded}
+                                                    disabled={filteredPendingRows.length === 0}
+                                                    aria-label={areAllRowsExpanded ? "Κλείσιμο λεπτομερειών" : "Άνοιγμα λεπτομερειών"}
+                                                    title={areAllRowsExpanded ? "Κλείσιμο λεπτομερειών" : "Άνοιγμα λεπτομερειών"}
+                                                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                                                >
+                                                    {areAllRowsExpanded ? (
+                                                        <ListChevronsDownUp className="h-4 w-4" />
+                                                    ) : (
+                                                        <ListChevronsUpDown className="h-4 w-4" />
+                                                    )}
+                                                </button>
+                                            </th>
+                                            <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
                                                 ID
                                             </th>
 
-                                            <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                                Ημ/νία Αιτήματος
-                                            </th>
-
-                                            <th className="min-w-[280px] px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="min-w-[220px] px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
                                                 Είδος
                                             </th>
 
@@ -459,7 +519,7 @@ export default function StockRequestsClient() {
                                                 ΠΡΟΣ
                                             </th> */}
 
-                                            <th className="whitespace-nowrap px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
                                                 Διαθέσιμα
                                             </th>
 
@@ -467,7 +527,7 @@ export default function StockRequestsClient() {
                                                 <th
                                                     key={branchColumn.code}
                                                     className={[
-                                                        "whitespace-nowrap px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
+                                                        "whitespace-nowrap px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide xl:px-4",
                                                         branchColumn.code === selectedBranchCode
                                                             ? "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
                                                             : "text-gray-500 dark:text-gray-400",
@@ -477,95 +537,65 @@ export default function StockRequestsClient() {
                                                 </th>
                                             ))}
 
-                                            <th className="whitespace-nowrap px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
                                                 Αιτούμενη Ποσότητα
                                             </th>
 
-                                            <th className="whitespace-nowrap px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
                                                 Ενέργειες
                                             </th>
                                         </tr>
                                     </thead>
 
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                    <tbody>
                                         {filteredPendingRows.map((row) => {
                                             const rowUpdating = updatingId === row.BASKETID;
                                             const rowIsEditing = editingId === row.BASKETID;
                                             const currentRequestedQty = getRequestedQty(row);
                                             const qtyChanged = String(editedQty) !== String(currentRequestedQty);
+                                            const isExpanded = expandedRowIds.has(row.BASKETID);
                                             const [insDate, insTime] = formatDateTime(row.INS_DATE)
                                                 .split(",")
                                                 .map((part) => part.trim());
 
                                             return (
+                                                <Fragment key={row.BASKETID}>
                                                 <tr
-                                                    key={row.BASKETID}
                                                     className={[
                                                         "transition hover:bg-gray-50 dark:hover:bg-white/[0.04]",
+                                                        "border-t border-gray-100 first:border-t-0 dark:border-gray-800",
                                                         rowIsEditing
                                                             ? "bg-brand-50/70 ring-1 ring-inset ring-brand-200 dark:bg-brand-500/10 dark:ring-brand-500/20"
                                                             : "",
                                                     ].join(" ")}
                                                 >
+                                                    <td className="px-2 py-4 text-center align-top">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleRowExpanded(row.BASKETID)}
+                                                            aria-expanded={isExpanded}
+                                                            aria-controls={`stock-request-details-${row.BASKETID}`}
+                                                            aria-label={isExpanded ? "Απόκρυψη λεπτομερειών" : "Εμφάνιση λεπτομερειών"}
+                                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                                                        >
+                                                            <ChevronDown
+                                                                strokeWidth={2.25}
+                                                                className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                                                            />
+                                                        </button>
+                                                    </td>
 
-
-                                                    <td className="whitespace-nowrap px-5 py-4 align-top">
+                                                    <td className="whitespace-nowrap px-3 py-4 align-top xl:px-4">
                                                         <span className="inline-flex rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                                                             #{row.BASKETID}
                                                         </span>
                                                     </td>
 
-                                                    <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-gray-600 dark:text-gray-300">
-                                                        <span className="block">{insDate}</span>
-                                                        {insTime && (
-                                                            <span className="mt-0.5 block text-gray-500 dark:text-gray-400">
-                                                                {insTime}
-                                                            </span>
-                                                        )}
-                                                    </td>
-
-                                                    <td className="min-w-[280px] px-5 py-4 align-top">
+                                                    <td className="min-w-[220px] px-3 py-4 align-top xl:px-4">
                                                         <div className="pr-4">
                                                             <p className="wrap-break-word font-medium leading-5 text-gray-900 dark:text-white">
                                                                 {row.ITEM_NAME}
                                                             </p>
-
-                                                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                                                                <span>
-                                                                    Κωδικός:{" "}
-                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                                                                        {row.ITEM_CODE}
-                                                                    </span>
-                                                                </span>
-
-                                                                <span>
-                                                                    MTRL:{" "}
-                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                                                                        {row.MTRL}
-                                                                    </span>
-                                                                </span>
-
-                                                                <span>
-                                                                    Σε εξέλιξη:{" "}
-                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                                                                        {row.ONGOING}
-                                                                    </span>
-                                                                </span>
-
-                                                                <span>
-                                                                    Παραγγελθέν:{" "}
-                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                                                                        {row.ORDERED}
-                                                                    </span>
-                                                                </span>
-
-                                                                <span>
-                                                                    Σε καλάθι:{" "}
-                                                                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                                                                        {row.QTY_IN_BASKETS}
-                                                                    </span>
-                                                                </span>
-                                                            </div>
                                                         </div>
                                                     </td>
 
@@ -573,7 +603,7 @@ export default function StockRequestsClient() {
                                                         {row.BRANCH}
                                                     </td> */}
 
-                                                    <td className="px-5 py-4 text-right align-top tabular-nums">
+                                                    <td className="px-3 py-4 text-right align-top tabular-nums xl:px-4">
                                                         <NumberBadge
                                                             value={row.TOTAL_AVAIL}
                                                             variant={Number(row.TOTAL_AVAIL) > 0 ? "success" : "danger"}
@@ -584,7 +614,7 @@ export default function StockRequestsClient() {
                                                         <td
                                                             key={`${row.BASKETID}-${branchColumn.code}`}
                                                             className={[
-                                                                "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
+                                                                "whitespace-nowrap px-3 py-4 text-right align-top tabular-nums xl:px-4",
                                                                 branchColumn.code === selectedBranchCode
                                                                     ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
                                                                     : "text-gray-700 dark:text-gray-200",
@@ -594,7 +624,7 @@ export default function StockRequestsClient() {
                                                         </td>
                                                     ))}
 
-                                                    <td className="px-5 py-4 text-right align-top">
+                                                    <td className="px-3 py-4 text-right align-top xl:px-4">
                                                         {rowIsEditing ? (
                                                             <input
                                                                 type="number"
@@ -628,7 +658,7 @@ export default function StockRequestsClient() {
                                                         )}
                                                     </td>
 
-                                                    <td className="px-5 py-4 text-right align-top">
+                                                    <td className="px-3 py-4 text-right align-top xl:px-4">
                                                         {rowIsEditing ? (
                                                             <DataTableActions>
                                                                 <button
@@ -671,6 +701,44 @@ export default function StockRequestsClient() {
                                                         )}
                                                     </td>
                                                 </tr>
+                                                {isExpanded && (
+                                                    <tr
+                                                        id={`stock-request-details-${row.BASKETID}`}
+                                                        className="bg-white dark:bg-gray-950"
+                                                    >
+                                                        <td colSpan={9} className="px-5 py-2">
+                                                            <div className="ml-12 grid grid-cols-2 gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:grid-cols-3 lg:grid-cols-6">
+                                                                <div>
+                                                                    <div className="text-[10px] text-gray-400">Κωδικός</div>
+                                                                    <div className="mt-0.5 text-gray-800 dark:text-gray-200">{row.ITEM_CODE}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-[10px] text-gray-400">MTRL</div>
+                                                                    <div className="mt-0.5 text-gray-800 dark:text-gray-200">{row.MTRL}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-[10px] text-gray-400">Σε εξέλιξη</div>
+                                                                    <div className="mt-0.5 tabular-nums text-gray-800 dark:text-gray-200">{row.ONGOING}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-[10px] text-gray-400">Παραγγελθέν</div>
+                                                                    <div className="mt-0.5 tabular-nums text-gray-800 dark:text-gray-200">{row.ORDERED}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-[10px] text-gray-400">Σε καλάθι</div>
+                                                                    <div className="mt-0.5 tabular-nums text-gray-800 dark:text-gray-200">{row.QTY_IN_BASKETS}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-[10px] text-gray-400">Ημ/νία Αιτήματος</div>
+                                                                    <div className="mt-0.5 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                                                                        {insDate}{insTime ? ` ${insTime}` : ""}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                                </Fragment>
                                             );
                                         })}
                                     </tbody>

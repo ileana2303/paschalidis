@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 interface DataTableHeaderProps {
-  title: string;
+  title: ReactNode;
   description?: string;
   count?: ReactNode;
   action?: ReactNode;

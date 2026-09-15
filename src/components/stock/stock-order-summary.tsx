@@ -49,7 +49,7 @@ export default function StockOrderSummary({
     return (
         <SummaryPanel
             label="Σύνοψη Ανατροφοδοσίας"
-            title="Αποστολή Ανατροφοδοσίας :: S1"
+            title="Αποστολή Ανατροφοδοσίας S1"
             asideClassName="xl:!basis-[25%] xl:!min-w-[272px]"
             collapsible={collapsible}
             collapsed={collapsed}
