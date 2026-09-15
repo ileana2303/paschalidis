@@ -126,7 +126,7 @@ export default function StockRequestsClient() {
 
         try {
             const data = await fetchStockRequests({
-                branch: selectedBranchCode,
+                branch: selectedBranchCode === "1000" ? "1001" : selectedBranchCode,
             });
 
             setRows(sortStockRequestRows(data.rows ?? []));
@@ -373,16 +373,12 @@ export default function StockRequestsClient() {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Φόρτωση αιτημάτων...
                 </div>
-            ) : rows.length === 0 ? (
-                <div className="flex min-h-0 flex-1 items-center justify-center rounded-lg border border-gray-200 bg-white px-5 py-16 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
-                    Δεν υπάρχουν αιτήματα ανατροφοδοσίας.
-                </div>
             ) : (
                 <div className="flex min-h-0 flex-1 flex-col gap-5 xl:flex-row">
                     <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-[2]">
                         <DataTableHeader
                             title="Εκκρεμή Αιτήματα Ανατροφοδοσίας"
-                            description={`Διαχείριση αιτημάτων, ποσοτήτων και έγκρισης ανατροφοδοσίας. Κατάστημα: ${selectedBranchLabel}`}
+                            description={`Διαχείριση αιτημάτων ανατροφοδοσίας. Κατάστημα: ${selectedBranchLabel}`}
                             count={pendingRows.length}
                             countClassName="bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
                             action={(
@@ -427,12 +423,16 @@ export default function StockRequestsClient() {
                             <DataTableEmptyState
                                 icon={<Check className="h-7 w-7" />}
                                 title={
-                                    pendingRows.length === 0
+                                    rows.length === 0
+                                        ? "Δεν υπάρχουν αιτήματα ανατροφοδοσίας"
+                                        : pendingRows.length === 0
                                         ? "Δεν υπάρχουν εκκρεμή αιτήματα"
                                         : "Δεν βρέθηκαν αποτελέσματα"
                                 }
                                 description={
-                                    pendingRows.length === 0
+                                    rows.length === 0
+                                        ? "Επιλέξτε άλλο κατάστημα ή ανανεώστε τη λίστα."
+                                        : pendingRows.length === 0
                                         ? "Όλα τα αιτήματα ανατροφοδοσίας έχουν διεκπεραιωθεί ή δεν υπάρχουν νέα αιτήματα προς έγκριση."
                                         : "Η αναζήτηση δεν επέστρεψε γραμμές για τα εκκρεμή αιτήματα."
                                 }
@@ -455,9 +455,9 @@ export default function StockRequestsClient() {
                                                 Είδος
                                             </th>
 
-                                            <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            {/* <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 ΠΡΟΣ
-                                            </th>
+                                            </th> */}
 
                                             <th className="whitespace-nowrap px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                 Διαθέσιμα
@@ -493,6 +493,9 @@ export default function StockRequestsClient() {
                                             const rowIsEditing = editingId === row.BASKETID;
                                             const currentRequestedQty = getRequestedQty(row);
                                             const qtyChanged = String(editedQty) !== String(currentRequestedQty);
+                                            const [insDate, insTime] = formatDateTime(row.INS_DATE)
+                                                .split(",")
+                                                .map((part) => part.trim());
 
                                             return (
                                                 <tr
@@ -513,7 +516,12 @@ export default function StockRequestsClient() {
                                                     </td>
 
                                                     <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-gray-600 dark:text-gray-300">
-                                                        {formatDateTime(row.INS_DATE)}
+                                                        <span className="block">{insDate}</span>
+                                                        {insTime && (
+                                                            <span className="mt-0.5 block text-gray-500 dark:text-gray-400">
+                                                                {insTime}
+                                                            </span>
+                                                        )}
                                                     </td>
 
                                                     <td className="min-w-[280px] px-5 py-4 align-top">
@@ -561,9 +569,9 @@ export default function StockRequestsClient() {
                                                         </div>
                                                     </td>
 
-                                                    <td className="whitespace-nowrap px-5 py-4 align-top text-gray-700 dark:text-gray-200">
+                                                    {/* <td className="whitespace-nowrap px-5 py-4 align-top text-gray-700 dark:text-gray-200">
                                                         {row.BRANCH}
-                                                    </td>
+                                                    </td> */}
 
                                                     <td className="px-5 py-4 text-right align-top tabular-nums">
                                                         <NumberBadge
