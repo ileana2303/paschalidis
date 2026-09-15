@@ -126,7 +126,7 @@ export default function StockRequestsClient() {
 
         try {
             const data = await fetchStockRequests({
-                branch: selectedBranchCode === "1000" ? "1001" : selectedBranchCode,
+                branch: selectedBranchCode,
             });
 
             setRows(sortStockRequestRows(data.rows ?? []));
@@ -426,15 +426,15 @@ export default function StockRequestsClient() {
                                     rows.length === 0
                                         ? "Δεν υπάρχουν αιτήματα ανατροφοδοσίας"
                                         : pendingRows.length === 0
-                                        ? "Δεν υπάρχουν εκκρεμή αιτήματα"
-                                        : "Δεν βρέθηκαν αποτελέσματα"
+                                            ? "Δεν υπάρχουν εκκρεμή αιτήματα"
+                                            : "Δεν βρέθηκαν αποτελέσματα"
                                 }
                                 description={
                                     rows.length === 0
                                         ? "Επιλέξτε άλλο κατάστημα ή ανανεώστε τη λίστα."
                                         : pendingRows.length === 0
-                                        ? "Όλα τα αιτήματα ανατροφοδοσίας έχουν διεκπεραιωθεί ή δεν υπάρχουν νέα αιτήματα προς έγκριση."
-                                        : "Η αναζήτηση δεν επέστρεψε γραμμές για τα εκκρεμή αιτήματα."
+                                            ? "Όλα τα αιτήματα ανατροφοδοσίας έχουν διεκπεραιωθεί ή δεν υπάρχουν νέα αιτήματα προς έγκριση."
+                                            : "Η αναζήτηση δεν επέστρεψε γραμμές για τα εκκρεμή αιτήματα."
                                 }
                                 className="flex-1"
                             />
