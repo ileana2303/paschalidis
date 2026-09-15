@@ -6,6 +6,7 @@ import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
+import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import QuantityControl from "@/components/ui/quantity-control";
 import StatusBadge from "@/components/ui/data-table/status-badge";
@@ -14,8 +15,10 @@ import {
     Loader2,
     Minus,
     Send,
+    Trash2,
 } from "@/lib/icons/lucide";
 import {
+    useDeleteBasketItemsMutation,
     useFetchEndoListsMutation,
     useSubmitEndoBasketOrderMutation,
     useUpdateEndoListQtyMutation,
@@ -84,10 +87,13 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
     const [savingRowKeys, setSavingRowKeys] = useState<Set<string>>(new Set());
     const [submittingRowKeys, setSubmittingRowKeys] = useState<Set<string>>(new Set());
+    const [selectedBasketIds, setSelectedBasketIds] = useState<Set<string>>(new Set());
+    const [deletingSelectedRows, setDeletingSelectedRows] = useState(false);
 
     const user = useAuthStore((state) => state.user);
 
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
+    const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
     const { mutateAsync: submitEndoBasketOrder } = useSubmitEndoBasketOrderMutation();
     const { mutateAsync: updateEndoListQty } = useUpdateEndoListQtyMutation();
 
@@ -126,6 +132,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         setFinalQtyByRow({});
         setSavingRowKeys(new Set());
         setSubmittingRowKeys(new Set());
+        setSelectedBasketIds(new Set());
 
         if (!hasValidBranch) {
             setRows([]);
@@ -202,6 +209,100 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             QTY_ACTIONS_COLUMN_KEY,
         ];
     }, [columns, isReceivedScope]);
+
+    const filteredBasketIds = useMemo(
+        () =>
+            filteredRows
+                .map((row) => String(row.BASKETID ?? row.ID ?? "").trim())
+                .filter(Boolean),
+        [filteredRows]
+    );
+    const selectedVisibleCount = filteredBasketIds.filter((basketId) =>
+        selectedBasketIds.has(basketId)
+    ).length;
+    const allVisibleRowsSelected =
+        filteredBasketIds.length > 0 &&
+        selectedVisibleCount === filteredBasketIds.length;
+    const someVisibleRowsSelected =
+        selectedVisibleCount > 0 && !allVisibleRowsSelected;
+
+    const toggleRowSelection = useCallback((basketId: string) => {
+        setSelectedBasketIds((current) => {
+            const next = new Set(current);
+
+            if (next.has(basketId)) {
+                next.delete(basketId);
+            } else {
+                next.add(basketId);
+            }
+
+            return next;
+        });
+    }, []);
+
+    const toggleAllVisibleRows = useCallback(() => {
+        setSelectedBasketIds((current) => {
+            const next = new Set(current);
+
+            if (allVisibleRowsSelected) {
+                filteredBasketIds.forEach((basketId) => next.delete(basketId));
+            } else {
+                filteredBasketIds.forEach((basketId) => next.add(basketId));
+            }
+
+            return next;
+        });
+    }, [allVisibleRowsSelected, filteredBasketIds]);
+
+    const handleDeleteSelectedRows = useCallback(async () => {
+        const basketIds = Array.from(selectedBasketIds);
+
+        if (basketIds.length === 0 || deletingSelectedRows) {
+            return;
+        }
+
+        if (!window.confirm(`Διαγραφή ${basketIds.length} επιλεγμένων γραμμών;`)) {
+            return;
+        }
+
+        setDeletingSelectedRows(true);
+        setError("");
+        setSuccessMessage("");
+
+        try {
+            await deleteBasketItems({
+                basketIds,
+                tableAction: "ENDO",
+                method: "LINK_S1",
+                s1Key: "1305",
+                appUserId: user?.uid,
+            });
+
+            await loadRows();
+
+            const message =
+                basketIds.length === 1
+                    ? "Η επιλεγμένη γραμμή διαγράφηκε."
+                    : `Διαγράφηκαν ${basketIds.length} επιλεγμένες γραμμές.`;
+            setSuccessMessage(message);
+            toast.success(message);
+        } catch (err) {
+            const message =
+                err instanceof Error
+                    ? err.message
+                    : "Αποτυχία διαγραφής επιλεγμένων γραμμών";
+            setError(message);
+            toast.error(message);
+        } finally {
+            setDeletingSelectedRows(false);
+        }
+    }, [
+        deleteBasketItems,
+        deletingSelectedRows,
+        loadRows,
+        selectedBasketIds,
+        user?.uid,
+    ]);
 
     const getResolvedQty = useCallback(
         (rowKey: string, row: IEndoListRow) => {
@@ -457,14 +558,39 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                         description={listConfig.subtitle}
                         count={rows.length}
                         action={
-                            <DataTableSearchBar
-                                value={search}
-                                onChange={setSearch}
-                                onRefresh={loadRows}
-                                isRefreshing={loading}
-                                refreshDisabled={loading}
-                                placeholder="Αναζήτηση..."
-                            />
+                            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+                                <button
+                                    type="button"
+                                    onClick={() => void handleDeleteSelectedRows()}
+                                    disabled={
+                                        selectedBasketIds.size === 0 ||
+                                        deletingSelectedRows ||
+                                        loading ||
+                                        savingRowKeys.size > 0 ||
+                                        submittingRowKeys.size > 0
+                                    }
+                                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 dark:border-red-500/30 dark:bg-gray-900 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
+                                >
+                                    {deletingSelectedRows ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                    )}
+                                    Διαγραφή επιλεγμένων
+                                    {selectedBasketIds.size > 0
+                                        ? ` (${selectedBasketIds.size})`
+                                        : ""}
+                                </button>
+
+                                <DataTableSearchBar
+                                    value={search}
+                                    onChange={setSearch}
+                                    onRefresh={loadRows}
+                                    isRefreshing={loading}
+                                    refreshDisabled={loading || deletingSelectedRows}
+                                    placeholder="Αναζήτηση..."
+                                />
+                            </div>
                         }
                     />
 
@@ -490,6 +616,15 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                             <table className="min-w-full divide-y divide-gray-100 text-sm dark:divide-gray-800">
                                 <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                     <tr>
+                                        <th className="w-12 px-4 py-3 text-left">
+                                            <DataTableSelectionCheckbox
+                                                ariaLabel="Επιλογή όλων των ορατών γραμμών"
+                                                checked={allVisibleRowsSelected}
+                                                indeterminate={someVisibleRowsSelected}
+                                                onCheckedChange={toggleAllVisibleRows}
+                                                disabled={deletingSelectedRows}
+                                            />
+                                        </th>
                                         {tableColumns.map((column) => (
                                             <th
                                                 key={column}
@@ -504,6 +639,9 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                     {filteredRows.map((row, index) => {
                                         const rowKey = getRowKey(row, index);
+                                        const basketId = String(
+                                            row.BASKETID ?? row.ID ?? ""
+                                        ).trim();
                                         const canEditQty =
                                             isReceivedScope && hasQtyUpdateFields(row);
                                         const canEditRequestedQty =
@@ -519,6 +657,21 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                 key={rowKey}
                                                 className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
                                             >
+                                                <td className="px-4 py-3 align-middle">
+                                                    <DataTableSelectionCheckbox
+                                                        ariaLabel={`Επιλογή γραμμής ${basketId || rowKey}`}
+                                                        checked={
+                                                            basketId.length > 0 &&
+                                                            selectedBasketIds.has(basketId)
+                                                        }
+                                                        onCheckedChange={() =>
+                                                            toggleRowSelection(basketId)
+                                                        }
+                                                        disabled={
+                                                            !basketId || deletingSelectedRows
+                                                        }
+                                                    />
+                                                </td>
                                                 {tableColumns.map((column) => {
                                                     if (
                                                         isReceivedScope &&
