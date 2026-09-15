@@ -289,7 +289,7 @@ export default function BasketClient() {
                 NEW_PRICE: requestedPrice,
             });
             setRequestedPrices((prev) => ({ ...prev, [uid]: "" }));
-            const message = "Η αίτηση τιμής υποβλήθηκε";
+            const message = "Το αίτημα τιμής υποβλήθηκε";
             setSuccessMessage(message);
             toast.success(message);
             await refreshBasket();

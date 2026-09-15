@@ -485,7 +485,7 @@ export function useSearchPartsBasketController({
 
             setRequestedPrices((prev) => ({ ...prev, [item.ITEM_CODE]: "" }));
             await loadBasket(customer.TRDR);
-            toast.success("Η αίτηση τιμής υποβλήθηκε.");
+            toast.success("Το αίτημα τιμής υποβλήθηκε.");
         } catch (error) {
             if (isAxiosError(error)) {
                 const responseMessage =
@@ -544,7 +544,7 @@ export function useSearchPartsBasketController({
 
             setBasketLineRequestedPrices((prev) => ({ ...prev, [uid]: "" }));
             await loadBasket(customer.TRDR);
-            toast.success("Η αίτηση τιμής υποβλήθηκε.");
+            toast.success("Το αίτημα τιμής υποβλήθηκε.");
         } catch (error) {
             if (isAxiosError(error)) {
                 const responseMessage =

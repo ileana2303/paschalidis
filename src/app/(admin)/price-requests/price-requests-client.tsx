@@ -18,6 +18,7 @@ import {
     useUpdateRequestedPriceRequestMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useSessionState } from "@/hooks/useSessionState";
+import { getBranchColor } from "@/lib/branch-colors";
 import {
     formatPrice,
     normalizeBasketId,
@@ -253,15 +254,15 @@ export default function PriceRequestsClient() {
                     <div className="min-h-0 flex-1 overflow-auto">
                         <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
                             <colgroup>
-                                <col className="w-[9%]" />
                                 <col className="w-[8%]" />
+                                <col className="w-[7%]" />
                                 <col className="w-[16%]" />
-                                <col className="w-[13%]" />
-                                <col className="w-[21%]" />
+                                <col className="w-[12%]" />
+                                <col className="w-[20%]" />
+                                <col className="w-[6%]" />
+                                <col className="w-[8%]" />
                                 <col className="w-[9%]" />
-                                <col className="w-[8%]" />
-                                <col className="w-[8%]" />
-                                <col className="w-[8%]" />
+                                <col className="w-[14%]" />
                             </colgroup>
 
                             <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
@@ -271,10 +272,10 @@ export default function PriceRequestsClient() {
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Πελάτης</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Κωδικός</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Περιγραφή</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Κατάστημα</th>
+                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Κατάστημα</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Τιμή ERP</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ζητούμενη Τιμή</th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ενέργειες</th>
+                                    <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ενέργειες</th>
                                 </tr>
                             </thead>
 
@@ -299,14 +300,20 @@ export default function PriceRequestsClient() {
                                                 <NumberBadge value={`#${row.BASKETID}`} />
                                             </td>
                                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.TRDR}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.CUSTOMER_NAME}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.ITEM_CODE}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.ITEM_DESCR}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.KATASTIMA}</td>
+                                            <td className="truncate px-4 py-3 text-sm text-gray-700 dark:text-gray-200" title={row.CUSTOMER_NAME}>{row.CUSTOMER_NAME}</td>
+                                            <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.ITEM_CODE}</td>
+                                            <td className="truncate px-4 py-3 text-sm text-gray-700 dark:text-gray-200" title={row.ITEM_DESCR}>{row.ITEM_DESCR}</td>
+                                            <td className="px-2 py-3 text-center text-sm">
+                                                <span
+                                                    className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getBranchColor(row.KATASTIMA)}`}
+                                                >
+                                                    {row.KATASTIMA}
+                                                </span>
+                                            </td>
                                             <td className="px-4 py-3 text-right text-sm text-gray-700 dark:text-gray-200">
                                                 {formatPrice(row.PRICE_ERP)}
                                             </td>
-                                            <td className="px-4 py-3 text-right">
+                                            <td className="whitespace-nowrap px-3 py-3 text-right">
                                                 {rowIsEditing ? (
                                                     <input
                                                         type="number"
@@ -338,7 +345,7 @@ export default function PriceRequestsClient() {
                                                     />
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-right">
+                                            <td className="whitespace-nowrap px-3 py-3 text-right">
                                                 {rowIsEditing ? (
                                                     <DataTableActions>
                                                         <button

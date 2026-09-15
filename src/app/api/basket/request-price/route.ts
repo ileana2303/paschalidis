@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
             message:
                 upstreamData?.message ??
                 upstreamData?.rows?.[0]?.MESSAGE_TO_CALLER ??
-                'Η αίτηση τιμής υποβλήθηκε.',
+                'Το αίτημα τιμής υποβλήθηκε.',
         };
 
         return NextResponse.json(data);
