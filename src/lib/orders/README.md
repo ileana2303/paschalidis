@@ -36,7 +36,7 @@ under the flow's log label, e.g.:
 `lib/auth/branches.ts` is the single source of truth:
 
 Branch code `1000` is Κασομούλη (there is no `1001`; the SoftOne stock columns
-are still named `YP1001` / `THESI1001`).
+are still named `YP1000` / `THESI1000`).
 
 | Branch | TRDBRANCH | SALDOC SERIES | ENDO comment label |
 |---|---|---|---|

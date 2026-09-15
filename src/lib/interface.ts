@@ -27,8 +27,8 @@ export interface IItem {
     STATUS_NOW: string;
     STATUS_MOBILE: string;
 
-    YP1001: string;
-    THESI1001: string;
+    YP1000: string;
+    THESI1000: string;
     YP1006: string;
     THESI1006: string;
     YP1007: string;
@@ -274,7 +274,7 @@ export interface IRequestedPriceListRow {
 }
 
 export interface RequestedPriceListResponse
-    extends ApiResponse<IRequestedPriceListRow> {}
+    extends ApiResponse<IRequestedPriceListRow> { }
 
 export type RequestedPriceUpdateAction = "APPROVE" | "APPROVE_WITH_PRICE";
 
@@ -353,147 +353,147 @@ export interface ApiResponse<T> {
 }
 
 export interface StockFeedbackRoutePayload {
-  branch: string;
-  days: number;
+    branch: string;
+    days: number;
 }
 
 export interface StockFeedbackPayload {
-  service: "SqlData";
-  clientID: string;
-  appId: "1305";
-  SqlName: "SALES_PER_BRANCH";
-  BRANCH: string;
-  DAYS: number;
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "SALES_PER_BRANCH";
+    BRANCH: string;
+    DAYS: number;
 }
 
 export interface IStockFeedbackRow {
-  MTRL: string;
-  CODE: string;
-  NAME: string;
-  QTY_SOLD: string;
-  ONGOING: string;
-  YP1001: string;
-  YP1006: string;
-  YP1007: string;
-  TOTAL_AVAIL: string;
+    MTRL: string;
+    CODE: string;
+    NAME: string;
+    QTY_SOLD: string;
+    ONGOING: string;
+    YP1000: string;
+    YP1006: string;
+    YP1007: string;
+    TOTAL_AVAIL: string;
 }
 
 export interface StockFeedbackResponse
-  extends ApiResponse<IStockFeedbackRow> {}
+    extends ApiResponse<IStockFeedbackRow> { }
 
 export type StockRequestStatus = "approved" | "pending" | "deleted";
 
 export type StockRequestUpdateAction = "APPROVE" | "DELETE" | "UPDATE";
 
 export interface StockRequestRoutePayload {
-  mtrl: number;
-  qty: number;
-  branch: string;
+    mtrl: number;
+    qty: number;
+    branch: string;
 }
 
 export interface StockRequestInsertPayload {
-  service: "SqlData";
-  clientID: string;
-  appId: "1305";
-  SqlName: "ANTROF_INSERT";
-  MTRL: string;
-  BRANCH: string;
-  QTY_REQUESTED: number;
-  APPUSER_ID: string;
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ANTROF_INSERT";
+    MTRL: string;
+    BRANCH: string;
+    QTY_REQUESTED: number;
+    APPUSER_ID: string;
 }
 
 interface IStockRequestInsertRow {
-  MESSAGE_TO_CALLER: string;
-  NEW_ID: string;
+    MESSAGE_TO_CALLER: string;
+    NEW_ID: string;
 }
 
 export interface StockRequestInsertResponse
-  extends ApiResponse<IStockRequestInsertRow> {}
+    extends ApiResponse<IStockRequestInsertRow> { }
 
 export interface StockRequestListRoutePayload {
-  branch: string;
+    branch: string;
 }
 
 export interface StockRequestListPayload {
-  service: "SqlData";
-  clientID: string;
-  appId: "1305";
-  SqlName: "ANTROF_LIST";
-  BRANCH: string;
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ANTROF_LIST";
+    BRANCH: string;
 }
 
 export interface IStockRequestListRow {
-  BASKETID: string;
-  MTRL: string;
-  ITEM_CODE: string;
-  ITEM_NAME: string;
-  QTY: string;
-  QTY_REQUESTED: string;
-  BRANCH: string;
-  INS_DATE: string;
-  STATUS: string;
-  TOTAL_AVAIL: string;
-  YP1001: string;
-  YP1006: string;
-  YP1007: string;
-  ONGOING: string;
-  ORDERED: string;
-  QTY_IN_BASKETS: string;
-  APPROVED_TS?: string;
+    BASKETID: string;
+    MTRL: string;
+    ITEM_CODE: string;
+    ITEM_NAME: string;
+    QTY: string;
+    QTY_REQUESTED: string;
+    BRANCH: string;
+    INS_DATE: string;
+    STATUS: string;
+    TOTAL_AVAIL: string;
+    YP1000: string;
+    YP1006: string;
+    YP1007: string;
+    ONGOING: string;
+    ORDERED: string;
+    QTY_IN_BASKETS: string;
+    APPROVED_TS?: string;
 }
 
 export interface StockRequestListResponse
-  extends ApiResponse<IStockRequestListRow> {}
+    extends ApiResponse<IStockRequestListRow> { }
 
 export interface StockRequestUpdateRoutePayload {
-  action: StockRequestUpdateAction;
-  basketId: number;
-  qty: string;
+    action: StockRequestUpdateAction;
+    basketId: number;
+    qty: string;
 }
 
 export interface StockRequestUpdatePayload {
-  service: "SqlData";
-  clientID: string;
-  appId: "1305";
-  SqlName: "ANATROF_UPDATE";
-  ACTION: StockRequestUpdateAction;
-  BASKETID: number;
-  QTY: string;
-  APPUSER_ID: string;
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ANATROF_UPDATE";
+    ACTION: StockRequestUpdateAction;
+    BASKETID: number;
+    QTY: string;
+    APPUSER_ID: string;
 }
 
 interface IStockRequestMessageRow {
-  MESSAGE_TO_CALLER: string;
+    MESSAGE_TO_CALLER: string;
 }
 
 export interface StockRequestUpdateResponse
-  extends ApiResponse<IStockRequestMessageRow> {}
+    extends ApiResponse<IStockRequestMessageRow> { }
 
 export interface StockRequestSubmitRoutePayload {
-  appUserId?: string;
-  deliveryDate?: string;
-  notes?: string;
-  branch?: string | number;
-  items: IStockRequestListRow[];
+    appUserId?: string;
+    deliveryDate?: string;
+    notes?: string;
+    branch?: string | number;
+    items: IStockRequestListRow[];
 }
 
 export interface StockRequestSubmitResponse {
-  success: boolean;
-  message?: string;
-  id?: string;
-  orderIds?: string[];
-  basketIds?: string[];
+    success: boolean;
+    message?: string;
+    id?: string;
+    orderIds?: string[];
+    basketIds?: string[];
 }
 
 export interface StockRequestProps {
-  mtrl: string;
-  stock: number;
-  quantity: number;
-  onQuantityChange: (nextQuantity: number) => void;
-  onSubmitRequest: () => void;
-  requestStatus: StockRequestStatus | null;
-  isSubmittingRequest: boolean;
-  requestError: string;
+    mtrl: string;
+    stock: number;
+    quantity: number;
+    onQuantityChange: (nextQuantity: number) => void;
+    onSubmitRequest: () => void;
+    requestStatus: StockRequestStatus | null;
+    isSubmittingRequest: boolean;
+    requestError: string;
 }
 
 export interface EndoBasketAddRoutePayload {

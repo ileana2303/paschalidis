@@ -6,13 +6,56 @@ export function getItemFieldValue(item: IItem, key: string) {
     return (item as unknown as Record<string, unknown>)[key];
 }
 
+const ITEM_STOCK_KEY_BY_BRANCH_CODE: Record<string, string> = {
+    // SoftOne exposes Κασομούλη (branch 1000) in the legacy YP1000 column.
+    "1000": "YP1000",
+    "1006": "YP1006",
+    "1007": "YP1007",
+};
+
+const ITEM_LOCATION_KEY_BY_BRANCH_CODE: Record<string, string> = {
+    "1000": "THESI1000",
+    "1006": "THESI1006",
+    "1007": "THESI1007",
+};
+
+export function getItemStockForBranch(item: IItem, branchCode: string) {
+    const normalizedBranchCode = String(branchCode ?? "").trim();
+
+    if (!normalizedBranchCode) {
+        return null;
+    }
+
+    const stockKey =
+        ITEM_STOCK_KEY_BY_BRANCH_CODE[normalizedBranchCode] ??
+        `YP${normalizedBranchCode}`;
+    const value = getItemFieldValue(item, stockKey);
+
+    return value == null ? null : parseStockValue(value);
+}
+
+export function getItemLocationForBranch(item: IItem, branchCode: string) {
+    const normalizedBranchCode = String(branchCode ?? "").trim();
+
+    if (!normalizedBranchCode) {
+        return "";
+    }
+
+    const locationKey =
+        ITEM_LOCATION_KEY_BY_BRANCH_CODE[normalizedBranchCode] ??
+        `THESI${normalizedBranchCode}`;
+
+    return String(getItemFieldValue(item, locationKey) ?? "").trim();
+}
+
 export function getBranchCodesFromItem(item: IItem) {
     const codes = new Set<string>();
 
     Object.keys(item).forEach((key) => {
         const match = key.match(/^YP(\d+)$/i);
         if (match?.[1]) {
-            codes.add(match[1]);
+            // YP1000 belongs to branch 1000; 1001 is the ERP stock-column suffix.
+            codes.add(match[1] === "1001" ? "1000" : match[1]);
         }
     });
 
@@ -68,4 +111,28 @@ export function mapEndoRequestedRows(
             } as EndoBasketUiItem;
         })
         .filter((row) => row.mtrl > 0 && row.qty > 0);
+}
+
+const BRANCH_RENDER_PRIORITY: Record<string, number> = {
+    "1006": 0,
+    "1000": 1,
+    "1007": 2,
+};
+
+function getBranchRenderPriority(branchCode: string) {
+    return BRANCH_RENDER_PRIORITY[branchCode] ?? 1000 + Number(branchCode);
+}
+
+/** Orders branches by the ERP-preferred pick order, then by code. */
+export function sortEndoBranches<T extends { code: string }>(branches: T[]) {
+    return [...branches].sort((a, b) => {
+        const priorityDiff =
+            getBranchRenderPriority(a.code) - getBranchRenderPriority(b.code);
+
+        if (priorityDiff !== 0) {
+            return priorityDiff;
+        }
+
+        return a.code.localeCompare(b.code, "el-GR", { numeric: true });
+    });
 }

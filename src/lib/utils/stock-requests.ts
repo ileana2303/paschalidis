@@ -3,8 +3,8 @@ import { formatDateTimeEl } from "@/lib/utils/date";
 import { parseSoftOneNumber } from "@/lib/utils/number";
 
 export type StockBranchCode = "1000" | "1006" | "1007";
-/** SoftOne stock columns - still YP1001 for Κασομούλη. CHECK with BE*/
-export type StockBranchStockKey = "YP1001" | "YP1006" | "YP1007";
+/** SoftOne stock columns - still YP1000 for Κασομούλη. CHECK with BE*/
+export type StockBranchStockKey = "YP1000" | "YP1006" | "YP1007";
 
 export const STOCK_REQUEST_BRANCH_OPTIONS: Array<{ code: StockBranchCode; label: string }> = [
     { code: "1000", label: "Κασομούλη" },
@@ -17,10 +17,10 @@ export const STOCK_BRANCH_COLUMNS: Array<{
     label: string;
     stockKey: StockBranchStockKey;
 }> = [
-    { code: "1000", label: "Κασομούλη", stockKey: "YP1001" },
-    { code: "1006", label: "Λ.Αθηνών", stockKey: "YP1006" },
-    { code: "1007", label: "Λ.Μεσογείων", stockKey: "YP1007" },
-];
+        { code: "1000", label: "Κασομούλη", stockKey: "YP1000" },
+        { code: "1006", label: "Λ.Αθηνών", stockKey: "YP1006" },
+        { code: "1007", label: "Λ.Μεσογείων", stockKey: "YP1007" },
+    ];
 
 export function getStatusStyle(status: string) {
     const normalized = status.toUpperCase();

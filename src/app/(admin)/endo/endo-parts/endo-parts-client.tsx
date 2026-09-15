@@ -2,20 +2,26 @@
 
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import { type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Plus } from "@/lib/icons/lucide";
+import {
+    ListChevronsDownUp,
+    ListChevronsUpDown,
+    Plus,
+    Search,
+} from "@/lib/icons/lucide";
 import type { IItem } from "@/lib/interface";
 import { useSearchEndoStore } from "@/stores/searchEndoStore";
 import {
     getBranchCodesFromItem,
     getEndoItemKey,
     getEndoQtyKey,
-    getItemFieldValue,
+    getItemLocationForBranch,
+    getItemStockForBranch,
     mapEndoRequestedRows,
-    parseStockValue,
 } from "@/lib/utils/endo";
 import { useModal } from "@/hooks/useModal";
 import PartsSearchModal from "@/components/search/parts-search-modal";
 import SearchBar from "@/components/search/search-bar";
+import Checkbox from "@/components/template-components/form/input/Checkbox";
 import {
     useAddItemToEndoBasketMutation,
     useDeleteBasketItemsMutation,
@@ -54,6 +60,8 @@ export default function EndoPartsClient() {
     const setItems = useSearchEndoStore((state) => state.setItems);
     const hasSearched = useSearchEndoStore((state) => state.hasSearched);
     const setHasSearched = useSearchEndoStore((state) => state.setHasSearched);
+    const [textFilter, setTextFilter] = useState("");
+    const [statusFilterSelection, setStatusFilterSelection] = useState<Set<string> | null>(null);
     const user = useAuthStore((state) => state.user);
     const {
         isOpen: isSearchModalOpen,
@@ -438,6 +446,83 @@ export default function EndoPartsClient() {
         });
     };
 
+    const availableStatusLabels = useMemo(() => {
+        const labels = new Set<string>();
+
+        for (const item of items) {
+            const label = String(item.STATUS_LABEL ?? "").trim();
+
+            if (label) {
+                labels.add(label);
+            }
+        }
+
+        return Array.from(labels).sort((a, b) => a.localeCompare(b, "el"));
+    }, [items]);
+
+    const availableStatusLabelsKey = availableStatusLabels.join("\0");
+    const [syncedStatusLabelsKey, setSyncedStatusLabelsKey] = useState(availableStatusLabelsKey);
+
+    if (syncedStatusLabelsKey !== availableStatusLabelsKey) {
+        setSyncedStatusLabelsKey(availableStatusLabelsKey);
+        setStatusFilterSelection(null);
+    }
+
+    const selectedStatusLabels = useMemo(
+        () => statusFilterSelection ?? new Set(availableStatusLabels),
+        [statusFilterSelection, availableStatusLabels],
+    );
+
+    const normalizedTextFilter = textFilter.trim().toLowerCase();
+    const isStatusFilterActive =
+        statusFilterSelection !== null &&
+        statusFilterSelection.size < availableStatusLabels.length;
+
+    const filteredItems = useMemo(() => {
+        return items.filter((item) => {
+            const statusLabel = String(item.STATUS_LABEL ?? "").trim();
+
+            if (
+                isStatusFilterActive &&
+                statusLabel &&
+                !selectedStatusLabels.has(statusLabel)
+            ) {
+                return false;
+            }
+
+            if (!normalizedTextFilter) {
+                return true;
+            }
+
+            const itemCode = String(item.ITEM_CODE ?? "").toLowerCase();
+            const itemDescr = String(item.ITEM_DESCR ?? "").toLowerCase();
+            const manufacturerDescr = String(item.MNF_DESCR ?? "").toLowerCase();
+
+            return (
+                itemCode.includes(normalizedTextFilter) ||
+                itemDescr.includes(normalizedTextFilter) ||
+                manufacturerDescr.includes(normalizedTextFilter)
+            );
+        });
+    }, [items, isStatusFilterActive, normalizedTextFilter, selectedStatusLabels]);
+
+    const hasActiveFilters = normalizedTextFilter.length > 0 || isStatusFilterActive;
+
+    const toggleStatusLabel = (statusLabel: string) => {
+        setStatusFilterSelection((prev) => {
+            const current = prev ?? new Set(availableStatusLabels);
+            const next = new Set(current);
+
+            if (next.has(statusLabel)) {
+                next.delete(statusLabel);
+            } else {
+                next.add(statusLabel);
+            }
+
+            return next;
+        });
+    };
+
     const getRequestedQty = (mtrl: string | number, sourceBranch: string) =>
         quantities[getEndoQtyKey(mtrl, sourceBranch)] ?? 0;
 
@@ -473,13 +558,12 @@ export default function EndoPartsClient() {
                     (branch) => normalizeBranchCode(branch.s1Code) === code
                 )?.name;
                 const label = resolveBranchName(code, labelFromProfile);
-                const location =
-                    String(getItemFieldValue(item, `THESI${code}`) ?? "").trim() || "-";
+                const location = getItemLocationForBranch(item, code) || "-";
 
                 return {
                     code,
                     label,
-                    stock: parseStockValue(getItemFieldValue(item, `YP${code}`)),
+                    stock: getItemStockForBranch(item, code) ?? 0,
                     location,
                 };
             });
@@ -593,14 +677,10 @@ export default function EndoPartsClient() {
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
                 <div
-                    className={`relative min-h-0 w-full xl:min-w-0 ${sidebarVisible ? "xl:basis-2/3" : ""} transition-all duration-300`}
+                    className={`min-h-0 w-full xl:min-w-0 ${sidebarVisible ? "xl:basis-2/3" : ""} flex flex-1 flex-col transition-all duration-300`}
                 >
-                    <div
-                        ref={resultsContainerRef}
-                        className="h-full overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-                        onScroll={handleResultsScroll}
-                    >
-                        <div className="sticky top-0 z-10 overflow-hidden bg-white px-5 py-7 transition-all duration-300 dark:bg-[#0f172a] xl:px-10 xl:py-12">
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all duration-300 dark:border-gray-800 dark:bg-white/[0.03]">
+                        <div className="shrink-0 px-5 py-6 dark:border-gray-800 xl:px-10">
                             <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
                                 <h3
                                     className={`overflow-hidden text-theme-xl font-semibold text-gray-800 transition-all duration-300 dark:text-white/90 sm:text-2xl ${hasScrolledResults
@@ -625,92 +705,147 @@ export default function EndoPartsClient() {
                             </div>
                         </div>
 
-                        <div className="px-5 pb-2 xl:px-10 xl:pb-2">
-                            <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
-                                {items.length > 0 && (
-                                    <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                        <p className="text-sm text-gray-500">
-                                            Βρέθηκαν {items.length} αποτελέσματα
-                                        </p>
+                        <div className="relative min-h-0 flex-1">
+                            <div
+                                ref={resultsContainerRef}
+                                className="h-full overflow-y-auto overscroll-contain"
+                                onScroll={handleResultsScroll}
+                            >
+                                <div className="px-5 pb-2 xl:px-10 xl:pb-2">
+                                    <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
+                                        {items.length > 0 && (
+                                            <div className="sticky top-0 z-10 mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">
+                                                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                                                    <p className="truncate text-sm text-gray-500">
+                                                        {hasActiveFilters
+                                                            ? `Βρέθηκαν ${filteredItems.length} αποτελέσματα`
+                                                            : `Βρέθηκαν ${items.length} αποτελέσματα`}
+                                                    </p>
 
-                                        <button
-                                            type="button"
-                                            onClick={toggleAllExpanded}
-                                            aria-label={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                            title={areAllResultsExpanded ? "Κλείσιμο όλων" : "Άνοιγμα όλων"}
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
-                                        >
-                                            <ChevronDown
-                                                className={`h-4 w-4 transition-transform duration-200 ${areAllResultsExpanded ? "rotate-180" : ""}`}
-                                            />
-                                        </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={toggleAllExpanded}
+                                                        aria-label={areAllResultsExpanded ? "Κλείσιμο λεπτομερειών" : "Άνοιγμα λεπτομερειών"}
+                                                        title={areAllResultsExpanded ? "Κλείσιμο λεπτομερειών" : "Άνοιγμα λεπτομερειών"}
+                                                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                                                    >
+                                                        {areAllResultsExpanded ? (
+                                                            <ListChevronsDownUp className="h-4 w-4" />
+                                                        ) : (
+                                                            <ListChevronsUpDown className="h-4 w-4" />
+                                                        )}
+                                                    </button>
+
+                                                    <div className="relative min-w-0 max-w-[220px] flex-1 sm:max-w-[280px]">
+                                                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                                                        <input
+                                                            type="text"
+                                                            value={textFilter}
+                                                            onChange={(event) => setTextFilter(event.target.value)}
+                                                            placeholder="Κωδικός, περιγραφή, κατασκευαστής..."
+                                                            aria-label="Φιλτράρισμα ανταλλακτικών"
+                                                            className="h-8 w-full rounded-lg border border-gray-200 bg-white pl-8 pr-2.5 text-xs text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200"
+                                                        />
+                                                    </div>
+
+                                                    {availableStatusLabels.length > 0 && (
+                                                        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 [&_label]:gap-2 [&_span]:text-xs">
+                                                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                                                Κατάσταση
+                                                            </span>
+                                                            {availableStatusLabels.map((statusLabel) => (
+                                                                <Checkbox
+                                                                    key={statusLabel}
+                                                                    id={`endo-status-filter-${statusLabel}`}
+                                                                    label={statusLabel}
+                                                                    checked={selectedStatusLabels.has(statusLabel)}
+                                                                    onChange={() => toggleStatusLabel(statusLabel)}
+                                                                    className="h-4 w-4"
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-2">
+                                            {filteredItems.map((item) => {
+                                                const itemKey = getEndoItemKey(item);
+                                                const branches = getBranchOptions(item);
+                                                const inBasketQtyByBranch = basketItems
+                                                    .filter((basketItem) => basketItem.mtrl === Number(item.MTRL))
+                                                    .reduce<Record<string, number>>((acc, basketItem) => {
+                                                        const sourceBranch =
+                                                            basketItem.fromBranch === currentBranchCode
+                                                                ? basketItem.toBranch
+                                                                : basketItem.fromBranch || basketItem.toBranch;
+
+                                                        if (sourceBranch) {
+                                                            acc[sourceBranch] =
+                                                                (acc[sourceBranch] ?? 0) + basketItem.qty;
+                                                        }
+
+                                                        return acc;
+                                                    }, {});
+
+                                                return (
+                                                    <EndoPartResults
+                                                        key={itemKey}
+                                                        item={item}
+                                                        currentBranchName={currentBranchName}
+                                                        currentBranchStock={getItemStockForBranch(
+                                                            item,
+                                                            currentBranchCode
+                                                        )}
+                                                        isExpanded={expandedItems.has(itemKey)}
+                                                        branches={branches}
+                                                        getRequestedQty={(branchCode) =>
+                                                            getRequestedQty(item.MTRL, branchCode)
+                                                        }
+                                                        onRequestedQtyChange={(branchCode, nextQty) =>
+                                                            setRequestedQty(item.MTRL, branchCode, nextQty)
+                                                        }
+                                                        onAddToBasket={(branchCode) =>
+                                                            handleAddToBasket(item, branchCode)
+                                                        }
+                                                        isAdding={(branchCode) =>
+                                                            addingToBasket.has(getEndoQtyKey(item.MTRL, branchCode))
+                                                        }
+                                                        inBasketQtyByBranch={inBasketQtyByBranch}
+                                                        onToggleExpanded={() => toggleExpanded(itemKey)}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+
+                                        {hasSearched && !loading && items.length === 0 && (
+                                            <p className="mt-6 text-center text-sm text-gray-400">
+                                                Δεν βρέθηκαν ανταλλακτικά
+                                            </p>
+                                        )}
+
+                                        {hasSearched && !loading && items.length > 0 && filteredItems.length === 0 && (
+                                            <p className="mt-6 text-center text-sm text-gray-400">
+                                                Δεν βρέθηκαν ανταλλακτικά με τα επιλεγμένα φίλτρα
+                                            </p>
+                                        )}
                                     </div>
-                                )}
-
-                                <div className="space-y-2">
-                                    {items.map((item) => {
-                                        const itemKey = getEndoItemKey(item);
-                                        const branches = getBranchOptions(item);
-                                        const inBasketQtyByBranch = basketItems
-                                            .filter((basketItem) => basketItem.mtrl === Number(item.MTRL))
-                                            .reduce<Record<string, number>>((acc, basketItem) => {
-                                                const sourceBranch =
-                                                    basketItem.fromBranch === currentBranchCode
-                                                        ? basketItem.toBranch
-                                                        : basketItem.fromBranch || basketItem.toBranch;
-
-                                                if (sourceBranch) {
-                                                    acc[sourceBranch] =
-                                                        (acc[sourceBranch] ?? 0) + basketItem.qty;
-                                                }
-
-                                                return acc;
-                                            }, {});
-
-                                        return (
-                                            <EndoPartResults
-                                                key={itemKey}
-                                                item={item}
-                                                isExpanded={expandedItems.has(itemKey)}
-                                                branches={branches}
-                                                getRequestedQty={(branchCode) =>
-                                                    getRequestedQty(item.MTRL, branchCode)
-                                                }
-                                                onRequestedQtyChange={(branchCode, nextQty) =>
-                                                    setRequestedQty(item.MTRL, branchCode, nextQty)
-                                                }
-                                                onAddToBasket={(branchCode) =>
-                                                    handleAddToBasket(item, branchCode)
-                                                }
-                                                isAdding={(branchCode) =>
-                                                    addingToBasket.has(getEndoQtyKey(item.MTRL, branchCode))
-                                                }
-                                                inBasketQtyByBranch={inBasketQtyByBranch}
-                                                onToggleExpanded={() => toggleExpanded(itemKey)}
-                                            />
-                                        );
-                                    })}
                                 </div>
-
-                                {hasSearched && !loading && items.length === 0 && (
-                                    <p className="mt-6 text-center text-sm text-gray-400">
-                                        Δεν βρέθηκαν ανταλλακτικά
-                                    </p>
-                                )}
                             </div>
+
+                            {items.length > 0 && (hasScrolledResults || isResultsScrollable === false) && (
+                                <button
+                                    type="button"
+                                    onClick={handleOpenSearchModal}
+                                    aria-label="Νέα αναζήτηση ανταλλακτικού"
+                                    className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
+                                >
+                                    <Plus className="h-5 w-5" />
+                                </button>
+                            )}
                         </div>
                     </div>
-
-                    {items.length > 0 && (hasScrolledResults || isResultsScrollable === false) && (
-                        <button
-                            type="button"
-                            onClick={handleOpenSearchModal}
-                            aria-label="Νέα αναζήτηση ανταλλακτικού"
-                            className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
-                        >
-                            <Plus className="h-5 w-5" />
-                        </button>
-                    )}
                 </div>
 
                 <EndoOrderSummary

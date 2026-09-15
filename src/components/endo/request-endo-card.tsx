@@ -1,5 +1,6 @@
 import QuantityControl from "@/components/ui/quantity-control";
 import { ChevronLeft, Loader2, ShoppingCart } from "@/lib/icons/lucide";
+import { sortEndoBranches } from "@/lib/utils/endo";
 
 export type EndoBranchOption = {
     code: string;
@@ -7,16 +8,6 @@ export type EndoBranchOption = {
     stock: number;
     location: string;
 };
-
-const BRANCH_RENDER_PRIORITY: Record<string, number> = {
-    "1006": 0,
-    "1000": 1,
-    "1007": 2,
-};
-
-function getBranchRenderPriority(branchCode: string) {
-    return BRANCH_RENDER_PRIORITY[branchCode] ?? 1000 + Number(branchCode);
-}
 
 export interface RequestEndoCardProps {
     branches: EndoBranchOption[];
@@ -51,18 +42,9 @@ export default function RequestEndoCard({
     branchCardClassName = "rounded-lg border border-gray-200 bg-white p-3 shadow-xs dark:border-gray-700 dark:bg-gray-900/40",
     emptyMessage = "Δεν υπάρχει διαθέσιμο άλλο κατάστημα.",
 }: RequestEndoCardProps) {
-    const sortedBranches = branches
-        .filter((branch) => branch.stock > 0)
-        .sort((a, b) => {
-            const priorityDiff =
-                getBranchRenderPriority(a.code) - getBranchRenderPriority(b.code);
-
-            if (priorityDiff !== 0) {
-                return priorityDiff;
-            }
-
-            return a.code.localeCompare(b.code, "el-GR", { numeric: true });
-        });
+    const sortedBranches = sortEndoBranches(
+        branches.filter((branch) => branch.stock > 0)
+    );
 
     return (
         <div className={className}>

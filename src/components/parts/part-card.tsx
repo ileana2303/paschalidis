@@ -14,8 +14,8 @@ import PartCardDetails from "./part-card-details";
 import PartStockQuantityContainer from "../stock/request-stock-card";
 
 type StockBranchCode = "1000" | "1006" | "1007";
-type StockKey = "YP1001" | "YP1006" | "YP1007";
-type LocationKey = "THESI1001" | "THESI1006" | "THESI1007";
+type StockKey = "YP1000" | "YP1006" | "YP1007";
+type LocationKey = "THESI1000" | "THESI1006" | "THESI1007";
 
 const STOCK_BRANCH_CODES: StockBranchCode[] = ["1000", "1006", "1007"];
 
@@ -27,8 +27,8 @@ const STOCK_BRANCH_META: Record<
         label: "Ν.Κόσμος",
         badgeClassName:
             "rounded-full bg-sky-100 px-2 py-0.5 font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
-        stockKey: "YP1001",
-        locationKey: "THESI1001",
+        stockKey: "YP1000",
+        locationKey: "THESI1000",
     },
     "1006": {
         label: "Λ.Αθηνών",
@@ -216,11 +216,10 @@ export default function PartResults({
                     onClick={onToggleExpanded}
                     aria-expanded={isExpanded}
                     aria-label={isExpanded ? "Απόκρυψη λεπτομερειών" : "Προβολή λεπτομερειών"}
-                    className={`group flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/40 ${
-                        isExpanded
-                            ? "border-brand-200 bg-brand-50/70 dark:border-brand-500/30 dark:bg-brand-500/10"
-                            : "border-gray-100 bg-gray-50/80 hover:bg-brand-50/60 dark:border-gray-800 dark:bg-white/[0.02] dark:hover:bg-brand-500/5"
-                    }`}
+                    className={`group flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/40 ${isExpanded
+                        ? "border-brand-200 bg-brand-50/70 dark:border-brand-500/30 dark:bg-brand-500/10"
+                        : "border-gray-100 bg-gray-50/80 hover:bg-brand-50/60 dark:border-gray-800 dark:bg-white/[0.02] dark:hover:bg-brand-500/5"
+                        }`}
                 >
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

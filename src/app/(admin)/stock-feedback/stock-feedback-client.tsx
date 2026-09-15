@@ -543,7 +543,7 @@ export default function StockFeedbackClient() {
                             : "text-gray-700 dark:text-gray-200",
                         ].join(" ")}
                       >
-                        {formatNumber(row.YP1001)}
+                        {formatNumber(row.YP1000)}
                       </td>
 
                       <td
