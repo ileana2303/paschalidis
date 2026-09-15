@@ -1,20 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
+import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import {
   ChevronLeft,
   Loader2,
   ShoppingCart,
+  Trash2,
 } from "@/lib/icons/lucide";
-import { useFetchAllClientBasketsMutation } from "@/hooks/queries/useApiMutations";
+import {
+  useDeleteBasketItemsMutation,
+  useFetchAllClientBasketsMutation,
+  useFetchBasketItemsMutation,
+  useFetchCustomerByTrdrMutation,
+} from "@/hooks/queries/useApiMutations";
+import type { ICustomerInfo } from "@/lib/interface";
 import { normalizeBranchCode } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
+import { useCustomerStore } from "@/stores/customerStore";
 import { useSessionState } from "@/hooks/useSessionState";
 import {
   BASKET_BRANCH_OPTIONS,
@@ -27,15 +37,21 @@ import {
   type BasketBranchCode,
   type BasketListRow,
 } from "@/lib/utils/all-baskets";
+import toast from "react-hot-toast";
 
 export default function AllBasketsClient() {
+  const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const setCustomer = useCustomerStore((state) => state.setCustomer);
   const currentBranchCode = useMemo(
     () => normalizeBranchCode(user?.s1code),
     [user?.s1code]
   );
   const { mutateAsync: fetchAllClientBaskets } =
     useFetchAllClientBasketsMutation();
+  const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
+  const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
+  const { mutateAsync: fetchCustomerByTrdr } = useFetchCustomerByTrdrMutation();
 
   const [searchInput, setSearchInput] = useSessionState(
     "all-baskets-search-input",
@@ -54,6 +70,9 @@ export default function AllBasketsClient() {
   const [selectedBranchCode, setSelectedBranchCode] = useState<
     BasketBranchCode | ""
   >("");
+  const [deletingSelected, setDeletingSelected] = useState(false);
+  const [navigatingTrdr, setNavigatingTrdr] = useState<string | null>(null);
+  const [selectedTrdrs, setSelectedTrdrs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (selectedBranchCode) {
@@ -87,9 +106,11 @@ export default function AllBasketsClient() {
       });
 
       setRows(getBasketRows(data));
+      setSelectedTrdrs(new Set());
       setTotalcount(Number(data.totalcount) || 0);
     } catch (err) {
       setRows([]);
+      setSelectedTrdrs(new Set());
       setTotalcount(0);
       setError(
         err instanceof Error
@@ -119,7 +140,249 @@ export default function AllBasketsClient() {
     }
 
     void loadData();
-  }, [appliedSearch, loadData, searchInput]);
+  }, [appliedSearch, loadData, searchInput, setAppliedSearch]);
+
+  // Customer records resolved for this page are kept around so re-opening the
+  // same basket (or a row the pointer already hovered) navigates instantly.
+  const customerCacheRef = useRef(new Map<string, ICustomerInfo>());
+  const customerLookupsRef = useRef(new Map<string, Promise<ICustomerInfo>>());
+  const navigationTrdrRef = useRef<string | null>(null);
+
+  const getBasketHref = useCallback(
+    (trdr: string) => `/basket?trdr=${encodeURIComponent(trdr)}`,
+    []
+  );
+
+  const resolveCustomer = useCallback(
+    (row: BasketListRow) => {
+      const normalizedTrdr = String(row.TRDR ?? "").trim();
+      const cachedCustomer = customerCacheRef.current.get(normalizedTrdr);
+
+      if (cachedCustomer) {
+        return Promise.resolve(cachedCustomer);
+      }
+
+      const pendingLookup = customerLookupsRef.current.get(normalizedTrdr);
+
+      if (pendingLookup) {
+        return pendingLookup;
+      }
+
+      // The complete record is resolved by TRDR server-side - the customer name
+      // is only passed as a search hint, never as the match criterion.
+      const lookup = fetchCustomerByTrdr({
+        trdr: normalizedTrdr,
+        name: row.CUSTOMER_NAME?.trim() || undefined,
+      })
+        .then((customer) => {
+          customerCacheRef.current.set(normalizedTrdr, customer);
+          return customer;
+        })
+        .finally(() => {
+          customerLookupsRef.current.delete(normalizedTrdr);
+        });
+
+      customerLookupsRef.current.set(normalizedTrdr, lookup);
+
+      return lookup;
+    },
+    [fetchCustomerByTrdr]
+  );
+
+  // Warms both the customer record and the basket route while the user is still
+  // deciding, so the click itself has nothing left to wait for.
+  const handleBasketRowPrefetch = useCallback(
+    (row: BasketListRow) => {
+      const normalizedTrdr = String(row.TRDR ?? "").trim();
+
+      if (!normalizedTrdr || customerCacheRef.current.has(normalizedTrdr)) {
+        return;
+      }
+
+      router.prefetch(getBasketHref(normalizedTrdr));
+      void resolveCustomer(row).catch(() => {
+        // Prefetch failures are silent - the click path reports them.
+      });
+    },
+    [getBasketHref, resolveCustomer, router]
+  );
+
+  const handleBasketRowClick = useCallback(
+    async (row: BasketListRow) => {
+      const normalizedTrdr = String(row.TRDR ?? "").trim();
+
+      if (!normalizedTrdr || deletingSelected) {
+        return;
+      }
+
+      if (navigationTrdrRef.current === normalizedTrdr) {
+        return;
+      }
+
+      const basketHref = getBasketHref(normalizedTrdr);
+      const cachedCustomer = customerCacheRef.current.get(normalizedTrdr);
+
+      if (cachedCustomer) {
+        setCustomer(cachedCustomer);
+        router.push(basketHref);
+        return;
+      }
+
+      navigationTrdrRef.current = normalizedTrdr;
+      setNavigatingTrdr(normalizedTrdr);
+      setError("");
+      router.prefetch(basketHref);
+
+      try {
+        const customer = await resolveCustomer(row);
+
+        // A click on another row while this lookup was running wins.
+        if (navigationTrdrRef.current !== normalizedTrdr) {
+          return;
+        }
+
+        setCustomer(customer);
+        router.push(basketHref);
+      } catch (err) {
+        if (navigationTrdrRef.current !== normalizedTrdr) {
+          return;
+        }
+
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Αποτυχία φόρτωσης στοιχείων πελάτη";
+        setError(message);
+        toast.error(`${message} Το καλάθι ανοίγει χωρίς τα στοιχεία πελάτη.`);
+
+        // The basket itself is keyed by TRDR, so it stays usable even when the
+        // customer record could not be resolved.
+        router.push(basketHref);
+      } finally {
+        if (navigationTrdrRef.current === normalizedTrdr) {
+          navigationTrdrRef.current = null;
+          setNavigatingTrdr(null);
+        }
+      }
+    },
+    [
+      deletingSelected,
+      getBasketHref,
+      resolveCustomer,
+      router,
+      setCustomer,
+    ]
+  );
+
+  const deleteClientBaskets = useCallback(
+    async (basketsToDelete: BasketListRow[]) => {
+      const basketResponses = await Promise.all(
+        basketsToDelete.map((row) => fetchBasketItems(String(row.TRDR).trim()))
+      );
+      const basketIds = Array.from(
+        new Set(
+          basketResponses.flatMap((basket) =>
+            basket.rows
+              .map((item) => String(item.BASKETID ?? "").trim())
+              .filter(Boolean)
+          )
+        )
+      );
+
+      if (basketIds.length === 0) {
+        throw new Error("Δεν βρέθηκαν γραμμές καλαθιού για διαγραφή.");
+      }
+
+      await deleteBasketItems({
+        basketIds,
+        tableAction: "USRCUST",
+        method: "DELETE",
+        s1Key: "1305",
+      });
+
+      setSelectedTrdrs(new Set());
+      await loadData();
+    },
+    [deleteBasketItems, fetchBasketItems, loadData]
+  );
+
+  const handleDeleteSelectedBaskets = useCallback(async () => {
+    if (selectedTrdrs.size === 0 || deletingSelected) {
+      return;
+    }
+
+    const selectedRows = rows.filter((row) =>
+      selectedTrdrs.has(String(row.TRDR).trim())
+    );
+
+    if (selectedRows.length === 0) {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Διαγραφή ${selectedRows.length} επιλεγμένων καλαθιών πελατών;`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingSelected(true);
+    setError("");
+
+    try {
+      await deleteClientBaskets(selectedRows);
+      toast.success(
+        selectedRows.length === 1
+          ? "Το επιλεγμένο καλάθι διαγράφηκε."
+          : `Διαγράφηκαν ${selectedRows.length} καλάθια πελατών.`
+      );
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Αποτυχία διαγραφής επιλεγμένων καλαθιών";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setDeletingSelected(false);
+    }
+  }, [
+    deleteClientBaskets,
+    deletingSelected,
+    rows,
+    selectedTrdrs,
+  ]);
+
+  const toggleBasketSelection = useCallback((trdr: string) => {
+    const normalizedTrdr = String(trdr).trim();
+
+    setSelectedTrdrs((current) => {
+      const next = new Set(current);
+      if (next.has(normalizedTrdr)) {
+        next.delete(normalizedTrdr);
+      } else {
+        next.add(normalizedTrdr);
+      }
+      return next;
+    });
+  }, []);
+
+  const currentRowTrdrs = useMemo(
+    () => rows.map((row) => String(row.TRDR).trim()).filter(Boolean),
+    [rows]
+  );
+  const selectedOnPageCount = currentRowTrdrs.filter((trdr) =>
+    selectedTrdrs.has(trdr)
+  ).length;
+  const allRowsSelected =
+    currentRowTrdrs.length > 0 && selectedOnPageCount === currentRowTrdrs.length;
+  const someRowsSelected = selectedOnPageCount > 0 && !allRowsSelected;
+  const toggleAllBaskets = useCallback(() => {
+    setSelectedTrdrs(
+      allRowsSelected ? new Set() : new Set(currentRowTrdrs)
+    );
+  }, [allRowsSelected, currentRowTrdrs]);
 
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil(totalcount / pageSize));
@@ -127,6 +390,7 @@ export default function AllBasketsClient() {
 
   const canGoPrevious = page > 1;
   const canGoNext = page < totalPages;
+  const isDeleting = deletingSelected;
 
   return (
     <div>
@@ -145,6 +409,20 @@ export default function AllBasketsClient() {
           count={totalcount}
           action={
             <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
+              <button
+                type="button"
+                onClick={() => void handleDeleteSelectedBaskets()}
+                disabled={selectedOnPageCount === 0 || isDeleting || loading}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 dark:border-red-500/30 dark:bg-gray-900 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
+              >
+                {deletingSelected ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Διαγραφή επιλεγμένων
+                {selectedOnPageCount > 0 ? ` (${selectedOnPageCount})` : ""}
+              </button>
 
               <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                 Κατάστημα
@@ -160,7 +438,7 @@ export default function AllBasketsClient() {
                     setSelectedBranchCode(nextBranchCode);
                     setPage(1);
                   }}
-                  disabled={loading}
+                  disabled={loading || isDeleting}
                   className="min-w-[140px] border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
                 >
                   {BASKET_BRANCH_OPTIONS.map((branch) => (
@@ -201,6 +479,15 @@ export default function AllBasketsClient() {
             <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                 <tr>
+                  <th className="w-12 px-4 py-3 text-left">
+                    <DataTableSelectionCheckbox
+                      ariaLabel="Επιλογή όλων των καλαθιών της σελίδας"
+                      checked={allRowsSelected}
+                      indeterminate={someRowsSelected}
+                      onCheckedChange={toggleAllBaskets}
+                      disabled={isDeleting}
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Πελάτης
                   </th>
@@ -229,8 +516,34 @@ export default function AllBasketsClient() {
                 {rows.map((row) => (
                   <tr
                     key={row.TRDR}
-                    className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                    role="link"
+                    tabIndex={0}
+                    aria-busy={navigatingTrdr === String(row.TRDR).trim()}
+                    onClick={() => void handleBasketRowClick(row)}
+                    onMouseEnter={() => handleBasketRowPrefetch(row)}
+                    onFocus={() => handleBasketRowPrefetch(row)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        void handleBasketRowClick(row);
+                      }
+                    }}
+                    className={`cursor-pointer transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 dark:hover:bg-white/[0.04] ${
+                      navigatingTrdr === String(row.TRDR).trim() ? "opacity-60" : ""
+                    }`}
                   >
+                    <td
+                      className="px-4 py-3"
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
+                    >
+                      <DataTableSelectionCheckbox
+                        ariaLabel={`Επιλογή καλαθιού πελάτη ${row.CUSTOMER_NAME || row.TRDR}`}
+                        checked={selectedTrdrs.has(String(row.TRDR).trim())}
+                        onCheckedChange={() => toggleBasketSelection(row.TRDR)}
+                        disabled={isDeleting}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
                       {row.CUSTOMER_NAME || "—"}
                     </td>
@@ -265,6 +578,7 @@ export default function AllBasketsClient() {
                         className="min-w-[64px]"
                       />
                     </td>
+
                   </tr>
                 ))}
               </tbody>

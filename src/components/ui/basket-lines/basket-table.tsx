@@ -158,6 +158,20 @@ export default function BasketTable({
                     <DataTableActions className="flex-wrap justify-start sm:justify-end">
                         <button
                             type="button"
+                            onClick={handleDeleteSelected}
+                            disabled={!canRemoveSelectedBasketItems || removingSelectedItems}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 dark:border-red-500/30 dark:bg-gray-900 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
+                        >
+                            {removingSelectedItems ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Trash2 className="h-4 w-4" />
+                            )}
+                            Διαγραφή επιλεγμένων
+                            {selectedCount > 0 ? ` (${selectedCount})` : ""}
+                        </button>
+                        <button
+                            type="button"
                             onClick={onAddMore}
                             className={primaryActionClassName}
                         >
@@ -211,30 +225,14 @@ export default function BasketTable({
                         <table className="w-full min-w-[1520px] divide-y divide-gray-100 text-sm dark:divide-gray-800">
                             <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                 <tr>
-                                    <th className="w-24 px-4 py-3 text-left">
-                                        <div className="flex items-center gap-2">
-                                            <DataTableSelectionCheckbox
-                                                ariaLabel="Επιλογή όλων των γραμμών"
-                                                checked={allSelected}
-                                                indeterminate={someSelected}
-                                                onCheckedChange={onToggleAll}
-                                                disabled={tableBusy}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={handleDeleteSelected}
-                                                disabled={!canRemoveSelectedBasketItems || removingSelectedItems}
-                                                title="Διαγραφή επιλεγμένων"
-                                                aria-label="Διαγραφή επιλεγμένων γραμμών"
-                                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-200 bg-white text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 dark:border-red-500/30 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
-                                            >
-                                                {removingSelectedItems ? (
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                ) : (
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                )}
-                                            </button>
-                                        </div>
+                                    <th className="w-12 px-4 py-3 text-left">
+                                        <DataTableSelectionCheckbox
+                                            ariaLabel="Επιλογή όλων των γραμμών"
+                                            checked={allSelected}
+                                            indeterminate={someSelected}
+                                            onCheckedChange={onToggleAll}
+                                            disabled={tableBusy}
+                                        />
                                     </th>
                                     <th className="w-14 px-2 py-3 text-center">
                                         <button

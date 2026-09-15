@@ -606,3 +606,14 @@ export interface EndoListsResponse {
     requested: EndoListSection;
     received: EndoListSection;
 }
+
+export interface CustomerByTrdrRoutePayload {
+    trdr: string;
+    name?: string;
+}
+
+export interface CustomerByTrdrResponse {
+    success: boolean;
+    message?: string;
+    customer: ICustomerInfo | null;
+}

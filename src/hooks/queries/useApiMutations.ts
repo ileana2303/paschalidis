@@ -8,6 +8,7 @@ import type {
     BasketRequestPriceRoutePayload,
     BasketSubmitRoutePayload,
     BasketUpdateRoutePayload,
+    CustomerByTrdrRoutePayload,
     EndoBasketAddRoutePayload,
     EndoBasketSubmitRoutePayload,
     EndoListRoutePayload,
@@ -39,7 +40,7 @@ import {
     submitEndoBasketOrder,
     updateEndoListQty,
 } from "@/lib/api-client/endo";
-import { searchCustomers } from "@/lib/api-client/customers";
+import { fetchCustomerByTrdr, searchCustomers } from "@/lib/api-client/customers";
 import {
     fetchStockFeedback,
     fetchStockRequests,
@@ -56,6 +57,12 @@ import {
 export const useSearchCustomersMutation = () =>
     useMutation({
         mutationFn: (search: string) => searchCustomers(search),
+    });
+
+export const useFetchCustomerByTrdrMutation = () =>
+    useMutation({
+        mutationFn: (payload: CustomerByTrdrRoutePayload) =>
+            fetchCustomerByTrdr(payload),
     });
 
 export const useSearchItemsMutation = () =>
