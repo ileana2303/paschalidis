@@ -60,6 +60,7 @@ export default function EndoPartsClient() {
     const setItems = useSearchEndoStore((state) => state.setItems);
     const hasSearched = useSearchEndoStore((state) => state.hasSearched);
     const setHasSearched = useSearchEndoStore((state) => state.setHasSearched);
+    const clearSearchState = useSearchEndoStore((state) => state.clearState);
     const [textFilter, setTextFilter] = useState("");
     const [statusFilterSelection, setStatusFilterSelection] = useState<Set<string> | null>(null);
     const user = useAuthStore((state) => state.user);
@@ -77,6 +78,16 @@ export default function EndoPartsClient() {
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
     const { mutateAsync: updateEndoListQty } = useUpdateEndoListQtyMutation();
+
+    useEffect(() => {
+        // Remove data saved by older versions and always start this page clean.
+        sessionStorage.removeItem("search-endo-storage");
+        clearSearchState();
+
+        return () => {
+            clearSearchState();
+        };
+    }, [clearSearchState]);
 
     const currentBranchCode = useMemo(
         () => normalizeBranchCode(user?.s1code),

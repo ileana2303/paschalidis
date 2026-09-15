@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 import { IItem } from "@/lib/interface";
 
 type SearchEndoStore = {
@@ -12,25 +11,17 @@ type SearchEndoStore = {
     clearState: () => void;
 };
 
-export const useSearchEndoStore = create<SearchEndoStore>()(
-    persist(
-        (set) => ({
+export const useSearchEndoStore = create<SearchEndoStore>((set) => ({
+    searchTerm: "",
+    items: [],
+    hasSearched: false,
+    setSearchTerm: (searchTerm) => set({ searchTerm }),
+    setItems: (items) => set({ items }),
+    setHasSearched: (hasSearched) => set({ hasSearched }),
+    clearState: () =>
+        set({
             searchTerm: "",
             items: [],
             hasSearched: false,
-            setSearchTerm: (searchTerm) => set({ searchTerm }),
-            setItems: (items) => set({ items }),
-            setHasSearched: (hasSearched) => set({ hasSearched }),
-            clearState: () =>
-                set({
-                    searchTerm: "",
-                    items: [],
-                    hasSearched: false,
-                }),
         }),
-        {
-            name: "search-endo-storage",
-            storage: createJSONStorage(() => sessionStorage),
-        }
-    )
-);
+}));

@@ -63,7 +63,7 @@ const navItems: NavItem[] = [
   },
   {
     icon: GitCompareArrows,
-    name: "Ενδοδιακίνηση Ανταλλακτικών",
+    name: "Ενδοδιακίνηση",
     path: "/endo/endo-parts",
     subItems: [
 
