@@ -66,8 +66,7 @@ export function useSearchPartsResultsActions({
         setEndoBasketSuccess,
         setEndoPendingQuantities,
         setEndoRequestedQty,
-        setActiveEndoItemKey,
-        setExpandedItems,
+        toggleEndoSourcesForItem,
         setStockRequestErrors,
         setStockRequestStatuses,
         setSubmittingStockRequests,
@@ -104,7 +103,7 @@ export function useSearchPartsResultsActions({
         });
     }, [refreshEndoPendingQuantities, setEndoPendingQuantities]);
 
-    const handleOpenEndoForItem = useCallback((item: IItem) => {
+    const handleToggleEndoForItem = useCallback((item: IItem) => {
         if (!customer) {
             onRequireCustomerSelection();
             return;
@@ -115,28 +114,16 @@ export function useSearchPartsResultsActions({
             return;
         }
 
-        setExpandedItems(new Set());
         setEndoBasketSuccess("");
         setEndoBasketError("");
-        setActiveEndoItemKey(getEndoItemKey(item));
+        toggleEndoSourcesForItem(getEndoItemKey(item));
     }, [
         customer,
         hasValidBranch,
         onRequireCustomerSelection,
-        setActiveEndoItemKey,
         setEndoBasketError,
         setEndoBasketSuccess,
-        setExpandedItems,
-    ]);
-
-    const handleCloseEndoForItem = useCallback(() => {
-        setActiveEndoItemKey(null);
-        setEndoBasketSuccess("");
-        setEndoBasketError("");
-    }, [
-        setActiveEndoItemKey,
-        setEndoBasketError,
-        setEndoBasketSuccess,
+        toggleEndoSourcesForItem,
     ]);
 
     const handleAddToEndoBasket = useCallback(async (item: IItem, sourceBranchCode: string) => {
@@ -305,8 +292,7 @@ export function useSearchPartsResultsActions({
     ]);
 
     return {
-        handleOpenEndoForItem,
-        handleCloseEndoForItem,
+        handleToggleEndoForItem,
         handleAddToEndoBasket,
         isAddingToEndoBasket,
         handleSubmitStockRequest,

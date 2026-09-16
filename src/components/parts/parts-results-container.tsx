@@ -1,4 +1,6 @@
 import {
+    ChevronDown,
+    GitCompareArrows,
     ListChevronsDownUp,
     ListChevronsUpDown,
     PanelRightClose,
@@ -37,7 +39,7 @@ interface PartsResultsStateProps {
 }
 
 interface PartsResultsEndoProps {
-    activeEndoItemKey: string | null;
+    openEndoItemKeys: Set<string>;
     getBranchOptions: (item: IItem) => EndoBranchOption[];
     getEndoRequestedQty: (mtrl: string | number, sourceBranch: string) => number;
     getEndoPendingQty: (mtrl: string | number, sourceBranch: string) => number;
@@ -53,8 +55,9 @@ interface PartsResultsEndoProps {
     ) => boolean;
     endoBasketError: string;
     endoBasketSuccess: string;
-    onOpenEndoForItem: (item: IItem) => void;
-    onCloseEndoForItem: () => void;
+    onToggleEndoForItem: (item: IItem) => void;
+    areAllEndoSourcesOpen: boolean;
+    onToggleAllEndoSources: () => void;
 }
 
 interface PartsResultsBasketProps {
@@ -114,7 +117,7 @@ export default function PartsResultsContainer({
     } = results;
 
     const {
-        activeEndoItemKey,
+        openEndoItemKeys,
         getBranchOptions: getEndoBranchOptions,
         getEndoRequestedQty,
         getEndoPendingQty,
@@ -123,8 +126,9 @@ export default function PartsResultsContainer({
         isAddingToEndoBasket,
         endoBasketError,
         endoBasketSuccess,
-        onOpenEndoForItem,
-        onCloseEndoForItem,
+        onToggleEndoForItem,
+        areAllEndoSourcesOpen,
+        onToggleAllEndoSources,
     } = endo;
 
     const {
@@ -292,6 +296,35 @@ export default function PartsResultsContainer({
                                 </div>
 
                                 <div className="flex shrink-0 items-center gap-2">
+                                    {stockRequestCardsVisible && (
+                                        <button
+                                            type="button"
+                                            onClick={onToggleAllEndoSources}
+                                            aria-expanded={areAllEndoSourcesOpen}
+                                            aria-label={
+                                                areAllEndoSourcesOpen
+                                                    ? "Κλείσιμο όλων των πηγών ενδοδιακίνησης"
+                                                    : "Άνοιγμα όλων των πηγών ενδοδιακίνησης"
+                                            }
+                                            title={
+                                                areAllEndoSourcesOpen
+                                                    ? "Κλείσιμο όλων των πηγών ενδοδιακίνησης"
+                                                    : "Άνοιγμα όλων των πηγών ενδοδιακίνησης"
+                                            }
+                                            className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${
+                                                areAllEndoSourcesOpen
+                                                    ? "bg-brand-500 text-white hover:bg-brand-600"
+                                                    : "border border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
+                                            }`}
+                                        >
+                                            <GitCompareArrows className="h-3.5 w-3.5" />
+                                            <span className="hidden sm:inline">Πηγές</span>
+                                            <ChevronDown
+                                                className={`h-3.5 w-3.5 transition-transform duration-200 ${areAllEndoSourcesOpen ? "rotate-180" : ""}`}
+                                            />
+                                        </button>
+                                    )}
+
                                     <button
                                         type="button"
                                         onClick={onToggleStockRequestCardsVisibility}
@@ -327,8 +360,8 @@ export default function PartsResultsContainer({
                                 const mtrlKey = String(item.MTRL);
                                 const expandedItemKey = getExpandedItemKey(item);
                                 const isExpanded = expandedItems.has(expandedItemKey);
-                                const isEndoActive =
-                                    stockRequestCardsVisible && activeEndoItemKey === expandedItemKey;
+                                const isEndoOpen =
+                                    stockRequestCardsVisible && openEndoItemKeys.has(expandedItemKey);
                                 const basketItem = findBasketItem(item);
                                 const qty = getQuantity(
                                     item.ITEM_CODE,
@@ -389,18 +422,17 @@ export default function PartsResultsContainer({
                                         onSubmitStockRequest={() => onSubmitStockRequest(item)}
                                         formatPrice={formatPrice}
                                         endoRequest={{
-                                            isActive: isEndoActive,
+                                            isOpen: isEndoOpen,
                                             canStart: hasCustomer,
                                             branches: endoBranches,
-                                            error: isEndoActive ? endoBasketError : "",
-                                            successMessage: isEndoActive ? endoBasketSuccess : "",
+                                            error: isEndoOpen ? endoBasketError : "",
+                                            successMessage: isEndoOpen ? endoBasketSuccess : "",
                                             pendingQtyByBranch: pendingEndoQtyByBranch,
                                             getRequestedQty: (branchCode) =>
                                                 getEndoRequestedQty(item.MTRL, branchCode),
                                             onRequestedQtyChange: (branchCode, nextQty) =>
                                                 setEndoRequestedQty(item.MTRL, branchCode, nextQty),
-                                            onStart: () => onOpenEndoForItem(item),
-                                            onCancel: onCloseEndoForItem,
+                                            onToggle: () => onToggleEndoForItem(item),
                                             onAddToBasket: (branchCode) =>
                                                 onAddToEndoBasket(item, branchCode),
                                             isAdding: (branchCode) =>

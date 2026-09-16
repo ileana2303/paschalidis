@@ -66,7 +66,7 @@ function getStockBranchOrder(currentBranchCode: string) {
 }
 
 interface PartEndoRequestProps {
-    isActive: boolean;
+    isOpen: boolean;
     canStart: boolean;
     branches: EndoBranchOption[];
     error: string;
@@ -74,8 +74,7 @@ interface PartEndoRequestProps {
     getRequestedQty: (branchCode: string) => number;
     onRequestedQtyChange: (branchCode: string, nextQuantity: number) => void;
     pendingQtyByBranch?: Record<string, number>;
-    onStart: () => void;
-    onCancel: () => void;
+    onToggle: () => void;
     onAddToBasket: (branchCode: string) => void;
     isAdding: (branchCode: string) => boolean;
 }
@@ -185,13 +184,9 @@ export default function PartResults({
                 ? "Ενημέρωση"
                 : "Προσθήκη";
 
-    const hasSelectedQty = qty > 0;
-
     const basketActionClassName = isBasketActionMuted
         ? "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3.5 text-xs font-semibold text-green-700 transition disabled:cursor-not-allowed disabled:opacity-70 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-300"
-        : hasSelectedQty
-            ? "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3.5 text-xs font-semibold text-brand-700 shadow-xs transition hover:border-brand-300 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/15"
-            : "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-600 shadow-xs transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10 dark:hover:text-brand-300";
+        : "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3.5 text-xs font-semibold text-white shadow-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-40";
 
     const statusBadgeClassName =
         item.STATUS_NOW === "1"

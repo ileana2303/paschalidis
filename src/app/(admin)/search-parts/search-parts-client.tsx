@@ -343,7 +343,7 @@ export default function SearchPartsClient() {
                                 toggleExpanded: resultsController.toggleExpanded,
                             }}
                             endo={{
-                                activeEndoItemKey: resultsController.activeEndoItemKey,
+                                openEndoItemKeys: resultsController.openEndoItemKeys,
                                 getBranchOptions: resultsController.getEndoBranchOptions,
                                 getEndoRequestedQty: resultsController.getEndoRequestedQty,
                                 getEndoPendingQty: resultsController.getEndoPendingQty,
@@ -352,8 +352,9 @@ export default function SearchPartsClient() {
                                 isAddingToEndoBasket: resultsController.isAddingToEndoBasket,
                                 endoBasketError: resultsController.endoBasketError,
                                 endoBasketSuccess: resultsController.endoBasketSuccess,
-                                onOpenEndoForItem: resultsController.handleOpenEndoForItem,
-                                onCloseEndoForItem: resultsController.handleCloseEndoForItem,
+                                onToggleEndoForItem: resultsController.handleToggleEndoForItem,
+                                areAllEndoSourcesOpen: resultsController.areAllEndoSourcesOpen,
+                                onToggleAllEndoSources: resultsController.toggleAllEndoSources,
                             }}
                             basket={{
                                 findBasketItem: basketController.findBasketItem,
