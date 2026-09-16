@@ -479,8 +479,6 @@ export default function BasketClient() {
                     updatingQtyItems={updatingQtyItems}
                     removingItems={removingItems}
                     removingSelectedItems={removingSelectedItems}
-                    error={error}
-                    successMessage={successMessage}
                 />
 
                 <CustomerOrderSummary

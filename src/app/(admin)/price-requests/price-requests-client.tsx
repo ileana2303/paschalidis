@@ -33,8 +33,6 @@ export default function PriceRequestsClient() {
 
     const [rows, setRows] = useState<IRequestedPriceListRow[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
 
     const [updatingId, setUpdatingId] = useState("");
     const [editingId, setEditingId] = useState("");
@@ -46,7 +44,6 @@ export default function PriceRequestsClient() {
 
     const loadRows = useCallback(async () => {
         setLoading(true);
-        setError("");
 
         try {
             const data = await fetchRequestedPriceRequests();
@@ -61,7 +58,7 @@ export default function PriceRequestsClient() {
             setEditedPrice("");
         } catch (err) {
             setRows([]);
-            setError(
+            toast.error(
                 err instanceof Error
                     ? err.message
                     : "Αποτυχία φόρτωσης αιτημάτων τιμής"
@@ -102,8 +99,6 @@ export default function PriceRequestsClient() {
     const handleStartEdit = (row: IRequestedPriceListRow) => {
         setEditingId(row.BASKETID);
         setEditedPrice(String(row.PRICE_REQ ?? "").trim());
-        setSuccessMessage("");
-        setError("");
     };
 
     const handleCancelEdit = () => {
@@ -115,7 +110,7 @@ export default function PriceRequestsClient() {
         const basketId = normalizeBasketId(row.BASKETID);
 
         if (basketId == null) {
-            setError("Μη έγκυρο BASKETID");
+            toast.error("Μη έγκυρο BASKETID");
             return;
         }
 
@@ -128,13 +123,11 @@ export default function PriceRequestsClient() {
             nextRequestedPrice !== baseRequestedPrice;
 
         if (rowIsEditing && nextRequestedPrice == null) {
-            setError("Η τιμή προς έγκριση πρέπει να είναι θετικός αριθμός.");
+            toast.error("Η τιμή προς έγκριση πρέπει να είναι θετικός αριθμός.");
             return;
         }
 
         setUpdatingId(row.BASKETID);
-        setError("");
-        setSuccessMessage("");
 
         try {
             const response = priceChanged
@@ -149,7 +142,6 @@ export default function PriceRequestsClient() {
                 });
 
             const message = response.message ?? "Το αίτημα εγκρίθηκε.";
-            setSuccessMessage(message);
             toast.success(message);
             setRows((currentRows) =>
                 currentRows.filter((currentRow) => currentRow.BASKETID !== row.BASKETID)
@@ -161,7 +153,6 @@ export default function PriceRequestsClient() {
                 err instanceof Error
                     ? err.message
                     : "Αποτυχία έγκρισης αιτήματος";
-            setError(message);
             toast.error(message);
         } finally {
             setUpdatingId("");
@@ -172,7 +163,7 @@ export default function PriceRequestsClient() {
         const basketId = normalizeBasketId(row.BASKETID);
 
         if (basketId == null) {
-            setError("Μη έγκυρο BASKETID");
+            toast.error("Μη έγκυρο BASKETID");
             return;
         }
 
@@ -180,11 +171,7 @@ export default function PriceRequestsClient() {
             return;
         }
 
-        setError("");
-        setSuccessMessage("");
-
         const message = "Το αίτημα αφαιρέθηκε από τον πίνακα αιτημάτων.";
-        setSuccessMessage(message);
         toast.success(message);
         setRows((currentRows) =>
             currentRows.filter((currentRow) => currentRow.BASKETID !== row.BASKETID)
@@ -201,18 +188,6 @@ export default function PriceRequestsClient() {
             <div className="shrink-0">
                 <PageBreadcrumb pageTitle="Αιτήματα Τιμών" />
             </div>
-
-            {error && (
-                <div className="mb-4 shrink-0 rounded-lg border border-red-100 bg-red-50 px-5 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
-                    {error}
-                </div>
-            )}
-
-            {!error && successMessage && (
-                <div className="mb-4 shrink-0 rounded-lg border border-green-100 bg-green-50 px-5 py-3 text-sm text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400">
-                    {successMessage}
-                </div>
-            )}
 
             <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <DataTableHeader

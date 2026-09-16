@@ -77,9 +77,7 @@ function renderCell(key: string, value: unknown) {
 export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
     const [rows, setRows] = useState<IEndoListRow[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const [warning, setWarning] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
     const [search, setSearch] = useSessionState(`endo-list-search-${scope}`, "");
 
     const [editedQtyByRow, setEditedQtyByRow] = useState<Record<string, string>>({});
@@ -125,9 +123,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
     const loadRows = useCallback(async () => {
         setLoading(true);
-        setError("");
         setWarning("");
-        setSuccessMessage("");
         setEditedQtyByRow({});
         setRequestedQtyByRow({});
         setFinalQtyByRow({});
@@ -137,7 +133,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
         if (!hasValidBranch) {
             setRows([]);
-            setError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
+            toast.error("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
             setLoading(false);
             return;
         }
@@ -170,7 +166,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             setWarning(String(data.message ?? "").trim());
         } catch (err) {
             setRows([]);
-            setError(
+            toast.error(
                 err instanceof Error
                     ? err.message
                     : "Αποτυχία φόρτωσης λίστας ενδοδιακίνησης"
@@ -268,8 +264,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         }
 
         setDeletingSelectedRows(true);
-        setError("");
-        setSuccessMessage("");
 
         try {
             await deleteBasketItems({
@@ -286,14 +280,12 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                 basketIds.length === 1
                     ? "Η επιλεγμένη γραμμή διαγράφηκε."
                     : `Διαγράφηκαν ${basketIds.length} επιλεγμένες γραμμές.`;
-            setSuccessMessage(message);
             toast.success(message);
         } catch (err) {
             const message =
                 err instanceof Error
                     ? err.message
                     : "Αποτυχία διαγραφής επιλεγμένων γραμμών";
-            setError(message);
             toast.error(message);
         } finally {
             setDeletingSelectedRows(false);
@@ -380,7 +372,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                     resetEditedQuantity(rowKey);
                 }
 
-                setError("Λείπουν απαραίτητα στοιχεία γραμμής για ενημέρωση ποσότητας");
+                toast.error("Λείπουν απαραίτητα στοιχεία γραμμής για ενημέρωση ποσότητας");
                 return;
             }
 
@@ -391,8 +383,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                         ? Math.max(1, Math.floor(quantityOverride))
                         : 1;
 
-            setError("");
-            setSuccessMessage("");
             setSavingRowKeys((prev) => new Set(prev).add(rowKey));
 
             try {
@@ -414,7 +404,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
                 const message =
                     String(data.message ?? "").trim() || "Η ποσότητα ενημερώθηκε"
-                setSuccessMessage(message);
                 toast.success(message);
             } catch (err) {
                 if (quantityOverride != null) {
@@ -425,7 +414,6 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                     err instanceof Error
                         ? err.message
                         : "Αποτυχία ενημέρωσης ποσότητας";
-                setError(message);
                 toast.error(message);
             } finally {
                 setSavingRowKeys((prev) => {
@@ -471,17 +459,15 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                 getRequestedQtyFromRow(row);
 
             if (!basketId) {
-                setError("Δεν βρέθηκε BASKETID για τη γραμμή");
+                toast.error("Δεν βρέθηκε BASKETID για τη γραμμή");
                 return;
             }
 
             if (!canApproveRowWithQty(row, qty)) {
-                setError("Μη έγκυρα στοιχεία γραμμής για αποστολή SALDOC");
+                toast.error("Μη έγκυρα στοιχεία γραμμής για αποστολή SALDOC");
                 return;
             }
 
-            setError("");
-            setSuccessMessage("");
             setSubmittingRowKeys((prev) => new Set(prev).add(rowKey));
 
             try {
@@ -505,14 +491,12 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                 const message =
                     String(data.message ?? "").trim() ||
                     "Η ενδοδιακίνηση καταχωρήθηκε επιτυχώς";
-                setSuccessMessage(message);
                 toast.success(message);
             } catch (err) {
                 const message =
                     err instanceof Error
                         ? err.message
                         : "Αποτυχία αποστολής SALDOC";
-                setError(message);
                 toast.error(message);
             } finally {
                 setSubmittingRowKeys((prev) => {
@@ -535,21 +519,9 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         <div>
             <PageBreadcrumb pageTitle={listConfig.pageTitle} />
 
-            {error && (
-                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
-                    {error}
-                </div>
-            )}
-
-            {!error && warning && (
+            {warning && (
                 <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400">
                     {warning}
-                </div>
-            )}
-
-            {!error && !warning && successMessage && (
-                <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-5 py-3 text-sm text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400">
-                    {successMessage}
                 </div>
             )}
 

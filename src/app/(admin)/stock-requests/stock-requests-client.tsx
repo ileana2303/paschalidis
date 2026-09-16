@@ -62,8 +62,6 @@ export default function StockRequestsClient() {
 
     const [rows, setRows] = useState<IStockRequestListRow[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
 
     const [updatingId, setUpdatingId] = useState("");
     const [submittingAnatrof, setSubmittingAnatrof] = useState(false);
@@ -129,8 +127,6 @@ export default function StockRequestsClient() {
         }
 
         setLoading(true);
-        setError("");
-        setSuccessMessage("");
 
         try {
             const data = await fetchStockRequests({
@@ -142,7 +138,7 @@ export default function StockRequestsClient() {
             setEditedQty("");
         } catch (err) {
             setRows([]);
-            setError(
+            toast.error(
                 err instanceof Error
                     ? err.message
                     : "Αποτυχία φόρτωσης αιτημάτων ανατροφοδοσίας"
@@ -236,8 +232,6 @@ export default function StockRequestsClient() {
         qty: string
     ) => {
         setUpdatingId(row.BASKETID);
-        setError("");
-        setSuccessMessage("");
 
         try {
             await updateStockRequest({
@@ -256,9 +250,7 @@ export default function StockRequestsClient() {
                 );
                 setEditingId("");
                 setEditedQty("");
-                const message = "Η ποσότητα ενημερώθηκε";
-                setSuccessMessage(message);
-                toast.success(message);
+                toast.success("Η ποσότητα ενημερώθηκε");
                 return;
             }
 
@@ -281,9 +273,7 @@ export default function StockRequestsClient() {
                 );
                 setEditingId("");
                 setEditedQty("");
-                const message = "Το αίτημα εγκρίθηκε";
-                setSuccessMessage(message);
-                toast.success(message);
+                toast.success("Το αίτημα εγκρίθηκε");
                 return;
             }
 
@@ -292,7 +282,6 @@ export default function StockRequestsClient() {
         } catch (err) {
             const message =
                 err instanceof Error ? err.message : "Αποτυχία ενημέρωσης αιτήματος"
-            setError(message);
             toast.error(message);
         } finally {
             setUpdatingId("");
@@ -303,7 +292,7 @@ export default function StockRequestsClient() {
         const normalizedQty = getValidatedQty(editedQty);
 
         if (!normalizedQty) {
-            setError("Η αιτούμενη ποσότητα πρέπει να είναι θετικός ακέραιος αριθμός.");
+            toast.error("Η αιτούμενη ποσότητα πρέπει να είναι θετικός ακέραιος αριθμός.");
             return;
         }
 
@@ -314,7 +303,7 @@ export default function StockRequestsClient() {
         const qty = getActionQty(row);
 
         if (!qty) {
-            setError("Η αιτούμενη ποσότητα δεν είναι έγκυρη.");
+            toast.error("Η αιτούμενη ποσότητα δεν είναι έγκυρη.");
             return;
         }
 
@@ -346,13 +335,11 @@ export default function StockRequestsClient() {
 
     const handleSubmitAnatrofOrder = useCallback(async () => {
         if (approvedRows.length === 0) {
-            setError("Δεν υπάρχουν εγκεκριμένες γραμμές για αποστολή.");
+            toast.error("Δεν υπάρχουν εγκεκριμένες γραμμές για αποστολή.");
             return;
         }
 
         setSubmittingAnatrof(true);
-        setError("");
-        setSuccessMessage("");
 
         try {
             const data = await submitAnatrofOrder({
@@ -367,14 +354,12 @@ export default function StockRequestsClient() {
             const message =
                 String(data.message ?? "").trim() ||
                 "Η ανατροφοδοσία καταχωρήθηκε επιτυχώς.";
-            setSuccessMessage(message);
             toast.success(message);
         } catch (err) {
             const message =
                 err instanceof Error
                     ? err.message
                     : "Αποτυχία αποστολής ανατροφοδοσίας";
-            setError(message);
             toast.error(message);
         } finally {
             setSubmittingAnatrof(false);
@@ -394,18 +379,6 @@ export default function StockRequestsClient() {
             <div className="shrink-0">
                 <PageBreadcrumb pageTitle="Λίστα Αιτημάτων Ανατροφοδοσίας" />
             </div>
-
-            {error && (
-                <div className="mb-4 shrink-0 rounded-lg border border-red-100 bg-red-50 px-5 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
-                    {error}
-                </div>
-            )}
-
-            {successMessage && (
-                <div className="mb-4 shrink-0 rounded-lg border border-green-100 bg-green-50 px-5 py-3 text-sm text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400">
-                    {successMessage}
-                </div>
-            )}
 
             {loading ? (
                 <div className="flex min-h-0 flex-1 items-center justify-center rounded-lg border border-gray-200 bg-white px-5 py-16 text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">

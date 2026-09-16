@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BasketItemDetails from "@/components/ui/basket-lines/basket-line-details";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableActions from "@/components/ui/data-table/data-table-action";
@@ -8,15 +8,19 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
-import RequestPriceBox from "@/components/ui/request-price-box";
 import {
+    BadgePercent,
+    Check,
     ChevronDown,
+    Clock3,
     ListChevronsDownUp,
     ListChevronsUpDown,
     Loader2,
+    Pencil,
     Plus,
     ShoppingCart,
     Trash2,
+    X,
 } from "@/lib/icons/lucide";
 import {
     getBasketItemApprovalStatus,
@@ -50,8 +54,6 @@ interface BasketTableProps {
     updatingQtyItems?: Set<string>;
     removingItems?: Set<string>;
     removingSelectedItems?: boolean;
-    error?: string;
-    successMessage?: string;
 }
 
 const formatPrice = (price: number | null) => {
@@ -60,6 +62,11 @@ const formatPrice = (price: number | null) => {
     }
 
     return `${price.toFixed(2)} €`;
+};
+
+const parsePriceInput = (value: string) => {
+    const parsed = Number(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
 };
 
 const primaryActionClassName =
@@ -93,8 +100,6 @@ export default function BasketTable({
     updatingQtyItems,
     removingItems,
     removingSelectedItems = false,
-    error,
-    successMessage,
 }: BasketTableProps) {
     const itemIds = useMemo(
         () => items.map((item) => getBasketItemId(item)),
@@ -182,21 +187,6 @@ export default function BasketTable({
                 )}
             />
 
-            {(error || successMessage) && (
-                <div className="shrink-0 px-5 pt-4">
-                    {error && (
-                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-500/35 dark:bg-red-500/10 dark:text-red-400">
-                            {error}
-                        </div>
-                    )}
-                    {!error && successMessage && (
-                        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-700 dark:border-green-500/35 dark:bg-green-500/10 dark:text-green-400">
-                            {successMessage}
-                        </div>
-                    )}
-                </div>
-            )}
-
             {loading ? (
                 <div className="flex flex-1 items-center justify-center px-5 py-16 text-sm text-gray-500 dark:text-gray-400">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin text-brand-500" />
@@ -226,10 +216,10 @@ export default function BasketTable({
                             <colgroup>
                                 <col className="w-[4%]" />
                                 <col className="w-[5%]" />
-                                <col className="w-[24%]" />
-                                <col className="w-[30%]" />
-                                <col className="w-[9%]" />
-                                <col className="w-[10%]" />
+                                <col className="w-[29%]" />
+                                <col className="w-[8%]" />
+                                <col className="w-[18%]" />
+                                <col className="w-[18%]" />
                                 <col className="w-[12%]" />
                                 <col className="w-[6%]" />
                             </colgroup>
@@ -263,13 +253,13 @@ export default function BasketTable({
                                         Είδος
                                     </th>
                                     <th className="px-2 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
-                                        Αίτημα Τιμής
-                                    </th>
-                                    <th className="px-2 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
                                         Ποσότητα
                                     </th>
                                     <th className="px-2 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
                                         Τιμή
+                                    </th>
+                                    <th className="px-2 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
+                                        Αίτημα Τιμής
                                     </th>
                                     <th className="px-2 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
                                         Σύνολο
@@ -373,34 +363,39 @@ function BasketTableRow({
     const detailsId = `basket-line-details-${itemId}`;
     const approvalStatus = getBasketItemApprovalStatus(item);
     const hasPriceRequest = hasBasketItemPriceRequest(item);
-    const hasRequestedPrice =
-        requestedPrice > 0 && Math.abs(requestedPrice - erpPrice) > 0.0001;
     const canRequestPrice =
         onRequestedPriceValueChange != null && onRequestPrice != null;
     const isApprovedPriceRequest =
         hasPriceRequest && approvalStatus === "approved" && requestedPrice > 0;
-    const requestStatusLabel =
-        approvalStatus === "approved"
-            ? "Εγκρίθηκε"
-            : approvalStatus === "rejected"
-                ? "Απορρίφθηκε"
-                : hasPriceRequest
-                    ? "Σε αναμονή"
-                    : "Χωρίς αίτημα";
-    const requestStatusClassName =
-        approvalStatus === "approved"
-            ? "border-green-200 bg-green-50 text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400"
-            : approvalStatus === "rejected"
-                ? "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
-                : hasPriceRequest
-                    ? "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-500/20 dark:bg-yellow-500/10 dark:text-yellow-400"
-                    : "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400";
-    const requestedPriceBadgeClassName =
-        `inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tabular-nums ${requestStatusClassName}`;
+    const isRejectedPriceRequest = hasPriceRequest && approvalStatus === "rejected";
+    const isPendingPriceRequest =
+        hasPriceRequest && !isApprovedPriceRequest && !isRejectedPriceRequest;
+
+    const [isEditingPrice, setIsEditingPrice] = useState(false);
+
+    useEffect(() => {
+        if (isSubmittingRequestPrice) {
+            return () => setIsEditingPrice(false);
+        }
+    }, [isSubmittingRequestPrice]);
+
+    const parsedRequestedPriceValue = parsePriceInput(requestedPriceValue);
+    const submitPriceDisabled =
+        isSubmittingRequestPrice ||
+        parsedRequestedPriceValue == null ||
+        parsedRequestedPriceValue <= 0;
+    const showPriceEditor = canRequestPrice && isEditingPrice;
+    const rowAccentClassName = isApprovedPriceRequest
+        ? "border-l-[3px] border-l-green-400 dark:border-l-green-500/70"
+        : isPendingPriceRequest
+            ? "border-l-[3px] border-l-amber-300 dark:border-l-amber-500/50"
+            : isRejectedPriceRequest
+                ? "border-l-[3px] border-l-red-300 dark:border-l-red-500/50"
+                : "border-l-[3px] border-l-transparent";
 
     return (
         <>
-            <tr className="border-t border-gray-100 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/[0.04]">
+            <tr className={`border-t border-gray-100 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/[0.04] ${rowAccentClassName}`}>
                 <td className="px-2 py-3 align-middle">
                     <DataTableSelectionCheckbox
                         ariaLabel={`Επιλογή ${sku}`}
@@ -457,39 +452,6 @@ function BasketTableRow({
                 </td>
 
                 <td className="px-2 py-3 align-middle xl:px-4">
-                    <div className="flex flex-col items-start gap-1.5">
-                        {hasPriceRequest && requestedPrice > 0 ? (
-                            <span className={requestedPriceBadgeClassName}>
-                                {requestStatusLabel} · {formatPrice(requestedPrice)}
-                            </span>
-                        ) : (
-                            <span className="text-xs font-medium text-gray-400 dark:text-gray-500">
-                                Χωρίς αίτημα
-                            </span>
-                        )}
-                        {canRequestPrice && (
-                            <RequestPriceBox
-                                status={approvalStatus}
-                                hasPriceRequest={hasPriceRequest}
-                                hasRequestedPrice={hasRequestedPrice}
-                                showRequestedPrice={false}
-                                showRequestLabel={false}
-                                requestedPrice={requestedPrice}
-                                value={requestedPriceValue}
-                                onChange={(value) =>
-                                    onRequestedPriceValueChange?.(itemId, value)
-                                }
-                                onSubmit={() => onRequestPrice?.(itemId)}
-                                submitting={isSubmittingRequestPrice}
-                                formatPrice={formatPrice}
-                                chrome="plain"
-                                className="min-w-0"
-                            />
-                        )}
-                    </div>
-                </td>
-
-                <td className="px-2 py-3 align-middle xl:px-4">
                     <select
                         value={qty}
                         onChange={(event) =>
@@ -515,14 +477,113 @@ function BasketTableRow({
                 </td>
 
                 <td className="px-2 py-3 text-right align-middle xl:px-4">
-                    {isApprovedPriceRequest ? (
-                        <span className="inline-flex rounded-lg border border-gray-200 bg-white px-2 py-1 text-sm font-semibold tabular-nums text-gray-400 line-through dark:border-gray-700 dark:bg-gray-900 dark:text-gray-500">
-                            {formatPrice(erpPrice)}
-                        </span>
-                    ) : (
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
-                            {formatPrice(unitPrice)}
-                        </span>
+                    <div className="flex flex-col items-end gap-1">
+                        {isApprovedPriceRequest ? (
+                            <>
+                                <span className="text-xs text-gray-400 line-through dark:text-gray-500">
+                                    {formatPrice(erpPrice)}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-sm font-bold tabular-nums text-green-700 dark:bg-green-500/10 dark:text-green-400">
+                                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                                    {formatPrice(requestedPrice)}
+                                </span>
+                            </>
+                        ) : isPendingPriceRequest ? (
+                            <>
+                                <span className="text-xs text-gray-400 line-through dark:text-gray-500">
+                                    {formatPrice(erpPrice)}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-sm font-bold tabular-nums text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                                    <Clock3 className="h-3 w-3" />
+                                    {formatPrice(requestedPrice)}
+                                </span>
+                            </>
+                        ) : isRejectedPriceRequest ? (
+                            <>
+                                <span className="text-base font-semibold tabular-nums text-gray-800 dark:text-white/90">
+                                    {formatPrice(unitPrice)}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                                    <X className="h-3 w-3" />
+                                    {formatPrice(requestedPrice)}
+                                </span>
+                            </>
+                        ) : (
+                            <span className="text-base font-semibold tabular-nums text-gray-800 dark:text-white/90">
+                                {formatPrice(unitPrice)}
+                            </span>
+                        )}
+                    </div>
+                </td>
+
+                <td className="px-2 py-3 align-middle xl:px-4">
+                    {canRequestPrice && !isApprovedPriceRequest && (
+                        showPriceEditor ? (
+                            <div className="flex items-center gap-1">
+                                <input
+                                    type="number"
+                                    min={0}
+                                    step="0.01"
+                                    autoFocus
+                                    value={requestedPriceValue}
+                                    onChange={(event) =>
+                                        onRequestedPriceValueChange?.(itemId, event.target.value)
+                                    }
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Enter") {
+                                            void onRequestPrice?.(itemId);
+                                        }
+                                        if (event.key === "Escape") {
+                                            setIsEditingPrice(false);
+                                        }
+                                    }}
+                                    disabled={isSubmittingRequestPrice}
+                                    placeholder="Τιμή..."
+                                    aria-label="Ζητούμενη τιμή"
+                                    className="h-7 w-20 rounded-md border border-gray-200 bg-white px-1.5 text-xs tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => void onRequestPrice?.(itemId)}
+                                    disabled={submitPriceDisabled}
+                                    aria-label="Υποβολή τιμής"
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-500 text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    {isSubmittingRequestPrice ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditingPrice(false)}
+                                    disabled={isSubmittingRequestPrice}
+                                    aria-label="Ακύρωση"
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        ) : hasPriceRequest ? (
+                            <button
+                                type="button"
+                                onClick={() => setIsEditingPrice(true)}
+                                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-400 transition hover:bg-gray-100 hover:text-brand-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-brand-400"
+                            >
+                                <Pencil className="h-3.5 w-3.5" />
+                                {isPendingPriceRequest ? "Επεξεργασία" : "Νέο αίτημα"}
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setIsEditingPrice(true)}
+                                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-400 transition hover:bg-gray-100 hover:text-brand-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-brand-400"
+                            >
+                                <BadgePercent className="h-3.5 w-3.5" />
+                                Αίτημα τιμής
+                            </button>
+                        )
                     )}
                 </td>
 

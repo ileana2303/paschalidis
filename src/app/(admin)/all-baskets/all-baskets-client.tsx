@@ -66,7 +66,6 @@ export default function AllBasketsClient() {
   const [totalcount, setTotalcount] = useState(0);
   const [rows, setRows] = useState<BasketListRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [selectedBranchCode, setSelectedBranchCode] = useState<
     BasketBranchCode | ""
   >("");
@@ -95,7 +94,6 @@ export default function AllBasketsClient() {
     }
 
     setLoading(true);
-    setError("");
 
     try {
       const data = await fetchAllClientBaskets({
@@ -112,7 +110,7 @@ export default function AllBasketsClient() {
       setRows([]);
       setSelectedTrdrs(new Set());
       setTotalcount(0);
-      setError(
+      toast.error(
         err instanceof Error
           ? err.message
           : "Αποτυχία φόρτωσης καλαθιών πελατών"
@@ -230,7 +228,6 @@ export default function AllBasketsClient() {
 
       navigationTrdrRef.current = normalizedTrdr;
       setNavigatingTrdr(normalizedTrdr);
-      setError("");
       router.prefetch(basketHref);
 
       try {
@@ -252,7 +249,6 @@ export default function AllBasketsClient() {
           err instanceof Error
             ? err.message
             : "Αποτυχία φόρτωσης στοιχείων πελάτη";
-        setError(message);
         toast.error(`${message} Το καλάθι ανοίγει χωρίς τα στοιχεία πελάτη.`);
 
         // The basket itself is keyed by TRDR, so it stays usable even when the
@@ -328,7 +324,6 @@ export default function AllBasketsClient() {
     }
 
     setDeletingSelected(true);
-    setError("");
 
     try {
       await deleteClientBaskets(selectedRows);
@@ -342,7 +337,6 @@ export default function AllBasketsClient() {
         err instanceof Error
           ? err.message
           : "Αποτυχία διαγραφής επιλεγμένων καλαθιών";
-      setError(message);
       toast.error(message);
     } finally {
       setDeletingSelected(false);
@@ -395,12 +389,6 @@ export default function AllBasketsClient() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Καλάθια Πελατών" />
-
-      {error && (
-        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
-          {error}
-        </div>
-      )}
 
       <DataTable className="mt-4">
         <DataTableHeader
