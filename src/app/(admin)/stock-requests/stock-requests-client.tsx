@@ -487,8 +487,19 @@ export default function StockRequestsClient() {
                                 className="flex-1"
                             />
                         ) : (
-                            <div className="min-h-0 flex-1 overflow-auto">
-                                <table className="w-full min-w-[1020px] divide-y divide-gray-100 text-xs dark:divide-gray-800 xl:text-sm">
+                            <div className="min-h-0 flex-1 overflow-y-auto">
+                                <table className="w-full table-fixed divide-y divide-gray-100 text-xs dark:divide-gray-800 xl:text-sm">
+                                    <colgroup>
+                                        <col className="w-[5%]" />
+                                        <col className="w-[10%]" />
+                                        <col className="w-[22%]" />
+                                        <col className="w-[9%]" />
+                                        <col className="w-[8%]" />
+                                        <col className="w-[8%]" />
+                                        <col className="w-[8%]" />
+                                        <col className="w-[14%]" />
+                                        <col className="w-[16%]" />
+                                    </colgroup>
                                     <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                         <tr>
                                             <th className="w-14 px-2 py-3 text-center">
@@ -511,7 +522,7 @@ export default function StockRequestsClient() {
                                                 ID
                                             </th>
 
-                                            <th className="min-w-[220px] px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
+                                            <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
                                                 Είδος
                                             </th>
 
@@ -591,7 +602,7 @@ export default function StockRequestsClient() {
                                                         </span>
                                                     </td>
 
-                                                    <td className="min-w-[220px] px-3 py-4 align-top xl:px-4">
+                                                    <td className="break-words px-3 py-4 align-top xl:px-4">
                                                         <div className="pr-4">
                                                             <p className="wrap-break-word font-medium leading-5 text-gray-900 dark:text-white">
                                                                 {row.ITEM_NAME}

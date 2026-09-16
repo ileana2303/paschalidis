@@ -475,11 +475,21 @@ export default function AllBasketsClient() {
             description="Δεν βρέθηκαν καλάθια για τα τρέχοντα κριτήρια αναζήτησης."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+          <div className="w-full overflow-hidden">
+            <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
+              <colgroup>
+                <col className="w-[5%]" />
+                <col className="w-[23%]" />
+                <col className="w-[12%]" />
+                <col className="w-[13%]" />
+                <col className="w-[13%]" />
+                <col className="w-[11%]" />
+                <col className="w-[12%]" />
+                <col className="w-[11%]" />
+              </colgroup>
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                 <tr>
-                  <th className="w-12 px-4 py-3 text-left">
+                  <th className="px-2 py-3 text-left">
                     <DataTableSelectionCheckbox
                       ariaLabel="Επιλογή όλων των καλαθιών της σελίδας"
                       checked={allRowsSelected}
@@ -544,7 +554,7 @@ export default function AllBasketsClient() {
                         disabled={isDeleting}
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
+                    <td className="break-words px-2 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
                       {row.CUSTOMER_NAME || "—"}
                     </td>
 

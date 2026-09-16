@@ -38,20 +38,20 @@ export default function BasketItemDetails({
     return (
         <div
             className={[
-                "mt-2 grid grid-cols-1 gap-x-3 gap-y-2 rounded-lg border border-gray-200 bg-white/70 p-3 sm:grid-cols-2 dark:border-gray-800 dark:bg-gray-900/60",
+                "grid grid-cols-2 gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:grid-cols-3 lg:grid-cols-6",
                 className,
             ].join(" ")}
         >
             {DETAIL_FIELDS.map((field) => (
-                <p
+                <div
                     key={field.label}
-                    className="min-w-0 text-xs text-gray-700 dark:text-gray-200"
+                    className="min-w-0 text-xs"
                 >
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
-                        {field.label}:
-                    </span>{" "}
-                    {formatDetailValue(field.getValue(item))}
-                </p>
+                    <div className="text-[10px] text-gray-400">{field.label}</div>
+                    <div className="mt-0.5 break-words text-gray-800 dark:text-gray-200">
+                        {formatDetailValue(field.getValue(item))}
+                    </div>
+                </div>
             ))}
         </div>
     );

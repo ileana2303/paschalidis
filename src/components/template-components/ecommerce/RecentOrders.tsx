@@ -123,8 +123,8 @@ export default function RecentOrders() {
           </button>
         </div>
       </div>
-      <div className="max-w-full overflow-x-auto">
-        <Table>
+      <div className="max-w-full overflow-hidden">
+        <Table className="w-full table-fixed text-xs xl:text-sm">
           <TableHeader className="border-gray-100 dark:border-gray-800 border-y">
             <TableRow>
               <TableCell
@@ -164,7 +164,7 @@ export default function RecentOrders() {
             {tableData.map((product) => (
               <TableRow key={product.id} className="">
                 <TableCell className="py-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <div className="h-[50px] w-[50px] overflow-hidden rounded-md">
                       <Image
                         width={50}

@@ -251,7 +251,7 @@ export default function PriceRequestsClient() {
                         className="flex-1"
                     />
                 ) : (
-                    <div className="min-h-0 flex-1 overflow-auto">
+                    <div className="min-h-0 flex-1 overflow-y-auto">
                         <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
                             <colgroup>
                                 <col className="w-[8%]" />

@@ -9,6 +9,7 @@ interface RequestPriceBoxProps {
     hasPriceRequest: boolean;
     hasRequestedPrice?: boolean;
     showRequestedPrice?: boolean;
+    showRequestLabel?: boolean;
     requestedPrice: number | null;
     value: string;
     onChange: (value: string) => void;
@@ -30,6 +31,7 @@ export default function RequestPriceBox({
     hasPriceRequest,
     hasRequestedPrice,
     showRequestedPrice = true,
+    showRequestLabel = true,
     requestedPrice,
     value,
     onChange,
@@ -93,11 +95,11 @@ export default function RequestPriceBox({
             <div className="flex min-w-0 flex-wrap items-center justify-start gap-2">
                 <div className={`flex items-center gap-1.5 text-xs font-semibold ${textClassName}`}>
                     <BadgePercent className="h-3.5 w-3.5" />
-                    <span>
-                        {displayRequestedPrice
-                            ? "Ζητ. τιμή"
-                            : "Αίτημα τιμής"}
-                    </span>
+                    {(displayRequestedPrice || showRequestLabel) && (
+                        <span>
+                            {displayRequestedPrice ? "Ζητ. τιμή" : "Αίτημα τιμής"}
+                        </span>
+                    )}
                 </div>
 
                 {displayRequestedPrice && requestedPrice != null && requestedPrice > 0 && (

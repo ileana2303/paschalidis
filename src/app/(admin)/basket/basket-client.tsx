@@ -461,7 +461,7 @@ export default function BasketClient() {
                 />
             </div>
 
-            <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-5 xl:flex-row">
+            <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-5 min-[1800px]:flex-row">
                 <BasketTable
                     items={basketItems}
                     selectedItems={selectedItems}

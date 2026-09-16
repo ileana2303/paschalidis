@@ -149,7 +149,7 @@ export default function BasketTable({
     };
 
     return (
-        <DataTable className="flex min-h-0 min-w-0 max-w-full flex-col xl:basis-2/3">
+        <DataTable className="flex min-h-0 min-w-0 max-w-full flex-col min-[1800px]:basis-2/3">
             <DataTableHeader
                 title="Γραμμές Καλαθιού"
                 description="Ενημέρωση ποσοτήτων και επιλογή γραμμών για παραγγελία."
@@ -221,11 +221,21 @@ export default function BasketTable({
                 />
             ) : (
                 <>
-                    <div className="min-h-0 min-w-0 max-w-full flex-1 overflow-x-auto overflow-y-auto">
-                        <table className="w-full min-w-[1520px] divide-y divide-gray-100 text-sm dark:divide-gray-800">
+                    <div className="min-h-0 min-w-0 max-w-full flex-1 overflow-y-auto">
+                        <table className="w-full table-fixed divide-y divide-gray-100 text-xs dark:divide-gray-800 xl:text-sm">
+                            <colgroup>
+                                <col className="w-[4%]" />
+                                <col className="w-[5%]" />
+                                <col className="w-[24%]" />
+                                <col className="w-[30%]" />
+                                <col className="w-[9%]" />
+                                <col className="w-[10%]" />
+                                <col className="w-[12%]" />
+                                <col className="w-[6%]" />
+                            </colgroup>
                             <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                 <tr>
-                                    <th className="w-12 px-4 py-3 text-left">
+                                    <th className="px-2 py-3 text-left">
                                         <DataTableSelectionCheckbox
                                             ariaLabel="Επιλογή όλων των γραμμών"
                                             checked={allSelected}
@@ -234,7 +244,7 @@ export default function BasketTable({
                                             disabled={tableBusy}
                                         />
                                     </th>
-                                    <th className="w-14 px-2 py-3 text-center">
+                                    <th className="px-1 py-3 text-center">
                                         <button
                                             type="button"
                                             onClick={onToggleAllExpanded}
@@ -249,31 +259,28 @@ export default function BasketTable({
                                             )}
                                         </button>
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
+                                    <th className="px-2 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
                                         Είδος
                                     </th>
-                                    <th className="w-[150px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
-                                        Ποσότητα
-                                    </th>
-                                    <th className="w-[360px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
+                                    <th className="px-2 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
                                         Αίτημα Τιμής
                                     </th>
-                                    <th className="w-[150px] px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
-                                        Κατάσταση
+                                    <th className="px-2 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
+                                        Ποσότητα
                                     </th>
-                                    <th className="w-[160px] px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
+                                    <th className="px-2 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
                                         Τιμή
                                     </th>
-                                    <th className="w-[210px] px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
-                                        Ζητούμενη Τιμή
-                                    </th>
-                                    <th className="w-[140px] px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
+                                    <th className="px-2 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
                                         Σύνολο
+                                    </th>
+                                    <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400 xl:px-4">
+                                        <span className="sr-only">Ενέργειες</span>
                                     </th>
                                 </tr>
                             </thead>
 
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            <tbody>
                                 {items.map((item) => {
                                     const itemId = getBasketItemId(item);
 
@@ -372,8 +379,6 @@ function BasketTableRow({
         onRequestedPriceValueChange != null && onRequestPrice != null;
     const isApprovedPriceRequest =
         hasPriceRequest && approvalStatus === "approved" && requestedPrice > 0;
-    const isPendingPriceRequest =
-        hasPriceRequest && approvalStatus !== "approved" && approvalStatus !== "rejected";
     const requestStatusLabel =
         approvalStatus === "approved"
             ? "Εγκρίθηκε"
@@ -390,40 +395,22 @@ function BasketTableRow({
                 : hasPriceRequest
                     ? "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-500/20 dark:bg-yellow-500/10 dark:text-yellow-400"
                     : "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400";
-    const requestStatusBadgeClassName =
-        `inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${requestStatusClassName}`;
     const requestedPriceBadgeClassName =
         `inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tabular-nums ${requestStatusClassName}`;
 
     return (
         <>
-            <tr className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]">
-                <td className="px-4 py-3 align-middle">
-                    <div className="flex items-center gap-2">
-                        <DataTableSelectionCheckbox
-                            ariaLabel={`Επιλογή ${sku}`}
-                            checked={selected}
-                            onCheckedChange={() => onToggleItem(itemId)}
-                            disabled={isTableBusy}
-                        />
-
-                        <button
-                            type="button"
-                            onClick={() => onRemove(itemId)}
-                            disabled={isRemoving || isUpdatingQty || isTableBusy}
-                            aria-label="Αφαίρεση γραμμής"
-                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                        >
-                            {isRemoving ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                                <Trash2 className="h-3.5 w-3.5" />
-                            )}
-                        </button>
-                    </div>
+            <tr className="border-t border-gray-100 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/[0.04]">
+                <td className="px-2 py-3 align-middle">
+                    <DataTableSelectionCheckbox
+                        ariaLabel={`Επιλογή ${sku}`}
+                        checked={selected}
+                        onCheckedChange={() => onToggleItem(itemId)}
+                        disabled={isTableBusy}
+                    />
                 </td>
 
-                <td className="px-2 py-3 text-center align-middle">
+                <td className="px-1 py-3 text-center align-middle">
                     <button
                         type="button"
                         onClick={() => onToggleExpanded(itemId)}
@@ -442,7 +429,7 @@ function BasketTableRow({
                     </button>
                 </td>
 
-                <td className="px-4 py-3 align-middle">
+                <td className="break-words px-2 py-3 align-middle xl:px-4">
                     {onOpenItem ? (
                         <>
                             <button
@@ -469,7 +456,40 @@ function BasketTableRow({
                     )}
                 </td>
 
-                <td className="px-4 py-3 align-middle">
+                <td className="px-2 py-3 align-middle xl:px-4">
+                    <div className="flex flex-col items-start gap-1.5">
+                        {hasPriceRequest && requestedPrice > 0 ? (
+                            <span className={requestedPriceBadgeClassName}>
+                                {requestStatusLabel} · {formatPrice(requestedPrice)}
+                            </span>
+                        ) : (
+                            <span className="text-xs font-medium text-gray-400 dark:text-gray-500">
+                                Χωρίς αίτημα
+                            </span>
+                        )}
+                        {canRequestPrice && (
+                            <RequestPriceBox
+                                status={approvalStatus}
+                                hasPriceRequest={hasPriceRequest}
+                                hasRequestedPrice={hasRequestedPrice}
+                                showRequestedPrice={false}
+                                showRequestLabel={false}
+                                requestedPrice={requestedPrice}
+                                value={requestedPriceValue}
+                                onChange={(value) =>
+                                    onRequestedPriceValueChange?.(itemId, value)
+                                }
+                                onSubmit={() => onRequestPrice?.(itemId)}
+                                submitting={isSubmittingRequestPrice}
+                                formatPrice={formatPrice}
+                                chrome="plain"
+                                className="min-w-0"
+                            />
+                        )}
+                    </div>
+                </td>
+
+                <td className="px-2 py-3 align-middle xl:px-4">
                     <select
                         value={qty}
                         onChange={(event) =>
@@ -477,7 +497,7 @@ function BasketTableRow({
                         }
                         disabled={qtySelectDisabled}
                         aria-label="Ποσότητα"
-                        className="h-8 w-20 rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
+                        className="h-8 w-14 rounded-lg border border-gray-200 bg-white px-1 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500 xl:w-20 xl:px-2"
                     >
                         {rowQuantityOptions.map((quantity) => (
                             <option key={quantity} value={quantity}>
@@ -494,34 +514,7 @@ function BasketTableRow({
                     )}
                 </td>
 
-                <td className="px-4 py-3 align-middle">
-                    <div className="flex flex-col items-start gap-2">
-                        {canRequestPrice && (
-                            <RequestPriceBox
-                                status={approvalStatus}
-                                hasPriceRequest={hasPriceRequest}
-                                hasRequestedPrice={hasRequestedPrice}
-                                requestedPrice={requestedPrice}
-                                value={requestedPriceValue}
-                                onChange={(value) =>
-                                    onRequestedPriceValueChange?.(itemId, value)
-                                }
-                                onSubmit={() => onRequestPrice?.(itemId)}
-                                submitting={isSubmittingRequestPrice}
-                                formatPrice={formatPrice}
-                                stableWidth
-                            />
-                        )}
-                    </div>
-                </td>
-
-                <td className="px-4 py-3 align-middle">
-                    <span className={requestStatusBadgeClassName}>
-                        {requestStatusLabel}
-                    </span>
-                </td>
-
-                <td className="px-4 py-3 text-right align-middle">
+                <td className="px-2 py-3 text-right align-middle xl:px-4">
                     {isApprovedPriceRequest ? (
                         <span className="inline-flex rounded-lg border border-gray-200 bg-white px-2 py-1 text-sm font-semibold tabular-nums text-gray-400 line-through dark:border-gray-700 dark:bg-gray-900 dark:text-gray-500">
                             {formatPrice(erpPrice)}
@@ -533,39 +526,33 @@ function BasketTableRow({
                     )}
                 </td>
 
-                <td className="px-4 py-3 text-right align-middle">
-                    <div className="flex flex-col items-end gap-1">
-                        {hasPriceRequest && requestedPrice > 0 ? (
-                            isPendingPriceRequest ? (
-                                <span className={requestedPriceBadgeClassName}>
-                                    {formatPrice(requestedPrice)}
-                                </span>
-                            ) : isApprovedPriceRequest ? (
-                                <span className="text-sm font-semibold tabular-nums text-green-700 dark:text-green-400">
-                                    {formatPrice(requestedPrice)}
-                                </span>
-                            ) : (
-                                <span className="text-sm font-semibold tabular-nums text-gray-800 dark:text-white/90">
-                                    {formatPrice(requestedPrice)}
-                                </span>
-                            )
-                        ) : (
-                            <span className="text-sm text-gray-400">--</span>
-                        )}
-                    </div>
+                <td className="px-2 py-3 text-right align-middle font-semibold text-gray-800 dark:text-white/90 xl:px-4">
+                    {formatPrice(rowTotal)}
                 </td>
 
-                <td className="px-4 py-3 text-right align-middle text-sm font-semibold text-gray-800 dark:text-white/90">
-                    {formatPrice(rowTotal)}
+                <td className="px-2 py-3 text-center align-middle">
+                    <button
+                        type="button"
+                        onClick={() => onRemove(itemId)}
+                        disabled={isRemoving || isUpdatingQty || isTableBusy}
+                        aria-label="Αφαίρεση γραμμής"
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                    >
+                        {isRemoving ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                    </button>
                 </td>
 
             </tr>
 
             {expanded && (
-                <tr id={detailsId} className="bg-gray-50/60 dark:bg-white/[0.02]">
-                    <td colSpan={9} className="px-4 pb-4 pt-0">
-                        <div className="pl-20">
-                            <BasketItemDetails item={item} className="mt-0" />
+                <tr id={detailsId}>
+                    <td colSpan={8} className="px-5 py-2">
+                        <div className="pl-12">
+                            <BasketItemDetails item={item} />
                         </div>
                     </td>
                 </tr>
