@@ -63,9 +63,7 @@ export default function StockRequest({
     return (
         <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-xs dark:border-gray-800 dark:bg-white/[0.02]">
             <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                    Πηγή εφοδιασμού
-                </p>
+                
 
                 {requestStatus && (
                     <span
@@ -76,9 +74,9 @@ export default function StockRequest({
                 )}
             </div>
 
-            <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/40">
+            <div className="rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/40">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                    Στο κατάστημά μου
+                    Απόθεμα
                 </p>
                 <p
                     className={`mt-0.5 text-2xl font-bold tabular-nums leading-none ${stock > 0
@@ -95,9 +93,6 @@ export default function StockRequest({
                     <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                         <Warehouse className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                         <span className="truncate">Ανατροφοδοσία</span>
-                    </span>
-                    <span className="shrink-0 text-[10px] text-gray-400">
-                        κεντρική αποθήκη
                     </span>
                 </div>
 

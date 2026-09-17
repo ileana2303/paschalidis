@@ -22,23 +22,20 @@ const STOCK_BRANCH_CODES: StockBranchCode[] = ["1000", "1006", "1007"];
 
 const STOCK_BRANCH_META: Record<
     StockBranchCode,
-    { label: string; badgeClassName: string; stockKey: StockKey; locationKey: LocationKey }
+    { label: string; stockKey: StockKey; locationKey: LocationKey }
 > = {
     "1000": {
-        label: "Ν.Κόσμος",
-        badgeClassName: `rounded-full px-2 py-0.5 font-semibold ${getBranchColor("1000")}`,
+        label: "Κασομούλη",
         stockKey: "YP1000",
         locationKey: "THESI1000",
     },
     "1006": {
         label: "Λ.Αθηνών",
-        badgeClassName: `rounded-full px-2 py-0.5 font-semibold ${getBranchColor("1006")}`,
         stockKey: "YP1006",
         locationKey: "THESI1006",
     },
     "1007": {
         label: "Λ.Μεσογείων",
-        badgeClassName: `rounded-full px-2 py-0.5 font-semibold ${getBranchColor("1007")}`,
         stockKey: "YP1007",
         locationKey: "THESI1007",
     },
@@ -187,6 +184,21 @@ export default function PartResults({
     const basketActionClassName = isBasketActionMuted
         ? "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3.5 text-xs font-semibold text-green-700 transition disabled:cursor-not-allowed disabled:opacity-70 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-300"
         : "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3.5 text-xs font-semibold text-white shadow-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-40";
+    const orderedStockBranchCodes = getStockBranchOrder(currentBranchCode);
+    const myStockBranchCode = STOCK_BRANCH_CODES.includes(
+        currentBranchCode.trim() as StockBranchCode
+    )
+        ? orderedStockBranchCodes[0]
+        : null;
+    const otherStockBranchCodes = myStockBranchCode
+        ? orderedStockBranchCodes.slice(1)
+        : orderedStockBranchCodes;
+    const myStockValue = myStockBranchCode
+        ? Number(item[STOCK_BRANCH_META[myStockBranchCode].stockKey])
+        : 0;
+    const myStockLocation = myStockBranchCode
+        ? String(item[STOCK_BRANCH_META[myStockBranchCode].locationKey] ?? "").trim()
+        : "";
 
     const statusBadgeClassName =
         item.STATUS_NOW === "1"
@@ -276,10 +288,10 @@ export default function PartResults({
                         <div className="grid min-w-0 gap-2 lg:justify-items-end">
                             <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 lg:justify-end">
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                         Τιμή μονάδας
                                     </span>
-                                    <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
+                                    <span className="text-base font-bold tabular-nums text-gray-900 dark:text-white">
                                         {formatPrice(item.PRICE_WHOLE)}
                                     </span>
                                 </div>
@@ -334,40 +346,63 @@ export default function PartResults({
                         </div>
                     )}
 
-                    <div className={`w-full rounded-xl border border-gray-100 bg-gray-50/70 p-3 text-left dark:border-gray-800 dark:bg-white/[0.02] ${hasCustomer ? "mt-3" : ""}`}>
-                        <div className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                            Απόθεμα ανά κατάστημα
-                        </div>
+                    <div className={`flex w-full flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-1.5 text-left dark:border-gray-800 dark:bg-white/[0.02] ${hasCustomer ? "mt-2.5" : ""}`}>
+                        {myStockBranchCode && (
+                            <span className="flex min-w-0 items-baseline gap-1.5">
+                                <span
+                                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${getBranchColor(myStockBranchCode)}`}
+                                >
+                                    {STOCK_BRANCH_META[myStockBranchCode].label}
+                                </span>
 
-                        <div className="grid gap-2 sm:grid-cols-3">
-                            {getStockBranchOrder(currentBranchCode).map((branchCode) => {
+                                <span
+                                    className={`text-base font-bold tabular-nums ${myStockValue > 0
+                                        ? "text-gray-800 dark:text-white/90"
+                                        : "text-amber-600 dark:text-amber-400"
+                                        }`}
+                                >
+                                    {item[STOCK_BRANCH_META[myStockBranchCode].stockKey]}
+                                </span>
+
+                                {myStockLocation && (
+                                    <span className="min-w-0 truncate text-[11px] text-gray-500 dark:text-gray-400">
+                                        Θέση{" "}
+                                        <span className="font-semibold text-gray-700 dark:text-gray-200">
+                                            {myStockLocation}
+                                        </span>
+                                    </span>
+                                )}
+                            </span>
+                        )}
+
+                        {myStockBranchCode && otherStockBranchCodes.length > 0 && (
+                            <span className="h-4 w-px shrink-0 bg-gray-200 dark:bg-gray-700" />
+                        )}
+
+                        <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                            {otherStockBranchCodes.map((branchCode) => {
                                 const branchMeta = STOCK_BRANCH_META[branchCode];
                                 const stockValue = item[branchMeta.stockKey];
-                                const locationValue = item[branchMeta.locationKey];
-                                const normalizedLocation = String(locationValue ?? "").trim();
+                                const hasStock = Number(stockValue) > 0;
 
                                 return (
-                                    <div
+                                    <span
                                         key={branchCode}
-                                        className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs shadow-sm dark:bg-white/[0.04]"
+                                        title={`${branchMeta.label}: ${stockValue ?? 0} τεμ.`}
+                                        className={`inline-flex items-center gap-1.5 ${hasStock ? "" : "opacity-50"}`}
                                     >
-                                        <span className={branchMeta.badgeClassName}>
+                                        <span
+                                            className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${getBranchColor(branchCode)}`}
+                                        >
                                             {branchMeta.label}
                                         </span>
-                                        <div className="text-right">
-                                            <span className="font-semibold text-gray-800 dark:text-white">
-                                                {stockValue}
-                                            </span>
-                                            {normalizedLocation && (
-                                                <div className="text-[10px] text-gray-400">
-                                                    {normalizedLocation}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                        <span className="text-base font-bold tabular-nums text-gray-700 dark:text-gray-200">
+                                            {stockValue}
+                                        </span>
+                                    </span>
                                 );
                             })}
-                        </div>
+                        </span>
                     </div>
                 </div>
 
