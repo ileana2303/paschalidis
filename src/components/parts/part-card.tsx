@@ -190,9 +190,17 @@ export default function PartResults({
     )
         ? orderedStockBranchCodes[0]
         : null;
-    const otherStockBranchCodes = myStockBranchCode
+  
+    const otherStockBranchCodes = (myStockBranchCode
         ? orderedStockBranchCodes.slice(1)
-        : orderedStockBranchCodes;
+        : orderedStockBranchCodes
+    ).slice().sort((a, b) => {
+        const aHasStock = Number(item[STOCK_BRANCH_META[a].stockKey]) > 0;
+        const bHasStock = Number(item[STOCK_BRANCH_META[b].stockKey]) > 0;
+
+        if (aHasStock === bHasStock) return 0;
+        return aHasStock ? -1 : 1;
+    });
     const myStockValue = myStockBranchCode
         ? Number(item[STOCK_BRANCH_META[myStockBranchCode].stockKey])
         : 0;
