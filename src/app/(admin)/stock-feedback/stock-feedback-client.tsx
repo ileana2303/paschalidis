@@ -31,14 +31,14 @@ import {
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
 import toast from "react-hot-toast";
-import { normalizeBranchCode } from "@/lib/auth/branches";
+import { getStockBranchOrder, normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
+import { getBranchColor } from "@/lib/branch-colors";
 import { useSessionState } from "@/hooks/useSessionState";
 import {
   buildPendingStockState,
   formatDaysLabel,
   formatNumber,
   getRequestStatusLabel,
-  isCurrentBranchStockColumn,
   toNumber,
 } from "@/lib/utils/stock-feedback";
 
@@ -107,6 +107,13 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
     () => normalizeBranchCode(user?.s1code),
     [user?.s1code]
   );
+  const stockBranchColumns = useMemo(() => {
+    const branches = getStockBranchOrder(currentBranchCode);
+    return [
+      ...branches.filter((branch) => branch !== currentBranchCode),
+      ...branches.filter((branch) => branch === currentBranchCode),
+    ];
+  }, [currentBranchCode]);
 
   const [days, setDays] = useState<number>(0);
   const [rows, setRows] = useState<IStockFeedbackRow[]>([]);
@@ -440,11 +447,11 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
           <div className="min-h-0 w-full flex-1 overflow-auto">
             <table className="w-full min-w-[1380px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
               <colgroup>
-                <col className="w-[28%]" />
+                <col className="w-[26%]" />
                 <col className="w-[8%]" />
                 <col className="w-[8%]" />
                 <col className="w-[8%]" />
-                <col className="w-[8%]" />
+                <col className="w-[10%]" />
                 <col className="w-[8%]" />
                 <col className="w-[8%]" />
                 <col className="w-[8%]" />
@@ -462,36 +469,19 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Σε εξέλιξη
                   </th>
-                  <th
-                    className={[
-                      "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
-                      isCurrentBranchStockColumn(currentBranchCode, "1000")
-                        ? "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
-                        : "text-gray-500 dark:text-gray-400",
-                    ].join(" ")}
-                  >
-                    Κασομούλη
-                  </th>
-                  <th
-                    className={[
-                      "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
-                      isCurrentBranchStockColumn(currentBranchCode, "1006")
-                        ? "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
-                        : "text-gray-500 dark:text-gray-400",
-                    ].join(" ")}
-                  >
-                    Λ.Αθηνών
-                  </th>
-                  <th
-                    className={[
-                      "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
-                      isCurrentBranchStockColumn(currentBranchCode, "1007")
-                        ? "bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
-                        : "text-gray-500 dark:text-gray-400",
-                    ].join(" ")}
-                  >
-                    Λ.Μεσογείων
-                  </th>
+                  {stockBranchColumns.map((branch) => (
+                    <th
+                      key={branch}
+                      className={[
+                        "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
+                        branch === currentBranchCode
+                          ? getBranchColor(branch)
+                          : "text-gray-500 dark:text-gray-400",
+                      ].join(" ")}
+                    >
+                      {resolveBranchName(branch)}
+                    </th>
+                  ))}
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Διαθέσιμο
                   </th>
@@ -543,38 +533,19 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                         {formatNumber(row.ONGOING)}
                       </td>
 
-                      <td
-                        className={[
-                          "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
-                          isCurrentBranchStockColumn(currentBranchCode, "1000")
-                            ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
-                            : "text-gray-700 dark:text-gray-200",
-                        ].join(" ")}
-                      >
-                        {formatNumber(row.YP1000)}
-                      </td>
-
-                      <td
-                        className={[
-                          "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
-                          isCurrentBranchStockColumn(currentBranchCode, "1006")
-                            ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
-                            : "text-gray-700 dark:text-gray-200",
-                        ].join(" ")}
-                      >
-                        {formatNumber(row.YP1006)}
-                      </td>
-
-                      <td
-                        className={[
-                          "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
-                          isCurrentBranchStockColumn(currentBranchCode, "1007")
-                            ? "bg-brand-50/60 font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-200"
-                            : "text-gray-700 dark:text-gray-200",
-                        ].join(" ")}
-                      >
-                        {formatNumber(row.YP1007)}
-                      </td>
+                      {stockBranchColumns.map((branch) => (
+                        <td
+                          key={branch}
+                          className={[
+                            "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
+                            branch === currentBranchCode
+                              ? `font-semibold ${getBranchColor(branch)}`
+                              : "text-gray-700 dark:text-gray-200",
+                          ].join(" ")}
+                        >
+                          {formatNumber(row[`YP${branch}`])}
+                        </td>
+                      ))}
 
                       <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums">
                         <NumberBadge
