@@ -54,8 +54,8 @@ function KpiCard({
   icon: React.ElementType;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-      <div className="flex items-start justify-between gap-4">
+    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-white/[0.03]">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
             {title}
@@ -324,7 +324,7 @@ export default function StockFeedbackClient() {
     <div className="w-full max-w-none space-y-6">
       <PageBreadcrumb pageTitle="Ανατροφοδοσία Καταστήματος" />
 
-      <div className="w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
+      <div className="w-full rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -337,7 +337,7 @@ export default function StockFeedbackClient() {
                   Ανατροφοδοσία Καταστήματος
                 </h1>
                 <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                  Έλεγχος πωλήσεων και διαθέσιμων ποσοτήτων ανά κατάστημα.
+                  Έλεγχος αποθέματος και διαθέσιμων ποσοτήτων ανά κατάστημα και χρονική περίοδο.
                 </p>
               </div>
             </div>
@@ -386,9 +386,10 @@ export default function StockFeedbackClient() {
         />
       </div>
 
-      <DataTable>
+      <DataTable className="flex h-[calc(100dvh-8rem)] min-h-[20rem] flex-col">
         <DataTableHeader
-          title="Πίνακας Τελευταίων Πωλήσεων"
+          className="shrink-0"
+          title="Έλεγχος Αποθέματος - Πίνακας Τελευταίων Πωλήσεων"
           description={`${filteredRows.length} από ${rows.length} είδη · ${formatDaysLabel(days)}`}
           action={(
             <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
@@ -429,18 +430,18 @@ export default function StockFeedbackClient() {
             description="Δεν υπάρχουν δεδομένα για τα επιλεγμένα φίλτρα ή η αναζήτηση δεν επέστρεψε αποτελέσματα."
           />
         ) : (
-          <div className="max-h-[70vh] w-full overflow-y-auto">
-            <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
+          <div className="min-h-0 w-full flex-1 overflow-auto">
+            <table className="w-full min-w-[1380px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
               <colgroup>
-                <col className="w-[32%]" />
-                <col className="w-[7%]" />
+                <col className="w-[28%]" />
                 <col className="w-[8%]" />
-                <col className="w-[7%]" />
-                <col className="w-[7%]" />
-                <col className="w-[7%]" />
-                <col className="w-[9%]" />
-                <col className="w-[10%]" />
-                <col className="w-[13%]" />
+                <col className="w-[8%]" />
+                <col className="w-[8%]" />
+                <col className="w-[8%]" />
+                <col className="w-[8%]" />
+                <col className="w-[8%]" />
+                <col className="w-[8%]" />
+                <col className="w-[20%]" />
               </colgroup>
 
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
@@ -487,7 +488,7 @@ export default function StockFeedbackClient() {
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Διαθέσιμο
                   </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Κατάσταση
                   </th>
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -576,7 +577,7 @@ export default function StockFeedbackClient() {
                         />
                       </td>
 
-                      <td className="px-5 py-4 align-top">
+                      <td className="px-3 py-4 align-top">
                         <div className="flex justify-end">
                           {requestStatus ? (
                             <StatusBadge
