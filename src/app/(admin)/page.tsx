@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { EcommerceMetrics } from "@/components/template-components/ecommerce/EcommerceMetrics";
-import MonthlyTarget from "@/components/template-components/ecommerce/MonthlyTarget";
 import MonthlySalesChart from "@/components/template-components/ecommerce/MonthlySalesChart";
 import StatisticsChart from "@/components/template-components/ecommerce/StatisticsChart";
 import RecentOrders from "@/components/template-components/ecommerce/RecentOrders";
+import ActiveBasketsCard from "@/components/template-components/ecommerce/ActiveBasketsCard";
 
 export const metadata: Metadata = {
   title:
@@ -22,12 +22,8 @@ export default function Ecommerce() {
       </div>
 
       <div className="col-span-12 flex xl:col-span-5">
-        <MonthlyTarget />
+        <ActiveBasketsCard />
       </div>
-
-      {/* <div className="col-span-12">
-        <StatisticsChart />
-      </div> */}
 
       <div className="col-span-12">
         <RecentOrders />

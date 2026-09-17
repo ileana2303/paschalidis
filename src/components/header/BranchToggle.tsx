@@ -2,6 +2,7 @@
 
 import { MapPin } from "@/lib/icons/lucide";
 import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
+import { getBranchColor } from "@/lib/branch-colors";
 import { useAuthStore } from "@/stores/authStore";
 import { useMemo } from "react";
 
@@ -25,7 +26,7 @@ export default function BranchToggle() {
   return (
     <div
       aria-label="User branch"
-      className="inline-flex h-11 max-w-[280px] items-center gap-2 rounded-full border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300"
+      className={`inline-flex h-11 max-w-[280px] items-center gap-2 rounded-full  px-3 text-sm font-medium dark:border-gray-800 ${getBranchColor(normalizeBranchCode(user.s1code))}`}
       title={branchName}
     >
       <MapPin className="h-4 w-4 shrink-0" />

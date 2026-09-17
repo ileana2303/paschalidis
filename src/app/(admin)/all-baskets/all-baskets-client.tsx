@@ -140,8 +140,6 @@ export default function AllBasketsClient() {
     void loadData();
   }, [appliedSearch, loadData, searchInput, setAppliedSearch]);
 
-  // Customer records resolved for this page are kept around so re-opening the
-  // same basket (or a row the pointer already hovered) navigates instantly.
   const customerCacheRef = useRef(new Map<string, ICustomerInfo>());
   const customerLookupsRef = useRef(new Map<string, Promise<ICustomerInfo>>());
   const navigationTrdrRef = useRef<string | null>(null);
