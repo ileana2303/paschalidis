@@ -1,5 +1,6 @@
 import { BadgePercent, ChevronDown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
 import { getBranchColor } from "@/lib/branch-colors";
+import { getStockBranchOrder } from "@/lib/auth/branches";
 import {
     getBasketItemApprovalStatus,
     getBasketItemBasePrice,
@@ -40,27 +41,6 @@ const STOCK_BRANCH_META: Record<
         locationKey: "THESI1007",
     },
 };
-
-const SECONDARY_BRANCH_PRIORITY: Record<StockBranchCode, number> = {
-    "1006": 0,
-    "1000": 1,
-    "1007": 2,
-};
-
-function getStockBranchOrder(currentBranchCode: string) {
-    const normalizedCurrentBranch = currentBranchCode.trim();
-
-    if (!STOCK_BRANCH_CODES.includes(normalizedCurrentBranch as StockBranchCode)) {
-        return STOCK_BRANCH_CODES;
-    }
-
-    const currentBranch = normalizedCurrentBranch as StockBranchCode;
-    const remainingBranches = STOCK_BRANCH_CODES
-        .filter((branchCode) => branchCode !== currentBranch)
-        .sort((a, b) => SECONDARY_BRANCH_PRIORITY[a] - SECONDARY_BRANCH_PRIORITY[b]);
-
-    return [currentBranch, ...remainingBranches];
-}
 
 interface PartEndoRequestProps {
     isOpen: boolean;

@@ -45,7 +45,6 @@ function resolveEndoLineHeader(line: EndoLine) {
         );
     }
 
-    // TRDBRANCH = the ΠΑΣΧΑΛΙΔΗΣ branch the items were requested from.
     const trdBranch = getTrdBranchByBranchCode(supplyingBranch);
 
     if (!trdBranch) {

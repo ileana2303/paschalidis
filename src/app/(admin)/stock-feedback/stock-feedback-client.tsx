@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import QuantityControl from "@/components/ui/quantity-control";
 import {
   AlertCircle,
+  ExternalLink,
   Loader2,
   Package,
   RefreshCw,
@@ -95,7 +97,7 @@ function TableSkeleton() {
   );
 }
 
-export default function StockFeedbackClient() {
+export default function StockFeedbackClient({ embedded = false }: { embedded?: boolean }) {
   const user = useAuthStore((state) => state.user);
   const { mutateAsync: fetchStockFeedback } = useFetchStockFeedbackMutation();
   const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
@@ -322,9 +324,9 @@ export default function StockFeedbackClient() {
 
   return (
     <div className="w-full max-w-none space-y-6">
-      <PageBreadcrumb pageTitle="Ανατροφοδοσία Καταστήματος" />
+      {!embedded && <PageBreadcrumb pageTitle="Ανατροφοδοσία Καταστήματος" />}
 
-      <div className="w-full rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      {!embedded && <div className="w-full rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -344,7 +346,7 @@ export default function StockFeedbackClient() {
           </div>
 
         </div>
-      </div>
+      </div>}
 
       {error && (
         <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
@@ -356,7 +358,7 @@ export default function StockFeedbackClient() {
         </div>
       )}
 
-      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {!embedded && <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           title="ΠΡΟΪΌΝΤΑ"
           value={formatNumber(rows.length)}
@@ -384,12 +386,17 @@ export default function StockFeedbackClient() {
           description="Άθροισμα TOTAL_AVAIL"
           icon={Warehouse}
         />
-      </div>
+      </div>}
 
-      <DataTable className="flex h-[calc(100dvh-8rem)] min-h-[20rem] flex-col">
+      <DataTable className={embedded ? "flex h-[36rem] min-h-[20rem] flex-col" : "flex h-[calc(100dvh-8rem)] min-h-[20rem] flex-col"}>
         <DataTableHeader
           className="shrink-0"
-          title="Έλεγχος Αποθέματος - Πίνακας Τελευταίων Πωλήσεων"
+          title={embedded ? (
+            <Link href="/stock-feedback" className="inline-flex items-center gap-2 hover:text-brand-600 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-brand-500 dark:hover:text-brand-300">
+              Έλεγχος Αποθέματος - Πίνακας Τελευταίων Πωλήσεων
+              <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
+            </Link>
+          ) : "Έλεγχος Αποθέματος - Πίνακας Τελευταίων Πωλήσεων"}
           description={`${filteredRows.length} από ${rows.length} είδη · ${formatDaysLabel(days)}`}
           action={(
             <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
