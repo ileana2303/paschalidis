@@ -11,6 +11,8 @@ export interface ICustomerInfo {
     MAIN_CITY: string;
     NUMBER_OF_BRANCHES: string;
     INDEX_SEARCH: string;
+    /** From BCUSTOMERS e.g. "1"–"5" or "-100" (wholesale without PRICER). */
+    PRICE_TIER: string;
 }
 
 // SEARCH ITEM :: Search items without customer - no basket info.
@@ -45,9 +47,11 @@ export interface IItem {
 
     PRICE_WHOLE: string;
     PRICE_RETAIL: string;
-    PRICER01: string;
-    PRICER02: string;
-    PRICER03: string;
+    PRICEW01: string;
+    PRICEW02: string;
+    PRICEW03: string;
+    PRICEW04: string;
+    PRICEW05: string;
     STANDCOST: string;
     PRICE_MESSAGE: string;
 

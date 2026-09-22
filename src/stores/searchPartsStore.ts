@@ -35,7 +35,7 @@ export const useSearchPartsStore = create<SearchPartsStore>()(
         }),
         {
             name: "search-parts-storage",
-            storage: createJSONStorage(() => sessionStorage),
+            storage: createJSONStorage(() => localStorage),
         }
     )
 );

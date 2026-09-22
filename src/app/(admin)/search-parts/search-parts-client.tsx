@@ -1,7 +1,9 @@
 "use client";
 
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
-import { useEffect, useRef } from "react";
+import { Modal } from "@/components/ui/modal";
+import { fetchRequestedPriceRequests } from "@/lib/api-client/basket";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSearchPartsStore } from "@/stores/searchPartsStore";
 import { useCustomerStore } from "@/stores/customerStore";
@@ -13,6 +15,7 @@ import CustomerSearchModal from "@/components/search/customer-search-modal";
 import SearchBar from "@/components/search/search-bar";
 import PartsResultsContainer from "@/components/parts/parts-results-container";
 import CustomerOrderSummary from "@/components/order-summary/customer-order-summary";
+import { useFetchCustomerByTrdrMutation } from "@/hooks/queries/useApiMutations";
 import { useSearchPartsBasketController } from "@/hooks/search-parts/use-search-parts-basket-controller";
 import { useSearchPartsResultsController } from "@/hooks/search-parts/use-search-parts-results-controller";
 import { useSearchPartsPageController } from "@/hooks/search-parts/use-search-parts-page-controller";
@@ -44,6 +47,11 @@ export default function SearchPartsClient() {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const pendingScopedNavigationRef = useRef(false);
     const lastUrlPartSearchRef = useRef<string | null>(null);
+    const customerHydrationAttemptedRef = useRef<Set<string>>(new Set());
+    const { mutateAsync: fetchCustomerByTrdr } = useFetchCustomerByTrdrMutation();
+    const [storesReady, setStoresReady] = useState(false);
+    const [orderConfirmOpen, setOrderConfirmOpen] = useState(false);
+    const [pendingPriceRequestCount, setPendingPriceRequestCount] = useState(0);
 
     const pageController = useSearchPartsPageController({
         customer,
@@ -88,6 +96,7 @@ export default function SearchPartsClient() {
         customer,
         currentBranchCode: resultsController.currentBranchCode,
         userId: user?.uid,
+        searchItems: items,
     });
     const handleUpdateQty = basketController.handleUpdateQty;
 
@@ -144,49 +153,116 @@ export default function SearchPartsClient() {
     ]);
 
     useEffect(() => {
-        if (!hasMounted) return;
+        const syncStoresReady = () => {
+            if (
+                useCustomerStore.persist.hasHydrated() &&
+                useSearchPartsStore.persist.hasHydrated()
+            ) {
+                setStoresReady(true);
+            }
+        };
 
+        syncStoresReady();
+
+        const unsubscribeCustomer =
+            useCustomerStore.persist.onFinishHydration(syncStoresReady);
+        const unsubscribeSearch =
+            useSearchPartsStore.persist.onFinishHydration(syncStoresReady);
+
+        return () => {
+            unsubscribeCustomer();
+            unsubscribeSearch();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!storesReady || !hasMounted) {
+            return;
+        }
+
+        const customerTrdr = String(customer?.TRDR ?? "").trim();
         const urlTrdr = String(searchParams.get("trdr") ?? "").trim();
+
+        if (customerTrdr && !urlTrdr) {
+            pendingScopedNavigationRef.current = true;
+            router.replace(`/search-parts?trdr=${customerTrdr}`);
+            return;
+        }
+
         if (urlTrdr) {
             pendingScopedNavigationRef.current = false;
+        }
+    }, [customer?.TRDR, hasMounted, router, searchParams, storesReady]);
+
+    useEffect(() => {
+        if (!storesReady) {
             return;
         }
 
-        if (pendingScopedNavigationRef.current) {
+        const urlTrdr = String(searchParams.get("trdr") ?? "").trim();
+
+        if (!urlTrdr) {
             return;
         }
 
-        const hasScopedContext =
-            Boolean(String(customer?.TRDR ?? "").trim()) ||
-            Boolean(String(searchStateTrdr ?? "").trim());
+        const customerTrdr = String(customer?.TRDR ?? "").trim();
+        const priceTier = String(customer?.PRICE_TIER ?? "").trim();
+        const hasCompleteCustomer =
+            customerTrdr === urlTrdr && priceTier.length > 0;
 
-        if (!hasScopedContext) {
+        if (hasCompleteCustomer) {
             return;
         }
 
-        clearCustomer();
-        clearSearchPartsState();
-        resetScopedSearchState({ resetScroll: true });
+        if (customerHydrationAttemptedRef.current.has(urlTrdr)) {
+            return;
+        }
+
+        customerHydrationAttemptedRef.current.add(urlTrdr);
+
+        void fetchCustomerByTrdr({
+            trdr: urlTrdr,
+            name: customer?.NAME,
+        })
+            .then((resolvedCustomer) => {
+                if (String(resolvedCustomer.TRDR ?? "").trim() !== urlTrdr) {
+                    return;
+                }
+
+                setCustomer(resolvedCustomer);
+                setSearchStateTrdr(urlTrdr);
+            })
+            .catch(() => {
+                customerHydrationAttemptedRef.current.delete(urlTrdr);
+            });
     }, [
-        clearCustomer,
-        clearSearchPartsState,
+        customer?.NAME,
+        customer?.PRICE_TIER,
         customer?.TRDR,
-        hasMounted,
-        resetScopedSearchState,
+        fetchCustomerByTrdr,
         searchParams,
-        searchStateTrdr,
+        setCustomer,
+        setSearchStateTrdr,
+        storesReady,
     ]);
 
     useEffect(() => {
-        const customerTrdr = String(customer?.TRDR ?? "").trim() || null;
-        const snapshotTrdr = String(searchStateTrdr ?? "").trim() || null;
-
-        if (snapshotTrdr === customerTrdr) {
+        if (!storesReady) {
             return;
         }
 
-        clearSearchPartsState();
-        resetScopedSearchState();
+        const customerTrdr = String(customer?.TRDR ?? "").trim() || null;
+        const snapshotTrdr = String(searchStateTrdr ?? "").trim() || null;
+
+        if (customerTrdr === snapshotTrdr) {
+            return;
+        }
+
+        if (customerTrdr && snapshotTrdr && customerTrdr !== snapshotTrdr) {
+            clearSearchPartsState();
+            resetScopedSearchState();
+        }
+
         setSearchStateTrdr(customerTrdr);
     }, [
         clearSearchPartsState,
@@ -194,6 +270,7 @@ export default function SearchPartsClient() {
         resetScopedSearchState,
         searchStateTrdr,
         setSearchStateTrdr,
+        storesReady,
     ]);
 
     useEffect(() => {
@@ -271,6 +348,35 @@ export default function SearchPartsClient() {
         router.replace("/search-parts");
     };
 
+    const handleSendOrder = useCallback(async () => {
+        if (!customer) {
+            return;
+        }
+
+        try {
+            const data = await fetchRequestedPriceRequests();
+            const pendingForCustomer = (data.rows ?? []).filter(
+                (row) => String(row.TRDR ?? "").trim() === String(customer.TRDR).trim()
+            );
+
+            if (pendingForCustomer.length > 0) {
+                setPendingPriceRequestCount(pendingForCustomer.length);
+                setOrderConfirmOpen(true);
+                return;
+            }
+        } catch {
+            await basketController.handleSendOrder();
+            return;
+        }
+
+        await basketController.handleSendOrder();
+    }, [basketController, customer]);
+
+    const handleConfirmSendOrder = useCallback(async () => {
+        setOrderConfirmOpen(false);
+        await basketController.handleSendOrder();
+    }, [basketController]);
+
     return (
         <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
             {!resultsController.hasScrolledResults && (
@@ -323,6 +429,7 @@ export default function SearchPartsClient() {
                         <PartsResultsContainer
                             layout={{
                                 hasCustomer: customer != null,
+                                customer,
                                 resultsContainerRef,
                                 onResultsScroll: resultsController.handleResultsScroll,
                                 hasScrolledResults: resultsController.hasScrolledResults,
@@ -414,7 +521,7 @@ export default function SearchPartsClient() {
                         onPickupPointChange={basketController.setPickupPoint}
                         notes={basketController.notes}
                         onNotesChange={basketController.setNotes}
-                        onSendOrder={basketController.handleSendOrder}
+                        onSendOrder={handleSendOrder}
                         sendingOrder={basketController.sendingOrder}
                         onToggleItem={basketController.handleToggleSelectedItem}
                         onRemoveItem={basketController.handleRemoveItem}
@@ -456,6 +563,40 @@ export default function SearchPartsClient() {
                 hasSearched={customerModalHasSearched}
                 onSelectCustomer={handleCustomerSelect}
             />
+
+            <Modal
+                isOpen={orderConfirmOpen}
+                onClose={() => setOrderConfirmOpen(false)}
+                className="m-4 max-w-lg"
+            >
+                <div className="p-6 sm:p-8">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Επιβεβαίωση αποστολής παραγγελίας
+                    </h3>
+                    <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                        {pendingPriceRequestCount > 0
+                            ? `Υπάρχουν ${pendingPriceRequestCount} εκκρεμή αιτήματα τιμών για αυτόν τον πελάτη στα «Αιτήματα τιμών». Θέλετε σίγουρα να υποβάλετε την παραγγελία;`
+                            : "Δεν ήταν δυνατός ο έλεγχος των εκκρεμών αιτημάτων τιμών. Θέλετε σίγουρα να συνεχίσετε με την αποστολή της παραγγελίας;"}
+                    </p>
+                    <div className="mt-6 flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setOrderConfirmOpen(false)}
+                            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                        >
+                            Ακύρωση
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => void handleConfirmSendOrder()}
+                            disabled={basketController.sendingOrder}
+                            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            Ναι, αποστολή
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

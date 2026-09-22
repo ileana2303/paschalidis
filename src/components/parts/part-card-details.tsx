@@ -1,16 +1,22 @@
-import type { IItem } from "@/lib/interface";
+import type { ICustomerInfo, IItem } from "@/lib/interface";
+import PartCardPriceLadder from "@/components/parts/part-card-price-ladder";
+import { getCustomerActivePriceLadderLabel } from "@/lib/utils/customer-price-tier";
 
 interface PartCardDetailsProps {
     item: IItem;
     isExpanded: boolean;
     formatPrice: (price: number | string | null | undefined) => string;
+    customer?: ICustomerInfo | null;
 }
 
 export default function PartCardDetails({
     item,
     isExpanded,
     formatPrice,
+    customer = null,
 }: PartCardDetailsProps) {
+    const activePriceLabel = getCustomerActivePriceLadderLabel(customer);
+    const isWholesaleActive = activePriceLabel === "Χονδρική";
     return (
         <div
             className={`overflow-hidden transition-[max-height,opacity] duration-75 ease-out ${
@@ -164,48 +170,49 @@ export default function PartCardDetails({
                     </div>
 
                     <div className="border-t border-gray-100 pt-3 dark:border-gray-800">
-                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-                            Τιμές
+                            <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                                Τιμές
+                            </div>
+
+                            {item.PRICE_MESSAGE && item.PRICE_MESSAGE !== "0" && (
+                                <div className="mb-2 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                                    {item.PRICE_MESSAGE}
+                                </div>
+                            )}
+
+                            <div
+                                className={`mb-3 flex min-w-0 items-center justify-between gap-2 rounded-lg text-xs ${
+                                    isWholesaleActive
+                                        ? "bg-brand-50/80 px-2 py-1 ring-1 ring-inset ring-brand-300 dark:bg-brand-500/10 dark:ring-brand-500/40"
+                                        : ""
+                                }`}
+                            >
+                                <span
+                                    className={
+                                        isWholesaleActive
+                                            ? "font-semibold text-brand-700 dark:text-brand-300"
+                                            : "text-gray-400"
+                                    }
+                                >
+                                    Χονδρική
+                                </span>
+                                <span
+                                    className={`shrink-0 tabular-nums ${
+                                        isWholesaleActive
+                                            ? "font-semibold text-brand-800 dark:text-brand-200"
+                                            : "text-gray-700 dark:text-gray-300"
+                                    }`}
+                                >
+                                    {formatPrice(item.PRICE_WHOLE)}
+                                </span>
+                            </div>
+
+                            <PartCardPriceLadder
+                                item={item}
+                                formatPrice={formatPrice}
+                                activeLabel={activePriceLabel}
+                            />
                         </div>
-
-                        {item.PRICE_MESSAGE && item.PRICE_MESSAGE !== "0" && (
-                            <div className="mb-2 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                                {item.PRICE_MESSAGE}
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">Χονδρική</span>
-                                <span>{formatPrice(item.PRICE_WHOLE)}</span>
-                            </div>
-
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">Λιανική</span>
-                                <span className="font-semibold">{formatPrice(item.PRICE_RETAIL)}</span>
-                            </div>
-
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">Κόστος</span>
-                                <span>{formatPrice(item.STANDCOST)}</span>
-                            </div>
-
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">Τιμοκ. 01</span>
-                                <span>{formatPrice(item.PRICER01)}</span>
-                            </div>
-
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">Τιμοκ. 02</span>
-                                <span>{formatPrice(item.PRICER02)}</span>
-                            </div>
-
-                            <div className="flex justify-between">
-                                <span className="text-gray-400">Τιμοκ. 03</span>
-                                <span>{formatPrice(item.PRICER03)}</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

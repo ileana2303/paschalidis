@@ -9,7 +9,7 @@ import {
     Search,
 } from "@/lib/icons/lucide";
 import { getBasketItemQty } from "@/lib/utils/basket-helpers";
-import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
+import type { IBasketItem, ICustomerInfo, IItem, StockRequestStatus } from "@/lib/interface";
 import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import PartResults from "@/components/parts/part-card";
 import Checkbox from "@/components/template-components/form/input/Checkbox";
@@ -17,6 +17,7 @@ import { useMemo, useState, type RefObject, type UIEvent } from "react";
 
 interface PartsResultsLayoutProps {
     hasCustomer: boolean;
+    customer: ICustomerInfo | null;
     resultsContainerRef: RefObject<HTMLDivElement | null>;
     onResultsScroll: (event: UIEvent<HTMLDivElement>) => void;
     hasScrolledResults: boolean;
@@ -95,6 +96,7 @@ export default function PartsResultsContainer({
 }: PartsResultsContainerProps) {
     const {
         hasCustomer,
+        customer,
         resultsContainerRef,
         onResultsScroll,
         hasScrolledResults,
@@ -398,6 +400,7 @@ export default function PartsResultsContainer({
                                         isInBasket={isInBasket}
                                         basketItem={basketItem}
                                         hasCustomer={hasCustomer}
+                                        customer={customer}
                                         currentBranchCode={currentBranchCode}
                                         storeStock={storeStock}
                                         storeOrderQty={storeOrderQty}

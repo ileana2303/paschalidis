@@ -8,7 +8,12 @@ import {
     getBasketItemRequestedPrice,
     hasBasketItemPriceRequest,
 } from "@/lib/utils/basket-helpers";
-import type { IBasketItem, IItem, StockRequestStatus } from "@/lib/interface";
+import type { IBasketItem, ICustomerInfo, IItem, StockRequestStatus } from "@/lib/interface";
+import {
+    getCustomerBasketUnitPrice,
+    getCustomerUnitListPrice,
+    getCustomerUnitPriceLabel,
+} from "@/lib/utils/customer-price-tier";
 import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import QuantityControl from "@/components/ui/quantity-control";
 import RequestPriceBox from "@/components/ui/request-price-box";
@@ -64,6 +69,7 @@ interface PartResultsProps {
     isInBasket: boolean;
     basketItem?: IBasketItem;
     hasCustomer: boolean;
+    customer: ICustomerInfo | null;
     currentBranchCode: string;
     storeStock: number;
     storeOrderQty: number;
@@ -92,6 +98,7 @@ export default function PartResults({
     isInBasket,
     basketItem,
     hasCustomer,
+    customer,
     currentBranchCode,
     storeStock,
     storeOrderQty,
@@ -122,7 +129,7 @@ export default function PartResults({
     const erpPrice =
         basketItem != null
             ? getBasketItemBasePrice(basketItem)
-            : Number(item.PRICE_WHOLE);
+            : getCustomerBasketUnitPrice(item, customer);
     const requestedPrice =
         basketItem != null && hasPriceRequest
             ? getBasketItemRequestedPrice(basketItem)
@@ -145,6 +152,8 @@ export default function PartResults({
                 : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
     const manufacturerDescription = String(item.MNF_DESCR ?? "").trim();
     const itemDescription = String(item.ITEM_DESCR ?? "").trim();
+    const unitListPrice = getCustomerUnitListPrice(item, customer);
+    const unitPriceLabel = getCustomerUnitPriceLabel(customer);
     const basketQuantity = basketItem != null
         ? Math.max(1, getBasketItemQty(basketItem))
         : null;
@@ -277,10 +286,10 @@ export default function PartResults({
                             <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 lg:justify-end">
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                        Τιμή μονάδας
+                                        {unitPriceLabel}
                                     </span>
                                     <span className="text-base font-bold tabular-nums text-gray-900 dark:text-white">
-                                        {formatPrice(item.PRICE_WHOLE)}
+                                        {formatPrice(unitListPrice)}
                                     </span>
                                 </div>
 
@@ -398,6 +407,7 @@ export default function PartResults({
                     item={item}
                     isExpanded={isExpanded}
                     formatPrice={formatPrice}
+                    customer={customer}
                 />
 
             </div>

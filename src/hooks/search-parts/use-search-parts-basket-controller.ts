@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isAxiosError } from "axios";
 import {
+    getBasketItemBasePrice,
     getBasketItemId,
     getBasketItemLineTotal,
     getBasketItemQty,
@@ -16,7 +17,14 @@ import {
     useRequestPriceMutation,
     useSubmitBasketOrderMutation,
     useUpdateBasketItemQtyMutation,
+    useUpdateRequestedPriceRequestMutation,
 } from "@/hooks/queries/useApiMutations";
+import { getCustomerBasketUnitPrice } from "@/lib/utils/customer-price-tier";
+import {
+    recreateBasketLineForLowerPriceRequest,
+    shouldRecreateBasketLineForLowerPriceRequest,
+    submitBasketPriceRequest,
+} from "@/lib/utils/basket-price-request";
 import toast from "react-hot-toast";
 import { parseSoftOneNumber } from "@/lib/utils/number";
 
@@ -26,12 +34,14 @@ interface UseSearchPartsBasketControllerParams {
     customer: ICustomerInfo | null;
     currentBranchCode: string;
     userId?: string;
+    searchItems?: IItem[];
 }
 
 export function useSearchPartsBasketController({
     customer,
     currentBranchCode,
     userId,
+    searchItems = [],
 }: UseSearchPartsBasketControllerParams) {
     const [basket, setBasket] = useState<IBasket | null>(null);
     const [basketLoading, setBasketLoading] = useState(false);
@@ -59,6 +69,8 @@ export function useSearchPartsBasketController({
     const { mutateAsync: addItemToBasket } = useAddItemToBasketMutation();
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
     const { mutateAsync: requestPrice } = useRequestPriceMutation();
+    const { mutateAsync: approveRequestedPrice } =
+        useUpdateRequestedPriceRequestMutation();
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
 
@@ -88,6 +100,44 @@ export function useSearchPartsBasketController({
             basketItem.MTRL === item.MTRL || basketItem.CODE === item.ITEM_CODE
         );
     }, [basket?.items]);
+
+    const reloadBasketLine = useCallback(
+        async (mtrl: string | number, itemCode?: string): Promise<IBasketItem> => {
+            if (!customer) {
+                throw new Error("Δεν έχει επιλεγεί πελάτης.");
+            }
+
+            const data = await fetchBasketItems(customer.TRDR);
+            const nextBasket = normalizeBasket(data);
+            setBasket(nextBasket);
+
+            const normalizedMtrl = String(mtrl).trim();
+            const normalizedItemCode = String(itemCode ?? "").trim();
+            const found = nextBasket.items.find((line) => {
+                if (String(line.MTRL).trim() === normalizedMtrl) {
+                    return true;
+                }
+
+                if (!normalizedItemCode) {
+                    return false;
+                }
+
+                return (
+                    String(line.CODE ?? "").trim() === normalizedItemCode ||
+                    String(line.ITEM_CODE ?? "").trim() === normalizedItemCode
+                );
+            });
+
+            if (!found) {
+                throw new Error(
+                    "Δεν βρέθηκε η γραμμή μετά την επανεισαγωγή στο καλάθι."
+                );
+            }
+
+            return found;
+        },
+        [customer, fetchBasketItems]
+    );
 
     const loadBasket = useCallback(async (trdr: string) => {
         const normalizedTrdr = String(trdr).trim();
@@ -194,12 +244,14 @@ export function useSearchPartsBasketController({
                     QTY: requestedQty,
                 });
             } else {
+                const basketUnitPrice = getCustomerBasketUnitPrice(item, customer);
+
                 await addItemToBasket({
                     TRDR: customer.TRDR,
                     MTRL: Number(item.MTRL),
                     QTY: requestedQty,
-                    PRICE_ERP: Number(item.PRICE_WHOLE),
-                    PRICE_REQ: Number(item.PRICE_WHOLE),
+                    PRICE_ERP: basketUnitPrice,
+                    PRICE_REQ: basketUnitPrice,
                     BRANCH: normalizedBranch,
                     APPUSER_ID: userId,
                 });
@@ -473,18 +525,35 @@ export function useSearchPartsBasketController({
             return;
         }
 
+        const normalizedBranch = Number(currentBranchCode);
+        if (!Number.isFinite(normalizedBranch) || normalizedBranch <= 0) {
+            setBasketError("Δεν βρέθηκε ενεργό κατάστημα χρήστη");
+            return;
+        }
+
         setOrderSubmittedSuccess(false);
 
         setSubmittingRequestedPrices((prev) => new Set(prev).add(item.ITEM_CODE));
 
         try {
-            await requestPrice({
-                BASKETID: basketItem.BASKETID,
-                NEW_PRICE: requestedPrice,
+            await submitBasketPriceRequest({
+                item,
+                customer,
+                basketItem,
+                requestedPrice,
+                requestPrice,
+                approveRequestedPrice,
+                branchCode: normalizedBranch,
+                userId,
+                deleteBasketItems,
+                addItemToBasket,
+                reloadBasketItem: () =>
+                    reloadBasketLine(item.MTRL, item.ITEM_CODE),
             });
 
             setRequestedPrices((prev) => ({ ...prev, [item.ITEM_CODE]: "" }));
             await loadBasket(customer.TRDR);
+
             toast.success("Το αίτημα τιμής υποβλήθηκε.");
         } catch (error) {
             if (isAxiosError(error)) {
@@ -509,11 +578,17 @@ export function useSearchPartsBasketController({
             });
         }
     }, [
+        addItemToBasket,
+        approveRequestedPrice,
+        currentBranchCode,
         customer,
+        deleteBasketItems,
         requestedPrices,
         findBasketItem,
         loadBasket,
+        reloadBasketLine,
         requestPrice,
+        userId,
     ]);
 
     const handleRequestBasketLinePrice = useCallback(async (uid: string) => {
@@ -532,18 +607,70 @@ export function useSearchPartsBasketController({
             return;
         }
 
+        const normalizedBranch = Number(currentBranchCode);
+        if (!Number.isFinite(normalizedBranch) || normalizedBranch <= 0) {
+            setBasketError("Δεν βρέθηκε ενεργό κατάστημα χρήστη");
+            return;
+        }
+
         setBasketError("");
         setOrderSubmittedSuccess(false);
         setSubmittingBasketLineRequestedPrices((prev) => new Set(prev).add(uid));
 
+        const catalogItem = searchItems.find(
+            (candidate) => String(candidate.MTRL) === String(basketItem.MTRL)
+        );
+
         try {
-            await requestPrice({
-                BASKETID: basketItem.BASKETID,
-                NEW_PRICE: requestedPrice,
-            });
+            if (catalogItem) {
+                await submitBasketPriceRequest({
+                    item: catalogItem,
+                    customer,
+                    basketItem,
+                    requestedPrice,
+                    requestPrice,
+                    approveRequestedPrice,
+                    branchCode: normalizedBranch,
+                    userId,
+                    deleteBasketItems,
+                    addItemToBasket,
+                    reloadBasketItem: () =>
+                        reloadBasketLine(catalogItem.MTRL, catalogItem.ITEM_CODE),
+                });
+            } else {
+                let targetBasketItem = basketItem;
+
+                if (
+                    shouldRecreateBasketLineForLowerPriceRequest(
+                        null,
+                        customer,
+                        basketItem,
+                        requestedPrice
+                    )
+                ) {
+                    targetBasketItem = await recreateBasketLineForLowerPriceRequest({
+                        customer,
+                        basketItem,
+                        requestedPrice,
+                        branchCode: normalizedBranch,
+                        userId,
+                        catalogUnitPrice: getBasketItemBasePrice(basketItem),
+                        mtrl: Number(basketItem.MTRL),
+                        deleteBasketItems,
+                        addItemToBasket,
+                        reloadBasketItem: () => reloadBasketLine(basketItem.MTRL),
+                    });
+                }
+
+                await requestPrice({
+                    BASKETID: targetBasketItem.BASKETID,
+                    NEW_PRICE: requestedPrice,
+                });
+            }
 
             setBasketLineRequestedPrices((prev) => ({ ...prev, [uid]: "" }));
             await loadBasket(customer.TRDR);
+
             toast.success("Το αίτημα τιμής υποβλήθηκε.");
         } catch (error) {
             if (isAxiosError(error)) {
@@ -568,11 +695,18 @@ export function useSearchPartsBasketController({
             });
         }
     }, [
+        addItemToBasket,
+        approveRequestedPrice,
         basket?.items,
         basketLineRequestedPrices,
+        currentBranchCode,
         customer,
+        deleteBasketItems,
         loadBasket,
+        reloadBasketLine,
         requestPrice,
+        searchItems,
+        userId,
     ]);
 
     const formatPrice = useCallback((price: number | string | null | undefined) => {

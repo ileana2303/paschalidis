@@ -80,6 +80,7 @@ export default function CustomerInfoContainer({
 
                             <InfoItem label="TRDR" value={customer.TRDR} />
                             <InfoItem label="Κωδικός" value={customer.CODE} />
+                            <InfoItem label="PRICE_TIER" value={customer.PRICE_TIER} />
                             <InfoItem label="Email" value={customer.EMAIL} />
                             <InfoItem label="Υποκαταστήματα" value={customer.NUMBER_OF_BRANCHES} />
 
