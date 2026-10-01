@@ -2,7 +2,7 @@
 
 import { isAxiosError } from "axios";
 import { useCallback, useEffect } from "react";
-import type { ExternalLoginUserAccount } from "@/lib/auth/types";
+import type { AuthUser } from "@/lib/auth/types";
 import type { ICustomerInfo, IItem } from "@/lib/interface";
 import {
     useAddItemToEndoBasketMutation,
@@ -20,7 +20,7 @@ import toast from "react-hot-toast";
 
 interface UseSearchPartsResultsActionsParams {
     customer: ICustomerInfo | null;
-    user: ExternalLoginUserAccount | null;
+    user: AuthUser | null;
     onRequireCustomerSelection: () => void;
     state: SearchPartsResultsState;
 }
@@ -170,7 +170,7 @@ export function useSearchPartsResultsActions({
                 QTY: requestedQty,
                 BRANCH: normalizedRequestFromBranch,
                 TO_BRANCH: normalizedRequesterBranch,
-                APPUSER_ID: user?.uid,
+                APPUSER_ID: user?.username,
                 ITEM_CODE: item.ITEM_CODE,
                 ITEM_DESCR: item.ITEM_DESCR,
                 MNF_DESCR: item.MNF_DESCR,
@@ -219,7 +219,7 @@ export function useSearchPartsResultsActions({
         setEndoBasketSuccess,
         setEndoPendingQuantities,
         setEndoRequestedQty,
-        user?.uid,
+        user?.username,
     ]);
 
     const isAddingToEndoBasket = useCallback((

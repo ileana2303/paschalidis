@@ -104,8 +104,8 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
   const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
 
   const currentBranchCode = useMemo(
-    () => normalizeBranchCode(user?.s1code),
-    [user?.s1code]
+    () => normalizeBranchCode(user?.mainBranch),
+    [user?.mainBranch]
   );
   const stockBranchColumns = useMemo(() => {
     const branches = getStockBranchOrder(currentBranchCode);

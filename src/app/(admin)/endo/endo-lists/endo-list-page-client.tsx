@@ -99,8 +99,8 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
     const isReceivedScope = scope === "received";
 
     const currentBranchCode = useMemo(
-        () => normalizeBranchCode(user?.s1code),
-        [user?.s1code]
+        () => normalizeBranchCode(user?.mainBranch),
+        [user?.mainBranch]
     );
 
     const hasValidBranch = currentBranchCode.length > 0;
@@ -271,7 +271,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                 tableAction: "ENDO",
                 method: "LINK_S1",
                 s1Key: "1305",
-                appUserId: user?.uid,
+                appUserId: user?.username,
             });
 
             await loadRows();
@@ -295,7 +295,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         deletingSelectedRows,
         loadRows,
         selectedBasketIds,
-        user?.uid,
+        user?.username,
     ]);
 
     const getResolvedQty = useCallback(
@@ -392,7 +392,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                     mtrl,
                     toBranch,
                     branch,
-                    appUserId: user?.uid,
+                    appUserId: user?.username,
                 });
 
                 resetEditedQuantity(rowKey);
@@ -429,7 +429,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             isReceivedScope,
             resetEditedQuantity,
             updateEndoListQty,
-            user?.uid,
+            user?.username,
         ]
     );
 
@@ -472,7 +472,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
             try {
                 const data = await submitEndoBasketOrder({
-                    appUserId: user?.uid,
+                    appUserId: user?.username,
                     items: [
                         {
                             basketIds: [basketId],
@@ -511,7 +511,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             loadRows,
             requestedQtyByRow,
             submitEndoBasketOrder,
-            user?.uid,
+            user?.username,
         ]
     );
 

@@ -321,7 +321,7 @@ export default function BasketClient() {
             await submitBasketOrder({
                 TRDR: urlTrdr,
                 NOTES: notes,
-                APPUSER_ID: user?.uid,
+                APPUSER_ID: user?.username,
                 items: selectedItemsList,
             });
             setOrderSubmittedSuccess(true);

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Dispatch, RefObject, SetStateAction, UIEvent } from "react";
-import type { ExternalLoginUserAccount } from "@/lib/auth/types";
+import type { AuthUser } from "@/lib/auth/types";
 import type { IItem, StockRequestStatus } from "@/lib/interface";
 import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import {
@@ -22,7 +22,7 @@ interface ResetScopedResultsStateOptions {
 }
 
 interface UseSearchPartsResultsStateParams {
-    user: ExternalLoginUserAccount | null;
+    user: AuthUser | null;
     items: IItem[];
     hasMounted: boolean;
     resultsContainerRef: RefObject<HTMLDivElement | null>;
@@ -99,8 +99,8 @@ export function useSearchPartsResultsState({
     const [endoBasketSuccess, setEndoBasketSuccess] = useState("");
 
     const currentBranchCode = useMemo(
-        () => normalizeBranchCode(user?.s1code),
-        [user?.s1code]
+        () => normalizeBranchCode(user?.mainBranch),
+        [user?.mainBranch]
     );
     const hasValidBranch = currentBranchCode.length > 0;
 
@@ -110,11 +110,8 @@ export function useSearchPartsResultsState({
         }
 
         const normalizedCurrent = normalizeBranchCode(currentBranchCode);
-        const fromProfile = user?.listBranches?.find(
-            (branch) => normalizeBranchCode(branch.s1Code) === normalizedCurrent
-        )?.name;
-        return resolveBranchName(normalizedCurrent, fromProfile);
-    }, [currentBranchCode, hasValidBranch, user?.listBranches]);
+        return resolveBranchName(normalizedCurrent);
+    }, [currentBranchCode, hasValidBranch]);
 
     useEffect(() => {
         const updateScrollability = () => {
@@ -247,10 +244,7 @@ export function useSearchPartsResultsState({
             .sort((a, b) => Number(a) - Number(b))
             .filter((code) => code !== currentBranchCode)
             .map((code) => {
-                const labelFromProfile = user?.listBranches?.find(
-                    (branch) => normalizeBranchCode(branch.s1Code) === code
-                )?.name;
-                const label = resolveBranchName(code, labelFromProfile);
+                const label = resolveBranchName(code);
                 const location =
                     String(getItemFieldValue(item, `THESI${code}`) ?? "").trim() || "-";
 
@@ -261,7 +255,7 @@ export function useSearchPartsResultsState({
                     location,
                 };
             });
-    }, [currentBranchCode, user?.listBranches]);
+    }, [currentBranchCode]);
 
     // An item only offers an inter-branch source when another branch can cover it,
     // so bulk actions ignore the rows where the disclosure is a dead end.

@@ -95,7 +95,7 @@ export default function SearchPartsClient() {
     const basketController = useSearchPartsBasketController({
         customer,
         currentBranchCode: resultsController.currentBranchCode,
-        userId: user?.uid,
+        userId: user?.username,
         searchItems: items,
     });
     const handleUpdateQty = basketController.handleUpdateQty;

@@ -90,8 +90,8 @@ export default function EndoPartsClient() {
     }, [clearSearchState]);
 
     const currentBranchCode = useMemo(
-        () => normalizeBranchCode(user?.s1code),
-        [user?.s1code]
+        () => normalizeBranchCode(user?.mainBranch),
+        [user?.mainBranch]
     );
     const hasValidBranch = currentBranchCode.length > 0;
 
@@ -101,12 +101,8 @@ export default function EndoPartsClient() {
         }
 
         const normalizedCurrent = normalizeBranchCode(currentBranchCode);
-        const fromProfile = user?.listBranches?.find(
-            (branch) => normalizeBranchCode(branch.s1Code) === normalizedCurrent
-        )?.name;
-
-        return resolveBranchName(normalizedCurrent, fromProfile);
-    }, [currentBranchCode, hasValidBranch, user?.listBranches]);
+        return resolveBranchName(normalizedCurrent);
+    }, [currentBranchCode, hasValidBranch]);
 
     const clearBasketSuccessTimeout = useCallback(() => {
         if (basketSuccessTimeoutRef.current) {
@@ -221,7 +217,7 @@ export default function EndoPartsClient() {
                     tableAction: "ENDO",
                     method: "LINK_S1",
                     s1Key: "1305",
-                    appUserId: user?.uid,
+                    appUserId: user?.username,
                 });
 
                 await loadRequestedEndoLines();
@@ -279,7 +275,7 @@ export default function EndoPartsClient() {
                 mtrl: basketItem.mtrl,
                 toBranch: basketItem.fromBranch,
                 branch: basketItem.toBranch || currentBranchCode,
-                appUserId: user?.uid,
+                appUserId: user?.username,
             });
 
             setBasketItems((prev) =>
@@ -565,10 +561,7 @@ export default function EndoPartsClient() {
             .sort((a, b) => Number(a) - Number(b))
             .filter((code) => code !== currentBranchCode)
             .map((code) => {
-                const labelFromProfile = user?.listBranches?.find(
-                    (branch) => normalizeBranchCode(branch.s1Code) === code
-                )?.name;
-                const label = resolveBranchName(code, labelFromProfile);
+                const label = resolveBranchName(code);
                 const location = getItemLocationForBranch(item, code) || "-";
 
                 return {
@@ -619,7 +612,7 @@ export default function EndoPartsClient() {
                 QTY: requestedQty,
                 BRANCH: normalizedRequestFromBranch,
                 TO_BRANCH: normalizedRequesterBranch,
-                APPUSER_ID: user?.uid,
+                APPUSER_ID: user?.username,
                 ITEM_CODE: item.ITEM_CODE,
                 ITEM_DESCR: item.ITEM_DESCR,
                 MNF_DESCR: item.MNF_DESCR,

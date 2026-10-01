@@ -1,7 +1,8 @@
 "use client";
 
-import { Mail, MapPin, Shield, UserRound } from "@/lib/icons/lucide";
+import { MapPin, UserRound } from "@/lib/icons/lucide";
 import { formatBranchLabel, normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
+import { getAuthUserFullName } from "@/lib/auth/types";
 import { useAuthStore } from "@/stores/authStore";
 import { type ReactNode, useMemo } from "react";
 
@@ -42,22 +43,21 @@ function DetailItem({ label, value, icon }: DetailItemProps) {
 
 export default function AccountInfo() {
   const user = useAuthStore((state) => state.user);
+  const permissions = useAuthStore((state) => state.permissions);
 
   const profileData = useMemo(() => {
     const username = normalize(user?.username);
-    const fullName = normalize(user?.fullName);
-    const email = normalize(user?.email);
+    const fullName = normalize(getAuthUserFullName(user));
     const role = normalize(user?.role);
-    const uid = normalize(user?.uid);
-    const activeBranchCode = normalizeBranchCode(user?.s1code);
+    const activeBranchCode = normalizeBranchCode(user?.mainBranch);
 
     const branchMap = new Map<string, { code: string; name: string }>();
 
-    (user?.listBranches ?? []).forEach((branch) => {
-      const code = normalizeBranchCode(branch.s1Code);
+    (permissions?.branches ?? []).forEach((branch) => {
+      const code = normalizeBranchCode(branch);
       if (!code) return;
 
-      const resolvedName = resolveBranchName(code, branch.name);
+      const resolvedName = resolveBranchName(code);
       const existing = branchMap.get(code);
 
       if (!existing || (existing.name === code && resolvedName !== code)) {
@@ -76,12 +76,10 @@ export default function AccountInfo() {
       (a, b) => Number(a.code) - Number(b.code)
     );
 
-    const accessEntries = (user?.listAccess ?? [])
-      .map((entry) => ({
-        code: normalize(entry.code),
-        name: normalize(entry.name),
-      }))
-      .filter((entry) => entry.code !== "—" || entry.name !== "—");
+    const accessEntries = [
+      ...(permissions?.modules ?? []).map((entry) => ({ ...entry, kind: "Module" })),
+      ...(permissions?.features ?? []).map((entry) => ({ ...entry, kind: "Feature" })),
+    ];
 
     const activeBranch = branches.find((branch) => branch.code === activeBranchCode);
     const activeBranchLabel = activeBranchCode
@@ -91,9 +89,7 @@ export default function AccountInfo() {
     return {
       username,
       fullName,
-      email,
       role,
-      uid,
       activeBranchCode: activeBranchCode || "—",
       activeBranchLabel,
       branches,
@@ -101,7 +97,7 @@ export default function AccountInfo() {
       initials: buildInitials(fullName, username),
       usernameLabel: username === "—" ? "—" : `@${username}`,
     };
-  }, [user]);
+  }, [permissions, user]);
 
   const showBranches = profileData.branches.length >= 2;
 
@@ -122,8 +118,8 @@ export default function AccountInfo() {
 
         <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-            <Mail className="h-3.5 w-3.5" />
-            {profileData.email}
+            <UserRound className="h-3.5 w-3.5" />
+            {profileData.usernameLabel}
           </span>
           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
             {profileData.role}
@@ -199,10 +195,10 @@ export default function AccountInfo() {
           {profileData.accessEntries.length > 0 ? (
             <ul className="flex flex-wrap gap-2">
               {profileData.accessEntries.map((entry) => {
-                const label = entry.name === "—" ? entry.code : `${entry.name} (${entry.code})`;
+                const label = `${entry.kind}: ${entry.code} (${entry.rights})`;
                 return (
                   <li
-                    key={`${entry.code}-${entry.name}`}
+                  key={`${entry.kind}-${entry.code}`}
                     className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300"
                   >
                     {label}

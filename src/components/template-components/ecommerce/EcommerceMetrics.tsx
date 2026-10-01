@@ -8,7 +8,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { formatNumber } from "@/lib/utils/stock-feedback";
 
 export const EcommerceMetrics = () => {
-  const activeBranchCode = useAuthStore((state) => normalizeBranchCode(state.user?.s1code));
+  const activeBranchCode = useAuthStore((state) => normalizeBranchCode(state.user?.mainBranch));
   const [salesResults, setSalesResults] = useState<Record<string, number | null>>({});
   const currentMonth = new Intl.DateTimeFormat("el-GR", {
     month: "long",

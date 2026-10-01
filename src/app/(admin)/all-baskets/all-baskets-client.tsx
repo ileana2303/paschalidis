@@ -44,8 +44,8 @@ export default function AllBasketsClient() {
   const user = useAuthStore((state) => state.user);
   const setCustomer = useCustomerStore((state) => state.setCustomer);
   const currentBranchCode = useMemo(
-    () => normalizeBranchCode(user?.s1code),
-    [user?.s1code]
+    () => normalizeBranchCode(user?.mainBranch),
+    [user?.mainBranch]
   );
   const { mutateAsync: fetchAllClientBaskets } =
     useFetchAllClientBasketsMutation();

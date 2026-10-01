@@ -52,8 +52,8 @@ export default function StockRequestsClient() {
     const user = useAuthStore((state) => state.user);
 
     const currentBranchCode = useMemo(
-        () => normalizeBranchCode(user?.s1code),
-        [user?.s1code]
+        () => normalizeBranchCode(user?.mainBranch),
+        [user?.mainBranch]
     );
 
     const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
@@ -343,7 +343,7 @@ export default function StockRequestsClient() {
 
         try {
             const data = await submitAnatrofOrder({
-                appUserId: user?.uid,
+                appUserId: user?.username,
                 branch: currentBranchCode,
                 notes,
                 items: approvedRows,
@@ -371,7 +371,7 @@ export default function StockRequestsClient() {
         notes,
         setNotes,
         submitAnatrofOrder,
-        user?.uid,
+        user?.username,
     ]);
 
     return (

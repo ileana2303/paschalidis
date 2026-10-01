@@ -12,7 +12,7 @@ import { useAuthStore } from "@/stores/authStore";
 
 export default function ActiveBasketsCard() {
   const user = useAuthStore((state) => state.user);
-  const activeBranch = normalizeBranchCode(user?.s1code);
+  const activeBranch = normalizeBranchCode(user?.mainBranch);
   const branch = !user
     ? ""
     : isBasketBranchCode(activeBranch)

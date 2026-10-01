@@ -1,84 +1,107 @@
 import { NextRequest, NextResponse } from "next/server";
 import { setSessionCookie } from "@/lib/auth/session";
-import { getTrdBranchByBranchCode } from "@/lib/auth/branches";
-import { backend } from "@/lib/http/backend";
 import type {
-    ExternalLoginResponse,
     LoginRequest,
-    ToastMessage,
+    LoginResponse,
+    SoftOneLoginResponse,
 } from "@/lib/auth/types";
+import {
+    getEnvString,
+    getSoftOneClientID,
+    getSoftOneEndpoint,
+    parseJsonWithEncodingFallback,
+    postSoftOne,
+} from "@/lib/softone";
+
+const LOGIN_PATH = "/JS/SiteData.Items/login";
+const INVALID_CREDENTIALS_MESSAGE = "Λάθος στοιχεία σύνδεσης";
+
+function getSoftOneLoginEndpoint() {
+    const configuredEndpoint = getEnvString("S1_LOGIN_ENDPOINT");
+
+    if (configuredEndpoint) {
+        return configuredEndpoint;
+    }
+
+    const baseEndpoint = getSoftOneEndpoint().replace(/\/+$/, "");
+
+    if (baseEndpoint.endsWith("/JS/SiteData.Items")) {
+        return `${baseEndpoint}/login`;
+    }
+
+    return `${baseEndpoint}${LOGIN_PATH}`;
+}
+
+function errorResponse(message: string, status: number) {
+    const response: LoginResponse = {
+        result: false,
+        message,
+        type: "error",
+    };
+
+    return NextResponse.json(response, { status });
+}
 
 /**
  * POST /api/auth/login
  *
- * Proxies credentials to upstream /Api/Login endpoint, then creates
- * the app session cookie from the returned user account.
+ * Proxies credentials to SoftOne's SiteData.Items/login service. Only the
+ * returned user and permissions are sent to the browser; the password is not
+ * retained.
  */
 export async function POST(req: NextRequest) {
-    let tmessage: ToastMessage;
-
     try {
-        const body: LoginRequest = await req.json();
+        const body = (await req.json()) as LoginRequest;
+        const username = String(body.username ?? "").trim();
+        const password = String(body.password ?? "");
 
-        if (!body.username || !body.password) {
-            tmessage = {
-                result: false,
-                message: "Εισάγετε όλα τα απαραίτητα πεδία",
-                type: "error",
-            };
-            return NextResponse.json(tmessage, { status: 400 });
+        if (!username || !password) {
+            return errorResponse("Εισάγετε όλα τα απαραίτητα πεδία", 400);
         }
 
-        const upstreamResponse = await backend.post<ExternalLoginResponse>(
-            "/Api/Login",
+        const clientID = getSoftOneClientID();
+
+        if (!clientID) {
+            throw new Error("Δεν έχει ρυθμιστεί ο SoftOne client ID.");
+        }
+
+        const upstreamResponse = await postSoftOne(
             {
-                username: body.username,
-                password: body.password,
-                rememberMe: body.rememberMe ?? true,
-            }
+                clientID,
+                username,
+                password,
+            },
+            { endpoint: getSoftOneLoginEndpoint() }
         );
-        const upstreamData = upstreamResponse.data;
+        const upstreamData =
+            await parseJsonWithEncodingFallback<SoftOneLoginResponse>(upstreamResponse);
 
         if (
-            upstreamResponse.status < 200 ||
-            upstreamResponse.status >= 300 ||
-            upstreamData.statusCode !== 200 ||
-            !upstreamData.userAccount
+            !upstreamResponse.ok ||
+            upstreamData.success !== true ||
+            !upstreamData.user ||
+            !upstreamData.permissions
         ) {
-            tmessage = {
-                result: false,
-                message:
-                    upstreamData.message ||
-                    upstreamData.detailedMessage ||
-                    "Δεν βρέθηκε χρήστης με αυτά τα στοιχεία, προσπαθήστε ξανά",
-                type: "error",
-            };
-            return NextResponse.json(tmessage, { status: 401 });
+            return errorResponse(
+                String(upstreamData.error ?? "").trim() || INVALID_CREDENTIALS_MESSAGE,
+                401
+            );
         }
 
-        await setSessionCookie();
+        await setSessionCookie(body.rememberMe === true);
 
-        const userAccount = {
-            ...upstreamData.userAccount,
-            trdBranch: getTrdBranchByBranchCode(upstreamData.userAccount.s1code),
-        };
-
-        tmessage = {
+        const response: LoginResponse = {
             result: true,
             message: "Επιτυχής σύνδεση",
             type: "success",
             redirectlink: "/",
-            userAccount,
+            user: upstreamData.user,
+            permissions: upstreamData.permissions,
         };
 
-        return NextResponse.json(tmessage);
+        return NextResponse.json(response);
     } catch (error) {
-        tmessage = {
-            result: false,
-            message:
-                error instanceof Error ? error.message : "Σφάλμα διακομιστή",
-            type: "error",
-        };
-        return NextResponse.json(tmessage, { status: 500 });
+        console.error("[auth/login] Server error", error);
+        return errorResponse("Σφάλμα διακομιστή κατά τη σύνδεση", 500);
     }
 }

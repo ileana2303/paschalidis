@@ -6,7 +6,8 @@ import Button from "@/components/ui/button/Button";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
-import type { ToastMessage } from "@/lib/auth/types";
+import { isAxiosError } from "axios";
+import type { LoginResponse } from "@/lib/auth/types";
 import { useLoginMutation } from "@/hooks/queries/useAuthQueries";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -18,7 +19,7 @@ export default function SignInForm() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const loginMutation = useLoginMutation();
-  const setUser = useAuthStore((state) => state.setUser);
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,20 +27,23 @@ export default function SignInForm() {
     setIsSubmitting(true);
 
     try {
-      const data: ToastMessage = await loginMutation.mutateAsync({
+      const data: LoginResponse = await loginMutation.mutateAsync({
         username,
         password,
         rememberMe: isChecked,
       });
 
-      if (data.result) {
-        setUser(data.userAccount ?? null);
+      if (data.result && data.user && data.permissions) {
+        setAuth(data.user, data.permissions);
         window.location.href = data.redirectlink ?? "/";
       } else {
         setError(data.message);
       }
-    } catch {
-      setError("Σφάλμα σύνδεσης, προσπαθήστε ξανά");
+    } catch (error) {
+      const responseMessage = isAxiosError<LoginResponse>(error)
+        ? error.response?.data?.message
+        : undefined;
+      setError(responseMessage || "Σφάλμα σύνδεσης, προσπαθήστε ξανά");
     } finally {
       setIsSubmitting(false);
     }

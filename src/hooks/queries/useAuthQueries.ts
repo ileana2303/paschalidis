@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { httpClient } from "@/lib/http/client";
-import type { ToastMessage } from "@/lib/auth/types";
+import type { LoginResponse } from "@/lib/auth/types";
 
 export function useLoginMutation() {
     return useMutation({
@@ -11,7 +11,7 @@ export function useLoginMutation() {
             password: string;
             rememberMe: boolean;
         }) => {
-            const { data } = await httpClient.post<ToastMessage>(
+            const { data } = await httpClient.post<LoginResponse>(
                 "/api/auth/login",
                 payload
             );
@@ -27,4 +27,3 @@ export function useLogoutMutation() {
         },
     });
 }
-

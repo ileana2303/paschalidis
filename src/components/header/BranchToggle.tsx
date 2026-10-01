@@ -11,14 +11,10 @@ export default function BranchToggle() {
 
   const branchName = useMemo(() => {
     if (!user) return "—";
-    const branchCode = normalizeBranchCode(user.s1code);
+    const branchCode = normalizeBranchCode(user.mainBranch);
     if (!branchCode) return "—";
 
-    const preferredBranchName = user.listBranches.find(
-      (branch) => normalizeBranchCode(branch.s1Code) === branchCode
-    )?.name;
-
-    return resolveBranchName(branchCode, preferredBranchName);
+    return resolveBranchName(branchCode);
   }, [user]);
 
   if (!user) return null;
@@ -26,7 +22,7 @@ export default function BranchToggle() {
   return (
     <div
       aria-label="User branch"
-      className={`inline-flex h-11 max-w-[280px] items-center gap-2 rounded-full  px-3 text-sm font-medium dark:border-gray-800 ${getBranchColor(normalizeBranchCode(user.s1code))}`}
+      className={`inline-flex h-11 max-w-[280px] items-center gap-2 rounded-full  px-3 text-sm font-medium dark:border-gray-800 ${getBranchColor(normalizeBranchCode(user.mainBranch))}`}
       title={branchName}
     >
       <MapPin className="h-4 w-4 shrink-0" />

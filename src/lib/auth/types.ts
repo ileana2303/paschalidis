@@ -1,49 +1,52 @@
-/**
- * Matches LoginViewModel.cs
- */
 export interface LoginRequest {
     username: string;
     password: string;
     rememberMe?: boolean;
 }
 
-interface ExternalLoginListAccessItem {
-    name: string;
-    code: string;
-}
-
-interface ExternalLoginListBranchItem {
-    name: string;
-    s1Code: string;
-}
-
-export interface ExternalLoginUserAccount {
+export interface AuthUser {
     username: string;
-    fullName: string;
-    email: string;
+    fname: string;
+    lname: string;
     role: string;
-    uid: string;
-    s1code: string;
-    trdBranch?: number;
-    listAccess: ExternalLoginListAccessItem[];
-    listBranches: ExternalLoginListBranchItem[];
+    mainBranch: string;
+    isSuperAdmin: number;
+    isCustomer: number;
+    trdr: number;
 }
 
-export interface ExternalLoginResponse {
-    statusCode: number;
-    message: string;
-    detailedMessage: string;
-    userAccount?: ExternalLoginUserAccount;
+export interface AuthPermissionEntry {
+    code: string;
+    rights: number;
 }
 
-/**
- * Matches ToastMessage.cs — the JSON shape the login API returns.
- */
-export interface ToastMessage {
+export interface AuthPermissions {
+    modules: AuthPermissionEntry[];
+    features: AuthPermissionEntry[];
+    branches: string[];
+}
+
+/** Response returned by the SoftOne login service. */
+export interface SoftOneLoginResponse {
+    success: boolean;
+    user?: AuthUser;
+    permissions?: AuthPermissions;
+    error?: string;
+}
+
+/** Response returned by the app's /api/auth/login route. */
+export interface LoginResponse {
     result: boolean;
     message: string;
-    type?: string;
-    exmessage?: string;
+    type?: "success" | "error";
     redirectlink?: string;
-    userAccount?: ExternalLoginUserAccount;
+    user?: AuthUser;
+    permissions?: AuthPermissions;
+}
+
+export function getAuthUserFullName(user: AuthUser | null | undefined) {
+    return [user?.fname, user?.lname]
+        .map((part) => String(part ?? "").trim())
+        .filter(Boolean)
+        .join(" ");
 }

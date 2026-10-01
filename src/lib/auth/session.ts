@@ -1,18 +1,20 @@
 import { cookies } from "next/headers";
 import { SESSION_COOKIE_NAME } from "./constants";
-const EXPIRATION_DAYS = 7;
+const REMEMBER_ME_EXPIRATION_DAYS = 7;
 
 /**
  * Set the auth session cookie.
  * Cookie presence is the only auth guard signal.
  */
-export async function setSessionCookie() {
+export async function setSessionCookie(rememberMe = false) {
     const cookieStore = await cookies();
     cookieStore.set(SESSION_COOKIE_NAME, "1", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: EXPIRATION_DAYS * 24 * 60 * 60,
+        ...(rememberMe
+            ? { maxAge: REMEMBER_ME_EXPIRATION_DAYS * 24 * 60 * 60 }
+            : {}),
         path: "/",
     });
 }

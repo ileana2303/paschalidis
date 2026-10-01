@@ -6,11 +6,13 @@ import { useAuthStore } from "@/stores/authStore";
 import { useLogoutMutation } from "@/hooks/queries/useAuthQueries";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { BookOpenText, ExternalLink } from "@/lib/icons/lucide";
+import { getAuthUserFullName } from "@/lib/auth/types";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
-  const setUser = useAuthStore((state) => state.setUser);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const fullName = getAuthUserFullName(user) || user?.username || "User";
   const logoutMutation = useLogoutMutation();
   function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
     e.stopPropagation();
@@ -26,7 +28,7 @@ export default function UserDropdown() {
         onClick={toggleDropdown}
         className="flex items-center text-gray-700 dark:text-gray-400 dropdown-toggle"
       >
-        <span className="block mr-1 font-medium text-theme-sm">{user?.fullName ?? "User"}</span>
+        <span className="block mr-1 font-medium text-theme-sm">{fullName}</span>
 
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
@@ -54,10 +56,10 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            {user?.fullName ?? "User"}
+            {fullName}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            {user?.email ?? ""}
+            {user?.username ?? ""}
           </span>
         </div>
 
@@ -109,7 +111,7 @@ export default function UserDropdown() {
             closeDropdown();
             logoutMutation.mutate(undefined, {
               onSettled: () => {
-                setUser(null);
+                clearAuth();
                 window.location.replace(`/auth/signin?logout=${Date.now()}`);
               },
             });
