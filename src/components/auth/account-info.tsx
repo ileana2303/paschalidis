@@ -144,7 +144,6 @@ export default function AccountInfo() {
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <DetailItem label="Username" value={profileData.usernameLabel} icon={<UserRound className="h-3.5 w-3.5" />} />
-          <DetailItem label="UID" value={profileData.uid} icon={<Shield className="h-3.5 w-3.5" />} />
           <DetailItem
             label="Total Branches"
             value={String(profileData.branches.length)}
