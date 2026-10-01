@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import SearchBar from "@/components/search/search-bar";
+import ResultsFilterInput from "@/components/search/results-filter-input";
 import type { IItem } from "@/lib/interface";
 import { Check, GitCompareArrows } from "@/lib/icons/lucide";
 import {
@@ -73,11 +74,43 @@ export default function SearchSetSimilarClient() {
     const [updatingMtrl, setUpdatingMtrl] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [textFilter, setTextFilter] = useState("");
+    const [rightTextFilter, setRightTextFilter] = useState("");
     const { mutateAsync: searchLeftItems, isPending: isSearchingLeft } =
         useSearchItemsMutation();
     const { mutateAsync: searchRightItems, isPending: isSearchingRight } =
         useSearchItemsMutation();
     const { mutateAsync: setSimilarItem } = useSetSimilarItemMutation();
+
+    const normalizedTextFilter = textFilter.trim().toLocaleLowerCase("el-GR");
+    const filteredLeftItems = useMemo(() => {
+        if (!normalizedTextFilter) {
+            return leftItems;
+        }
+
+        return leftItems.filter((item) =>
+            [item.ITEM_CODE, item.ITEM_DESCR, item.MNF_DESCR].some((field) =>
+                value(field).toLocaleLowerCase("el-GR").includes(normalizedTextFilter)
+            )
+        );
+    }, [leftItems, normalizedTextFilter]);
+
+    const normalizedRightTextFilter = rightTextFilter
+        .trim()
+        .toLocaleLowerCase("el-GR");
+    const filteredRightItems = useMemo(() => {
+        if (!normalizedRightTextFilter) {
+            return rightItems;
+        }
+
+        return rightItems.filter((item) =>
+            [item.ITEM_CODE, item.ITEM_DESCR, item.MNF_DESCR].some((field) =>
+                value(field)
+                    .toLocaleLowerCase("el-GR")
+                    .includes(normalizedRightTextFilter)
+            )
+        );
+    }, [rightItems, normalizedRightTextFilter]);
 
     const runSearch = async (side: SearchSide) => {
         const term = (side === "left" ? leftSearch : rightSearch).trim();
@@ -96,8 +129,10 @@ export default function SearchSetSimilarClient() {
             if (side === "left") {
                 setLeftItems(rows);
                 setSelectedLeft(null);
+                setTextFilter("");
             } else {
                 setRightItems(rows);
+                setRightTextFilter("");
             }
 
             if (!result.success) {
@@ -114,6 +149,7 @@ export default function SearchSetSimilarClient() {
                 setSelectedLeft(null);
             } else {
                 setRightItems([]);
+                setRightTextFilter("");
             }
         }
     };
@@ -222,6 +258,7 @@ export default function SearchSetSimilarClient() {
                                 setLeftSearch("");
                                 setLeftItems([]);
                                 setSelectedLeft(null);
+                                setTextFilter("");
                                 setHasSearchedSide("left", false);
                             }}
                             placeholder="Κωδικός, όνομα ή περιγραφή..."
@@ -230,42 +267,66 @@ export default function SearchSetSimilarClient() {
                         />
                     </header>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                         {emptyMessage("left", leftItems.length) ? (
                             <div className="flex h-full min-h-48 items-center justify-center px-6 text-center text-sm text-gray-500">
                                 {emptyMessage("left", leftItems.length)}
                             </div>
                         ) : (
-                            <div className="grid gap-3 xl:grid-cols-2">
-                                {leftItems.map((item, index) => {
-                                    const itemKey = `${value(item.MTRL)}-${index}`;
-                                    const selected =
-                                        value(selectedLeft?.MTRL) === value(item.MTRL);
-                                    return (
-                                        <button
-                                            key={itemKey}
-                                            type="button"
-                                            onClick={() => {
-                                                setSelectedLeft(item);
-                                                setError("");
-                                                setSuccess("");
-                                            }}
-                                            className={`relative rounded-xl border p-4 text-left transition ${
-                                                selected
-                                                    ? "border-brand-500 bg-brand-50/60 ring-2 ring-brand-500/15 dark:bg-brand-950/20"
-                                                    : "border-gray-200 hover:border-brand-300 hover:shadow-sm dark:border-gray-800"
-                                            }`}
-                                        >
-                                            {selected && (
-                                                <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500 text-white">
-                                                    <Check className="h-4 w-4" />
-                                                </span>
-                                            )}
-                                            <ItemDetails item={item} />
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            <>
+                                <div className="z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-gray-100 bg-white px-4 py-2 dark:border-gray-800 dark:bg-[#0f172a]">
+                                    <p className="truncate text-sm text-gray-500">
+                                        {normalizedTextFilter
+                                            ? `Βρέθηκαν ${filteredLeftItems.length} αποτελέσματα`
+                                            : `Βρέθηκαν ${leftItems.length} αποτελέσματα`}
+                                    </p>
+
+                                    <ResultsFilterInput
+                                        value={textFilter}
+                                        onChange={setTextFilter}
+                                        ariaLabel="Φιλτράρισμα πρώτων αποτελεσμάτων"
+                                    />
+                                </div>
+
+                                <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2">
+                                    {filteredLeftItems.length === 0 ? (
+                                        <div className="flex min-h-48 items-center justify-center px-6 text-center text-sm text-gray-500">
+                                            Δεν βρέθηκαν ανταλλακτικά με το επιλεγμένο φίλτρο.
+                                        </div>
+                                    ) : (
+                                        <div className="grid gap-3 xl:grid-cols-2">
+                                            {filteredLeftItems.map((item, index) => {
+                                                const itemKey = `${value(item.MTRL)}-${index}`;
+                                                const selected =
+                                                    value(selectedLeft?.MTRL) === value(item.MTRL);
+                                                return (
+                                                    <button
+                                                        key={itemKey}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedLeft(item);
+                                                            setError("");
+                                                            setSuccess("");
+                                                        }}
+                                                        className={`relative rounded-xl border p-4 text-left transition ${
+                                                            selected
+                                                                ? "border-brand-500 bg-brand-50/60 ring-2 ring-brand-500/15 dark:bg-brand-950/20"
+                                                                : "border-gray-200 hover:border-brand-300 hover:shadow-sm dark:border-gray-800"
+                                                        }`}
+                                                    >
+                                                        {selected && (
+                                                            <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500 text-white">
+                                                                <Check className="h-4 w-4" />
+                                                            </span>
+                                                        )}
+                                                        <ItemDetails item={item} />
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         )}
                     </div>
                 </section>
@@ -276,9 +337,34 @@ export default function SearchSetSimilarClient() {
                             <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">
                                 2. Όμοιο προϊόν
                             </p>
-                            <h2 className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
-                                Βρείτε το προϊόν αντιστοίχισης
-                            </h2>
+                            <div className="mt-1 flex min-w-0 items-center justify-between gap-3">
+                                <h2 className="min-w-0 truncate text-base font-semibold text-gray-900 dark:text-white xl:text-lg">
+                                    Βρείτε το προϊόν αντιστοίχισης
+                                </h2>
+                                <span
+                                    title={
+                                        selectedLeft
+                                            ? `Ενημέρωση: ${value(selectedLeft.ITEM_CODE)}`
+                                            : "Επιλέξτε πρώτα ένα προϊόν από αριστερά."
+                                    }
+                                    className={`inline-flex max-w-[46%] shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+                                        selectedLeft
+                                            ? "border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300"
+                                            : "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                                    }`}
+                                >
+                                    <span
+                                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                                            selectedLeft ? "bg-brand-500" : "bg-gray-400"
+                                        }`}
+                                    />
+                                    <span className="truncate">
+                                        {selectedLeft
+                                            ? `Ενημέρωση · ${value(selectedLeft.ITEM_CODE)}`
+                                            : "Αναμονή επιλογής"}
+                                    </span>
+                                </span>
+                            </div>
                         </div>
                         <SearchBar
                             value={rightSearch}
@@ -287,58 +373,78 @@ export default function SearchSetSimilarClient() {
                             onClear={() => {
                                 setRightSearch("");
                                 setRightItems([]);
+                                setRightTextFilter("");
                                 setHasSearchedSide("right", false);
                             }}
                             placeholder="Αναζήτηση ομοίου..."
                             loading={loadingSide === "right"}
                             clearOnFocus={false}
                         />
-                        <p className="mt-3 text-xs text-gray-500">
-                            {selectedLeft
-                                ? `Ενημέρωση: ${value(selectedLeft.ITEM_CODE)}`
-                                : "Επιλέξτε πρώτα ένα προϊόν από αριστερά."}
-                        </p>
                     </header>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                         {emptyMessage("right", rightItems.length) ? (
                             <div className="flex h-full min-h-48 items-center justify-center px-6 text-center text-sm text-gray-500">
                                 {emptyMessage("right", rightItems.length)}
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                {rightItems.map((item, index) => {
-                                    const isUpdating =
-                                        updatingMtrl === value(item.MTRL);
-                                    const cannotAssign =
-                                        !selectedLeft ||
-                                        !value(item.CODE1_0) ||
-                                        Boolean(updatingMtrl);
-                                    return (
-                                        <article
-                                            key={`${value(item.MTRL)}-${index}`}
-                                            className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"
-                                        >
-                                            <ItemDetails item={item} />
-                                            <button
-                                                type="button"
-                                                onClick={() => void assignSimilarCode(item)}
-                                                disabled={cannotAssign}
-                                                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-700"
-                                            >
-                                                {isUpdating ? (
-                                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                                ) : (
-                                                    <GitCompareArrows className="h-4 w-4" />
-                                                )}
-                                                {isUpdating
-                                                    ? "Ενημέρωση..."
-                                                    : "Αντιστοίχιση CODE1"}
-                                            </button>
-                                        </article>
-                                    );
-                                })}
-                            </div>
+                            <>
+                                <div className="z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-gray-100 bg-white px-4 py-2 dark:border-gray-800 dark:bg-[#0f172a]">
+                                    <p className="truncate text-sm text-gray-500">
+                                        {normalizedRightTextFilter
+                                            ? `Βρέθηκαν ${filteredRightItems.length} αποτελέσματα`
+                                            : `Βρέθηκαν ${rightItems.length} αποτελέσματα`}
+                                    </p>
+
+                                    <ResultsFilterInput
+                                        value={rightTextFilter}
+                                        onChange={setRightTextFilter}
+                                        ariaLabel="Φιλτράρισμα αποτελεσμάτων ομοίων"
+                                    />
+                                </div>
+
+                                <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2">
+                                    {filteredRightItems.length === 0 ? (
+                                        <div className="flex min-h-48 items-center justify-center px-6 text-center text-sm text-gray-500">
+                                            Δεν βρέθηκαν ανταλλακτικά με το επιλεγμένο φίλτρο.
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {filteredRightItems.map((item, index) => {
+                                                const isUpdating =
+                                                    updatingMtrl === value(item.MTRL);
+                                                const cannotAssign =
+                                                    !selectedLeft ||
+                                                    !value(item.CODE1_0) ||
+                                                    Boolean(updatingMtrl);
+                                                return (
+                                                    <article
+                                                        key={`${value(item.MTRL)}-${index}`}
+                                                        className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+                                                    >
+                                                        <ItemDetails item={item} />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => void assignSimilarCode(item)}
+                                                            disabled={cannotAssign}
+                                                            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-700"
+                                                        >
+                                                            {isUpdating ? (
+                                                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                                            ) : (
+                                                                <GitCompareArrows className="h-4 w-4" />
+                                                            )}
+                                                            {isUpdating
+                                                                ? "Ενημέρωση..."
+                                                                : "Αντιστοίχιση CODE1"}
+                                                        </button>
+                                                    </article>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         )}
                     </div>
                 </section>
