@@ -1,6 +1,4 @@
 import {
-    ChevronDown,
-    GitCompareArrows,
     ListChevronsDownUp,
     ListChevronsUpDown,
     PanelRightClose,
@@ -13,6 +11,7 @@ import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import PartResults from "@/components/parts/part-card";
 import Checkbox from "@/components/template-components/form/input/Checkbox";
 import ResultsFilterInput from "@/components/search/results-filter-input";
+import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { useMemo, useState, type RefObject, type UIEvent } from "react";
 
 interface PartsResultsLayoutProps {
@@ -155,6 +154,7 @@ export default function PartsResultsContainer({
 
     const [textFilter, setTextFilter] = useState("");
     const [statusFilterSelection, setStatusFilterSelection] = useState<Set<string> | null>(null);
+    const [isResultsActionsOpen, setIsResultsActionsOpen] = useState(false);
 
     const availableStatusLabels = useMemo(() => {
         const labels = new Set<string>();
@@ -244,7 +244,7 @@ export default function PartsResultsContainer({
                     <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
 
                         {items.length > 0 && (
-                            <div className="sticky top-0 z-10 mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">
+                            <div className="sticky top-0 z-30 mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">
                                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                                     <p className="truncate text-sm text-gray-500">
                                         {hasActiveFilters
@@ -290,61 +290,89 @@ export default function PartsResultsContainer({
                                     )}
                                 </div>
 
-                                <div className="flex shrink-0 items-center gap-2">
-                                    {stockRequestCardsVisible && (
-                                        <button
-                                            type="button"
-                                            onClick={onToggleAllEndoSources}
-                                            aria-expanded={areAllEndoSourcesOpen}
-                                            aria-label={
-                                                areAllEndoSourcesOpen
-                                                    ? "Κλείσιμο όλων των πηγών ενδοδιακίνησης"
-                                                    : "Άνοιγμα όλων των πηγών ενδοδιακίνησης"
-                                            }
-                                            title={
-                                                areAllEndoSourcesOpen
-                                                    ? "Κλείσιμο όλων των πηγών ενδοδιακίνησης"
-                                                    : "Άνοιγμα όλων των πηγών ενδοδιακίνησης"
-                                            }
-                                            className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${
-                                                areAllEndoSourcesOpen
-                                                    ? "bg-brand-500 text-white hover:bg-brand-600"
-                                                    : "border border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
-                                            }`}
-                                        >
-                                            <GitCompareArrows className="h-3.5 w-3.5" />
-                                            <ChevronDown
-                                                className={`h-3.5 w-3.5 transition-transform duration-200 ${areAllEndoSourcesOpen ? "rotate-180" : ""}`}
-                                            />
-                                        </button>
-                                    )}
-
+                                <div className="relative flex shrink-0 items-center">
                                     <button
                                         type="button"
-                                        onClick={onToggleStockRequestCardsVisibility}
-                                        aria-pressed={stockRequestCardsVisible}
+                                        onClick={() => {
+                                            if (!stockRequestCardsVisible) {
+                                                onToggleStockRequestCardsVisibility();
+                                                setIsResultsActionsOpen(false);
+                                                return;
+                                            }
+
+                                            setIsResultsActionsOpen((isOpen) => !isOpen);
+                                        }}
+                                        aria-haspopup={stockRequestCardsVisible ? "menu" : undefined}
+                                        aria-expanded={stockRequestCardsVisible ? isResultsActionsOpen : undefined}
                                         aria-label={
                                             stockRequestCardsVisible
-                                                ? "Απόκρυψη καρτών ανατροφοδοσίας"
+                                                ? "Επιλογές προβολής αποτελεσμάτων"
                                                 : "Προβολή καρτών ανατροφοδοσίας"
                                         }
                                         title={
                                             stockRequestCardsVisible
-                                                ? "Απόκρυψη καρτών ανατροφοδοσίας"
+                                                ? "Επιλογές προβολής αποτελεσμάτων"
                                                 : "Προβολή καρτών ανατροφοδοσίας"
                                         }
-                                        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${
-                                            stockRequestCardsVisible
-                                                ? "bg-brand-500 text-white hover:bg-brand-600"
-                                                : "border border-gray-200 bg-white text-gray-600 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
-                                        }`}
+                                        className="dropdown-toggle inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
                                     >
                                         {stockRequestCardsVisible ? (
-                                            <PanelRightClose className="h-3.5 w-3.5" />
+                                            <>
+                                                <ListChevronsDownUp className="h-4 w-4" />
+
+                                            </>
                                         ) : (
                                             <PanelRightOpen className="h-3.5 w-3.5" />
                                         )}
                                     </button>
+
+                                    <Dropdown
+                                        isOpen={stockRequestCardsVisible && isResultsActionsOpen}
+                                        onClose={() => setIsResultsActionsOpen(false)}
+                                        className="right-0 top-full z-50 mt-2 w-72 p-1.5"
+                                    >
+                                        <div role="menu" aria-label="Επιλογές προβολής αποτελεσμάτων">
+                                            
+                                            <button
+                                                type="button"
+                                                role="menuitem"
+                                                onClick={() => {
+                                                    onToggleAllEndoSources();
+                                                    setIsResultsActionsOpen(false);
+                                                }}
+                                                className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-gray-100 dark:hover:bg-white/[0.05]"
+                                            >
+                                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                                    <ListChevronsDownUp className="h-4 w-4" />
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                        {areAllEndoSourcesOpen
+                                                            ? "Απόκρυψη Ενδοδιακίνησης"
+                                                            : "Εμφάνιση Ενδοδιακίνησης"}
+                                                    </span>
+                                                </span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                role="menuitem"
+                                                onClick={() => {
+                                                    onToggleStockRequestCardsVisibility();
+                                                    setIsResultsActionsOpen(false);
+                                                }}
+                                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-gray-100 dark:hover:bg-white/[0.05]"
+                                            >
+                                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                                    <PanelRightClose className="h-4 w-4" />
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                        Απόκρυψη καρτών
+                                                    </span>
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </Dropdown>
                                 </div>
                             </div>
                         )}
