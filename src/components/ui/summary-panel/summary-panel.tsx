@@ -22,6 +22,7 @@ export interface SummaryPanelProps {
     collapsedLabel?: string;
     collapseTitle?: string;
     asideClassName?: string;
+    panelClassName?: string;
     contentClassName?: string;
 }
 
@@ -87,6 +88,7 @@ export default function SummaryPanel({
     collapsedLabel = "Εμφάνιση σύνοψης",
     collapseTitle = "Απόκρυψη σύνοψης",
     asideClassName = "",
+    panelClassName = "bg-white",
     contentClassName = "",
 }: SummaryPanelProps) {
     if (collapsible && collapsed) {
@@ -123,7 +125,7 @@ export default function SummaryPanel({
                 asideClassName,
             ].join(" ")}
         >
-            <div className="flex h-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className={`flex h-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-gray-200 ${panelClassName} dark:border-gray-800 dark:bg-white/[0.03]`}>
                 <div className="shrink-0 border-b border-gray-100 px-5 py-5 dark:border-gray-800">
                     <div className="flex min-w-0 items-start justify-between gap-3">
                         {href ? (

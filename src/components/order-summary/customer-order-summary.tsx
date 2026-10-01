@@ -251,6 +251,7 @@ export default function CustomerOrderSummary({
             collapsed={collapsed}
             onToggleCollapse={onToggleCollapse}
             collapseTitle="Απόκρυψη καλαθιού"
+            panelClassName="bg-[#FCFDFE]"
             footer={
                 onSendOrder ? (
                     <SummaryPrimaryAction

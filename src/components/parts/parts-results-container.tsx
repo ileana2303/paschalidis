@@ -320,7 +320,6 @@ export default function PartsResultsContainer({
                                             }`}
                                         >
                                             <GitCompareArrows className="h-3.5 w-3.5" />
-                                            <span className="hidden sm:inline">Πηγές</span>
                                             <ChevronDown
                                                 className={`h-3.5 w-3.5 transition-transform duration-200 ${areAllEndoSourcesOpen ? "rotate-180" : ""}`}
                                             />

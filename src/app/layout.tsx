@@ -14,7 +14,7 @@ export default function RootLayout({
     <html lang="el-GR" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className="dark:bg-gray-900"
+        className="bg-white dark:bg-gray-900"
       >
         <QueryProvider>
           <ThemeProvider>
