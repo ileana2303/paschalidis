@@ -36,6 +36,7 @@ interface PartsResultsStateProps {
     expandedItems: Set<string>;
     getExpandedItemKey: (item: IItem) => string;
     toggleExpanded: (itemKey: string) => void;
+    onOpenPartInsights: (item: IItem) => void;
 }
 
 interface PartsResultsEndoProps {
@@ -115,6 +116,7 @@ export default function PartsResultsContainer({
         expandedItems,
         getExpandedItemKey,
         toggleExpanded,
+        onOpenPartInsights,
     } = results;
 
     const {
@@ -443,6 +445,7 @@ export default function PartsResultsContainer({
                                             onStoreOrderQuantityChange(mtrlKey, nextQuantity)
                                         }
                                         onSubmitStockRequest={() => onSubmitStockRequest(item)}
+                                        onOpenInsights={() => onOpenPartInsights(item)}
                                         formatPrice={formatPrice}
                                         endoRequest={{
                                             isOpen: isEndoOpen,

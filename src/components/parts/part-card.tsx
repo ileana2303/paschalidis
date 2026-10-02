@@ -1,4 +1,4 @@
-import { BadgePercent, ChevronDown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
+import { BadgePercent, ChartColumn, ChevronDown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
 import { getBranchColor } from "@/lib/branch-colors";
 import { getStockBranchOrder } from "@/lib/auth/branches";
 import {
@@ -86,6 +86,7 @@ interface PartResultsProps {
     onRequestPrice: () => void;
     onStoreOrderQuantityChange: (nextQuantity: number) => void;
     onSubmitStockRequest: () => void;
+    onOpenInsights: () => void;
     formatPrice: (price: number | string | null | undefined) => string;
     endoRequest: PartEndoRequestProps;
 }
@@ -115,6 +116,7 @@ export default function PartResults({
     onRequestPrice,
     onStoreOrderQuantityChange,
     onSubmitStockRequest,
+    onOpenInsights,
     formatPrice,
     endoRequest,
 }: PartResultsProps) {
@@ -281,8 +283,39 @@ export default function PartResults({
                 </button>
 
                 <div className="p-4">
-                    {hasCustomer && (
-                        <div className="grid min-w-0 gap-2 lg:justify-items-end">
+                    <div className="flex min-w-0 flex-col gap-2.5 md:flex-row md:items-start md:justify-between">
+                        <div className="grid w-full max-w-[300px] shrink-0 gap-2">
+                            <button
+                                type="button"
+                                onClick={onOpenInsights}
+                                disabled={!hasCustomer}
+                                title={hasCustomer ? "Προβολή ιστορικού και ανταγωνισμού" : "Επιλέξτε πρώτα πελάτη"}
+                                aria-label="Προβολή ιστορικού αγορών και ανταγωνισμού"
+                                className="group inline-flex h-9 w-full items-center gap-2 rounded-lg border border-gray-200 bg-white p-1 pr-3 text-xs font-semibold text-gray-700 shadow-xs transition-all hover:-translate-y-px hover:border-brand-300 hover:text-brand-700 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:shadow-none disabled:hover:translate-y-0 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-brand-500/60 dark:hover:text-brand-300 dark:disabled:border-gray-800 dark:disabled:bg-white/[0.02] dark:disabled:text-gray-600"
+                            >
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-100 dark:bg-brand-500/15 dark:text-brand-400 dark:group-hover:bg-brand-500/25 group-disabled:bg-gray-100 group-disabled:text-gray-400 dark:group-disabled:bg-gray-800 dark:group-disabled:text-gray-600">
+                                    <ChartColumn className="h-4 w-4" />
+                                </span>
+                                <span className="whitespace-nowrap">Ιστορικό &amp; Ανταγωνισμός</span>
+                            </button>
+
+                            {basketItem && (
+                                <RequestPriceBox
+                                    status={requestStatus}
+                                    hasPriceRequest={hasPriceRequest}
+                                    hasRequestedPrice={hasRequestedPrice}
+                                    requestedPrice={requestedPrice}
+                                    value={requestedPriceValue}
+                                    onChange={onRequestedPriceValueChange}
+                                    onSubmit={onRequestPrice}
+                                    submitting={isSubmittingRequestPrice}
+                                    formatPrice={(price) => formatPrice(price)}
+                                    stableWidth
+                                />
+                            )}
+                        </div>
+
+                        {hasCustomer && (
                             <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 lg:justify-end">
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -325,25 +358,10 @@ export default function PartResults({
                                     <span>{basketActionLabel}</span>
                                 </button>
                             </div>
+                        )}
+                    </div>
 
-                            {basketItem && (
-                                <RequestPriceBox
-                                    status={requestStatus}
-                                    hasPriceRequest={hasPriceRequest}
-                                    hasRequestedPrice={hasRequestedPrice}
-                                    requestedPrice={requestedPrice}
-                                    value={requestedPriceValue}
-                                    onChange={onRequestedPriceValueChange}
-                                    onSubmit={onRequestPrice}
-                                    submitting={isSubmittingRequestPrice}
-                                    formatPrice={(price) => formatPrice(price)}
-                                    stableWidth
-                                />
-                            )}
-                        </div>
-                    )}
-
-                    <div className={`flex w-full flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-1.5 text-left dark:border-gray-800 dark:bg-white/[0.02] ${hasCustomer ? "mt-2.5" : ""}`}>
+                    <div className="mt-2.5 flex w-full flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-1.5 text-left dark:border-gray-800 dark:bg-white/[0.02]">
                         {myStockBranchCode && (
                             <span className="flex min-w-0 items-baseline gap-1.5">
                                 <span

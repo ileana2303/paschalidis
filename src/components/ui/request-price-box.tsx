@@ -81,22 +81,22 @@ export default function RequestPriceBox({
             ? "flex w-full flex-wrap items-center justify-between gap-2"
             : [
                 stableWidth
-                    ? "flex w-[300px] max-w-full flex-nowrap items-center justify-between gap-2 rounded-lg border px-2 py-2"
-                    : "flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border px-2 py-2 lg:w-auto",
+                    ? "flex h-9 w-[300px] max-w-full flex-nowrap items-center gap-1.5 rounded-lg border py-1 pl-2 pr-1"
+                    : "flex min-h-9 w-full flex-wrap items-center justify-between gap-1.5 rounded-lg border p-1.5 lg:w-auto",
                 boxClassName,
             ].join(" ");
-    const inputWidthClassName = "w-24";
+    const inputWidthClassName = stableWidth ? "w-[4.75rem]" : "w-24";
 
     return (
         <div className={[
             rootClassName,
             className,
         ].join(" ")}>
-            <div className="flex min-w-0 flex-wrap items-center justify-start gap-2">
-                <div className={`flex items-center gap-1.5 text-xs font-semibold ${textClassName}`}>
-                    <BadgePercent className="h-3.5 w-3.5" />
+            <div className="flex min-w-0 items-center justify-start gap-1.5 whitespace-nowrap">
+                <div className={`flex min-w-0 items-center gap-1.5 text-xs font-semibold ${textClassName}`}>
+                    <BadgePercent className="h-3.5 w-3.5 shrink-0" />
                     {(displayRequestedPrice || showRequestLabel) && (
-                        <span>
+                        <span className="truncate">
                             {displayRequestedPrice ? "Ζητ. τιμή" : "Αίτημα τιμής"}
                         </span>
                     )}
@@ -109,28 +109,44 @@ export default function RequestPriceBox({
                 )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-                <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={value}
-                    onChange={(event) => onChange(event.target.value)}
-                    onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                            void onSubmit();
-                        }
-                    }}
-                    placeholder="Νέα τιμή..."
-                    className={`h-8 ${inputWidthClassName} rounded-md border bg-white px-2 text-sm text-gray-800 outline-none focus:ring-1 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${inputClassName}`}
-                />
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+                <div className="relative">
+                    <input
+                        type="text"
+                        inputMode="decimal"
+                        value={value}
+                        onChange={(event) => {
+                            const nextValue = event.target.value;
+                            if (nextValue === "" || /^\d*(?:[.,]\d{0,2})?$/.test(nextValue)) {
+                                onChange(nextValue);
+                            }
+                        }}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter" && !submitDisabled) {
+                                event.preventDefault();
+                                void onSubmit();
+                            }
+                        }}
+                        disabled={submitting}
+                        aria-label="Νέα ζητούμενη τιμή"
+                        placeholder="Τιμή"
+                        className={`h-7 ${inputWidthClassName} rounded-md border bg-white py-1 pl-2 pr-5 text-right text-sm text-gray-800 outline-none transition-colors placeholder:text-gray-400 focus:ring-1 disabled:cursor-wait disabled:opacity-60 dark:bg-gray-900 dark:text-white ${inputClassName}`}
+                    />
+                    <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs font-medium text-gray-400"
+                    >
+                        €
+                    </span>
+                </div>
 
                 <button
                     type="button"
                     onClick={() => void onSubmit()}
                     disabled={submitDisabled}
                     aria-label="Υποβολή αιτήματος τιμής"
-                    className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${buttonClassName}`}
+                    title={submitDisabled && !submitting ? "Συμπληρώστε έγκυρη τιμή" : "Αποστολή αιτήματος"}
+                    className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40 ${buttonClassName}`}
                 >
                     {submitting ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -8,17 +8,28 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSearchPartsStore } from "@/stores/searchPartsStore";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useAuthStore } from "@/stores/authStore";
-import type { ICustomerInfo } from "@/lib/interface";
+import type { ICustomerInfo, IItem } from "@/lib/interface";
 import CustomerInfoContainer from "@/components/customer/customer-info-container";
 import PartsSearchModal from "@/components/search/parts-search-modal";
 import CustomerSearchModal from "@/components/search/customer-search-modal";
 import SearchBar from "@/components/search/search-bar";
 import PartsResultsContainer from "@/components/parts/parts-results-container";
+import PartInsightsModal, {
+    type InsightSectionState,
+} from "@/components/parts/part-insights-modal";
 import CustomerOrderSummary from "@/components/order-summary/customer-order-summary";
-import { useFetchCustomerByTrdrMutation } from "@/hooks/queries/useApiMutations";
+import {
+    useFetchCustomerByTrdrMutation,
+    useFetchPartCompetitionSalesMutation,
+    useFetchPartLastOrdersMutation,
+} from "@/hooks/queries/useApiMutations";
 import { useSearchPartsBasketController } from "@/hooks/search-parts/use-search-parts-basket-controller";
 import { useSearchPartsResultsController } from "@/hooks/search-parts/use-search-parts-results-controller";
 import { useSearchPartsPageController } from "@/hooks/search-parts/use-search-parts-page-controller";
+import type {
+    CompetitionSalesResponse,
+    LastOrdersResponse,
+} from "@/lib/part-insights";
 
 export default function SearchPartsClient() {
     const hasMounted = true;
@@ -48,10 +59,21 @@ export default function SearchPartsClient() {
     const pendingScopedNavigationRef = useRef(false);
     const lastUrlPartSearchRef = useRef<string | null>(null);
     const customerHydrationAttemptedRef = useRef<Set<string>>(new Set());
+    const partInsightsRequestIdRef = useRef(0);
     const { mutateAsync: fetchCustomerByTrdr } = useFetchCustomerByTrdrMutation();
+    const { mutateAsync: fetchPartLastOrders } = useFetchPartLastOrdersMutation();
+    const { mutateAsync: fetchPartCompetitionSales } =
+        useFetchPartCompetitionSalesMutation();
     const [storesReady, setStoresReady] = useState(false);
     const [orderConfirmOpen, setOrderConfirmOpen] = useState(false);
     const [pendingPriceRequestCount, setPendingPriceRequestCount] = useState(0);
+    const [partInsightsItem, setPartInsightsItem] = useState<IItem | null>(null);
+    const [lastOrdersState, setLastOrdersState] = useState<
+        InsightSectionState<LastOrdersResponse>
+    >({ loading: false, error: "", data: null });
+    const [competitionState, setCompetitionState] = useState<
+        InsightSectionState<CompetitionSalesResponse>
+    >({ loading: false, error: "", data: null });
 
     const pageController = useSearchPartsPageController({
         customer,
@@ -99,6 +121,63 @@ export default function SearchPartsClient() {
         searchItems: items,
     });
     const handleUpdateQty = basketController.handleUpdateQty;
+
+    const handleOpenPartInsights = useCallback((item: IItem) => {
+        const trdr = String(customer?.TRDR ?? "").trim();
+        const mtrl = String(item.MTRL ?? "").trim();
+
+        if (!trdr || !mtrl) {
+            return;
+        }
+
+        const requestId = ++partInsightsRequestIdRef.current;
+        const payload = { trdr, mtrl };
+
+        setPartInsightsItem(item);
+        setLastOrdersState({ loading: true, error: "", data: null });
+        setCompetitionState({ loading: true, error: "", data: null });
+
+        void fetchPartLastOrders(payload)
+            .then((data) => {
+                if (partInsightsRequestIdRef.current === requestId) {
+                    setLastOrdersState({ loading: false, error: "", data });
+                }
+            })
+            .catch((error: unknown) => {
+                if (partInsightsRequestIdRef.current === requestId) {
+                    setLastOrdersState({
+                        loading: false,
+                        error: error instanceof Error
+                            ? error.message
+                            : "Αποτυχία φόρτωσης των προηγούμενων αγορών.",
+                        data: null,
+                    });
+                }
+            });
+
+        void fetchPartCompetitionSales(payload)
+            .then((data) => {
+                if (partInsightsRequestIdRef.current === requestId) {
+                    setCompetitionState({ loading: false, error: "", data });
+                }
+            })
+            .catch((error: unknown) => {
+                if (partInsightsRequestIdRef.current === requestId) {
+                    setCompetitionState({
+                        loading: false,
+                        error: error instanceof Error
+                            ? error.message
+                            : "Αποτυχία φόρτωσης των στοιχείων ανταγωνισμού.",
+                        data: null,
+                    });
+                }
+            });
+    }, [customer?.TRDR, fetchPartCompetitionSales, fetchPartLastOrders]);
+
+    const handleClosePartInsights = useCallback(() => {
+        partInsightsRequestIdRef.current += 1;
+        setPartInsightsItem(null);
+    }, []);
 
     const resetScopedSearchState = resultsController.resetScopedResultsState;
     const prepareResultsForSearch = resultsController.prepareForSearch;
@@ -448,6 +527,7 @@ export default function SearchPartsClient() {
                                 expandedItems: resultsController.expandedItems,
                                 getExpandedItemKey: resultsController.getExpandedItemKey,
                                 toggleExpanded: resultsController.toggleExpanded,
+                                onOpenPartInsights: handleOpenPartInsights,
                             }}
                             endo={{
                                 openEndoItemKeys: resultsController.openEndoItemKeys,
@@ -562,6 +642,15 @@ export default function SearchPartsClient() {
                 results={customerResults}
                 hasSearched={customerModalHasSearched}
                 onSelectCustomer={handleCustomerSelect}
+            />
+
+            <PartInsightsModal
+                isOpen={partInsightsItem != null}
+                onClose={handleClosePartInsights}
+                item={partInsightsItem}
+                customer={customer}
+                lastOrders={lastOrdersState}
+                competition={competitionState}
             />
 
             <Modal

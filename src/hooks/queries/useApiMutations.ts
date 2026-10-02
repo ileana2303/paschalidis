@@ -44,6 +44,8 @@ import { fetchCustomerByTrdr, searchCustomers } from "@/lib/api-client/customers
 import {
     fetchStockFeedback,
     fetchStockRequests,
+    fetchPartCompetitionSales,
+    fetchPartLastOrders,
     fetchEditableItem,
     requestStockQuantity,
     searchItems,
@@ -53,6 +55,7 @@ import {
     updateEditableItem,
     updateStockRequest,
 } from "@/lib/api-client/items";
+import type { PartInsightsRoutePayload } from "@/lib/part-insights";
 
 export const useSearchCustomersMutation = () =>
     useMutation({
@@ -74,6 +77,18 @@ export const useSearchItemsByTrdrMutation = () =>
     useMutation({
         mutationFn: ({ search, trdr }: { search: string; trdr: string }) =>
             searchItemsByTrdr(search, trdr),
+    });
+
+export const useFetchPartLastOrdersMutation = () =>
+    useMutation({
+        mutationFn: (payload: PartInsightsRoutePayload) =>
+            fetchPartLastOrders(payload),
+    });
+
+export const useFetchPartCompetitionSalesMutation = () =>
+    useMutation({
+        mutationFn: (payload: PartInsightsRoutePayload) =>
+            fetchPartCompetitionSales(payload),
     });
 
 export const useFetchEditableItemMutation = () =>

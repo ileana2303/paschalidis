@@ -20,6 +20,13 @@ import {
 } from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
 import type { AnatrofOrderRequestBody } from "@/lib/orders/anatrof/submit-anatrof-order";
+import axios from "axios";
+import type {
+    CompetitionSalesResponse,
+    LastOrdersResponse,
+    PartInsightsResponse,
+    PartInsightsRoutePayload,
+} from "@/lib/part-insights";
 
 // PAYMENT / TRUCKS / SHIPKIND / SOCASH / SERIES are decided server-side in
 // lib/orders/anatrof/anatrof-constants.ts - the UI only sends who and what.
@@ -64,6 +71,56 @@ export async function searchItemsByTrdr(
         { search, trdr: Number(trdr) }
     );
     return data;
+}
+
+async function fetchPartInsights<TResponse extends PartInsightsResponse<unknown>>(
+    endpoint: string,
+    payload: PartInsightsRoutePayload,
+    fallbackMessage: string
+): Promise<TResponse> {
+    try {
+        const { data } = await httpClient.post<TResponse>(endpoint, payload);
+
+        if (!data?.success) {
+            throw new Error(data?.message?.trim() || fallbackMessage);
+        }
+
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            const message = (
+                error.response?.data as PartInsightsResponse<unknown> | undefined
+            )?.message;
+
+            throw new Error(
+                typeof message === "string" && message.trim()
+                    ? message
+                    : fallbackMessage
+            );
+        }
+
+        throw error;
+    }
+}
+
+export function fetchPartLastOrders(
+    payload: PartInsightsRoutePayload
+): Promise<LastOrdersResponse> {
+    return fetchPartInsights<LastOrdersResponse>(
+        "/api/items/last-orders",
+        payload,
+        "Αποτυχία φόρτωσης των προηγούμενων αγορών του πελάτη."
+    );
+}
+
+export function fetchPartCompetitionSales(
+    payload: PartInsightsRoutePayload
+): Promise<CompetitionSalesResponse> {
+    return fetchPartInsights<CompetitionSalesResponse>(
+        "/api/items/competition",
+        payload,
+        "Αποτυχία φόρτωσης των στοιχείων ανταγωνισμού."
+    );
 }
 
 export async function fetchEditableItem(
