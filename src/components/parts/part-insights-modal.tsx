@@ -57,9 +57,9 @@ interface InsightSectionProps {
 }
 
 const headerCellClassName =
-    "border-b border-gray-200 bg-gray-50 px-1 py-2 text-[9px] font-semibold uppercase leading-3 tracking-normal text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400 xl:px-1.5";
+    "border-b border-gray-200 bg-gray-50 px-1 py-2 text-[9px] font-semibold uppercase leading-3 tracking-normal text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400 lg:text-[10px] lg:leading-4 xl:px-1.5";
 const bodyCellClassName =
-    "border-b border-gray-100 px-1 py-2 align-top text-[11px] leading-4 text-gray-700 last:border-b-0 dark:border-gray-800 dark:text-gray-200 xl:px-1.5";
+    "border-b border-gray-100 px-1 py-2 align-top text-[11px] leading-4 text-gray-700 last:border-b-0 dark:border-gray-800 dark:text-gray-200 lg:text-xs lg:leading-5 xl:px-1.5";
 
 function text(value: unknown) {
     const normalized = String(value ?? "").trim();
@@ -138,7 +138,7 @@ function MatchTypePill({ value }: { value: unknown }) {
     return (
         <span
             title={label}
-            className={`inline-flex max-w-full items-center justify-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none ${getMatchTypeClassName(value)}`}
+            className={`inline-flex max-w-full items-center justify-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none lg:text-[10px] ${getMatchTypeClassName(value)}`}
         >
             <span className="truncate">{label}</span>
         </span>
@@ -168,7 +168,7 @@ function InsightSection({
                         <h3 className="font-semibold text-gray-900 dark:text-white">
                             {title}
                         </h3>
-                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 lg:text-sm">
                             {description}
                         </p>
                     </div>
@@ -248,7 +248,7 @@ function LastOrdersTable({ rows }: { rows: LastOrderRow[] }) {
                                     {text(row.ITEM_CODE)}
                                 </span>
                             </TableCell>
-                            <TableCell className={`${bodyCellClassName} break-words text-[10px] leading-[0.875rem]`}>
+                            <TableCell className={`${bodyCellClassName} break-words text-[10px] leading-[0.875rem] lg:text-[11px] lg:leading-4`}>
                                 <span className="line-clamp-3" title={text(row.ITEM_DESCR)}>
                                     {text(row.ITEM_DESCR)}
                                 </span>
@@ -315,7 +315,7 @@ function CompetitionTable({ rows }: { rows: CompetitionSaleRow[] }) {
                                     {text(row.ITEM_CODE)}
                                 </span>
                             </TableCell>
-                            <TableCell className={`${bodyCellClassName} break-words text-[10px] leading-[0.875rem]`}>
+                            <TableCell className={`${bodyCellClassName} break-words text-[10px] leading-[0.875rem] lg:text-[11px] lg:leading-4`}>
                                 <span className="line-clamp-3" title={text(row.ITEM_DESCR)}>
                                     {text(row.ITEM_DESCR)}
                                 </span>
@@ -334,7 +334,7 @@ function CompetitionTable({ rows }: { rows: CompetitionSaleRow[] }) {
                             <TableCell className={bodyCellClassName}>
                                 <span
                                     title={text(row.PEER_SCOPE)}
-                                    className="inline-block max-w-full truncate rounded-full bg-blue-light-50 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-blue-light-500 dark:bg-blue-light-500/15"
+                                    className="inline-block max-w-full truncate rounded-full bg-blue-light-50 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-blue-light-500 dark:bg-blue-light-500/15 lg:text-[10px]"
                                 >
                                     {text(row.PEER_SCOPE)}
                                 </span>
@@ -359,7 +359,11 @@ export default function PartInsightsModal({
     const competitionRows = sortInsightRows(competition.data?.rows ?? []);
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} className="m-4 max-w-[96vw]">
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            className="m-4 max-w-[96vw] xl:max-w-[1920px]"
+        >
             <div className="p-5 sm:p-7">
                 <header className="border-b border-gray-200 pb-5 pr-12 dark:border-gray-800">
                     <div className="flex items-center gap-2">
