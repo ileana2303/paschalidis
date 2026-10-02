@@ -173,8 +173,8 @@ export default function PartResults({
                 : "Προσθήκη";
 
     const basketActionClassName = isBasketActionMuted
-        ? "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3.5 text-xs font-semibold text-green-700 transition disabled:cursor-not-allowed disabled:opacity-70 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-300"
-        : "group inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3.5 text-xs font-semibold text-white shadow-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-40";
+        ? "group inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-green-200 bg-green-50 px-3.5 text-xs font-semibold text-green-700 transition disabled:cursor-not-allowed disabled:opacity-70 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-300"
+        : "group inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-brand-500 px-3.5 text-xs font-semibold text-white shadow-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-40";
     const orderedStockBranchCodes = getStockBranchOrder(currentBranchCode);
     const myStockBranchCode = STOCK_BRANCH_CODES.includes(
         currentBranchCode.trim() as StockBranchCode
@@ -209,20 +209,17 @@ export default function PartResults({
     return (
         <div className={`grid gap-2 ${showStockRequestCard ? "xl:grid-cols-[minmax(0,1fr)_228px]" : ""}`}>
 
-            <div
-                className={`overflow-hidden rounded-xl border shadow-sm transition ${isInBasket
-                    ? "border-green-400 bg-white hover:border-green-500 dark:border-green-600 dark:bg-white/[0.03] dark:hover:border-green-500"
-                    : "border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-                    }`}
-            >
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition dark:border-gray-800 dark:bg-white/[0.03]">
                 <button
                     type="button"
                     onClick={onToggleExpanded}
                     aria-expanded={isExpanded}
                     aria-label={isExpanded ? "Απόκρυψη λεπτομερειών" : "Προβολή λεπτομερειών"}
-                    className={`group flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/40 ${isExpanded
-                        ? "border-brand-200 bg-brand-50/70 dark:border-brand-500/30 dark:bg-brand-500/10"
-                        : "border-gray-100 bg-gray-50/80 hover:bg-brand-50/60 dark:border-gray-800 dark:bg-white/[0.02] dark:hover:bg-brand-500/5"
+                    className={`group flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/40 ${isInBasket
+                        ? "border-gray-100 bg-green-50/80 hover:bg-green-100/70 dark:border-gray-800 dark:bg-green-500/10 dark:hover:bg-green-500/15"
+                        : isExpanded
+                            ? "border-brand-200 bg-brand-50/70 dark:border-brand-500/30 dark:bg-brand-500/10"
+                            : "border-gray-100 bg-gray-50/80 hover:bg-brand-50/60 dark:border-gray-800 dark:bg-white/[0.02] dark:hover:bg-brand-500/5"
                         }`}
                 >
                     <div className="min-w-0 flex-1">
@@ -284,40 +281,42 @@ export default function PartResults({
 
                 <div className="p-4">
                     <div className="flex min-w-0 flex-col gap-2.5 md:flex-row md:items-start md:justify-between">
-                        <div className="grid w-full max-w-[300px] shrink-0 gap-2">
+                        <div className="grid w-full min-w-0 max-w-[300px] gap-2 md:w-[clamp(9.5rem,24%,18.75rem)] md:max-w-none md:shrink-0">
                             <button
                                 type="button"
                                 onClick={onOpenInsights}
                                 disabled={!hasCustomer}
                                 title={hasCustomer ? "Προβολή ιστορικού και ανταγωνισμού" : "Επιλέξτε πρώτα πελάτη"}
                                 aria-label="Προβολή ιστορικού αγορών και ανταγωνισμού"
-                                className="group inline-flex h-9 w-full items-center gap-2 rounded-lg border border-gray-200 bg-white p-1 pr-3 text-xs font-semibold text-gray-700 shadow-xs transition-all hover:-translate-y-px hover:border-brand-300 hover:text-brand-700 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:shadow-none disabled:hover:translate-y-0 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-brand-500/60 dark:hover:text-brand-300 dark:disabled:border-gray-800 dark:disabled:bg-white/[0.02] dark:disabled:text-gray-600"
+                                className="group inline-flex h-9 min-w-0 w-full items-center gap-2 rounded-lg border border-gray-200 bg-white p-1 pr-3 text-xs font-semibold text-gray-700 shadow-xs transition-all hover:-translate-y-px hover:border-brand-300 hover:text-brand-700 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:shadow-none disabled:hover:translate-y-0 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-brand-500/60 dark:hover:text-brand-300 dark:disabled:border-gray-800 dark:disabled:bg-white/[0.02] dark:disabled:text-gray-600"
                             >
                                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-100 dark:bg-brand-500/15 dark:text-brand-400 dark:group-hover:bg-brand-500/25 group-disabled:bg-gray-100 group-disabled:text-gray-400 dark:group-disabled:bg-gray-800 dark:group-disabled:text-gray-600">
                                     <ChartColumn className="h-4 w-4" />
                                 </span>
-                                <span className="whitespace-nowrap">Ιστορικό &amp; Ανταγωνισμός</span>
+                                <span className="min-w-0 truncate">Στατιστικά</span>
                             </button>
 
-                            {basketItem && (
-                                <RequestPriceBox
-                                    status={requestStatus}
-                                    hasPriceRequest={hasPriceRequest}
-                                    hasRequestedPrice={hasRequestedPrice}
-                                    requestedPrice={requestedPrice}
-                                    value={requestedPriceValue}
-                                    onChange={onRequestedPriceValueChange}
-                                    onSubmit={onRequestPrice}
-                                    submitting={isSubmittingRequestPrice}
-                                    formatPrice={(price) => formatPrice(price)}
-                                    stableWidth
-                                />
-                            )}
+                            <div className="h-9 w-full">
+                                {basketItem && (
+                                    <RequestPriceBox
+                                        status={requestStatus}
+                                        hasPriceRequest={hasPriceRequest}
+                                        hasRequestedPrice={hasRequestedPrice}
+                                        requestedPrice={requestedPrice}
+                                        value={requestedPriceValue}
+                                        onChange={onRequestedPriceValueChange}
+                                        onSubmit={onRequestPrice}
+                                        submitting={isSubmittingRequestPrice}
+                                        formatPrice={(price) => formatPrice(price)}
+                                        stableWidth
+                                    />
+                                )}
+                            </div>
                         </div>
 
                         {hasCustomer && (
-                            <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 lg:justify-end">
-                                <div className="flex items-baseline gap-2">
+                            <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-x-2 sm:gap-x-3 lg:gap-x-4 lg:justify-end">
+                                <div className="flex shrink-0 items-baseline gap-2">
                                     <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                         {unitPriceLabel}
                                     </span>
@@ -328,7 +327,7 @@ export default function PartResults({
 
                                 <div className="hidden h-6 w-px bg-gray-200 dark:bg-gray-700 sm:block" />
 
-                                <div className="flex items-center gap-2.5">
+                                <div className="flex shrink-0 items-center gap-2.5">
                                     <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                         Ποσότητα
                                     </span>
