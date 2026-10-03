@@ -4,7 +4,12 @@ const BRANCH_NAME_BY_CODE = {
   "1007": "Λ. Μεσογείων",
 } as const;
 
-type KnownBranchCode = keyof typeof BRANCH_NAME_BY_CODE;
+export type KnownBranchCode = keyof typeof BRANCH_NAME_BY_CODE;
+
+export type BranchOption = {
+  code: string;
+  label: string;
+};
 
 const Secondary_BranchPriority: Record<KnownBranchCode, number> = {
   "1006": 0,
@@ -57,6 +62,13 @@ export function getKnownBranchName(
 ) {
   const code = normalizeBranchCode(branchCode) as KnownBranchCode;
   return BRANCH_NAME_BY_CODE[code];
+}
+
+export function getKnownBranchOptions(): BranchOption[] {
+  return Object.entries(BRANCH_NAME_BY_CODE).map(([code, label]) => ({
+    code,
+    label,
+  }));
 }
 
 export function getTrdBranchByBranchCode(

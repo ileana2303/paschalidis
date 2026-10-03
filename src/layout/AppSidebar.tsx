@@ -6,9 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BadgePercent,
-  BookOpenText,
   ClipboardList,
-  ExternalLink,
   MoreHorizontal,
   PackageSearch,
   Pencil,
@@ -20,7 +18,7 @@ import {
   Send,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
-import { CloudSync, Warehouse } from "lucide-react";
+import { ListTodo, Warehouse } from "lucide-react";
 
 type NavSubItem = {
   name: string;
@@ -85,6 +83,11 @@ const navItems: NavItem[] = [
     icon: Users,
     name: "Καλάθια Πελατών",
     path: "/all-baskets",
+  },
+  {
+    icon: ListTodo,
+    name: "Picking List",
+    path: "/picking-list",
   },
   {
     icon: Settings,

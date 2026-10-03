@@ -16,6 +16,7 @@ export type BasketSaldoc = {
     REMARKS: string;
     SHIPKIND: number;
     SOCASH: number;
+    VARCHAR02: "S1";
 };
 
 export type BasketMtrdoc = {
@@ -85,6 +86,7 @@ export function buildBasketPayload({
                 REMARKS: remarks, // user notes
                 SHIPKIND: shipKind,
                 SOCASH: socash,
+                VARCHAR02: "S1", // initial Picking List workflow status
             },
         ],
         MTRDOC: [

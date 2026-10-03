@@ -1,6 +1,7 @@
 export {
   AlertCircle,
   ArrowDown,
+  ArrowRight,
   ArrowUp,
   BadgePercent,
   BookOpenText,

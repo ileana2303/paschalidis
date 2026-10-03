@@ -1,4 +1,10 @@
-type StatusBadgeVariant = "success" | "danger" | "warning" | "neutral";
+type StatusBadgeVariant =
+  | "success"
+  | "danger"
+  | "warning"
+  | "info"
+  | "primary"
+  | "neutral";
 
 interface StatusBadgeProps {
   status?: string | null;
@@ -8,6 +14,22 @@ interface StatusBadgeProps {
 
 function resolveStatusBadgeVariant(status: string): StatusBadgeVariant {
   const normalized = status.toUpperCase();
+
+  if (normalized === "PICKED_IT_UP") {
+    return "success";
+  }
+
+  if (normalized === "SEEN") {
+    return "primary";
+  }
+
+  if (normalized === "LOADED") {
+    return "info";
+  }
+
+  if (normalized === "S1") {
+    return "warning";
+  }
 
   if (
     normalized.includes("ΕΓΚΡΙΘ") ||
@@ -46,6 +68,14 @@ function getVariantClassName(variant: StatusBadgeVariant) {
     return "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
   }
 
+  if (variant === "info") {
+    return "bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400";
+  }
+
+  if (variant === "primary") {
+    return "bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300";
+  }
+
   return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
 }
 
@@ -75,4 +105,3 @@ export default function StatusBadge({
     </span>
   );
 }
-

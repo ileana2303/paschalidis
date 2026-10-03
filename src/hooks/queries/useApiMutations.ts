@@ -56,6 +56,14 @@ import {
     updateStockRequest,
 } from "@/lib/api-client/items";
 import type { PartInsightsRoutePayload } from "@/lib/part-insights";
+import type {
+    PickingListUpdatePayload,
+    PickingStatus,
+} from "@/lib/picking-list";
+import {
+    fetchPickingList,
+    updatePickingListOrder,
+} from "@/lib/api-client/picking-list";
 
 export const useSearchCustomersMutation = () =>
     useMutation({
@@ -215,4 +223,15 @@ export const useUpdateEndoListQtyMutation = () =>
     useMutation({
         mutationFn: (payload: EndoListUpdateQtyRoutePayload) =>
             updateEndoListQty(payload),
+    });
+
+export const useFetchPickingListMutation = () =>
+    useMutation({
+        mutationFn: (status?: PickingStatus) => fetchPickingList(status),
+    });
+
+export const useUpdatePickingListOrderMutation = () =>
+    useMutation({
+        mutationFn: (payload: PickingListUpdatePayload) =>
+            updatePickingListOrder(payload),
     });
