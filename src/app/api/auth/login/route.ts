@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        await setSessionCookie(body.rememberMe === true);
+        await setSessionCookie(upstreamData.user, body.rememberMe === true);
 
         const response: LoginResponse = {
             result: true,

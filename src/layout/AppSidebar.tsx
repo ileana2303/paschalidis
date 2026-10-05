@@ -19,6 +19,7 @@ import {
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
 import { ListTodo, Warehouse } from "lucide-react";
+import { useAuthStore } from "@/stores/authStore";
 
 type NavSubItem = {
   name: string;
@@ -26,6 +27,7 @@ type NavSubItem = {
   icon?: LucideIcon;
   pro?: boolean;
   new?: boolean;
+  superAdminOnly?: boolean;
 };
 
 type NavItem = {
@@ -103,6 +105,12 @@ const navItems: NavItem[] = [
         path: "/price-requests",
         icon: BadgePercent,
       },
+      {
+        name: "Διαχείριση Χρηστών",
+        path: "/users",
+        icon: Users,
+        superAdminOnly: true,
+      },
     ],
   },
 ];
@@ -110,6 +118,9 @@ const navItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  const isSuperAdmin = useAuthStore(
+    (state) => state.user?.isSuperAdmin === 1
+  );
   const isActive = (path: string) => path === pathname;
 
   const renderMenuItems = (navItems: NavItem[]) => (
@@ -117,8 +128,11 @@ const AppSidebar: React.FC = () => {
       {navItems.map((nav) => {
         const Icon = nav.icon;
         const isManagement = nav.name === "Διαχείριση Καταστημάτων";
+        const visibleSubItems = nav.subItems?.filter(
+          (subItem) => !subItem.superAdminOnly || isSuperAdmin
+        );
         const hasActiveSubItem =
-          nav.subItems?.some((subItem) => isActive(subItem.path)) ?? false;
+          visibleSubItems?.some((subItem) => isActive(subItem.path)) ?? false;
         const hasActivePath = nav.path ? isActive(nav.path) : false;
         const isGroupActive = hasActivePath || hasActiveSubItem;
 
@@ -141,7 +155,7 @@ const AppSidebar: React.FC = () => {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    {nav.subItems?.map((subItem) => {
+                    {visibleSubItems?.map((subItem) => {
                       const SubItemIcon = subItem.icon;
 
                       return (
@@ -253,7 +267,7 @@ const AppSidebar: React.FC = () => {
               nav.name !== "Διαχείριση Καταστημάτων" &&
               (isExpanded || isHovered || isMobileOpen) && (
                 <ul className="mt-2 ml-10 pl-3 border-l border-brand-200/70 dark:border-brand-800/60 space-y-1">
-                  {nav.subItems.map((subItem) => {
+                  {visibleSubItems?.map((subItem) => {
                     const SubItemIcon = subItem.icon;
 
                     return (
