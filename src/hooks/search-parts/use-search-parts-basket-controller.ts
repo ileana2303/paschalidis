@@ -47,7 +47,7 @@ export function useSearchPartsBasketController({
     const [basketLoading, setBasketLoading] = useState(false);
     const [basketError, setBasketError] = useState("");
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-    const [receiptType, setReceiptType] = useState<ReceiptType>("receipt");
+    const [receiptType, setReceiptType] = useState<ReceiptType>("invoice");
     const [pickupPoint, setPickupPoint] = useState("");
     const [notes, setNotes] = useState("");
     const [orderSubmittedSuccess, setOrderSubmittedSuccess] = useState(false);
@@ -251,7 +251,7 @@ export function useSearchPartsBasketController({
                     MTRL: Number(item.MTRL),
                     QTY: requestedQty,
                     PRICE_ERP: basketUnitPrice,
-                    PRICE_REQ: basketUnitPrice,
+                    PRICE_REQ: 0,
                     BRANCH: normalizedBranch,
                     APPUSER_ID: userId,
                 });

@@ -162,7 +162,7 @@ export default function CustomerOrderSummary({
     selectedItems,
     selectedCount,
     selectedTotal,
-    receiptType = "receipt",
+    receiptType = "invoice",
     onReceiptTypeChange,
     pickupPoint = "",
     onPickupPointChange,

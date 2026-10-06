@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { ICustomerInfo } from "@/lib/interface";
+import { storageKey } from "@/lib/storage-keys";
 
 type CustomerSearchStore = {
     search: string;
@@ -29,7 +30,7 @@ export const useCustomerSearchStore = create<CustomerSearchStore>()(
                 }),
         }),
         {
-            name: "customer-search-storage",
+            name: storageKey("customer-search-storage"),
             storage: createJSONStorage(() => sessionStorage),
         }
     )

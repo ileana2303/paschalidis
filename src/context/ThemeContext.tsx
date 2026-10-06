@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { createContext, useState, useContext, useEffect } from "react";
+import { storageKey } from "@/lib/storage-keys";
 
 type Theme = "light" | "dark";
 
@@ -17,7 +18,7 @@ const getInitialTheme = (): Theme => {
     return "light";
   }
 
-  const savedTheme = window.localStorage.getItem("theme");
+  const savedTheme = window.localStorage.getItem(storageKey("theme"));
   return savedTheme === "dark" || savedTheme === "light" ? savedTheme : "light";
 };
 
@@ -27,7 +28,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   useEffect(() => {
-    window.localStorage.setItem("theme", theme);
+    window.localStorage.setItem(storageKey("theme"), theme);
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
     } else {

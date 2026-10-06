@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { storageKey } from "@/lib/storage-keys";
 
 export function useSessionState<T>(key: string, initialValue: T) {
     const [value, setValue] = useState<T>(initialValue);
     const [hydrated, setHydrated] = useState(false);
+    const namespacedKey = storageKey(key);
 
     useEffect(() => {
         try {
-            const raw = sessionStorage.getItem(key);
+            const raw = sessionStorage.getItem(namespacedKey);
             if (raw != null) {
                 setValue(JSON.parse(raw) as T);
             }
@@ -16,7 +18,7 @@ export function useSessionState<T>(key: string, initialValue: T) {
             // Ignore invalid session payloads.
         }
         setHydrated(true);
-    }, [key]);
+    }, [namespacedKey]);
 
     useEffect(() => {
         if (!hydrated) {
@@ -24,11 +26,11 @@ export function useSessionState<T>(key: string, initialValue: T) {
         }
 
         try {
-            sessionStorage.setItem(key, JSON.stringify(value));
+            sessionStorage.setItem(namespacedKey, JSON.stringify(value));
         } catch {
             // Ignore quota / private-mode write failures.
         }
-    }, [hydrated, key, value]);
+    }, [hydrated, namespacedKey, value]);
 
     return [value, setValue] as const;
 }

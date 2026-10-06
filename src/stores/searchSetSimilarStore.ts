@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { IItem } from "@/lib/interface";
+import { storageKey } from "@/lib/storage-keys";
 
 type SearchSide = "left" | "right";
 
@@ -49,7 +50,7 @@ export const useSearchSetSimilarStore = create<SearchSetSimilarStore>()(
                 }),
         }),
         {
-            name: "search-set-similar-storage",
+            name: storageKey("search-set-similar-storage"),
             storage: createJSONStorage(() => sessionStorage),
         }
     )

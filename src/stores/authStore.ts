@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { AuthPermissions, AuthUser } from "@/lib/auth/types";
+import { storageKey } from "@/lib/storage-keys";
 
 type AuthStore = {
     user: AuthUser | null;
@@ -76,7 +77,7 @@ export const useAuthStore = create<AuthStore>()(
             clearAuth: () => set({ user: null, permissions: null }),
         }),
         {
-            name: "auth-user-account",
+            name: storageKey("auth-user-account"),
             version: 1,
             migrate: migrateAuthState,
             partialize: (state) => ({

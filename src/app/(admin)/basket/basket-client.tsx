@@ -42,7 +42,7 @@ export default function BasketClient() {
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [receiptType, setReceiptType] = useSessionState<ReceiptType>(
         "basket-receipt-type",
-        "receipt"
+        "invoice"
     );
     const [pickupPoint, setPickupPoint] = useSessionState("basket-pickup-point", "");
     const [notes, setNotes] = useSessionState("basket-notes", "");

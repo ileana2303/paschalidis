@@ -7,6 +7,7 @@ import { useLogoutMutation } from "@/hooks/queries/useAuthQueries";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { BookOpenText, ExternalLink } from "@/lib/icons/lucide";
 import { getAuthUserFullName } from "@/lib/auth/types";
+import { clearAppStorage } from "@/lib/storage-keys";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -112,6 +113,7 @@ export default function UserDropdown() {
             logoutMutation.mutate(undefined, {
               onSettled: () => {
                 clearAuth();
+                clearAppStorage();
                 window.location.replace(`/auth/signin?logout=${Date.now()}`);
               },
             });

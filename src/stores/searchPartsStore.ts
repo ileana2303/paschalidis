@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { IItem } from "@/lib/interface";
+import { storageKey } from "@/lib/storage-keys";
 
 type SearchPartsStore = {
     trdr: string | null;
@@ -34,7 +35,7 @@ export const useSearchPartsStore = create<SearchPartsStore>()(
                 }),
         }),
         {
-            name: "search-parts-storage",
+            name: storageKey("search-parts-storage"),
             storage: createJSONStorage(() => localStorage),
         }
     )

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         const normalizedQty = Number(body.QTY);
         const normalizedPriceErp = Number(body.PRICE_ERP);
         const normalizedPriceReq =
-            body.PRICE_REQ != null ? Number(body.PRICE_REQ) : normalizedPriceErp;
+            body.PRICE_REQ != null ? Number(body.PRICE_REQ) : 0;
         const normalizedBranch = Number(body.BRANCH);
         const normalizedTrdBranch =
             body.TRD_BRANCH != null ? Number(body.TRD_BRANCH) : DEFAULT_TRD_BRANCH;

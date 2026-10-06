@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { ICustomerInfo } from "@/lib/interface";
+import { storageKey } from "@/lib/storage-keys";
 
 type CustomerStore = {
     customer: ICustomerInfo | null;
@@ -18,7 +19,7 @@ export const useCustomerStore = create<CustomerStore>()(
             clearCustomer: () => set({ customer: null }),
         }),
         {
-            name: "customer-storage",
+            name: storageKey("customer-storage"),
         }
     )
 );

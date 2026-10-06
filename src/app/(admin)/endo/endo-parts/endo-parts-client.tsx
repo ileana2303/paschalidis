@@ -8,6 +8,7 @@ import {
     Plus,
 } from "@/lib/icons/lucide";
 import type { IItem } from "@/lib/interface";
+import { storageKey } from "@/lib/storage-keys";
 import { useSearchEndoStore } from "@/stores/searchEndoStore";
 import {
     getBranchCodesFromItem,
@@ -82,6 +83,7 @@ export default function EndoPartsClient() {
     useEffect(() => {
         // Remove data saved by older versions and always start this page clean.
         sessionStorage.removeItem("search-endo-storage");
+        sessionStorage.removeItem(storageKey("search-endo-storage"));
         clearSearchState();
 
         return () => {

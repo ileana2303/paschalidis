@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { IItem } from "@/lib/interface";
+import { storageKey } from "@/lib/storage-keys";
 
 type EditItemsSearchStore = {
     searchKey: string;
@@ -29,7 +30,7 @@ export const useEditItemsSearchStore = create<EditItemsSearchStore>()(
                 }),
         }),
         {
-            name: "edit-items-search-storage",
+            name: storageKey("edit-items-search-storage"),
             storage: createJSONStorage(() => sessionStorage),
         }
     )
