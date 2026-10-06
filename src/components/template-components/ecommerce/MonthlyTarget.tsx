@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { MoreHorizontal } from "@/lib/icons/lucide";
 import { Dropdown } from "../../ui/dropdown/Dropdown";
 import { useState } from "react";
+import { getAthensMonthName } from "@/lib/utils/athens-date";
 import { DropdownItem } from "../../ui/dropdown/dropdown-item";
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
@@ -13,9 +14,7 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 
 export default function MonthlyTarget() {
   const series = [75.55];
-  const currentMonth = new Intl.DateTimeFormat("el-GR", {
-    month: "long",
-  }).format(new Date());
+  const currentMonth = getAthensMonthName();
   const options: ApexOptions = {
     colors: ["#465FFF"],
     chart: {

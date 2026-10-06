@@ -37,6 +37,8 @@ export type RawBasketItem = RawOrderItem & {
 
 export type BasketOrderRequestBody = {
     appUserId: string;
+    /** Login username for SALDOC.CCCEXTUSER (prefer session on API route). */
+    username?: string;
     deliveryDate?: string;
     notes?: string;
     trdr?: number;
@@ -61,6 +63,16 @@ function firstItemNumber(items: RawBasketItem[], keys: string[]) {
     return undefined;
 }
 
+function requireUsername(value: unknown) {
+    const username = String(value ?? "").trim();
+
+    if (!username) {
+        throw new Error('Λείπει το όνομα χρήστη (username).');
+    }
+
+    return username;
+}
+
 /**
  * Καλάθι Πελάτη: one setData document for the whole basket, then a single
  * MASS_DELETE / LINK_S1 for every basket row it contained.
@@ -73,6 +85,7 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
     }
 
     const appUserId = requireAppUserId(body.appUserId);
+    const cccExtUser = requireUsername(body.username);
     const rawItems = requireRawItems(body.items) as RawBasketItem[];
     const lines = requireLines(normalizeOrderLines(rawItems));
 
@@ -119,6 +132,7 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         remarks: String(body.notes ?? "").trim(),
         shipKind: BASKET_SHIPKIND,
         socash: BASKET_SOCASH,
+        cccExtUser,
         lines: lines.map((line) => ({
             MTRL: line.mtrl,
             QTY1: line.qty,

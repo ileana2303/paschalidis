@@ -198,6 +198,7 @@ export async function submitBasketOrder(
         appUserId:
             String(params.APPUSER_ID ?? "").trim() ||
             String(firstItem?.APPUSER_ID ?? "").trim(),
+        username: String(params.USERNAME ?? params.APPUSER_ID ?? "").trim(),
         deliveryDate: params.DELIVDATE,
         notes: params.NOTES,
         trdr: asPositiveNumber(params.TRDR),

@@ -5,15 +5,13 @@ import { Package } from "@/lib/icons/lucide";
 import { fetchStockFeedback } from "@/lib/api-client/items";
 import { getStockBranchOrder, normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
+import { getAthensMonthName } from "@/lib/utils/athens-date";
 import { formatNumber } from "@/lib/utils/stock-feedback";
 
 export const EcommerceMetrics = () => {
   const activeBranchCode = useAuthStore((state) => normalizeBranchCode(state.user?.mainBranch));
   const [salesResults, setSalesResults] = useState<Record<string, number | null>>({});
-  const currentMonth = new Intl.DateTimeFormat("el-GR", {
-    month: "long",
-    timeZone: "Europe/Athens",
-  }).format(new Date());
+  const currentMonth = getAthensMonthName();
 
   useEffect(() => {
     if (!activeBranchCode) return;

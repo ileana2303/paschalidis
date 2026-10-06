@@ -329,6 +329,7 @@ export interface BasketSubmitRoutePayload {
     TRDR: string;
     NOTES?: string;
     APPUSER_ID?: string;
+    USERNAME?: string;
     DELIVDATE?: string;
     items: Array<Partial<IBasketItem>>;
 }

@@ -17,6 +17,7 @@ export type BasketSaldoc = {
     SHIPKIND: number;
     SOCASH: number;
     VARCHAR02: "S1";
+    CCCEXTUSER: string;
 };
 
 export type BasketMtrdoc = {
@@ -49,6 +50,7 @@ export type BuildBasketPayloadParams = {
     remarks: string;
     shipKind: number;
     socash: number;
+    cccExtUser: string;
     lines: BasketSetDataIteLine[];
 };
 
@@ -71,6 +73,7 @@ export function buildBasketPayload({
     remarks,
     shipKind,
     socash,
+    cccExtUser,
     lines,
 }: BuildBasketPayloadParams): BasketSetDataPayload {
     return setDataEnvelope(clientID, {
@@ -87,6 +90,7 @@ export function buildBasketPayload({
                 SHIPKIND: shipKind,
                 SOCASH: socash,
                 VARCHAR02: "S1", // initial Picking List workflow status
+                CCCEXTUSER: cccExtUser,
             },
         ],
         MTRDOC: [
