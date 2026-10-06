@@ -1,3 +1,6 @@
+import type { IBasketItem } from "@/lib/interface";
+import { getBasketItemEffectivePrice } from "@/lib/utils/basket-helpers";
+import { parseSoftOneNumber } from "@/lib/utils/number";
 import { jsonSafeNumber } from "../validation";
 
 /** One ITELINES row plus the basket row it came from. */
@@ -6,6 +9,7 @@ export type OrderLine = {
     basketId: string;
     mtrl: number;
     qty: number;
+    price: number;
 };
 
 export type RawOrderItem = {
@@ -15,8 +19,29 @@ export type RawOrderItem = {
     MTRL?: unknown;
     qty?: unknown;
     QTY1?: unknown;
+    price?: unknown;
+    PRICE?: unknown;
+    PRICE_ERP?: unknown;
     [key: string]: unknown;
 };
+
+function readOrderLinePrice(rawItem: RawOrderItem): number {
+    const explicit = parseSoftOneNumber(
+        rawItem.price ?? rawItem.PRICE ?? rawItem.PRICE_ERP
+    );
+
+    if (explicit != null && explicit >= 0) {
+        return explicit;
+    }
+
+    const fromBasket = getBasketItemEffectivePrice(rawItem as unknown as IBasketItem);
+
+    if (fromBasket > 0) {
+        return fromBasket;
+    }
+
+    return 0;
+}
 
 export function readBasketId(rawItem: RawOrderItem) {
     const direct = String(rawItem.basketId ?? "").trim();
@@ -38,12 +63,13 @@ export function normalizeOrderLine(rawItem: RawOrderItem): OrderLine | null {
     const mtrl = jsonSafeNumber(rawItem.mtrl ?? rawItem.MTRL);
     const qty = jsonSafeNumber(rawItem.qty ?? rawItem.QTY1);
     const basketId = readBasketId(rawItem);
-
     if (!mtrl || !qty || !basketId) {
         return null;
     }
 
-    return { basketId, mtrl, qty };
+    const price = readOrderLinePrice(rawItem);
+
+    return { basketId, mtrl, qty, price };
 }
 
 export function normalizeOrderLines(rawItems: RawOrderItem[]): OrderLine[] {

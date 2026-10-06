@@ -76,6 +76,14 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
     const rawItems = requireRawItems(body.items) as RawBasketItem[];
     const lines = requireLines(normalizeOrderLines(rawItems));
 
+    const lineWithoutPrice = lines.find((line) => line.price <= 0);
+
+    if (lineWithoutPrice) {
+        throw new Error(
+            `Λείπει έγκυρη τιμή (PRICE) για το είδος MTRL ${lineWithoutPrice.mtrl}.`
+        );
+    }
+
     // The branch that sends the order: decides SERIES and the setData clientID.
     const branch =
         jsonSafeNumber(body.branch) ??
@@ -111,7 +119,11 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         remarks: String(body.notes ?? "").trim(),
         shipKind: BASKET_SHIPKIND,
         socash: BASKET_SOCASH,
-        lines: lines.map((line) => ({ MTRL: line.mtrl, QTY1: line.qty })),
+        lines: lines.map((line) => ({
+            MTRL: line.mtrl,
+            QTY1: line.qty,
+            PRICE: line.price,
+        })),
     });
 
     const documentId = await postSetDataDocument({

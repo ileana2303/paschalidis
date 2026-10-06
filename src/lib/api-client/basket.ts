@@ -8,11 +8,13 @@ import type {
     BasketResponse,
     BasketSubmitRoutePayload,
     BasketUpdateRoutePayload,
+    IBasketItem,
     RequestedPriceListResponse,
     RequestedPriceUpdateRoutePayload,
 } from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
 import type { BasketOrderRequestBody } from "@/lib/orders/customer-basket/submit-basket-order";
+import { getBasketItemEffectivePrice } from "@/lib/utils/basket-helpers";
 
 // PAYMENT / TRUCKS / SHIPKIND / SOCASH / SERIES are decided server-side in
 // lib/orders/customer-basket/basket-constants.ts - the UI only sends who and what.
@@ -205,6 +207,7 @@ export async function submitBasketOrder(
             basketId: item.BASKETID,
             mtrl: item.MTRL,
             qty: getBasketSubmitQty(item),
+            price: getBasketItemEffectivePrice(item as IBasketItem),
             branch: item.BRANCH,
             trdBranch: item.TRD_BRANCH,
         })),

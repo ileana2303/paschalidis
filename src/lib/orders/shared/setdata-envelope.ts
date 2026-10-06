@@ -14,6 +14,11 @@ export type SetDataIteLine = {
     QTY1: number;
 };
 
+/** ITELINES row for customer basket orders (POST /api/orders/basket). */
+export type BasketSetDataIteLine = SetDataIteLine & {
+    PRICE: number;
+};
+
 export function setDataEnvelope<TData>(
     clientID: string,
     data: TData

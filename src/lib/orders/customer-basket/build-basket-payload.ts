@@ -1,7 +1,7 @@
 import {
     setDataEnvelope,
+    type BasketSetDataIteLine,
     type SetDataEnvelope,
-    type SetDataIteLine,
 } from "../shared/setdata-envelope";
 
 /** SALDOC header of a customer order (Παραγγελία Πελάτη). */
@@ -29,7 +29,7 @@ export type BasketMtrdoc = {
 export type BasketSetDataPayload = SetDataEnvelope<{
     SALDOC: [BasketSaldoc];
     MTRDOC: [BasketMtrdoc];
-    ITELINES: SetDataIteLine[];
+    ITELINES: BasketSetDataIteLine[];
 }>;
 
 export type BuildBasketPayloadParams = {
@@ -49,7 +49,7 @@ export type BuildBasketPayloadParams = {
     remarks: string;
     shipKind: number;
     socash: number;
-    lines: SetDataIteLine[];
+    lines: BasketSetDataIteLine[];
 };
 
 /**
