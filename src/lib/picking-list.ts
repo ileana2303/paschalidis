@@ -152,6 +152,16 @@ function toDetail(row: PickingListLine): PickingListDetail | null {
   };
 }
 
+function getPickingOrderTimestamp(order: PickingListOrder) {
+  const value = order.submittedAt || order.transactionDate;
+  const normalizedValue = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)
+    ? value.replace(" ", "T")
+    : value;
+  const timestamp = Date.parse(normalizedValue);
+
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
 export function groupPickingListRows(
   rows: PickingListLine[],
   fallbackStatus: PickingStatus = "S1"
@@ -210,7 +220,16 @@ export function groupPickingListRows(
     if (detail) order.details.push(detail);
   });
 
-  return Array.from(orders.values());
+  return Array.from(orders.values()).sort((left, right) => {
+    const leftTimestamp = getPickingOrderTimestamp(left);
+    const rightTimestamp = getPickingOrderTimestamp(right);
+
+    if (leftTimestamp === null && rightTimestamp === null) return 0;
+    if (leftTimestamp === null) return 1;
+    if (rightTimestamp === null) return -1;
+
+    return leftTimestamp - rightTimestamp;
+  });
 }
 
 export function matchesPickingOrderSearch(

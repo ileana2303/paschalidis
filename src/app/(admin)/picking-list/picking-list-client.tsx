@@ -338,49 +338,37 @@ function PickingOrderRow({
                   Δεν υπάρχουν διαθέσιμες γραμμές ειδών.
                 </p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-[900px] w-full divide-y divide-gray-100 dark:divide-gray-800">
+                <div className="w-full">
+                  <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
                     <thead className="bg-gray-50 dark:bg-gray-950">
                       <tr>
-                        <th className="w-[90px] px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                          Γραμμή
-                        </th>
-                        <th className="w-[180px] px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                          Κωδικός
-                        </th>
-                        <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                          Είδος
-                        </th>
-                        <th className="w-[90px] px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                        <th className="w-[90px] px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
                           Ποσότητα
                         </th>
-                        <th className="w-[310px] px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                          Θέσεις
+                        <th className="w-[32%] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
+                          Θέση
+                        </th>
+                        <th className="w-[20%] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
+                          Κωδικός
+                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
+                          Περιγραφή
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                       {order.details.map((detail, index) => (
                         <tr key={`${detail.lineNumber}-${detail.code}-${index}`}>
-                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                            {detail.lineNumber || index + 1}
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-100">
-                            {detail.code || "—"}
-                          </td>
-                          <td className="break-words px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
-                            {detail.description || "—"}
-                          </td>
-                          <td className="px-4 py-3 text-right text-sm text-gray-700 dark:text-gray-200">
+                          <td className="px-3 py-3 text-right text-sm text-gray-700 sm:px-4 dark:text-gray-200">
                             <NumberBadge value={detail.quantity || "0"} variant="brand" />
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-3 sm:px-4">
                             <div className="flex flex-wrap gap-1.5">
                               {detail.positions.length > 0 ? (
                                 detail.positions.map((position, positionIndex) => (
                                   <span
                                     key={`${position}-${positionIndex}`}
-                                    className="inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                                    className="inline-block max-w-full break-all rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
                                   >
                                     {position}
                                   </span>
@@ -389,6 +377,12 @@ function PickingOrderRow({
                                 <span className="text-sm text-gray-400">—</span>
                               )}
                             </div>
+                          </td>
+                          <td className="break-all px-3 py-3 text-sm font-medium text-gray-800 sm:px-4 dark:text-gray-100">
+                            {detail.code || "—"}
+                          </td>
+                          <td className="break-words px-3 py-3 text-sm text-gray-700 sm:px-4 dark:text-gray-200">
+                            {detail.description || "—"}
                           </td>
                         </tr>
                       ))}
