@@ -16,7 +16,6 @@ import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import NumberBadge from "@/components/ui/data-table/number-badge";
-import StatusBadge from "@/components/ui/data-table/status-badge";
 import {
   ArrowRight,
   Check,
@@ -40,14 +39,17 @@ import {
 } from "@/lib/auth/branches";
 import { formatDateTimeEl, formatMinutesAgoEl } from "@/lib/utils/date";
 import {
+  getAutomaticPickingStatus,
   getFirstInteractionStatus,
   getNextPickingStatus,
   groupPickingListRows,
   matchesPickingOrderSearch,
   PICKER_COMMENT_SUGGESTIONS,
+  PICKING_STATUSES,
   PICKING_STATUS_FILTERS,
   type PickingListOrder,
   type PickingListUpdatePayload,
+  type PickingStatus,
   type PickingStatusFilter,
 } from "@/lib/picking-list";
 
@@ -63,6 +65,118 @@ type PickingOrderRowProps = {
   onAdvanceStatus: (order: PickingListOrder) => void;
 };
 
+type PickingStatusProgressProps = {
+  status: PickingStatus;
+  updating: boolean;
+  onAdvance: () => void;
+};
+
+function PickingStatusProgress({
+  status,
+  updating,
+  onAdvance,
+}: PickingStatusProgressProps) {
+  const currentIndex = PICKING_STATUSES.indexOf(status);
+  const nextStatus = getNextPickingStatus(status);
+
+  return (
+    <div
+      aria-label={`Πρόοδος picking: ${status}`}
+      className="flex flex-wrap items-center gap-1.5"
+      role="group"
+    >
+      {PICKING_STATUSES.map((step, index) => {
+        const isAchieved = index <= currentIndex;
+        const isCurrent = index === currentIndex;
+        const isNext = step === nextStatus;
+        const isAutomaticTarget = status === "S1" && step === "LOADED";
+        const badgeClassName = [
+          "inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full border border-transparent px-2.5 text-[11px] font-semibold ring-1 ring-inset ring-gray-200/70 transition dark:ring-white/10",
+          isNext
+            ? "cursor-pointer bg-white text-brand-600 shadow-sm hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 disabled:cursor-wait disabled:opacity-60 dark:bg-gray-900 dark:text-brand-300 dark:hover:bg-brand-500/10"
+            : step === "S1" && isAchieved
+              ? "bg-warning-100 text-warning-800 dark:bg-warning-500/20 dark:text-warning-300"
+              : step === "PICKED_IT_UP" && isAchieved
+                ? "bg-success-100 text-success-800 dark:bg-success-500/20 dark:text-success-300"
+                : (step === "LOADED" || step === "SEEN") && isCurrent
+                  ? "bg-blue-light-100 text-blue-light-800 dark:bg-blue-light-500/20 dark:text-blue-light-300"
+                  : (step === "LOADED" || step === "SEEN") && isAchieved
+                    ? "bg-blue-light-50 text-blue-light-700 dark:bg-blue-light-500/10 dark:text-blue-light-400"
+                : isCurrent
+                  ? "bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300"
+                  : isAchieved
+                    ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400"
+                    : "bg-gray-50 text-gray-400 dark:bg-gray-800/60 dark:text-gray-500",
+        ].join(" ");
+        const statusContent = (
+          <>
+            {isAchieved ? (
+              <Check aria-hidden="true" className="size-3.5" />
+            ) : (isNext || isAutomaticTarget) && updating ? (
+              <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
+            ) : null}
+            {step}
+            <span className="sr-only">
+              {isCurrent
+                ? ", τρέχουσα και ολοκληρωμένη"
+                : isAchieved
+                  ? ", ολοκληρωμένη"
+                  : isNext
+                    ? ", επόμενο διαθέσιμο βήμα"
+                    : ", απομένει"}
+            </span>
+          </>
+        );
+
+        return (
+          <Fragment key={step}>
+            {index > 0 ? (
+              <ArrowRight
+                aria-hidden="true"
+                className={[
+                  "size-3.5 shrink-0",
+                  isAchieved
+                    ? step === "LOADED" || step === "SEEN"
+                      ? "text-blue-light-500"
+                      : "text-success-500"
+                    : "text-gray-300 dark:text-gray-700",
+                ].join(" ")}
+              />
+            ) : null}
+            {isNext ? (
+              <button
+                type="button"
+                className={badgeClassName}
+                disabled={updating}
+                onClick={onAdvance}
+                title={`Μετάβαση σε ${step}`}
+              >
+                {statusContent}
+              </button>
+            ) : (
+              <span
+                aria-current={isCurrent ? "step" : undefined}
+                className={badgeClassName}
+                title={
+                  isCurrent
+                    ? "Τρέχουσα κατάσταση — ολοκληρώθηκε"
+                    : isAchieved
+                      ? "Ολοκληρώθηκε"
+                      : isAutomaticTarget
+                        ? "Αυτόματη μετάβαση σε LOADED"
+                        : "Απομένει"
+                }
+              >
+                {statusContent}
+              </span>
+            )}
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
 function PickingOrderRow({
   order,
   expanded,
@@ -75,7 +189,6 @@ function PickingOrderRow({
   onAdvanceStatus,
 }: PickingOrderRowProps) {
   const [draftComment, setDraftComment] = useState(order.pickerComment);
-  const nextStatus = getNextPickingStatus(order.status);
   const hasCommentChange = draftComment.trim() !== order.pickerComment;
   const safeFindoc = order.findoc.replace(/[^a-zA-Z0-9_-]/g, "-");
   const suggestionListId = `picker-comments-${safeFindoc}`;
@@ -195,27 +308,12 @@ function PickingOrderRow({
         </td>
 
         <td className="px-3 py-3 align-top">
-          <div className="flex min-w-[170px] flex-col items-start gap-2">
-            <StatusBadge status={order.status} />
-            {nextStatus ? (
-              <button
-                type="button"
-                onClick={() => onAdvanceStatus(order)}
-                disabled={updating}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-semibold text-gray-700 transition hover:border-brand-400 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-              >
-                {updating ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <ArrowRight className="h-3.5 w-3.5" />
-                )}
-                {nextStatus}
-              </button>
-            ) : (
-              <span className="text-xs font-medium text-success-600 dark:text-success-400">
-                Ολοκληρώθηκε
-              </span>
-            )}
+          <div className="min-w-[390px]">
+            <PickingStatusProgress
+              status={order.status}
+              updating={updating}
+              onAdvance={() => onAdvanceStatus(order)}
+            />
           </div>
         </td>
       </tr>
@@ -333,10 +431,12 @@ export default function PickingListClient() {
   );
   const [nowMs, setNowMs] = useState(() => Date.now());
   const inFlightFindocs = useRef(new Set<string>());
+  const automaticLoadAttemptedFindocs = useRef(new Set<string>());
 
   const currentBranch = normalizeBranchCode(user?.mainBranch);
 
   const loadOrders = useCallback(async () => {
+    automaticLoadAttemptedFindocs.current.clear();
     setLoading(true);
 
     try {
@@ -526,6 +626,42 @@ export default function PickingListClient() {
     [persistOrderUpdate]
   );
 
+  useEffect(() => {
+    if (loading || !selectedBranch) return;
+
+    const ordersToLoad = orders.flatMap((order) => {
+      const status = getAutomaticPickingStatus(order.status);
+
+      if (
+        order.branch !== selectedBranch ||
+        !status ||
+        automaticLoadAttemptedFindocs.current.has(order.findoc)
+      ) {
+        return [];
+      }
+
+      return [{ order, status }];
+    });
+
+    if (ordersToLoad.length === 0) return;
+
+    ordersToLoad.forEach(({ order }) => {
+      automaticLoadAttemptedFindocs.current.add(order.findoc);
+    });
+
+    void Promise.all(
+      ordersToLoad.map(({ order, status }) =>
+        persistOrderUpdate(
+          {
+            findoc: order.findoc,
+            status,
+          },
+          false
+        )
+      )
+    );
+  }, [loading, orders, persistOrderUpdate, selectedBranch]);
+
   const handleToggleExpanded = useCallback(
     (order: PickingListOrder, expanded: boolean) => {
       setExpandedFindocs((current) => {
@@ -535,7 +671,7 @@ export default function PickingListClient() {
         return next;
       });
 
-      if (expanded) registerFirstInteraction(order);
+      registerFirstInteraction(order);
     },
     [registerFirstInteraction]
   );
@@ -596,13 +732,7 @@ export default function PickingListClient() {
     }
 
     setExpandedFindocs(new Set(visibleFindocs));
-    visibleOrders.forEach(registerFirstInteraction);
-  }, [
-    allVisibleExpanded,
-    registerFirstInteraction,
-    visibleFindocs,
-    visibleOrders,
-  ]);
+  }, [allVisibleExpanded, visibleFindocs]);
 
   return (
     <div>
@@ -680,7 +810,7 @@ export default function PickingListClient() {
           />
         ) : (
           <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[1500px] table-fixed divide-y divide-gray-100 dark:divide-gray-800">
+            <table className="w-full min-w-[1700px] table-fixed divide-y divide-gray-100 dark:divide-gray-800">
               <colgroup>
                 <col className="w-[48px]" />
                 <col className="w-[48px]" />
@@ -689,7 +819,7 @@ export default function PickingListClient() {
                 <col className="w-[180px]" />
                 <col className="w-[250px]" />
                 <col className="w-[280px]" />
-                <col className="w-[200px]" />
+                <col className="w-[390px]" />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                 <tr>

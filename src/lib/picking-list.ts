@@ -37,6 +37,7 @@ export type PickingListLine = {
   BRANCH?: string;
   TrnDate?: string;
   InsDate?: string;
+  STATUS_ORDER?: string;
   COMMENTS?: string;
   VARCHAR01?: string;
   VARCHAR02?: string;
@@ -112,16 +113,21 @@ export function normalizePickingStatus(
 export function getNextPickingStatus(
   status: PickingStatus
 ): PickingStatus | null {
-  const index = PICKING_STATUSES.indexOf(status);
-  return index >= 0 && index < PICKING_STATUSES.length - 1
-    ? PICKING_STATUSES[index + 1]
-    : null;
+  if (status === "LOADED") return "SEEN";
+  if (status === "SEEN") return "PICKED_IT_UP";
+  return null;
+}
+
+export function getAutomaticPickingStatus(
+  status: PickingStatus
+): PickingStatus | undefined {
+  return status === "S1" ? "LOADED" : undefined;
 }
 
 export function getFirstInteractionStatus(
   status: PickingStatus
 ): PickingStatus | undefined {
-  return status === "S1" ? "LOADED" : undefined;
+  return status === "LOADED" ? "SEEN" : undefined;
 }
 
 function toDetail(row: PickingListLine): PickingListDetail | null {
@@ -173,7 +179,10 @@ export function groupPickingListRows(
         submittedAt: text(row.InsDate),
         comments: text(row.COMMENTS),
         pickerComment: text(row.VARCHAR01),
-        status: normalizePickingStatus(row.VARCHAR02, fallbackStatus),
+        status: normalizePickingStatus(
+          row.STATUS_ORDER || row.VARCHAR02,
+          fallbackStatus
+        ),
         details: [],
       };
       orders.set(findoc, order);
@@ -191,8 +200,9 @@ export function groupPickingListRows(
       order.comments ||= text(row.COMMENTS);
       order.pickerComment ||= text(row.VARCHAR01);
 
-      if (isPickingStatus(row.VARCHAR02)) {
-        order.status = normalizePickingStatus(row.VARCHAR02);
+      const rowStatus = row.STATUS_ORDER || row.VARCHAR02;
+      if (isPickingStatus(rowStatus)) {
+        order.status = normalizePickingStatus(rowStatus);
       }
     }
 
