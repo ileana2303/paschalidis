@@ -38,7 +38,7 @@ import {
   normalizeBranchCode,
   resolveBranchName,
 } from "@/lib/auth/branches";
-import { formatDateEl } from "@/lib/utils/date";
+import { formatDateTimeEl, formatMinutesAgoEl } from "@/lib/utils/date";
 import {
   getFirstInteractionStatus,
   getNextPickingStatus,
@@ -56,6 +56,7 @@ type PickingOrderRowProps = {
   expanded: boolean;
   selected: boolean;
   updating: boolean;
+  nowMs: number;
   onToggleExpanded: (order: PickingListOrder, expanded: boolean) => void;
   onToggleSelected: (findoc: string) => void;
   onSaveComment: (order: PickingListOrder, comment: string) => void;
@@ -67,6 +68,7 @@ function PickingOrderRow({
   expanded,
   selected,
   updating,
+  nowMs,
   onToggleExpanded,
   onToggleSelected,
   onSaveComment,
@@ -78,6 +80,7 @@ function PickingOrderRow({
   const safeFindoc = order.findoc.replace(/[^a-zA-Z0-9_-]/g, "-");
   const suggestionListId = `picker-comments-${safeFindoc}`;
   const detailsId = `picking-list-details-${safeFindoc}`;
+  const submittedMinutesAgo = formatMinutesAgoEl(order.submittedAt, nowMs);
 
   return (
     <Fragment>
@@ -132,7 +135,14 @@ function PickingOrderRow({
         </td>
 
         <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
-          <p>{formatDateEl(order.transactionDate)}</p>
+          <p className="font-medium text-gray-700 dark:text-gray-200">
+            {formatDateTimeEl(order.submittedAt || order.transactionDate)}
+          </p>
+          {submittedMinutesAgo && (
+            <p className="mt-1 text-xs font-medium text-brand-600 dark:text-brand-400">
+              {submittedMinutesAgo}
+            </p>
+          )}
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             {formatBranchLabel(order.branch)}
           </p>
@@ -321,6 +331,7 @@ export default function PickingListClient() {
   const [updatingFindocs, setUpdatingFindocs] = useState<Set<string>>(
     new Set()
   );
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const inFlightFindocs = useRef(new Set<string>());
 
   const currentBranch = normalizeBranchCode(user?.mainBranch);
@@ -363,6 +374,14 @@ export default function PickingListClient() {
   useEffect(() => {
     void loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     if (selectedBranch) return;
@@ -713,7 +732,7 @@ export default function PickingListClient() {
                     Πελάτης
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Ημερομηνία / Κατάστημα
+                    Υποβολή / Κατάστημα
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Σχόλια παραγγελίας
@@ -735,6 +754,7 @@ export default function PickingListClient() {
                     expanded={expandedFindocs.has(order.findoc)}
                     selected={selectedFindocs.has(order.findoc)}
                     updating={updatingFindocs.has(order.findoc)}
+                    nowMs={nowMs}
                     onToggleExpanded={handleToggleExpanded}
                     onToggleSelected={toggleSelected}
                     onSaveComment={handleSaveComment}

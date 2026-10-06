@@ -36,6 +36,7 @@ export type PickingListLine = {
   NAME?: string;
   BRANCH?: string;
   TrnDate?: string;
+  InsDate?: string;
   COMMENTS?: string;
   VARCHAR01?: string;
   VARCHAR02?: string;
@@ -67,6 +68,7 @@ export type PickingListOrder = {
   afm: string;
   branch: string;
   transactionDate: string;
+  submittedAt: string;
   comments: string;
   pickerComment: string;
   status: PickingStatus;
@@ -168,6 +170,7 @@ export function groupPickingListRows(
         afm: text(row.AFM),
         branch: text(row.BRANCH),
         transactionDate: text(row.TrnDate),
+        submittedAt: text(row.InsDate),
         comments: text(row.COMMENTS),
         pickerComment: text(row.VARCHAR01),
         status: normalizePickingStatus(row.VARCHAR02, fallbackStatus),
@@ -184,6 +187,7 @@ export function groupPickingListRows(
       order.afm ||= text(row.AFM);
       order.branch ||= text(row.BRANCH);
       order.transactionDate ||= text(row.TrnDate);
+      order.submittedAt ||= text(row.InsDate);
       order.comments ||= text(row.COMMENTS);
       order.pickerComment ||= text(row.VARCHAR01);
 
@@ -214,6 +218,7 @@ export function matchesPickingOrderSearch(
     order.afm,
     order.comments,
     order.pickerComment,
+    order.submittedAt,
     ...order.details.flatMap((detail) => [
       detail.code,
       detail.description,
