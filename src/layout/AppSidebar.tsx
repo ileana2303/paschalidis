@@ -115,8 +115,22 @@ const navItems: NavItem[] = [
   },
 ];
 
+const mobileNavItems: NavItem[] = [
+  {
+    icon: ListTodo,
+    name: "Picking List",
+    path: "/picking-list",
+  },
+  {
+    icon: BadgePercent,
+    name: "Αιτήματα τιμών",
+    path: "/price-requests",
+  },
+];
+
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobile, isMobileOpen, isHovered, setIsHovered } =
+    useSidebar();
   const pathname = usePathname();
   const isSuperAdmin = useAuthStore(
     (state) => state.user?.isSuperAdmin === 1
@@ -369,7 +383,7 @@ const AppSidebar: React.FC = () => {
                   <MoreHorizontal className="h-5 w-5" />
                 )}
               </h2>
-              {renderMenuItems(navItems)}
+              {renderMenuItems(isMobile ? mobileNavItems : navItems)}
             </div>
           </div>
         </nav>

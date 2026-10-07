@@ -13,6 +13,11 @@ function isPublicPath(pathname: string): boolean {
 
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
+
+    if (pathname === "/login" || pathname.startsWith("/login/")) {
+        return NextResponse.redirect(new URL("/auth/signin", request.url));
+    }
+
     const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
     const isLoggedIn = !!sessionCookie?.trim();
 
@@ -44,5 +49,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/((?!api|_next/static|_next/image|images|favicon\\.ico).*)"],
+    matcher: [
+        "/((?!api|_next/static|_next/image|images|favicon\\.ico|sw\\.js).*)",
+    ],
 };

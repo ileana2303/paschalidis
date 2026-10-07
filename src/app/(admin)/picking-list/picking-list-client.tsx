@@ -177,6 +177,259 @@ function PickingStatusProgress({
   );
 }
 
+function PickingOrderDetailsPanel({ order }: { order: PickingListOrder }) {
+  const parastatikoLabel = order.parastatiko || order.fincode;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+            Είδη παραγγελίας
+            {parastatikoLabel ? (
+              <span className="ml-2 font-medium text-brand-600 dark:text-brand-400">
+                · {parastatikoLabel}
+              </span>
+            ) : null}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+            {order.details.length}{" "}
+            {order.details.length === 1 ? "γραμμή" : "γραμμές"}
+          </p>
+        </div>
+      </div>
+
+      {order.details.length === 0 ? (
+        <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          Δεν υπάρχουν διαθέσιμες γραμμές ειδών.
+        </p>
+      ) : (
+        <div className="divide-y divide-gray-100 dark:divide-gray-800 lg:hidden">
+          {order.details.map((detail, index) => (
+            <div
+              key={`${detail.lineNumber}-${detail.code}-${index}-mobile`}
+              className="space-y-2 px-4 py-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="min-w-0 flex-1 text-sm font-medium text-gray-900 dark:text-white">
+                  {detail.description || "—"}
+                </p>
+                <NumberBadge value={detail.quantity || "0"} variant="brand" />
+              </div>
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-200">
+                {detail.code || "—"}
+              </p>
+              {detail.positions.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {detail.positions.map((position, positionIndex) => (
+                    <span
+                      key={`${position}-${positionIndex}`}
+                      className="inline-block max-w-full break-all rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                      {position}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {order.details.length > 0 ? (
+        <div className="hidden w-full lg:block">
+          <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
+            <thead className="bg-gray-50 dark:bg-gray-950">
+              <tr>
+                <th className="w-[90px] px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
+                  Ποσότητα
+                </th>
+                <th className="w-[32%] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
+                  Θέση
+                </th>
+                <th className="w-[20%] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
+                  Κωδικός
+                </th>
+                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
+                  Περιγραφή
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {order.details.map((detail, index) => (
+                <tr key={`${detail.lineNumber}-${detail.code}-${index}`}>
+                  <td className="px-3 py-3 text-right text-sm text-gray-700 sm:px-4 dark:text-gray-200">
+                    <NumberBadge value={detail.quantity || "0"} variant="brand" />
+                  </td>
+                  <td className="px-3 py-3 sm:px-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      {detail.positions.length > 0 ? (
+                        detail.positions.map((position, positionIndex) => (
+                          <span
+                            key={`${position}-${positionIndex}`}
+                            className="inline-block max-w-full break-all rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                          >
+                            {position}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="break-all px-3 py-3 text-sm font-medium text-gray-800 sm:px-4 dark:text-gray-100">
+                    {detail.code || "—"}
+                  </td>
+                  <td className="break-words px-3 py-3 text-sm text-gray-700 sm:px-4 dark:text-gray-200">
+                    {detail.description || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+type PickingOrderCardProps = PickingOrderRowProps;
+
+function PickingOrderCard({
+  order,
+  expanded,
+  selected,
+  updating,
+  nowMs,
+  onToggleExpanded,
+  onToggleSelected,
+  onSaveComment,
+  onAdvanceStatus,
+}: PickingOrderCardProps) {
+  const [draftComment, setDraftComment] = useState(order.pickerComment);
+  const hasCommentChange = draftComment.trim() !== order.pickerComment;
+  const safeFindoc = order.findoc.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const suggestionListId = `picker-comments-mobile-${safeFindoc}`;
+  const detailsId = `picking-list-details-mobile-${safeFindoc}`;
+  const submittedMinutesAgo = formatMinutesAgoEl(order.submittedAt, nowMs);
+  const parastatikoLabel = order.parastatiko || order.fincode;
+
+  return (
+    <article
+      className={[
+        "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900/80",
+        expanded ? "ring-2 ring-brand-500/20" : "",
+      ].join(" ")}
+    >
+      <div className="flex items-start gap-2">
+        <DataTableSelectionCheckbox
+          ariaLabel={`Επιλογή παραγγελίας ${parastatikoLabel || order.findoc}`}
+          checked={selected}
+          onCheckedChange={() => onToggleSelected(order.findoc)}
+          disabled={updating}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-base font-semibold text-gray-900 dark:text-white">
+                {order.customerName || "—"}
+              </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Κωδικός: {order.customerCode || "—"} · ΑΦΜ: {order.afm || "—"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onToggleExpanded(order, !expanded)}
+              aria-expanded={expanded}
+              aria-controls={detailsId}
+              aria-label={`${expanded ? "Σύμπτυξη" : "Ανάπτυξη"} ειδών παραγγελίας`}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            >
+              <ChevronDown
+                strokeWidth={2.25}
+                className={`h-5 w-5 transition-transform ${expanded ? "rotate-180" : ""}`}
+              />
+            </button>
+          </div>
+
+          <div className="mt-3 space-y-1 text-sm text-gray-600 dark:text-gray-300">
+            <p className="font-medium text-gray-700 dark:text-gray-200">
+              {formatDateTimeEl(order.submittedAt || order.transactionDate)}
+            </p>
+            {submittedMinutesAgo ? (
+              <p className="text-xs font-medium text-brand-600 dark:text-brand-400">
+                {submittedMinutesAgo}
+              </p>
+            ) : null}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {formatBranchLabel(order.branch)}
+            </p>
+          </div>
+
+          {order.comments ? (
+            <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-gray-950 dark:text-gray-300">
+              {order.comments}
+            </p>
+          ) : null}
+
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="text"
+              list={suggestionListId}
+              value={draftComment}
+              onChange={(event) => setDraftComment(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && hasCommentChange && !updating) {
+                  event.preventDefault();
+                  onSaveComment(order, draftComment);
+                }
+              }}
+              disabled={updating}
+              placeholder="Σχόλιο picker..."
+              aria-label={`Σχόλιο picker για ${parastatikoLabel || order.findoc}`}
+              className="h-10 min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+            />
+            <datalist id={suggestionListId}>
+              {PICKER_COMMENT_SUGGESTIONS.map((suggestion) => (
+                <option key={suggestion} value={suggestion} />
+              ))}
+            </datalist>
+            <button
+              type="button"
+              onClick={() => onSaveComment(order, draftComment)}
+              disabled={!hasCommentChange || updating}
+              title="Αποθήκευση σχολίου"
+              aria-label={`Αποθήκευση σχολίου για ${parastatikoLabel || order.findoc}`}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 text-brand-600 transition hover:bg-brand-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300"
+            >
+              {updating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+
+          <div className="mt-3 overflow-x-auto pb-1">
+            <PickingStatusProgress
+              status={order.status}
+              updating={updating}
+              onAdvance={() => onAdvanceStatus(order)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {expanded ? (
+        <div id={detailsId} className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+          <PickingOrderDetailsPanel order={order} />
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function PickingOrderRow({
   order,
   expanded,
@@ -226,16 +479,6 @@ function PickingOrderRow({
               className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
             />
           </button>
-        </td>
-
-        <td className="px-3 py-3 align-top">
-          <p className="break-words text-sm font-semibold text-gray-900 dark:text-white">
-            {order.parastatiko || order.fincode || "—"}
-          </p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-            <span>FINDOC</span>
-            <NumberBadge value={order.findoc} />
-          </div>
         </td>
 
         <td className="px-3 py-3 align-top">
@@ -320,76 +563,9 @@ function PickingOrderRow({
 
       {expanded && (
         <tr id={detailsId} className="bg-gray-50/80 dark:bg-gray-950/60">
-          <td colSpan={8} className="border-t border-brand-100 px-4 py-4 dark:border-brand-500/20">
-            <div className="ml-0 rounded-xl border border-gray-200 bg-white shadow-sm sm:ml-10 dark:border-gray-800 dark:bg-gray-900">
-              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Είδη παραγγελίας
-                  </p>
-                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                    {order.details.length} {order.details.length === 1 ? "γραμμή" : "γραμμές"}
-                  </p>
-                </div>
-              </div>
-
-              {order.details.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                  Δεν υπάρχουν διαθέσιμες γραμμές ειδών.
-                </p>
-              ) : (
-                <div className="w-full">
-                  <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
-                    <thead className="bg-gray-50 dark:bg-gray-950">
-                      <tr>
-                        <th className="w-[90px] px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
-                          Ποσότητα
-                        </th>
-                        <th className="w-[32%] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
-                          Θέση
-                        </th>
-                        <th className="w-[20%] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
-                          Κωδικός
-                        </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
-                          Περιγραφή
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                      {order.details.map((detail, index) => (
-                        <tr key={`${detail.lineNumber}-${detail.code}-${index}`}>
-                          <td className="px-3 py-3 text-right text-sm text-gray-700 sm:px-4 dark:text-gray-200">
-                            <NumberBadge value={detail.quantity || "0"} variant="brand" />
-                          </td>
-                          <td className="px-3 py-3 sm:px-4">
-                            <div className="flex flex-wrap gap-1.5">
-                              {detail.positions.length > 0 ? (
-                                detail.positions.map((position, positionIndex) => (
-                                  <span
-                                    key={`${position}-${positionIndex}`}
-                                    className="inline-block max-w-full break-all rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
-                                  >
-                                    {position}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-sm text-gray-400">—</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="break-all px-3 py-3 text-sm font-medium text-gray-800 sm:px-4 dark:text-gray-100">
-                            {detail.code || "—"}
-                          </td>
-                          <td className="break-words px-3 py-3 text-sm text-gray-700 sm:px-4 dark:text-gray-200">
-                            {detail.description || "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          <td colSpan={7} className="border-t border-brand-100 px-4 py-4 dark:border-brand-500/20">
+            <div className="ml-0 sm:ml-10">
+              <PickingOrderDetailsPanel order={order} />
             </div>
           </td>
         </tr>
@@ -729,17 +905,17 @@ export default function PickingListClient() {
   }, [allVisibleExpanded, visibleFindocs]);
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-col md:block">
       <PageBreadcrumb pageTitle="Picking List" />
 
-      <DataTable className="mt-4">
+      <DataTable className="mt-4 flex min-h-0 flex-1 flex-col md:block">
         <DataTableHeader
           title="Picking List"
           description="Παραγγελίες που έχουν αποσταλεί στο SoftOne, ανά κατάστημα και κατάσταση συλλογής."
           count={visibleOrders.length}
           action={
-            <div className="flex w-full flex-wrap items-center gap-2 lg:justify-end">
-              <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
+              <label className="flex h-10 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                 Κατάστημα
                 <select
                   value={selectedBranch}
@@ -749,7 +925,7 @@ export default function PickingListClient() {
                     setExpandedFindocs(new Set());
                   }}
                   disabled={loading}
-                  className="min-w-[140px] border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
+                  className="min-w-0 flex-1 border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-[140px] sm:flex-none dark:text-gray-200"
                 >
                   {branchOptions.map((branch) => (
                     <option key={branch.code} value={branch.code}>
@@ -759,7 +935,7 @@ export default function PickingListClient() {
                 </select>
               </label>
 
-              <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+              <label className="flex h-10 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                 Status
                 <select
                   value={statusFilter}
@@ -769,7 +945,7 @@ export default function PickingListClient() {
                     setExpandedFindocs(new Set());
                   }}
                   disabled={loading}
-                  className="min-w-[120px] border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
+                  className="min-w-0 flex-1 border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-[120px] sm:flex-none dark:text-gray-200"
                 >
                   {PICKING_STATUS_FILTERS.map((status) => (
                     <option key={status.value} value={status.value}>
@@ -803,12 +979,58 @@ export default function PickingListClient() {
             description="Δεν υπάρχουν παραγγελίες για το επιλεγμένο κατάστημα, status και κριτήριο αναζήτησης."
           />
         ) : (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[1700px] table-fixed divide-y divide-gray-100 dark:divide-gray-800">
+          <>
+          <div className="flex flex-col gap-3 p-4 lg:hidden">
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-950">
+              <DataTableSelectionCheckbox
+                ariaLabel="Επιλογή όλων των ορατών παραγγελιών"
+                checked={allVisibleSelected}
+                indeterminate={someVisibleSelected}
+                onCheckedChange={toggleAllVisible}
+              />
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                {selectedVisibleCount} / {visibleOrders.length} επιλεγμένες
+              </span>
+              <button
+                type="button"
+                onClick={toggleAllExpanded}
+                disabled={visibleOrders.length === 0}
+                aria-label={
+                  allVisibleExpanded
+                    ? "Κλείσιμο λεπτομερειών"
+                    : "Άνοιγμα λεπτομερειών"
+                }
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+              >
+                {allVisibleExpanded ? (
+                  <ListChevronsDownUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ListChevronsUpDown className="h-3.5 w-3.5" />
+                )}
+                Είδη
+              </button>
+            </div>
+            {visibleOrders.map((order) => (
+              <PickingOrderCard
+                key={`mobile-${order.findoc}-${order.pickerComment}`}
+                order={order}
+                expanded={expandedFindocs.has(order.findoc)}
+                selected={selectedFindocs.has(order.findoc)}
+                updating={updatingFindocs.has(order.findoc)}
+                nowMs={nowMs}
+                onToggleExpanded={handleToggleExpanded}
+                onToggleSelected={toggleSelected}
+                onSaveComment={handleSaveComment}
+                onAdvanceStatus={handleAdvanceStatus}
+              />
+            ))}
+          </div>
+
+          <div className="hidden w-full overflow-x-auto lg:block">
+            <table className="w-full min-w-[1520px] table-fixed divide-y divide-gray-100 dark:divide-gray-800">
               <colgroup>
                 <col className="w-[48px]" />
                 <col className="w-[48px]" />
-                <col className="w-[180px]" />
                 <col className="w-[270px]" />
                 <col className="w-[180px]" />
                 <col className="w-[250px]" />
@@ -850,9 +1072,6 @@ export default function PickingListClient() {
                     </button>
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Παραστατικό
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Πελάτης
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
@@ -888,6 +1107,7 @@ export default function PickingListClient() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {!loading && visibleOrders.length > 0 && (

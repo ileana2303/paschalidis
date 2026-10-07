@@ -465,13 +465,12 @@ export default function AllBasketsClient() {
             <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
               <colgroup>
                 <col className="w-[5%]" />
-                <col className="w-[23%]" />
+                <col className="w-[28%]" />
+                <col className="w-[14%]" />
+                <col className="w-[14%]" />
                 <col className="w-[12%]" />
                 <col className="w-[13%]" />
-                <col className="w-[13%]" />
-                <col className="w-[11%]" />
-                <col className="w-[12%]" />
-                <col className="w-[11%]" />
+                <col className="w-[14%]" />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                 <tr>
@@ -486,9 +485,6 @@ export default function AllBasketsClient() {
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Πελάτης
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    TRDR
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Από
@@ -542,10 +538,6 @@ export default function AllBasketsClient() {
                     </td>
                     <td className="break-words px-2 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
                       {row.CUSTOMER_NAME || "—"}
-                    </td>
-
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                      <NumberBadge value={row.TRDR || "—"} />
                     </td>
 
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
