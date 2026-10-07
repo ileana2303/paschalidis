@@ -92,6 +92,13 @@ export function useUpdatePickingListOrderMutation(
           );
 
           if (
+            payload.status === "PICKED_IT_UP" &&
+            statusFilter !== "PICKED_IT_UP"
+          ) {
+            return next.filter((order) => order.findoc !== findoc);
+          }
+
+          if (
             payload.status &&
             statusFilter !== "ALL" &&
             payload.status !== statusFilter

@@ -355,12 +355,12 @@ export default function CustomerOrderSummary({
 
             <SummaryTextareaField
                 id="order-notes"
-                label="Σημειώσεις"
+                label="Παρατηρήσεις"
                 icon={<StickyNote className="h-4 w-4" />}
                 value={notes}
                 onChange={(value) => onNotesChange?.(value)}
                 rows={3}
-                placeholder="Προσθέστε σημειώσεις για την παραγγελία..."
+                placeholder="Προσθέστε παρατηρήσεις για την παραγγελία..."
                 fieldClassName="mt-5"
             />
         </SummaryPanel>

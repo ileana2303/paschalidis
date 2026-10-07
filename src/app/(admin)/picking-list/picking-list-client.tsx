@@ -17,7 +17,6 @@ import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import {
-  ArrowRight,
   Check,
   ChevronDown,
   ClipboardList,
@@ -44,11 +43,9 @@ import {
   getNextPickingStatus,
   matchesPickingOrderSearch,
   PICKER_COMMENT_SUGGESTIONS,
-  PICKING_STATUSES,
   PICKING_STATUS_FILTERS,
   type PickingListOrder,
   type PickingListUpdatePayload,
-  type PickingStatus,
   type PickingStatusFilter,
 } from "@/lib/picking-list";
 
@@ -84,115 +81,50 @@ type PickingOrderRowProps = {
   onAdvanceStatus: (order: PickingListOrder) => void;
 };
 
-type PickingStatusProgressProps = {
-  status: PickingStatus;
+type PickingCompletionButtonProps = {
+  order: PickingListOrder;
   updating: boolean;
-  onAdvance: () => void;
+  onComplete: () => void;
 };
 
-function PickingStatusProgress({
-  status,
+function PickingCompletionButton({
+  order,
   updating,
-  onAdvance,
-}: PickingStatusProgressProps) {
-  const currentIndex = PICKING_STATUSES.indexOf(status);
-  const nextStatus = getNextPickingStatus(status);
+  onComplete,
+}: PickingCompletionButtonProps) {
+  const completed = order.status === "PICKED_IT_UP";
+  const canComplete = getNextPickingStatus(order.status) === "PICKED_IT_UP";
+  const orderLabel = order.parastatiko || order.fincode || order.findoc;
 
   return (
-    <div
-      aria-label={`Πρόοδος picking: ${status}`}
-      className="flex flex-wrap items-center gap-1.5"
-      role="group"
+    <button
+      type="button"
+      onClick={onComplete}
+      disabled={!canComplete || updating}
+      aria-label={`Σήμανση παραγγελίας ${orderLabel} ως PICKED IT UP`}
+      title={
+        completed
+          ? "Η παραγγελία έχει ολοκληρωθεί."
+          : canComplete
+            ? "Σήμανση παραγγελίας ως PICKED IT UP"
+            : "Η παραγγελία δεν είναι ακόμη έτοιμη για ολοκλήρωση."
+      }
+      className={[
+        "inline-flex h-9 w-full min-w-[150px] items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
+        completed
+          ? "cursor-default bg-success-50 text-success-700 ring-1 ring-inset ring-success-200 dark:bg-success-500/10 dark:text-success-400 dark:ring-success-500/30"
+          : canComplete
+            ? "bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600 disabled:cursor-wait disabled:opacity-60"
+            : "cursor-not-allowed bg-gray-100 text-gray-400 ring-1 ring-inset ring-gray-200 dark:bg-gray-800/60 dark:text-gray-500 dark:ring-gray-700",
+      ].join(" ")}
     >
-      {PICKING_STATUSES.map((step, index) => {
-        const isAchieved = index <= currentIndex;
-        const isCurrent = index === currentIndex;
-        const isNext = step === nextStatus;
-        const isAutomaticTarget = status === "S1" && step === "LOADED";
-        const badgeClassName = [
-          "inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full border border-transparent px-2.5 text-[11px] font-semibold ring-1 ring-inset ring-gray-200/70 transition dark:ring-white/10",
-          isNext
-            ? "cursor-pointer bg-white text-brand-600 shadow-sm hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 disabled:cursor-wait disabled:opacity-60 dark:bg-gray-900 dark:text-brand-300 dark:hover:bg-brand-500/10"
-            : step === "S1" && isAchieved
-              ? "bg-warning-100 text-warning-800 dark:bg-warning-500/20 dark:text-warning-300"
-              : step === "PICKED_IT_UP" && isAchieved
-                ? "bg-success-100 text-success-800 dark:bg-success-500/20 dark:text-success-300"
-                : (step === "LOADED" || step === "SEEN") && isCurrent
-                  ? "bg-blue-light-100 text-blue-light-800 dark:bg-blue-light-500/20 dark:text-blue-light-300"
-                  : (step === "LOADED" || step === "SEEN") && isAchieved
-                    ? "bg-blue-light-50 text-blue-light-700 dark:bg-blue-light-500/10 dark:text-blue-light-400"
-                : isCurrent
-                  ? "bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300"
-                  : isAchieved
-                    ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400"
-                    : "bg-gray-50 text-gray-400 dark:bg-gray-800/60 dark:text-gray-500",
-        ].join(" ");
-        const statusContent = (
-          <>
-            {isAchieved ? (
-              <Check aria-hidden="true" className="size-3.5" />
-            ) : (isNext || isAutomaticTarget) && updating ? (
-              <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
-            ) : null}
-            {step}
-            <span className="sr-only">
-              {isCurrent
-                ? ", τρέχουσα και ολοκληρωμένη"
-                : isAchieved
-                  ? ", ολοκληρωμένη"
-                  : isNext
-                    ? ", επόμενο διαθέσιμο βήμα"
-                    : ", απομένει"}
-            </span>
-          </>
-        );
-
-        return (
-          <Fragment key={step}>
-            {index > 0 ? (
-              <ArrowRight
-                aria-hidden="true"
-                className={[
-                  "size-3.5 shrink-0",
-                  isAchieved
-                    ? step === "LOADED" || step === "SEEN"
-                      ? "text-blue-light-500"
-                      : "text-success-500"
-                    : "text-gray-300 dark:text-gray-700",
-                ].join(" ")}
-              />
-            ) : null}
-            {isNext ? (
-              <button
-                type="button"
-                className={badgeClassName}
-                disabled={updating}
-                onClick={onAdvance}
-                title={`Μετάβαση σε ${step}`}
-              >
-                {statusContent}
-              </button>
-            ) : (
-              <span
-                aria-current={isCurrent ? "step" : undefined}
-                className={badgeClassName}
-                title={
-                  isCurrent
-                    ? "Τρέχουσα κατάσταση — ολοκληρώθηκε"
-                    : isAchieved
-                      ? "Ολοκληρώθηκε"
-                      : isAutomaticTarget
-                        ? "Αυτόματη μετάβαση σε LOADED"
-                        : "Απομένει"
-                }
-              >
-                {statusContent}
-              </span>
-            )}
-          </Fragment>
-        );
-      })}
-    </div>
+      {updating ? (
+        <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+      ) : (
+        <Check aria-hidden="true" className="size-4" />
+      )}
+      PICKED IT UP
+    </button>
   );
 }
 
@@ -392,6 +324,17 @@ function PickingOrderCard({
             </p>
           ) : null}
 
+          {order.remarks ? (
+            <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-950">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                Παρατηρήσεις
+              </p>
+              <p className="mt-1 break-words text-sm text-gray-600 dark:text-gray-300">
+                {order.remarks}
+              </p>
+            </div>
+          ) : null}
+
           <div className="mt-3 flex items-center gap-2">
             <input
               type="text"
@@ -430,11 +373,11 @@ function PickingOrderCard({
             </button>
           </div>
 
-          <div className="mt-3 overflow-x-auto pb-1">
-            <PickingStatusProgress
-              status={order.status}
+          <div className="mt-3">
+            <PickingCompletionButton
+              order={order}
               updating={updating}
-              onAdvance={() => onAdvanceStatus(order)}
+              onComplete={() => onAdvanceStatus(order)}
             />
           </div>
         </div>
@@ -529,6 +472,12 @@ function PickingOrderRow({
           </p>
         </td>
 
+        <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
+          <p className="line-clamp-3 break-words" title={order.remarks}>
+            {order.remarks || "—"}
+          </p>
+        </td>
+
         <td className="px-3 py-3 align-top">
           <div className="flex min-w-[230px] items-center gap-2">
             <input
@@ -570,11 +519,11 @@ function PickingOrderRow({
         </td>
 
         <td className="px-3 py-3 align-top">
-          <div className="min-w-[390px]">
-            <PickingStatusProgress
-              status={order.status}
+          <div className="min-w-[170px]">
+            <PickingCompletionButton
+              order={order}
               updating={updating}
-              onAdvance={() => onAdvanceStatus(order)}
+              onComplete={() => onAdvanceStatus(order)}
             />
           </div>
         </td>
@@ -582,7 +531,7 @@ function PickingOrderRow({
 
       {expanded && (
         <tr id={detailsId} className="bg-gray-50/80 dark:bg-gray-950/60">
-          <td colSpan={7} className="border-t border-brand-100 px-4 py-4 dark:border-brand-500/20">
+          <td colSpan={8} className="border-t border-brand-100 px-4 py-4 dark:border-brand-500/20">
             <div className="ml-0 sm:ml-10">
               <PickingOrderDetailsPanel order={order} />
             </div>
@@ -622,6 +571,7 @@ export default function PickingListClient() {
   const [updatingFindocs, setUpdatingFindocs] = useState<Set<string>>(
     new Set()
   );
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const inFlightFindocs = useRef(new Set<string>());
   const automaticLoadAttemptedFindocs = useRef(new Set<string>());
@@ -722,9 +672,11 @@ export default function PickingListClient() {
     () => visibleOrders.map((order) => order.findoc),
     [visibleOrders]
   );
-  const selectedVisibleCount = visibleFindocs.filter((findoc) =>
-    selectedFindocs.has(findoc)
-  ).length;
+  const selectedVisibleOrders = useMemo(
+    () => visibleOrders.filter((order) => selectedFindocs.has(order.findoc)),
+    [selectedFindocs, visibleOrders]
+  );
+  const selectedVisibleCount = selectedVisibleOrders.length;
   const allVisibleSelected =
     visibleFindocs.length > 0 &&
     selectedVisibleCount === visibleFindocs.length;
@@ -733,6 +685,13 @@ export default function PickingListClient() {
   const allVisibleExpanded =
     visibleFindocs.length > 0 &&
     visibleFindocs.every((findoc) => expandedFindocs.has(findoc));
+  const canCompleteSelectedOrders =
+    selectedVisibleOrders.length > 0 &&
+    selectedVisibleOrders.every(
+      (order) =>
+        getNextPickingStatus(order.status) === "PICKED_IT_UP" &&
+        !updatingFindocs.has(order.findoc)
+    );
 
   const persistOrderUpdate = useCallback(
     async (
@@ -867,15 +826,66 @@ export default function PickingListClient() {
   const handleAdvanceStatus = useCallback(
     (order: PickingListOrder) => {
       const status = getNextPickingStatus(order.status);
-      if (!status) return;
+      if (status !== "PICKED_IT_UP") return;
 
-      void persistOrderUpdate(
-        { findoc: order.findoc, status },
-        `Η κατάσταση ενημερώθηκε σε ${status}.`
-      );
+      void (async () => {
+        const updated = await persistOrderUpdate(
+          { findoc: order.findoc, status },
+          "Η παραγγελία σημάνθηκε ως PICKED IT UP."
+        );
+
+        if (updated) await refetch();
+      })();
     },
-    [persistOrderUpdate]
+    [persistOrderUpdate, refetch]
   );
+
+  const handleCompleteSelectedOrders = useCallback(async () => {
+    if (
+      selectedVisibleOrders.length === 0 ||
+      selectedVisibleOrders.some(
+        (order) => getNextPickingStatus(order.status) !== "PICKED_IT_UP"
+      )
+    ) {
+      return;
+    }
+
+    setBulkUpdating(true);
+
+    try {
+      const results = await Promise.all(
+        selectedVisibleOrders.map((order) =>
+          persistOrderUpdate(
+            { findoc: order.findoc, status: "PICKED_IT_UP" },
+            false
+          )
+        )
+      );
+      const completedFindocs = new Set(
+        selectedVisibleOrders.flatMap((order, index) =>
+          results[index] ? [order.findoc] : []
+        )
+      );
+
+      if (completedFindocs.size > 0) {
+        setSelectedFindocs((current) => {
+          const next = new Set(current);
+          completedFindocs.forEach((findoc) => next.delete(findoc));
+          return next;
+        });
+
+        toast.success(
+          completedFindocs.size === 1
+            ? "Η επιλεγμένη παραγγελία σημάνθηκε ως PICKED IT UP."
+            : `${completedFindocs.size} επιλεγμένες παραγγελίες σημάνθηκαν ως PICKED IT UP.`
+        );
+
+        await refetch();
+      }
+    } finally {
+      setBulkUpdating(false);
+    }
+  }, [persistOrderUpdate, refetch, selectedVisibleOrders]);
 
   const toggleSelected = useCallback((findoc: string) => {
     setSelectedFindocs((current) => {
@@ -918,6 +928,50 @@ export default function PickingListClient() {
           count={visibleOrders.length}
           action={
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
+              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => void handleCompleteSelectedOrders()}
+                  disabled={!canCompleteSelectedOrders || bulkUpdating}
+                  title={
+                    selectedVisibleCount === 0
+                      ? "Επιλέξτε παραγγελίες για ολοκλήρωση."
+                      : canCompleteSelectedOrders
+                        ? "Σήμανση των επιλεγμένων παραγγελιών ως PICKED IT UP"
+                        : "Μία ή περισσότερες επιλεγμένες παραγγελίες δεν είναι ακόμη έτοιμες για ολοκλήρωση."
+                  }
+                  className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-3 text-xs font-semibold text-white shadow-theme-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none sm:w-auto dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
+                >
+                  {bulkUpdating ? (
+                    <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                  ) : (
+                    <Check aria-hidden="true" className="size-4" />
+                  )}
+                  PICKED IT UP
+                  {selectedVisibleCount > 0 ? ` (${selectedVisibleCount})` : ""}
+                </button>
+
+                <label className="flex h-10 min-w-0 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                  Status
+                  <select
+                    value={statusFilter}
+                    onChange={(event) => {
+                      setStatusFilter(event.target.value as PickingStatusFilter);
+                      setSelectedFindocs(new Set());
+                      setExpandedFindocs(new Set());
+                    }}
+                    disabled={isLoading}
+                    className="min-w-0 flex-1 border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-[120px] sm:flex-none dark:text-gray-200"
+                  >
+                    {PICKING_STATUS_FILTERS.map((status) => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
               <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                 Κατάστημα
                 {branchOptions.length <= 1 ? (
@@ -965,26 +1019,6 @@ export default function PickingListClient() {
                   </label>
                 )}
               </div>
-
-              <label className="flex h-10 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                Status
-                <select
-                  value={statusFilter}
-                  onChange={(event) => {
-                    setStatusFilter(event.target.value as PickingStatusFilter);
-                    setSelectedFindocs(new Set());
-                    setExpandedFindocs(new Set());
-                  }}
-                  disabled={isLoading}
-                  className="min-w-0 flex-1 border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-[120px] sm:flex-none dark:text-gray-200"
-                >
-                  {PICKING_STATUS_FILTERS.map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
 
               <DataTableSearchBar
                 value={searchTerm}
@@ -1058,15 +1092,16 @@ export default function PickingListClient() {
           </div>
 
           <div className="hidden w-full overflow-x-auto lg:block">
-            <table className="w-full min-w-[1520px] table-fixed divide-y divide-gray-100 dark:divide-gray-800">
+            <table className="w-full min-w-[1540px] table-fixed divide-y divide-gray-100 dark:divide-gray-800">
               <colgroup>
                 <col className="w-[48px]" />
                 <col className="w-[48px]" />
                 <col className="w-[270px]" />
                 <col className="w-[180px]" />
                 <col className="w-[250px]" />
+                <col className="w-[220px]" />
                 <col className="w-[280px]" />
-                <col className="w-[390px]" />
+                <col className="w-[190px]" />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                 <tr>
@@ -1109,7 +1144,10 @@ export default function PickingListClient() {
                     Υποβολή / Κατάστημα
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Σχόλια παραγγελίας
+                    Τύπος παραγγελίας
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
+                    Παρατηρήσεις
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Σχόλιο picker
