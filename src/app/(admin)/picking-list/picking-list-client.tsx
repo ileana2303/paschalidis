@@ -206,7 +206,7 @@ function PickingOrderDetailsPanel({
                     {positions.map((position, positionIndex) => (
                       <span
                         key={`${position}-${positionIndex}`}
-                        className="inline-block max-w-full break-all rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                        className="inline-block max-w-full break-all rounded-md bg-amber-100 px-2 py-1 font-mono text-xs font-bold tracking-wide text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
                       >
                         {position}
                       </span>
@@ -256,7 +256,7 @@ function PickingOrderDetailsPanel({
                           positions.map((position, positionIndex) => (
                             <span
                               key={`${position}-${positionIndex}`}
-                              className="inline-block max-w-full break-all rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                              className="inline-block max-w-full break-all rounded-md bg-amber-100 px-2 py-1 font-mono text-xs font-bold tracking-wide text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
                             >
                               {position}
                             </span>
