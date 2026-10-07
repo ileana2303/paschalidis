@@ -1,3 +1,8 @@
+import {
+  getStorageThesiByBranchCode,
+  type StorageThesi,
+} from "@/lib/auth/branches";
+
 export const PICKING_STATUSES = [
   "S1",
   "LOADED",
@@ -12,9 +17,9 @@ export const PICKING_STATUS_FILTERS: Array<{
   value: PickingStatusFilter;
   label: string;
 }> = [
-  { value: "ALL", label: "All" },
-  ...PICKING_STATUSES.map((status) => ({ value: status, label: status })),
-];
+    { value: "ALL", label: "All" },
+    ...PICKING_STATUSES.map((status) => ({ value: status, label: status })),
+  ];
 
 export const PICKER_COMMENT_SUGGESTIONS = [
   "TEST",
@@ -59,6 +64,7 @@ export type PickingListDetail = {
   description: string;
   quantity: string;
   positions: string[];
+  positionsByLocation: Record<StorageThesi, string>;
 };
 
 export type PickingListOrder = {
@@ -141,9 +147,12 @@ function toDetail(row: PickingListLine): PickingListDetail | null {
   const code = text(row.DETAIL_CODE);
   const description = text(row.DETAIL_EIDOS);
   const quantity = text(row.Qty1);
-  const positions = [row.THESIS1, row.THESIS2, row.THESIS3]
-    .map(text)
-    .filter(Boolean);
+  const positionsByLocation = {
+    P: text(row.THESIS1),
+    C: text(row.THESIS2),
+    M: text(row.THESIS3),
+  };
+  const positions = Object.values(positionsByLocation).filter(Boolean);
 
   if (!lineNumber && !code && !description && !quantity && positions.length === 0) {
     return null;
@@ -155,7 +164,29 @@ function toDetail(row: PickingListLine): PickingListDetail | null {
     description,
     quantity,
     positions,
+    positionsByLocation,
   };
+}
+
+function formatPickingPosition(value: string) {
+  return value
+    .replace(/^[PCM]\s*>/iu, "")
+    .split(">")
+    .map((segment) => segment.trim().replace(/^-+|-+$/g, ""))
+    .filter(Boolean)
+    .join(" · ");
+}
+
+export function getPickingPositionsForBranch(
+  detail: PickingListDetail,
+  branch: string
+) {
+  const location = getStorageThesiByBranchCode(branch);
+  const position = location
+    ? formatPickingPosition(detail.positionsByLocation[location])
+    : "";
+
+  return position ? [position] : [];
 }
 
 function getPickingOrderTimestamp(order: PickingListOrder) {

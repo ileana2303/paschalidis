@@ -7,6 +7,7 @@ const BRANCH_NAME_BY_CODE = {
 } as const;
 
 export type KnownBranchCode = keyof typeof BRANCH_NAME_BY_CODE;
+export type StorageThesi = "P" | "C" | "M";
 
 export type BranchOption = {
   code: string;
@@ -51,6 +52,14 @@ const SaldocSeriesByBranchCode: Partial<Record<KnownBranchCode, string>> = {
   "1007": "27002",
 } as const;
 
+const StorageThesiByBranchCode: Partial<
+  Record<KnownBranchCode, StorageThesi>
+> = {
+  "1000": "C",
+  "1006": "P",
+  "1007": "M",
+} as const;
+
 function normalizeText(value: string | null | undefined) {
   return String(value ?? "").trim();
 }
@@ -88,10 +97,10 @@ export function getUserBranchOptions(
     new Set(
       user.isSuperAdmin === 1
         ? [
-            ...getKnownBranchOptions().map((branch) => branch.code),
-            ...permittedCodes,
-            ...(activeBranchCode ? [activeBranchCode] : []),
-          ]
+          ...getKnownBranchOptions().map((branch) => branch.code),
+          ...permittedCodes,
+          ...(activeBranchCode ? [activeBranchCode] : []),
+        ]
         : permittedCodes
     )
   );
@@ -114,6 +123,13 @@ export function getSaldocSeriesByBranchCode(
 ) {
   const code = normalizeBranchCode(branchCode) as KnownBranchCode;
   return SaldocSeriesByBranchCode[code];
+}
+
+export function getStorageThesiByBranchCode(
+  branchCode: string | number | null | undefined
+) {
+  const code = normalizeBranchCode(branchCode) as KnownBranchCode;
+  return StorageThesiByBranchCode[code];
 }
 
 export function resolveBranchName(

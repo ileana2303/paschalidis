@@ -43,6 +43,7 @@ import {
   getAutomaticPickingStatus,
   getFirstInteractionStatus,
   getNextPickingStatus,
+  getPickingPositionsForBranch,
   matchesPickingOrderSearch,
   PICKER_COMMENT_SUGGESTIONS,
   PICKING_STATUS_FILTERS,
@@ -74,6 +75,7 @@ function pruneFindocSet(current: Set<string>, allowedFindocs: Set<string>) {
 
 type PickingOrderRowProps = {
   order: PickingListOrder;
+  activeBranch: string;
   expanded: boolean;
   selected: boolean;
   updating: boolean;
@@ -145,7 +147,13 @@ function ElapsedTimeBadge({ label }: { label: string | null }) {
   );
 }
 
-function PickingOrderDetailsPanel({ order }: { order: PickingListOrder }) {
+function PickingOrderDetailsPanel({
+  order,
+  activeBranch,
+}: {
+  order: PickingListOrder;
+  activeBranch: string;
+}) {
   const parastatikoLabel = order.parastatiko || order.fincode;
 
   return (
@@ -173,34 +181,41 @@ function PickingOrderDetailsPanel({ order }: { order: PickingListOrder }) {
         </p>
       ) : (
         <div className="divide-y divide-gray-100 dark:divide-gray-800 lg:hidden">
-          {order.details.map((detail, index) => (
-            <div
-              key={`${detail.lineNumber}-${detail.code}-${index}-mobile`}
-              className="space-y-2 px-4 py-3"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p className="min-w-0 flex-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {detail.description || "—"}
-                </p>
-                <NumberBadge value={detail.quantity || "0"} variant="brand" />
-              </div>
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-200">
-                {detail.code || "—"}
-              </p>
-              {detail.positions.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {detail.positions.map((position, positionIndex) => (
-                    <span
-                      key={`${position}-${positionIndex}`}
-                      className="inline-block max-w-full break-all rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
-                    >
-                      {position}
-                    </span>
-                  ))}
+          {order.details.map((detail, index) => {
+            const positions = getPickingPositionsForBranch(
+              detail,
+              activeBranch
+            );
+
+            return (
+              <div
+                key={`${detail.lineNumber}-${detail.code}-${index}-mobile`}
+                className="space-y-2 px-4 py-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 flex-1 text-sm font-medium text-gray-900 dark:text-white">
+                    {detail.description || "—"}
+                  </p>
+                  <NumberBadge value={detail.quantity || "0"} variant="brand" />
                 </div>
-              ) : null}
-            </div>
-          ))}
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-200">
+                  {detail.code || "—"}
+                </p>
+                {positions.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {positions.map((position, positionIndex) => (
+                      <span
+                        key={`${position}-${positionIndex}`}
+                        className="inline-block max-w-full break-all rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                      >
+                        {position}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -224,35 +239,42 @@ function PickingOrderDetailsPanel({ order }: { order: PickingListOrder }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {order.details.map((detail, index) => (
-                <tr key={`${detail.lineNumber}-${detail.code}-${index}`}>
-                  <td className="px-3 py-3 text-right text-sm text-gray-700 sm:px-4 dark:text-gray-200">
-                    <NumberBadge value={detail.quantity || "0"} variant="brand" />
-                  </td>
-                  <td className="px-3 py-3 sm:px-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      {detail.positions.length > 0 ? (
-                        detail.positions.map((position, positionIndex) => (
-                          <span
-                            key={`${position}-${positionIndex}`}
-                            className="inline-block max-w-full break-all rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
-                          >
-                            {position}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-sm text-gray-400">—</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="break-all px-3 py-3 text-sm font-medium text-gray-800 sm:px-4 dark:text-gray-100">
-                    {detail.code || "—"}
-                  </td>
-                  <td className="break-words px-3 py-3 text-sm text-gray-700 sm:px-4 dark:text-gray-200">
-                    {detail.description || "—"}
-                  </td>
-                </tr>
-              ))}
+              {order.details.map((detail, index) => {
+                const positions = getPickingPositionsForBranch(
+                  detail,
+                  activeBranch
+                );
+
+                return (
+                  <tr key={`${detail.lineNumber}-${detail.code}-${index}`}>
+                    <td className="px-3 py-3 text-right text-sm text-gray-700 sm:px-4 dark:text-gray-200">
+                      <NumberBadge value={detail.quantity || "0"} variant="brand" />
+                    </td>
+                    <td className="px-3 py-3 sm:px-4">
+                      <div className="flex flex-wrap gap-1.5">
+                        {positions.length > 0 ? (
+                          positions.map((position, positionIndex) => (
+                            <span
+                              key={`${position}-${positionIndex}`}
+                              className="inline-block max-w-full break-all rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                            >
+                              {position}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-400">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="break-all px-3 py-3 text-sm font-medium text-gray-800 sm:px-4 dark:text-gray-100">
+                      {detail.code || "—"}
+                    </td>
+                    <td className="break-words px-3 py-3 text-sm text-gray-700 sm:px-4 dark:text-gray-200">
+                      {detail.description || "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -265,6 +287,7 @@ type PickingOrderCardProps = PickingOrderRowProps;
 
 function PickingOrderCard({
   order,
+  activeBranch,
   expanded,
   selected,
   updating,
@@ -410,7 +433,7 @@ function PickingOrderCard({
 
       {expanded ? (
         <div id={detailsId} className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800">
-          <PickingOrderDetailsPanel order={order} />
+          <PickingOrderDetailsPanel order={order} activeBranch={activeBranch} />
         </div>
       ) : null}
     </article>
@@ -419,6 +442,7 @@ function PickingOrderCard({
 
 function PickingOrderRow({
   order,
+  activeBranch,
   expanded,
   selected,
   updating,
@@ -569,7 +593,10 @@ function PickingOrderRow({
         <tr id={detailsId} className="bg-gray-50/80 dark:bg-gray-950/60">
           <td colSpan={9} className="border-t border-brand-100 px-4 py-4 dark:border-brand-500/20">
             <div className="ml-0 sm:ml-10">
-              <PickingOrderDetailsPanel order={order} />
+              <PickingOrderDetailsPanel
+                order={order}
+                activeBranch={activeBranch}
+              />
             </div>
           </td>
         </tr>
@@ -1115,6 +1142,7 @@ export default function PickingListClient() {
               <PickingOrderCard
                 key={`mobile-${order.findoc}-${order.pickerComment}`}
                 order={order}
+                activeBranch={selectedBranch}
                 expanded={expandedFindocs.has(order.findoc)}
                 selected={selectedFindocs.has(order.findoc)}
                 updating={updatingFindocs.has(order.findoc)}
@@ -1203,6 +1231,7 @@ export default function PickingListClient() {
                   <PickingOrderRow
                     key={`${order.findoc}-${order.pickerComment}`}
                     order={order}
+                    activeBranch={selectedBranch}
                     expanded={expandedFindocs.has(order.findoc)}
                     selected={selectedFindocs.has(order.findoc)}
                     updating={updatingFindocs.has(order.findoc)}
