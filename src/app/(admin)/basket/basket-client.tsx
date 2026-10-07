@@ -320,6 +320,7 @@ export default function BasketClient() {
         try {
             await submitBasketOrder({
                 TRDR: urlTrdr,
+                RECEIPT_TYPE: receiptType,
                 NOTES: notes,
                 APPUSER_ID: user?.username,
                 items: selectedItemsList,

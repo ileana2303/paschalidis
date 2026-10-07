@@ -51,8 +51,12 @@ ENDO ignores the SERIES column: it always sends the fixed `7004|πΔ` + `TAXSERI
 | Flow | TRDR | TRDBRANCH |
 |---|---|---|
 | ENDO | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | ΠΑΣΧΑΛΙΔΗΣ branch **the items were asked from** (supplying branch) |
-| CUST BASKET | the customer | the **customer's** TRDBRANCH (basket row `TRD_BRANCH`) |
+| Customer basket invoice | the customer | the **customer's** TRDBRANCH (basket row `TRD_BRANCH`) |
+| Customer basket receipt | `11643`, fixed | the **customer's** TRDBRANCH (basket row `TRD_BRANCH`) |
 | ANATROF | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | `13`, fixed - always ΠΑΣΧΑΛΙΔΗΣ |
+
+For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚΗΣ B2B`. Receipt comments are
+`ΠΑΡΑΓΓΕΛΙΑ ΛΙΑΝΙΚΗΣ Α/Α<customer TRDR>` even though the submitted TRDR is `11643`.
 
 ## ENDO specifics
 

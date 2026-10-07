@@ -1,7 +1,4 @@
-import {
-    getSaldocSeriesByBranchCode,
-    getTrdBranchByBranchCode,
-} from "@/lib/auth/branches";
+import { getSaldocSeriesByBranchCode } from "@/lib/auth/branches";
 import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
 import { linkBasketRowsToDocument } from "../shared/link-basket-to-document";
 import {
@@ -15,10 +12,8 @@ import { postSetDataDocument } from "../shared/post-setdata";
 import { jsonSafeNumber, resolveIsoDate, uniqueBasketIds } from "../validation";
 import { buildBasketPayload } from "./build-basket-payload";
 import {
-    BASKET_COMMENTS,
     BASKET_DEFAULT_BRANCH,
     BASKET_DEFAULT_SERIES,
-    BASKET_DEFAULT_TRDBRANCH,
     BASKET_ENDPOINT_ENV_KEY,
     BASKET_LOG_LABEL,
     BASKET_PAYMENT,
@@ -26,6 +21,7 @@ import {
     BASKET_SOCASH,
     BASKET_TABLE_ACTION,
     BASKET_TRUCKS,
+    type BasketReceiptType,
 } from "./basket-constants";
 
 export type RawBasketItem = RawOrderItem & {
@@ -41,8 +37,9 @@ export type BasketOrderRequestBody = {
     username?: string;
     deliveryDate?: string;
     notes?: string;
+    receiptType?: BasketReceiptType;
     trdr?: number;
-    /** Customer branch; falls back to the sending branch mapping. */
+    /** Customer branch, read from the selected customer's basket rows. */
     trdBranch?: number;
     /** Sending branch, drives both SERIES and the setData clientID. */
     branch?: number;
@@ -108,27 +105,32 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         throw new Error('Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne.');
     }
 
-    const trdr = jsonSafeNumber(body.trdr);
+    const customerTrdr = jsonSafeNumber(body.trdr);
 
-    if (!trdr) {
+    if (!customerTrdr) {
         throw new Error('Λείπει ο πελάτης (TRDR) της παραγγελίας.');
     }
 
     const trdBranch =
         jsonSafeNumber(body.trdBranch) ??
-        firstItemNumber(rawItems, ["trdBranch", "TRD_BRANCH"]) ??
-        getTrdBranchByBranchCode(branch) ??
-        BASKET_DEFAULT_TRDBRANCH;
+        firstItemNumber(rawItems, ["trdBranch", "TRD_BRANCH"]);
+
+    if (!trdBranch) {
+        throw new Error('Λείπει το υποκατάστημα του πελάτη (TRDBRANCH).');
+    }
+
+    const receiptType: BasketReceiptType =
+        body.receiptType === "receipt" ? "receipt" : "invoice";
 
     const payload = buildBasketPayload({
         clientID,
         series: getSaldocSeriesByBranchCode(branch) ?? BASKET_DEFAULT_SERIES,
-        trdr,
+        customerTrdr,
+        receiptType,
         trdBranch,
         payment: BASKET_PAYMENT,
         trucks: BASKET_TRUCKS,
         deliveryDate: resolveIsoDate(body.deliveryDate),
-        comments: BASKET_COMMENTS,
         remarks: String(body.notes ?? "").trim(),
         shipKind: BASKET_SHIPKIND,
         socash: BASKET_SOCASH,

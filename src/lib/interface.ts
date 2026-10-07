@@ -327,6 +327,7 @@ export interface BasketMassDeletePayload {
 
 export interface BasketSubmitRoutePayload {
     TRDR: string;
+    RECEIPT_TYPE?: "receipt" | "invoice";
     NOTES?: string;
     APPUSER_ID?: string;
     USERNAME?: string;

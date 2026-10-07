@@ -201,6 +201,7 @@ export async function submitBasketOrder(
         username: String(params.USERNAME ?? params.APPUSER_ID ?? "").trim(),
         deliveryDate: params.DELIVDATE,
         notes: params.NOTES,
+        receiptType: params.RECEIPT_TYPE,
         trdr: asPositiveNumber(params.TRDR),
         trdBranch: asPositiveNumber(firstItem?.TRD_BRANCH),
         branch: asPositiveNumber(firstItem?.BRANCH),

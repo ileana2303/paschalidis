@@ -3,6 +3,12 @@ import {
     type BasketSetDataIteLine,
     type SetDataEnvelope,
 } from "../shared/setdata-envelope";
+import {
+    BASKET_INVOICE_COMMENTS,
+    BASKET_RECEIPT_COMMENTS,
+    BASKET_RETAIL_TRDR,
+    type BasketReceiptType,
+} from "./basket-constants";
 
 /** SALDOC header of a customer order (Παραγγελία Πελάτη). */
 export type BasketSaldoc = {
@@ -38,14 +44,14 @@ export type BuildBasketPayloadParams = {
     clientID: string;
     /** Per-branch SALDOC series (7002 / 17002 / 27002). */
     series: string;
-    /** The customer. */
-    trdr: number;
+    /** The real selected customer's TRDR, including for retail comments. */
+    customerTrdr: number;
+    receiptType: BasketReceiptType;
     /** TRDBRANCH of the customer. */
     trdBranch: number;
     payment: number;
     trucks: number;
     deliveryDate: string;
-    comments: string;
     /** Free-text notes typed by the user. */
     remarks: string;
     shipKind: number;
@@ -55,7 +61,7 @@ export type BuildBasketPayloadParams = {
 };
 
 /**
- * Builds the complete CUST BASKET setData payload. Pure: no env reads, no branch
+ * Builds the complete customer basket setData payload. Pure: no env reads, no branch
  * lookups - what you see here is exactly what is POSTed to S1_BASKET_ENDPOINT.
  *
  * Unlike ENDO, a customer order carries no BRANCHSEC/WHOUSESEC and is submitted
@@ -64,32 +70,36 @@ export type BuildBasketPayloadParams = {
 export function buildBasketPayload({
     clientID,
     series,
-    trdr,
+    customerTrdr,
+    receiptType,
     trdBranch,
     payment,
     trucks,
     deliveryDate,
-    comments,
     remarks,
     shipKind,
     socash,
     cccExtUser,
     lines,
 }: BuildBasketPayloadParams): BasketSetDataPayload {
+    const isReceipt = receiptType === "receipt";
+
     return setDataEnvelope(clientID, {
         SALDOC: [
             {
-                SERIES: series, // per sending branch
-                TRDR: trdr, // customer
+                SERIES: series,
+                TRDR: isReceipt ? BASKET_RETAIL_TRDR : customerTrdr,
                 TRDBRANCH: trdBranch, // customer branch
                 PAYMENT: payment,
                 TRUCKS: trucks,
                 DELIVDATE: deliveryDate,
-                COMMENTS: comments, // KALATHI PELATI
+                COMMENTS: isReceipt
+                    ? `${BASKET_RECEIPT_COMMENTS}${customerTrdr}`
+                    : BASKET_INVOICE_COMMENTS,
                 REMARKS: remarks, // user notes
                 SHIPKIND: shipKind,
                 SOCASH: socash,
-                VARCHAR02: "S1", // initial Picking List workflow status
+                VARCHAR02: "S1",
                 CCCEXTUSER: cccExtUser,
             },
         ],

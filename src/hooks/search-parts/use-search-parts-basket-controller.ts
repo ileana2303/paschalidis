@@ -390,6 +390,7 @@ export function useSearchPartsBasketController({
         try {
             await submitBasketOrder({
                 TRDR: customer.TRDR,
+                RECEIPT_TYPE: receiptType,
                 NOTES: notes,
                 APPUSER_ID: userId,
                 items: basket.items,
@@ -412,7 +413,7 @@ export function useSearchPartsBasketController({
         } finally {
             setSendingOrder(false);
         }
-    }, [basket, customer, loadBasket, notes, selectedItems.size, submitBasketOrder, userId]);
+    }, [basket, customer, loadBasket, notes, receiptType, selectedItems.size, submitBasketOrder, userId]);
 
     const handleRefreshBasket = useCallback(() => {
         if (!customer) {
