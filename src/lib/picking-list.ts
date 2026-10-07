@@ -40,6 +40,7 @@ export type PickingListLine = {
   InsDate?: string;
   STATUS_ORDER?: string;
   COMMENTS?: string;
+  LPELATIS?: string;
   REMARKS?: string;
   VARCHAR01?: string;
   VARCHAR02?: string;
@@ -74,6 +75,7 @@ export type PickingListOrder = {
   transactionDate: string;
   submittedAt: string;
   comments: string;
+  retailCustomerName: string;
   remarks: string;
   pickerComment: string;
   status: PickingStatus;
@@ -193,6 +195,7 @@ export function groupPickingListRows(
         transactionDate: text(row.TrnDate),
         submittedAt: text(row.InsDate),
         comments: text(row.COMMENTS),
+        retailCustomerName: text(row.LPELATIS),
         remarks: text(row.REMARKS),
         pickerComment: text(row.VARCHAR01),
         status: normalizePickingStatus(
@@ -215,6 +218,7 @@ export function groupPickingListRows(
       order.transactionDate ||= text(row.TrnDate);
       order.submittedAt ||= text(row.InsDate);
       order.comments ||= text(row.COMMENTS);
+      order.retailCustomerName ||= text(row.LPELATIS);
       order.remarks ||= text(row.REMARKS);
       order.pickerComment ||= text(row.VARCHAR01);
 
@@ -240,6 +244,27 @@ export function groupPickingListRows(
   });
 }
 
+export function shouldShowRetailCustomerName(
+  order: Pick<PickingListOrder, "comments" | "retailCustomerName">
+) {
+  if (!order.retailCustomerName) return false;
+
+  const orderType = order.comments.toLocaleUpperCase("el-GR");
+  const isWholesale = orderType.includes("ΧΟΝΔΡΙΚ");
+  const isReceipt =
+    orderType.includes("ΛΙΑΝΙΚ") || orderType.includes("ΑΠΟΔΕΙΞ");
+
+  return !isWholesale && isReceipt;
+}
+
+export function formatPickingOrderComments(comments: string) {
+  if (!comments.toLocaleUpperCase("el-GR").includes("ΛΙΑΝΙΚ")) {
+    return comments;
+  }
+
+  return comments.replace(/([ΑA]\/[ΑA])\s*(\d+)/gu, "$1 $2");
+}
+
 export function matchesPickingOrderSearch(
   order: PickingListOrder,
   search: string
@@ -255,6 +280,7 @@ export function matchesPickingOrderSearch(
     order.afm,
     order.submittedBy,
     order.comments,
+    shouldShowRetailCustomerName(order) ? order.retailCustomerName : "",
     order.remarks,
     order.pickerComment,
     order.submittedAt,

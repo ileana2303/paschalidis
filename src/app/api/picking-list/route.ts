@@ -58,10 +58,14 @@ function normalizeRow(row: Record<string, unknown>): PickingListLine {
   const submittedBy = Object.entries(normalizedRow).find(
     ([key]) => key.trim().toUpperCase() === "CCCEXTUSER"
   )?.[1];
+  const retailCustomerName = Object.entries(normalizedRow).find(
+    ([key]) => key.trim().toUpperCase() === "LPELATIS"
+  )?.[1];
 
   return {
     ...normalizedRow,
     CCCEXTUSER: String(submittedBy ?? "").trim(),
+    LPELATIS: String(retailCustomerName ?? "").trim(),
   };
 }
 

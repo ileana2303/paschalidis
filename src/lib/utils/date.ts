@@ -59,10 +59,10 @@ export function formatMinutesAgoEl(value: unknown, nowMs: number) {
 
         return remainingMinutes === 0
             ? `${elapsedHours}ω`
-            : `${elapsedHours}ω και ${remainingMinutes}λεπτά πριν`;
+            : `${elapsedHours}ω και ${remainingMinutes}λ πριν`;
     }
 
     return elapsedMinutes === 1
         ? "1 λεπτό πριν"
-        : `${elapsedMinutes} λεπτά πριν`;
+        : `${elapsedMinutes} λ πριν`;
 }

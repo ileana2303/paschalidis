@@ -20,6 +20,7 @@ import {
   Check,
   ChevronDown,
   ClipboardList,
+  Clock3,
   ListChevronsDownUp,
   ListChevronsUpDown,
   Loader2,
@@ -38,12 +39,14 @@ import {
 } from "@/lib/auth/branches";
 import { formatDateTimeEl, formatMinutesAgoEl } from "@/lib/utils/date";
 import {
+  formatPickingOrderComments,
   getAutomaticPickingStatus,
   getFirstInteractionStatus,
   getNextPickingStatus,
   matchesPickingOrderSearch,
   PICKER_COMMENT_SUGGESTIONS,
   PICKING_STATUS_FILTERS,
+  shouldShowRetailCustomerName,
   type PickingListOrder,
   type PickingListUpdatePayload,
   type PickingStatusFilter,
@@ -125,6 +128,20 @@ function PickingCompletionButton({
       )}
       PICKED IT UP
     </button>
+  );
+}
+
+function ElapsedTimeBadge({ label }: { label: string | null }) {
+  if (!label) return null;
+
+  return (
+    <span
+      className="inline-flex w-fit items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
+      title="Χρόνος από την υποβολή"
+    >
+      <Clock3 aria-hidden="true" className="size-3.5 shrink-0" />
+      {label}
+    </span>
   );
 }
 
@@ -264,6 +281,8 @@ function PickingOrderCard({
   const detailsId = `picking-list-details-mobile-${safeFindoc}`;
   const submittedMinutesAgo = formatMinutesAgoEl(order.submittedAt, nowMs);
   const parastatikoLabel = order.parastatiko || order.fincode;
+  const showRetailCustomerName = shouldShowRetailCustomerName(order);
+  const displayedComments = formatPickingOrderComments(order.comments);
 
   return (
     <article
@@ -282,9 +301,16 @@ function PickingOrderCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-base font-semibold text-gray-900 dark:text-white">
-                {order.customerName || "—"}
-              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <p className="text-base font-semibold text-gray-900 dark:text-white">
+                  {order.customerName || "—"}
+                </p>
+                {showRetailCustomerName ? (
+                  <span className="inline-flex max-w-full rounded-full bg-brand-100 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-inset ring-brand-200 dark:bg-brand-500/15 dark:text-brand-300 dark:ring-brand-500/25">
+                    {order.retailCustomerName}
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Κωδικός: {order.customerCode || "—"} · ΑΦΜ: {order.afm || "—"}
               </p>
@@ -304,15 +330,11 @@ function PickingOrderCard({
             </button>
           </div>
 
-          <div className="mt-3 space-y-1 text-sm text-gray-600 dark:text-gray-300">
-            <p className="font-medium text-gray-700 dark:text-gray-200">
+          <div className="mt-3 space-y-1.5 text-sm text-gray-600 dark:text-gray-300">
+            <ElapsedTimeBadge label={submittedMinutesAgo} />
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
               {formatDateTimeEl(order.submittedAt || order.transactionDate)}
             </p>
-            {submittedMinutesAgo ? (
-              <p className="text-xs font-medium text-brand-600 dark:text-brand-400">
-                {submittedMinutesAgo}
-              </p>
-            ) : null}
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {formatBranchLabel(order.branch)}
             </p>
@@ -323,7 +345,7 @@ function PickingOrderCard({
 
           {order.comments ? (
             <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-gray-950 dark:text-gray-300">
-              {order.comments}
+              {displayedComments}
             </p>
           ) : null}
 
@@ -412,6 +434,8 @@ function PickingOrderRow({
   const suggestionListId = `picker-comments-${safeFindoc}`;
   const detailsId = `picking-list-details-${safeFindoc}`;
   const submittedMinutesAgo = formatMinutesAgoEl(order.submittedAt, nowMs);
+  const showRetailCustomerName = shouldShowRetailCustomerName(order);
+  const displayedComments = formatPickingOrderComments(order.comments);
 
   return (
     <Fragment>
@@ -447,23 +471,26 @@ function PickingOrderRow({
         </td>
 
         <td className="px-3 py-3 align-top">
-          <p className="break-words text-sm font-medium text-gray-800 dark:text-white/90">
-            {order.customerName || "—"}
-          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="break-words text-sm font-medium text-gray-800 dark:text-white/90">
+              {order.customerName || "—"}
+            </p>
+            {showRetailCustomerName ? (
+              <span className="inline-flex max-w-full rounded-full bg-brand-100 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-inset ring-brand-200 dark:bg-brand-500/15 dark:text-brand-300 dark:ring-brand-500/25">
+                {order.retailCustomerName}
+              </span>
+            ) : null}
+          </div>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Κωδικός: {order.customerCode || "—"} · ΑΦΜ: {order.afm || "—"}
           </p>
         </td>
 
         <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
-          <p className="font-medium text-gray-700 dark:text-gray-200">
+          <ElapsedTimeBadge label={submittedMinutesAgo} />
+          <p className="mt-1.5 text-xs font-medium text-gray-600 dark:text-gray-300">
             {formatDateTimeEl(order.submittedAt || order.transactionDate)}
           </p>
-          {submittedMinutesAgo && (
-            <p className="mt-1 text-xs font-medium text-brand-600 dark:text-brand-400">
-              {submittedMinutesAgo}
-            </p>
-          )}
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             {formatBranchLabel(order.branch)}
           </p>
@@ -476,8 +503,8 @@ function PickingOrderRow({
         </td>
 
         <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
-          <p className="line-clamp-3 break-words" title={order.comments}>
-            {order.comments || "—"}
+          <p className="line-clamp-3 break-words" title={displayedComments}>
+            {displayedComments || "—"}
           </p>
         </td>
 
