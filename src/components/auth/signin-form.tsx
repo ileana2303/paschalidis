@@ -5,6 +5,7 @@ import Label from "@/components/template-components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { isAxiosError } from "axios";
 import type { LoginResponse } from "@/lib/auth/types";
@@ -18,6 +19,7 @@ export default function SignInForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
   const loginMutation = useLoginMutation();
   const setAuth = useAuthStore((state) => state.setAuth);
 
@@ -35,7 +37,9 @@ export default function SignInForm() {
 
       if (data.result && data.user && data.permissions) {
         setAuth(data.user, data.permissions);
-        window.location.href = data.redirectlink ?? "/";
+        const redirectPath = data.redirectlink ?? "/";
+        router.push(redirectPath);
+        router.refresh();
       } else {
         setError(data.message);
       }

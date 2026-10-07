@@ -1,3 +1,5 @@
+import type { AuthPermissions, AuthUser } from "@/lib/auth/types";
+
 const BRANCH_NAME_BY_CODE = {
   "1000": "Κασομούλη",
   "1006": "Λ. Αθηνών",
@@ -68,6 +70,35 @@ export function getKnownBranchOptions(): BranchOption[] {
   return Object.entries(BRANCH_NAME_BY_CODE).map(([code, label]) => ({
     code,
     label,
+  }));
+}
+
+/** Branch choices for the header toggle and other branch selectors. */
+export function getUserBranchOptions(
+  user: AuthUser | null | undefined,
+  permissions: AuthPermissions | null | undefined
+): BranchOption[] {
+  if (!user) return [];
+
+  const activeBranchCode = normalizeBranchCode(user.mainBranch);
+  const permittedCodes = (permissions?.branches ?? [])
+    .map(normalizeBranchCode)
+    .filter(Boolean);
+  const uniqueCodes = Array.from(
+    new Set(
+      user.isSuperAdmin === 1
+        ? [
+            ...getKnownBranchOptions().map((branch) => branch.code),
+            ...permittedCodes,
+            ...(activeBranchCode ? [activeBranchCode] : []),
+          ]
+        : permittedCodes
+    )
+  );
+
+  return uniqueCodes.map((code) => ({
+    code,
+    label: formatBranchLabel(code),
   }));
 }
 

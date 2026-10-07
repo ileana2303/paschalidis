@@ -26,23 +26,22 @@ import {
   Loader2,
 } from "@/lib/icons/lucide";
 import {
-  useFetchPickingListMutation,
+  usePickingListIntervalNotifications,
+  usePickingListQuery,
   useUpdatePickingListOrderMutation,
-} from "@/hooks/queries/useApiMutations";
+} from "@/hooks/queries/usePickingListQueries";
 import { useSessionState } from "@/hooks/useSessionState";
 import { useAuthStore } from "@/stores/authStore";
 import {
   formatBranchLabel,
-  getKnownBranchOptions,
+  getUserBranchOptions,
   normalizeBranchCode,
-  resolveBranchName,
 } from "@/lib/auth/branches";
 import { formatDateTimeEl, formatMinutesAgoEl } from "@/lib/utils/date";
 import {
   getAutomaticPickingStatus,
   getFirstInteractionStatus,
   getNextPickingStatus,
-  groupPickingListRows,
   matchesPickingOrderSearch,
   PICKER_COMMENT_SUGGESTIONS,
   PICKING_STATUSES,
@@ -52,6 +51,26 @@ import {
   type PickingStatus,
   type PickingStatusFilter,
 } from "@/lib/picking-list";
+
+const EMPTY_PICKING_ORDERS: PickingListOrder[] = [];
+
+function setsEqual(left: Set<string>, right: Set<string>) {
+  if (left.size !== right.size) return false;
+
+  for (const value of left) {
+    if (!right.has(value)) return false;
+  }
+
+  return true;
+}
+
+function pruneFindocSet(current: Set<string>, allowedFindocs: Set<string>) {
+  const next = new Set(
+    Array.from(current).filter((findoc) => allowedFindocs.has(findoc))
+  );
+
+  return setsEqual(current, next) ? current : next;
+}
 
 type PickingOrderRowProps = {
   order: PickingListOrder;
@@ -577,15 +596,19 @@ function PickingOrderRow({
 export default function PickingListClient() {
   const user = useAuthStore((state) => state.user);
   const permissions = useAuthStore((state) => state.permissions);
-  const { mutateAsync: fetchPickingList } = useFetchPickingListMutation();
-  const { mutateAsync: updatePickingListOrder } =
-    useUpdatePickingListOrderMutation();
-
-  const [orders, setOrders] = useState<PickingListOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const setAuth = useAuthStore((state) => state.setAuth);
   const [selectedBranch, setSelectedBranch] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<PickingStatusFilter>("ALL");
+  const { data, isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = usePickingListQuery(statusFilter);
+  const orders = data ?? EMPTY_PICKING_ORDERS;
+  const { mutateAsync: updatePickingListOrder } =
+    useUpdatePickingListOrderMutation(statusFilter);
   const [searchTerm, setSearchTerm] = useSessionState(
     "picking-list-search",
     ""
@@ -603,47 +626,49 @@ export default function PickingListClient() {
   const inFlightFindocs = useRef(new Set<string>());
   const automaticLoadAttemptedFindocs = useRef(new Set<string>());
 
-  const currentBranch = normalizeBranchCode(user?.mainBranch);
+  const currentBranch = useMemo(
+    () => normalizeBranchCode(user?.mainBranch),
+    [user?.mainBranch]
+  );
+  const syncedTopbarBranchRef = useRef<string | null>(null);
 
-  const loadOrders = useCallback(async () => {
+  const handleRefresh = useCallback(() => {
     automaticLoadAttemptedFindocs.current.clear();
-    setLoading(true);
-
-    try {
-      const requestedStatus = statusFilter === "ALL" ? undefined : statusFilter;
-      const data = await fetchPickingList(requestedStatus);
-      const nextOrders = groupPickingListRows(
-        data.rows ?? [],
-        requestedStatus ?? "S1"
-      );
-      const nextFindocs = new Set(nextOrders.map((order) => order.findoc));
-
-      setOrders(nextOrders);
-      setSelectedFindocs(
-        (current) =>
-          new Set(Array.from(current).filter((findoc) => nextFindocs.has(findoc)))
-      );
-      setExpandedFindocs(
-        (current) =>
-          new Set(Array.from(current).filter((findoc) => nextFindocs.has(findoc)))
-      );
-    } catch (error) {
-      setOrders([]);
-      setSelectedFindocs(new Set());
-      setExpandedFindocs(new Set());
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Αποτυχία φόρτωσης Picking List."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchPickingList, statusFilter]);
+    void refetch();
+  }, [refetch]);
 
   useEffect(() => {
-    void loadOrders();
-  }, [loadOrders]);
+    automaticLoadAttemptedFindocs.current.clear();
+  }, [statusFilter]);
+
+  useEffect(() => {
+    if (!isError || !error) return;
+
+    toast.error(
+      error instanceof Error ? error.message : "Αποτυχία φόρτωσης Picking List."
+    );
+  }, [error, isError]);
+
+  const orderFindocsKey = useMemo(
+    () => orders.map((order) => order.findoc).join("\u0000"),
+    [orders]
+  );
+
+  useEffect(() => {
+    const allowedFindocs = new Set(
+      orderFindocsKey ? orderFindocsKey.split("\u0000") : []
+    );
+
+    setSelectedFindocs((current) => pruneFindocSet(current, allowedFindocs));
+    setExpandedFindocs((current) => pruneFindocSet(current, allowedFindocs));
+  }, [orderFindocsKey]);
+
+  usePickingListIntervalNotifications({
+    branch: selectedBranch,
+    enabled: !isLoading && Boolean(selectedBranch),
+    orders,
+    refetch,
+  });
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -654,41 +679,33 @@ export default function PickingListClient() {
   }, []);
 
   useEffect(() => {
-    if (selectedBranch) return;
+    if (!currentBranch) return;
+    if (syncedTopbarBranchRef.current === currentBranch) return;
 
-    if (currentBranch) {
-      setSelectedBranch(currentBranch);
-      return;
-    }
+    syncedTopbarBranchRef.current = currentBranch;
+    setSelectedBranch(currentBranch);
+    setSelectedFindocs(new Set());
+    setExpandedFindocs(new Set());
+  }, [currentBranch]);
 
-    const firstOrderBranch = orders.find((order) => order.branch)?.branch;
-    if (firstOrderBranch) {
-      setSelectedBranch(firstOrderBranch);
-      return;
-    }
+  const branchOptions = useMemo(
+    () => getUserBranchOptions(user, permissions),
+    [permissions, user]
+  );
 
-    if (!loading) {
-      setSelectedBranch(getKnownBranchOptions()[0]?.code ?? "");
-    }
-  }, [currentBranch, loading, orders, selectedBranch]);
+  useEffect(() => {
+    if (branchOptions.length === 0) return;
 
-  const branchOptions = useMemo(() => {
-    const options = new Map<string, string>();
-    const addBranch = (value: unknown, label?: string) => {
-      const code = normalizeBranchCode(value as string | number | undefined);
-      if (!code || options.has(code)) return;
-      options.set(code, label || resolveBranchName(code));
-    };
+    const validCodes = new Set(branchOptions.map((branch) => branch.code));
+    if (selectedBranch && validCodes.has(selectedBranch)) return;
 
-    getKnownBranchOptions().forEach((branch) =>
-      addBranch(branch.code, branch.label)
-    );
-    permissions?.branches.forEach((branch) => addBranch(branch));
-    orders.forEach((order) => addBranch(order.branch));
-    addBranch(currentBranch);
+    const nextBranch =
+      currentBranch && validCodes.has(currentBranch)
+        ? currentBranch
+        : branchOptions[0].code;
 
-    return Array.from(options, ([code, label]) => ({ code, label }));
-  }, [currentBranch, orders, permissions?.branches]);
+    setSelectedBranch(nextBranch);
+  }, [branchOptions, currentBranch, selectedBranch]);
 
   const visibleOrders = useMemo(
     () =>
@@ -730,20 +747,6 @@ export default function PickingListClient() {
 
       try {
         const response = await updatePickingListOrder(payload);
-
-        setOrders((current) =>
-          current.map((order) =>
-            order.findoc === findoc
-              ? {
-                  ...order,
-                  ...(payload.pickerComment !== undefined
-                    ? { pickerComment: payload.pickerComment.trim() }
-                    : {}),
-                  ...(payload.status ? { status: payload.status } : {}),
-                }
-              : order
-          )
-        );
 
         if (
           payload.status &&
@@ -797,7 +800,7 @@ export default function PickingListClient() {
   );
 
   useEffect(() => {
-    if (loading || !selectedBranch) return;
+    if (isLoading || !selectedBranch) return;
 
     const ordersToLoad = orders.flatMap((order) => {
       const status = getAutomaticPickingStatus(order.status);
@@ -830,7 +833,7 @@ export default function PickingListClient() {
         )
       )
     );
-  }, [loading, orders, persistOrderUpdate, selectedBranch]);
+  }, [isLoading, orders, persistOrderUpdate, selectedBranch]);
 
   const handleToggleExpanded = useCallback(
     (order: PickingListOrder, expanded: boolean) => {
@@ -915,25 +918,53 @@ export default function PickingListClient() {
           count={visibleOrders.length}
           action={
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
-              <label className="flex h-10 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+              <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                 Κατάστημα
-                <select
-                  value={selectedBranch}
-                  onChange={(event) => {
-                    setSelectedBranch(normalizeBranchCode(event.target.value));
-                    setSelectedFindocs(new Set());
-                    setExpandedFindocs(new Set());
-                  }}
-                  disabled={loading}
-                  className="min-w-0 flex-1 border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-[140px] sm:flex-none dark:text-gray-200"
-                >
-                  {branchOptions.map((branch) => (
-                    <option key={branch.code} value={branch.code}>
-                      {branch.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                {branchOptions.length <= 1 ? (
+                  <span
+                    className="min-w-0 flex-1 truncate text-xs font-semibold normal-case text-gray-700 sm:min-w-[140px] sm:flex-none dark:text-gray-200"
+                    title={formatBranchLabel(selectedBranch)}
+                  >
+                    {formatBranchLabel(selectedBranch)}
+                  </span>
+                ) : (
+                  <label className="min-w-0 flex-1 sm:min-w-[140px] sm:flex-none">
+                    <span className="sr-only">Επιλογή καταστήματος</span>
+                    <select
+                      value={selectedBranch}
+                      onChange={(event) => {
+                        const nextBranch = normalizeBranchCode(
+                          event.target.value
+                        );
+                        setSelectedBranch(nextBranch);
+                        setSelectedFindocs(new Set());
+                        setExpandedFindocs(new Set());
+
+                        if (
+                          user &&
+                          permissions &&
+                          nextBranch &&
+                          nextBranch !== currentBranch
+                        ) {
+                          syncedTopbarBranchRef.current = nextBranch;
+                          setAuth(
+                            { ...user, mainBranch: nextBranch },
+                            permissions
+                          );
+                        }
+                      }}
+                      disabled={isLoading}
+                      className="w-full border-0 bg-transparent text-xs font-semibold normal-case text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
+                    >
+                      {branchOptions.map((branch) => (
+                        <option key={branch.code} value={branch.code}>
+                          {branch.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
 
               <label className="flex h-10 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                 Status
@@ -944,7 +975,7 @@ export default function PickingListClient() {
                     setSelectedFindocs(new Set());
                     setExpandedFindocs(new Set());
                   }}
-                  disabled={loading}
+                  disabled={isLoading}
                   className="min-w-0 flex-1 border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-[120px] sm:flex-none dark:text-gray-200"
                 >
                   {PICKING_STATUS_FILTERS.map((status) => (
@@ -958,16 +989,16 @@ export default function PickingListClient() {
               <DataTableSearchBar
                 value={searchTerm}
                 onChange={setSearchTerm}
-                onRefresh={() => void loadOrders()}
-                isRefreshing={loading}
-                refreshDisabled={loading}
+                onRefresh={handleRefresh}
+                isRefreshing={isFetching}
+                refreshDisabled={isFetching}
                 placeholder="Παραστατικό, πελάτης, κωδικός..."
               />
             </div>
           }
         />
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center px-5 py-16 text-gray-500 dark:text-gray-400">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Φόρτωση Picking List...
@@ -1110,7 +1141,7 @@ export default function PickingListClient() {
           </>
         )}
 
-        {!loading && visibleOrders.length > 0 && (
+        {!isLoading && visibleOrders.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 px-5 py-3 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
             <span>
               {visibleOrders.length} παραγγελίες · {selectedVisibleCount} επιλεγμένες

@@ -2,8 +2,7 @@
 
 import { MapPin } from "@/lib/icons/lucide";
 import {
-  formatBranchLabel,
-  getKnownBranchOptions,
+  getUserBranchOptions,
   normalizeBranchCode,
   resolveBranchName,
 } from "@/lib/auth/branches";
@@ -16,30 +15,10 @@ export default function BranchToggle() {
   const permissions = useAuthStore((state) => state.permissions);
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  const branchOptions = useMemo(() => {
-    if (!user) return [];
-
-    const activeBranchCode = normalizeBranchCode(user.mainBranch);
-    const permittedCodes = (permissions?.branches ?? [])
-      .map(normalizeBranchCode)
-      .filter(Boolean);
-    const uniqueCodes = Array.from(
-      new Set(
-        user.isSuperAdmin === 1
-          ? [
-              ...getKnownBranchOptions().map((branch) => branch.code),
-              ...permittedCodes,
-              ...(activeBranchCode ? [activeBranchCode] : []),
-            ]
-          : permittedCodes
-      )
-    );
-
-    return uniqueCodes.map((code) => ({
-      code,
-      label: formatBranchLabel(code),
-    }));
-  }, [permissions?.branches, user]);
+  const branchOptions = useMemo(
+    () => getUserBranchOptions(user, permissions),
+    [permissions, user]
+  );
 
   const branchName = useMemo(() => {
     if (!user) return "—";
