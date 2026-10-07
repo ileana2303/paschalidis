@@ -478,7 +478,7 @@ export default function SearchPartsClient() {
                 <div
                     className={`min-h-0 w-full xl:min-w-0 ${customer != null && resultsController.sidebarVisible ? "xl:basis-2/3" : ""} flex flex-1 flex-col transition-all duration-300`}
                 >
-                     <div className="min-h-0 flex flex-1 flex-col overflow-hidden bg-white transition-all duration-300 dark:border-gray-800 dark:bg-white/3">
+                     <div className="min-h-0 flex flex-1 flex-col overflow-hidden bg-white transition-all duration-300 dark:bg-[#0f172a]/95">
                         <div className="shrink-0 px-5 py-6 dark:border-gray-800 xl:px-10">
                             <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
                                 <h3

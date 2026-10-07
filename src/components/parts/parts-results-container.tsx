@@ -239,7 +239,7 @@ export default function PartsResultsContainer({
         <div className="relative min-h-0 flex-1">
             <div
                 ref={resultsContainerRef}
-                className="h-full overflow-y-auto overscroll-contain"
+                className="h-full overflow-y-auto overscroll-contain dark:bg-[#0f172a]/95"
                 onScroll={onResultsScroll}
             >
                 <div className="px-5 pb-2 xl:px-10 xl:pb-2">
@@ -276,7 +276,6 @@ export default function PartsResultsContainer({
                                     {availableStatusLabels.length > 0 && (
                                         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 [&_label]:gap-2 [&_span]:text-xs">
                                             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                                Κατάσταση
                                             </span>
                                             {availableStatusLabels.map((statusLabel) => (
                                                 <Checkbox

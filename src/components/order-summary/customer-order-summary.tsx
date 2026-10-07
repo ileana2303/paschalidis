@@ -4,7 +4,6 @@ import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
     Loader2,
-    MapPin,
     Receipt,
     RefreshCw,
     Send,
@@ -342,7 +341,7 @@ export default function CustomerOrderSummary({
                 />
             </SummaryFormField>
 
-            <SelectField
+            {/* <SelectField
                 id="pickup-point"
                 label="Σημείο Παραλαβής"
                 icon={<MapPin className="h-4 w-4" />}
@@ -351,7 +350,7 @@ export default function CustomerOrderSummary({
                 placeholder="Επιλέξτε σημείο..."
                 options={pickupPointOptions}
                 fieldClassName="mt-5"
-            />
+            /> */}
 
             <SummaryTextareaField
                 id="order-notes"
