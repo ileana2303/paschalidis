@@ -48,7 +48,7 @@ export type BuildEndoPayloadParams = {
     clientID: string;
     /** Internal counterparty (TRDR). */
     trdr: number;
-    /** TRDBRANCH of the supplying branch - the one the items were asked from. */
+    /** TRDBRANCH of the requesting branch - the one that asked for the items. */
     trdBranch: number;
     /** BASKETID of the ENDO row -> SERIESNUM. */
     basketId: string;
@@ -57,8 +57,8 @@ export type BuildEndoPayloadParams = {
     comments: string;
     /** Free-text notes typed by the user. */
     remarks: string;
-    /** Branch that asked for the items -> BRANCHSEC / WHOUSESEC. */
-    requestingBranch: number;
+    /** Branch that supplies and sends the items -> BRANCHSEC / WHOUSESEC. */
+    supplyingBranch: number;
     lines: SetDataIteLine[];
 };
 
@@ -77,7 +77,7 @@ export function buildEndoPayload({
     deliveryDate,
     comments,
     remarks,
-    requestingBranch,
+    supplyingBranch,
     lines,
 }: BuildEndoPayloadParams): EndoSetDataPayload {
     return setDataEnvelope(clientID, {
@@ -86,7 +86,7 @@ export function buildEndoPayload({
                 SERIES: ENDO_SERIES, // fixed - παραγγελία
                 TAXSERIES: ENDO_TAXSERIES, // fixed
                 TRDR: trdr,
-                TRDBRANCH: trdBranch, // supplying branch: sends the items
+                TRDBRANCH: trdBranch, // requesting branch: asked for the items
                 PAYMENT: ENDO_PAYMENT, // fixed
                 SERIESNUM: basketId, // BASKETID
                 TRUCKS: ENDO_TRUCKS, // fixed
@@ -103,8 +103,8 @@ export function buildEndoPayload({
                 DELIVDATE: deliveryDate,
                 DEPTRDR_CUSTOMER_CODE: "", // fixed
                 BILLTRDR_CUSTOMER_CODE: "", // fixed
-                BRANCHSEC: requestingBranch, // branch that asked for the items
-                WHOUSESEC: requestingBranch, // same as BRANCHSEC
+                BRANCHSEC: supplyingBranch, // supplying branch: sends the items
+                WHOUSESEC: supplyingBranch, // same as BRANCHSEC
             },
         ],
         ITELINES: lines,

@@ -29,8 +29,8 @@ export type EndoOrderRequestBody = {
  * in `endo-constants.ts`; this only resolves what the branches decide.
  *
  * Example - branch 1000 is logged in and asks 5 pieces from 1006:
- *   supplyingBranch  1006 -> TRDBRANCH 13 and the setData clientID
- *   requestingBranch 1000 -> BRANCHSEC 1000, WHOUSESEC 1000
+ *   supplyingBranch  1006 -> BRANCHSEC 1006, WHOUSESEC 1006 and the setData clientID
+ *   requestingBranch 1000 -> TRDBRANCH 15
  */
 function resolveEndoLineHeader(line: EndoLine) {
     const { supplyingBranch, requestingBranch } = line;
@@ -45,18 +45,18 @@ function resolveEndoLineHeader(line: EndoLine) {
         );
     }
 
-    const trdBranch = getTrdBranchByBranchCode(supplyingBranch);
+    const trdBranch = getTrdBranchByBranchCode(requestingBranch);
 
     if (!trdBranch) {
         throw new Error(
-            `Δεν βρέθηκε TRDBRANCH για το υποκατάστημα αποστολής (${supplyingBranch})`
+            `Δεν βρέθηκε TRDBRANCH για το υποκατάστημα αίτησης (${requestingBranch})`
         );
     }
 
     return {
         clientID,
         trdBranch,
-        requestingBranch,
+        supplyingBranch,
     };
 }
 
@@ -87,7 +87,7 @@ export async function submitEndoOrder(body: EndoOrderRequestBody) {
 
         console.info(
             `${ENDO_LOG_LABEL} basket ${line.basketId}: ${line.supplyingBranch} sends -> ${line.requestingBranch} asked` +
-                ` (TRDBRANCH ${header.trdBranch}, BRANCHSEC/WHOUSESEC ${header.requestingBranch})`
+                ` (TRDBRANCH ${header.trdBranch}, BRANCHSEC/WHOUSESEC ${header.supplyingBranch})`
         );
         const payload = buildEndoPayload({
             clientID: header.clientID,
@@ -101,7 +101,7 @@ export async function submitEndoOrder(body: EndoOrderRequestBody) {
                 requestingBranch: line.requestingBranch,
             }),
             remarks,
-            requestingBranch: header.requestingBranch,
+            supplyingBranch: header.supplyingBranch,
             lines: [{ MTRL: line.mtrl, QTY1: line.qty }],
         });
 

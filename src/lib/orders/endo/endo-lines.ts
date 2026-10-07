@@ -9,9 +9,9 @@ export type EndoLine = {
     basketId: string;
     mtrl: number;
     qty: number;
-    /** Branch that holds and sends the items -> SALDOC TRDBRANCH. */
+    /** Branch that holds and sends the items -> MTRDOC BRANCHSEC / WHOUSESEC. */
     supplyingBranch: number;
-    /** Branch that asked for the items -> MTRDOC BRANCHSEC / WHOUSESEC. */
+    /** Branch that asked for the items -> SALDOC TRDBRANCH. */
     requestingBranch: number;
 };
 

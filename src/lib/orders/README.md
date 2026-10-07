@@ -50,7 +50,7 @@ ENDO ignores the SERIES column: it always sends the fixed `7004|πΔ` + `TAXSERI
 
 | Flow | TRDR | TRDBRANCH |
 |---|---|---|
-| ENDO | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | ΠΑΣΧΑΛΙΔΗΣ branch **the items were asked from** (supplying branch) |
+| ENDO | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | **requesting** branch (the branch that asked for the items) |
 | Customer basket invoice | the customer | the **customer's** TRDBRANCH (basket row `TRD_BRANCH`) |
 | Customer basket receipt | `11643`, fixed | the **customer's** TRDBRANCH (basket row `TRD_BRANCH`) |
 | ANATROF | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | `13`, fixed - always ΠΑΣΧΑΛΙΔΗΣ |
@@ -68,11 +68,11 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
 - Each line carries two branches, straight from the ENDO row:
   `supplyingBranch` (row `BRANCH`, holds and sends the items) and
   `requestingBranch` (row `TO_BRANCH`, asked for them).
-- `TRDBRANCH` = TRDBRANCH of the **supplying** branch, which owns the document;
-  its setData clientID is used too.
-- `BRANCHSEC` / `WHOUSESEC` = the **requesting** branch.
+- `TRDBRANCH` = TRDBRANCH of the **requesting** branch.
+- `BRANCHSEC` / `WHOUSESEC` = the **supplying** branch. The supplying branch's
+  setData clientID is used too.
 - Example - 1000 is logged in and asks 5 pieces from 1006:
-  `TRDBRANCH 13` (=1006), `BRANCHSEC 1000`, `WHOUSESEC 1000`,
+  `TRDBRANCH 15` (=1000), `BRANCHSEC 1006`, `WHOUSESEC 1006`,
   `COMMENTS ... ΑΠΟ Πάροδος Λ.Αθηνών 65 ΣΕ Κασομούλη 1006-->1000`.
 - `TRDR` is `8674` (ΠΑΣΧΑΛΙΔΗΣ) for every document.
 

@@ -538,9 +538,9 @@ export interface EndoBasketSubmitLineRoutePayload {
     basketIds: string[];
     mtrl: number;
     qty: number;
-    /** Branch that holds and sends the items (ENDO row BRANCH) -> TRDBRANCH. */
+    /** Branch that holds and sends the items (ENDO row BRANCH) -> BRANCHSEC/WHOUSESEC. */
     supplyingBranch: number;
-    /** Branch that asked for them (ENDO row TO_BRANCH) -> BRANCHSEC/WHOUSESEC. */
+    /** Branch that asked for them (ENDO row TO_BRANCH) -> TRDBRANCH. */
     requestingBranch: number;
     itemCode?: string;
     itemDescr?: string;
