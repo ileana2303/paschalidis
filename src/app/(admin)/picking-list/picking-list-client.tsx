@@ -316,6 +316,9 @@ function PickingOrderCard({
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {formatBranchLabel(order.branch)}
             </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Πωλητής: {order.submittedBy || "—"}
+            </p>
           </div>
 
           {order.comments ? (
@@ -467,6 +470,12 @@ function PickingOrderRow({
         </td>
 
         <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
+          <p className="break-words font-medium text-gray-700 dark:text-gray-200">
+            {order.submittedBy || "—"}
+          </p>
+        </td>
+
+        <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
           <p className="line-clamp-3 break-words" title={order.comments}>
             {order.comments || "—"}
           </p>
@@ -531,7 +540,7 @@ function PickingOrderRow({
 
       {expanded && (
         <tr id={detailsId} className="bg-gray-50/80 dark:bg-gray-950/60">
-          <td colSpan={8} className="border-t border-brand-100 px-4 py-4 dark:border-brand-500/20">
+          <td colSpan={9} className="border-t border-brand-100 px-4 py-4 dark:border-brand-500/20">
             <div className="ml-0 sm:ml-10">
               <PickingOrderDetailsPanel order={order} />
             </div>
@@ -1092,12 +1101,13 @@ export default function PickingListClient() {
           </div>
 
           <div className="hidden w-full overflow-x-auto lg:block">
-            <table className="w-full min-w-[1540px] table-fixed divide-y divide-gray-100 dark:divide-gray-800">
+            <table className="w-full min-w-[1730px] table-fixed divide-y divide-gray-100 dark:divide-gray-800">
               <colgroup>
                 <col className="w-[48px]" />
                 <col className="w-[48px]" />
                 <col className="w-[270px]" />
                 <col className="w-[180px]" />
+                <col className="w-[190px]" />
                 <col className="w-[250px]" />
                 <col className="w-[220px]" />
                 <col className="w-[280px]" />
@@ -1142,6 +1152,9 @@ export default function PickingListClient() {
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Υποβολή / Κατάστημα
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
+                    Πωλητής
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Τύπος παραγγελίας

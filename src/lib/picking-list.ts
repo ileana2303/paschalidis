@@ -35,6 +35,7 @@ export type PickingListLine = {
   AFM?: string;
   NAME?: string;
   BRANCH?: string;
+  CCCEXTUSER?: string;
   TrnDate?: string;
   InsDate?: string;
   STATUS_ORDER?: string;
@@ -69,6 +70,7 @@ export type PickingListOrder = {
   customerName: string;
   afm: string;
   branch: string;
+  submittedBy: string;
   transactionDate: string;
   submittedAt: string;
   comments: string;
@@ -187,6 +189,7 @@ export function groupPickingListRows(
         customerName: text(row.NAME),
         afm: text(row.AFM),
         branch: text(row.BRANCH),
+        submittedBy: text(row.CCCEXTUSER),
         transactionDate: text(row.TrnDate),
         submittedAt: text(row.InsDate),
         comments: text(row.COMMENTS),
@@ -208,6 +211,7 @@ export function groupPickingListRows(
       order.customerName ||= text(row.NAME);
       order.afm ||= text(row.AFM);
       order.branch ||= text(row.BRANCH);
+      order.submittedBy ||= text(row.CCCEXTUSER);
       order.transactionDate ||= text(row.TrnDate);
       order.submittedAt ||= text(row.InsDate);
       order.comments ||= text(row.COMMENTS);
@@ -249,6 +253,7 @@ export function matchesPickingOrderSearch(
     order.customerName,
     order.customerCode,
     order.afm,
+    order.submittedBy,
     order.comments,
     order.remarks,
     order.pickerComment,

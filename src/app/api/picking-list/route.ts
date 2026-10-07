@@ -49,12 +49,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function normalizeRow(row: Record<string, unknown>): PickingListLine {
-  return Object.fromEntries(
+  const normalizedRow = Object.fromEntries(
     Object.entries(row).map(([key, value]) => [
       key,
       value == null ? "" : String(value),
     ])
-  );
+  ) as PickingListLine;
+  const submittedBy = Object.entries(normalizedRow).find(
+    ([key]) => key.trim().toUpperCase() === "CCCEXTUSER"
+  )?.[1];
+
+  return {
+    ...normalizedRow,
+    CCCEXTUSER: String(submittedBy ?? "").trim(),
+  };
 }
 
 export async function POST(req: NextRequest) {
