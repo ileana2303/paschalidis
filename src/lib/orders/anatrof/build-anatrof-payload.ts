@@ -15,6 +15,7 @@ export type AnatrofSaldoc = {
     REMARKS: string;
     SHIPKIND: number;
     SOCASH: number;
+    CCCEXTUSER: string;
 };
 
 export type AnatrofMtrdoc = {
@@ -22,8 +23,8 @@ export type AnatrofMtrdoc = {
     DELIVDATE: string;
     DEPTRDR_CUSTOMER_CODE: "";
     BILLTRDR_CUSTOMER_CODE: "";
-    BRANCHSEC: number;
     WHOUSESEC: number;
+    WHOUSE: number;
 };
 
 export type AnatrofSetDataPayload = SetDataEnvelope<{
@@ -40,11 +41,14 @@ export type BuildAnatrofPayloadParams = {
     payment: number;
     trucks: number;
     deliveryDate: string;
-    comments: string;
+    basketId: string;
+    /** Free-text notes typed by the user. */
     remarks: string;
     shipKind: number;
     socash: number;
-    requestingBranch: number;
+    supplyingBranch: number;
+    /** Username of the logged-in user. */
+    cccExtUser: string;
     lines: SetDataIteLine[];
 };
 
@@ -56,11 +60,12 @@ export function buildAnatrofPayload({
     payment,
     trucks,
     deliveryDate,
-    comments,
+    basketId,
     remarks,
     shipKind,
     socash,
-    requestingBranch,
+    supplyingBranch,
+    cccExtUser,
     lines,
 }: BuildAnatrofPayloadParams): AnatrofSetDataPayload {
     return setDataEnvelope(clientID, {
@@ -72,10 +77,11 @@ export function buildAnatrofPayload({
                 PAYMENT: payment,
                 TRUCKS: trucks,
                 DELIVDATE: deliveryDate,
-                COMMENTS: comments, // ANATROF BASKET
+                COMMENTS: `ΠΑΡΑΣΤΑΤΙΚΟ ΑΝΑΤΡΟΦΟΔΟΣΙΑΣ Νο${basketId}`,
                 REMARKS: remarks,
                 SHIPKIND: shipKind,
                 SOCASH: socash,
+                CCCEXTUSER: cccExtUser,
             },
         ],
         MTRDOC: [
@@ -84,8 +90,8 @@ export function buildAnatrofPayload({
                 DELIVDATE: deliveryDate,
                 DEPTRDR_CUSTOMER_CODE: "", // fixed
                 BILLTRDR_CUSTOMER_CODE: "", // fixed
-                BRANCHSEC: requestingBranch,
-                WHOUSESEC: requestingBranch,
+                WHOUSESEC: supplyingBranch,
+                WHOUSE: supplyingBranch,
             },
         ],
         ITELINES: lines,
