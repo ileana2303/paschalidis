@@ -53,7 +53,7 @@ ENDO ignores the SERIES column: it always sends the fixed `7004|πΔ` + `TAXSERI
 | ENDO | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | **requesting** branch (the branch that asked for the items) |
 | Customer basket invoice | the customer | the **customer's** TRDBRANCH (basket row `TRD_BRANCH`) |
 | Customer basket receipt | `11643`, fixed | the **customer's** TRDBRANCH (basket row `TRD_BRANCH`) |
-| ANATROF | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | **requesting** branch |
+| ANATROF | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | `13`, fixed - always ΠΑΣΧΑΛΙΔΗΣ |
 
 For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚΗΣ B2B`. Receipt comments are
 `ΠΑΡΑΓΓΕΛΙΑ ΛΙΑΝΙΚΗΣ Α/Α<customer TRDR>` even though the submitted TRDR is `11643`.
@@ -75,15 +75,6 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
   `TRDBRANCH 15` (=1000), `BRANCHSEC 1006`, `WHOUSESEC 1006`,
   `COMMENTS ... ΑΠΟ Πάροδος Λ.Αθηνών 65 ΣΕ Κασομούλη 1006-->1000`.
 - `TRDR` is `8674` (ΠΑΣΧΑΛΙΔΗΣ) for every document.
-- `CCCEXTUSER` = username of the logged-in user.
-
-## ANATROF specifics
-
-- `TRDBRANCH` = TRDBRANCH of the **requesting** branch.
-- `WHOUSESEC` / `WHOUSE` = `1006`, the fixed **supplying** branch.
-- `COMMENTS` = `ΠΑΡΑΣΤΑΤΙΚΟ ΑΝΑΤΡΟΦΟΔΟΣΙΑΣ Νο<basketId>`.
-- `REMARKS` = free-text notes entered in the replenishment summary.
-- `CCCEXTUSER` = username of the logged-in user.
 
 ## setData clientID resolution
 

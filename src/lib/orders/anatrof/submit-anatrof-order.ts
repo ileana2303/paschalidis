@@ -1,7 +1,4 @@
-import {
-    getSaldocSeriesByBranchCode,
-    getTrdBranchByBranchCode,
-} from "@/lib/auth/branches";
+import { getSaldocSeriesByBranchCode } from "@/lib/auth/branches";
 import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
 import { linkBasketRowsToDocument } from "../shared/link-basket-to-document";
 import {
@@ -14,6 +11,7 @@ import {
 import { postSetDataDocument } from "../shared/post-setdata";
 import { jsonSafeNumber, resolveIsoDate, uniqueBasketIds } from "../validation";
 import {
+    ANATROF_COMMENTS,
     ANATROF_DEFAULT_BRANCH,
     ANATROF_DEFAULT_SERIES,
     ANATROF_ENDPOINT_ENV_KEY,
@@ -21,8 +19,8 @@ import {
     ANATROF_PAYMENT,
     ANATROF_SHIPKIND,
     ANATROF_SOCASH,
-    ANATROF_SUPPLYING_BRANCH,
     ANATROF_TABLE_ACTION,
+    ANATROF_TRDBRANCH,
     ANATROF_TRDR,
     ANATROF_TRUCKS,
 } from "./anatrof-constants";
@@ -72,35 +70,25 @@ export async function submitAnatrofOrder(body: AnatrofOrderRequestBody) {
         jsonSafeNumber(body.branch) ??
         firstItemNumber(rawItems, ["branch", "BRANCH"]) ??
         ANATROF_DEFAULT_BRANCH;
-    const trdBranch = getTrdBranchByBranchCode(branch);
-
-    if (!trdBranch) {
-        throw new Error(
-            `Δεν βρέθηκε TRDBRANCH για το υποκατάστημα αίτησης (${branch})`
-        );
-    }
-
     const clientID = getSoftOneSetDataClientID(branch);
 
     if (!clientID) {
         throw new Error('Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne.');
     }
 
-    const basketIds = uniqueBasketIds(lines);
     const payload = buildAnatrofPayload({
         clientID,
         series: getSaldocSeriesByBranchCode(branch) ?? ANATROF_DEFAULT_SERIES,
         trdr: ANATROF_TRDR, // fixed - ΠΑΣΧΑΛΙΔΗΣ
-        trdBranch, // requesting branch
+        trdBranch: ANATROF_TRDBRANCH, // fixed - ΠΑΣΧΑΛΙΔΗΣ
         payment: ANATROF_PAYMENT,
         trucks: ANATROF_TRUCKS,
         deliveryDate: resolveIsoDate(body.deliveryDate),
-        basketId: basketIds[0],
+        comments: ANATROF_COMMENTS,
         remarks: String(body.notes ?? "").trim(),
         shipKind: ANATROF_SHIPKIND,
         socash: ANATROF_SOCASH,
-        supplyingBranch: ANATROF_SUPPLYING_BRANCH,
-        cccExtUser: appUserId,
+        requestingBranch: branch,
         lines: lines.map((line) => ({ MTRL: line.mtrl, QTY1: line.qty })),
     });
 
@@ -112,6 +100,8 @@ export async function submitAnatrofOrder(body: AnatrofOrderRequestBody) {
         missingIdMessage:
             'Η παραγγελία υποβλήθηκε αλλά λείπει το αναγνωριστικό από την απάντηση.',
     });
+
+    const basketIds = uniqueBasketIds(lines);
 
     await linkBasketRowsToDocument({
         sqlClientID,

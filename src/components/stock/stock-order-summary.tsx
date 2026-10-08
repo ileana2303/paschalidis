@@ -19,6 +19,7 @@ export interface StockOrderSummaryProps {
     onRefresh: () => void;
     sendingOrder?: boolean;
     onSendOrder?: () => void;
+    /** Sent as the SALDOC REMARKS of the ANATROF document. */
     notes?: string;
     onNotesChange?: (value: string) => void;
     collapsible?: boolean;
@@ -190,12 +191,12 @@ export default function StockOrderSummary({
 
             <SummaryTextareaField
                 id="anatrof-notes"
-                label="Παρατηρήσεις"
+                label="Σημειώσεις"
                 icon={<StickyNote className="h-4 w-4" />}
                 value={notes}
                 onChange={(value) => onNotesChange?.(value)}
                 rows={3}
-                placeholder="Προσθέστε παρατηρήσεις για την ανατροφοδοσία..."
+                placeholder="Προσθέστε σημειώσεις για την ανατροφοδοσία..."
                 fieldClassName="mt-5"
             />
         </SummaryPanel>

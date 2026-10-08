@@ -102,7 +102,6 @@ export async function submitEndoOrder(body: EndoOrderRequestBody) {
             }),
             remarks,
             supplyingBranch: header.supplyingBranch,
-            cccExtUser: appUserId,
             lines: [{ MTRL: line.mtrl, QTY1: line.qty }],
         });
 

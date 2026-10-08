@@ -26,7 +26,6 @@ export type EndoSaldoc = {
     REMARKS: string;
     SHIPKIND: number;
     SOCASH: number;
-    CCCEXTUSER: string;
 };
 
 export type EndoMtrdoc = {
@@ -60,8 +59,6 @@ export type BuildEndoPayloadParams = {
     remarks: string;
     /** Branch that supplies and sends the items -> BRANCHSEC / WHOUSESEC. */
     supplyingBranch: number;
-    /** Username of the logged-in user. */
-    cccExtUser: string;
     lines: SetDataIteLine[];
 };
 
@@ -81,7 +78,6 @@ export function buildEndoPayload({
     comments,
     remarks,
     supplyingBranch,
-    cccExtUser,
     lines,
 }: BuildEndoPayloadParams): EndoSetDataPayload {
     return setDataEnvelope(clientID, {
@@ -99,7 +95,6 @@ export function buildEndoPayload({
                 REMARKS: remarks, // user notes
                 SHIPKIND: ENDO_SHIPKIND, // fixed
                 SOCASH: ENDO_SOCASH, // fixed
-                CCCEXTUSER: cccExtUser,
             },
         ],
         MTRDOC: [

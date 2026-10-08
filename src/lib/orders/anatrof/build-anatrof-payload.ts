@@ -15,7 +15,6 @@ export type AnatrofSaldoc = {
     REMARKS: string;
     SHIPKIND: number;
     SOCASH: number;
-    CCCEXTUSER: string;
 };
 
 export type AnatrofMtrdoc = {
@@ -23,8 +22,8 @@ export type AnatrofMtrdoc = {
     DELIVDATE: string;
     DEPTRDR_CUSTOMER_CODE: "";
     BILLTRDR_CUSTOMER_CODE: "";
+    BRANCHSEC: number;
     WHOUSESEC: number;
-    WHOUSE: number;
 };
 
 export type AnatrofSetDataPayload = SetDataEnvelope<{
@@ -41,14 +40,11 @@ export type BuildAnatrofPayloadParams = {
     payment: number;
     trucks: number;
     deliveryDate: string;
-    basketId: string;
-    /** Free-text notes typed by the user. */
+    comments: string;
     remarks: string;
     shipKind: number;
     socash: number;
-    supplyingBranch: number;
-    /** Username of the logged-in user. */
-    cccExtUser: string;
+    requestingBranch: number;
     lines: SetDataIteLine[];
 };
 
@@ -60,12 +56,11 @@ export function buildAnatrofPayload({
     payment,
     trucks,
     deliveryDate,
-    basketId,
+    comments,
     remarks,
     shipKind,
     socash,
-    supplyingBranch,
-    cccExtUser,
+    requestingBranch,
     lines,
 }: BuildAnatrofPayloadParams): AnatrofSetDataPayload {
     return setDataEnvelope(clientID, {
@@ -77,11 +72,10 @@ export function buildAnatrofPayload({
                 PAYMENT: payment,
                 TRUCKS: trucks,
                 DELIVDATE: deliveryDate,
-                COMMENTS: `ΠΑΡΑΣΤΑΤΙΚΟ ΑΝΑΤΡΟΦΟΔΟΣΙΑΣ Νο${basketId}`,
+                COMMENTS: comments, // ANATROF BASKET
                 REMARKS: remarks,
                 SHIPKIND: shipKind,
                 SOCASH: socash,
-                CCCEXTUSER: cccExtUser,
             },
         ],
         MTRDOC: [
@@ -90,8 +84,8 @@ export function buildAnatrofPayload({
                 DELIVDATE: deliveryDate,
                 DEPTRDR_CUSTOMER_CODE: "", // fixed
                 BILLTRDR_CUSTOMER_CODE: "", // fixed
-                WHOUSESEC: supplyingBranch,
-                WHOUSE: supplyingBranch,
+                BRANCHSEC: requestingBranch,
+                WHOUSESEC: requestingBranch,
             },
         ],
         ITELINES: lines,
