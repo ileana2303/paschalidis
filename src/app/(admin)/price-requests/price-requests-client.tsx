@@ -17,6 +17,7 @@ import {
     useFetchRequestedPriceRequestsMutation,
     useUpdateRequestedPriceRequestMutation,
 } from "@/hooks/queries/useApiMutations";
+import { useRequestListIntervalRefresh } from "@/hooks/queries/useRequestListIntervalRefresh";
 import { useSessionState } from "@/hooks/useSessionState";
 import { resolveBranchName } from "@/lib/auth/branches";
 import { getBranchColor } from "@/lib/branch-colors";
@@ -221,6 +222,8 @@ export default function PriceRequestsClient() {
     useEffect(() => {
         void loadRows();
     }, [loadRows]);
+
+    useRequestListIntervalRefresh({ refetch: loadRows });
 
     const filteredRows = useMemo(() => {
         const query = searchTerm.trim().toLowerCase();

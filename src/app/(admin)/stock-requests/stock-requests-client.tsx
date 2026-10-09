@@ -28,6 +28,7 @@ import {
     useSubmitAnatrofOrderMutation,
     useUpdateStockRequestMutation,
 } from "@/hooks/queries/useApiMutations";
+import { useRequestListIntervalRefresh } from "@/hooks/queries/useRequestListIntervalRefresh";
 import { useAuthStore } from "@/stores/authStore";
 import { normalizeBranchCode } from "@/lib/auth/branches";
 import { getBranchColor } from "@/lib/branch-colors";
@@ -155,6 +156,11 @@ export default function StockRequestsClient() {
 
         void loadRows();
     }, [loadRows, selectedBranchCode]);
+
+    useRequestListIntervalRefresh({
+        enabled: Boolean(selectedBranchCode),
+        refetch: loadRows,
+    });
 
     const pendingRows = useMemo(
         () => rows.filter((row) => canUpdate(row.STATUS)),
