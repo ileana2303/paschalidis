@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ClipboardList,
   Clock3,
+  FileText,
   ListChevronsDownUp,
   ListChevronsUpDown,
   Loader2,
@@ -360,6 +361,148 @@ function PickingOrderDetailsPanel({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function PickingListPrintView({
+  orders,
+  activeBranch,
+  pickedDetailKeys,
+  nowMs,
+}: {
+  orders: PickingListOrder[];
+  activeBranch: string;
+  pickedDetailKeys: ReadonlySet<string>;
+  nowMs: number;
+}) {
+  return (
+    <section className="hidden bg-white text-black print:block">
+      <style>{`@page { size: A4 landscape; margin: 10mm; }`}</style>
+
+      <header className="mb-5 border-b-2 border-black pb-3">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Picking List</h1>
+            <p className="mt-1 text-sm font-semibold">
+              {formatBranchLabel(activeBranch)}
+            </p>
+          </div>
+          <div className="text-right text-xs">
+            <p>{orders.length} παραγγελίες</p>
+            <p>{formatDateTimeEl(new Date(nowMs).toISOString())}</p>
+          </div>
+        </div>
+      </header>
+
+      <div className="space-y-5">
+        {orders.map((order, orderIndex) => {
+          const parastatikoLabel =
+            order.parastatiko || order.fincode || order.findoc;
+          const retailCustomerName = shouldShowRetailCustomerName(order)
+            ? order.retailCustomerName
+            : "";
+
+          return (
+            <article
+              key={`print-${order.findoc}`}
+              className="border border-black"
+            >
+              <div className="break-inside-avoid border-b border-black px-3 py-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold">
+                      {orderIndex + 1}. {parastatikoLabel}
+                    </p>
+                    <p className="mt-0.5 text-xs font-semibold">
+                      {order.customerName || "—"}
+                      {retailCustomerName
+                        ? ` · ${retailCustomerName}`
+                        : ""}
+                    </p>
+                  </div>
+                  <div className="text-right text-[10px] leading-4">
+                    <p>
+                      Υποβολή:{" "}
+                      {formatDateTimeEl(
+                        order.submittedAt || order.transactionDate
+                      )}
+                    </p>
+                    <p>Πωλητής: {order.submittedBy || "—"}</p>
+                  </div>
+                </div>
+                {order.comments || order.remarks ? (
+                  <div className="mt-1.5 text-[10px] leading-4">
+                    {order.comments ? (
+                      <p>Τύπος: {formatPickingOrderComments(order.comments)}</p>
+                    ) : null}
+                    {order.remarks ? <p>Παρατηρήσεις: {order.remarks}</p> : null}
+                  </div>
+                ) : null}
+              </div>
+
+              <table className="w-full table-fixed border-collapse text-[10px]">
+                <thead>
+                  <tr className="break-inside-avoid border-b border-black">
+                    <th className="w-[7%] px-2 py-1.5 text-center">✓</th>
+                    <th className="w-[10%] px-2 py-1.5 text-right">Ποσότητα</th>
+                    <th className="w-[22%] px-2 py-1.5 text-left">Θέση</th>
+                    <th className="w-[18%] px-2 py-1.5 text-left">Κωδικός</th>
+                    <th className="px-2 py-1.5 text-left">Περιγραφή</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {order.details.length > 0 ? (
+                    order.details.map((detail, detailIndex) => {
+                      const detailKey = getPickingDetailKey(
+                        order.findoc,
+                        detail.lineNumber,
+                        detail.code,
+                        detailIndex
+                      );
+                      const positions = getPickingPositionsForBranch(
+                        detail,
+                        activeBranch
+                      );
+
+                      return (
+                        <tr
+                          key={`print-${detailKey}`}
+                          className="break-inside-avoid border-b border-gray-400 last:border-b-0"
+                        >
+                          <td className="px-2 py-2 text-center align-top">
+                            <span className="inline-flex size-4 items-center justify-center border-2 border-black text-xs font-bold leading-none">
+                              {pickedDetailKeys.has(detailKey) ? "✓" : ""}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 text-right align-top font-bold">
+                            {detail.quantity || "0"}
+                          </td>
+                          <td className="px-2 py-2 align-top font-mono font-bold">
+                            {positions.join(" · ") || "—"}
+                          </td>
+                          <td className="break-all px-2 py-2 align-top font-semibold">
+                            {detail.code || "—"}
+                          </td>
+                          <td className="break-words px-2 py-2 align-top">
+                            {detail.description || "—"}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-3 py-4 text-center">
+                        Δεν υπάρχουν διαθέσιμες γραμμές ειδών.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -744,6 +887,10 @@ export default function PickingListClient() {
     void refetch();
   }, [refetch]);
 
+  const handleExportPdf = useCallback(() => {
+    window.print();
+  }, []);
+
   useEffect(() => {
     automaticLoadAttemptedFindocs.current.clear();
   }, [statusFilter]);
@@ -1084,8 +1231,9 @@ export default function PickingListClient() {
   }, [allVisibleExpanded, visibleFindocs]);
 
   return (
-    <div className="flex min-h-0 flex-col md:block">
-      <PageBreadcrumb pageTitle="Picking List" />
+    <>
+      <div className="flex min-h-0 flex-col print:hidden md:block">
+        <PageBreadcrumb pageTitle="Picking List" />
 
       <DataTable className="mt-4 flex min-h-0 flex-1 flex-col md:block">
         <DataTableHeader
@@ -1136,6 +1284,17 @@ export default function PickingListClient() {
                     ))}
                   </select>
                 </label>
+
+                <button
+                  type="button"
+                  onClick={handleExportPdf}
+                  disabled={visibleOrders.length === 0 || isLoading}
+                  title="Εκτύπωση ή αποθήκευση του Picking List ως PDF"
+                  className="col-span-2 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:border-brand-300 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                >
+                  <FileText aria-hidden="true" className="size-4" />
+                  Εξαγωγή PDF
+                </button>
               </div>
 
               <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
@@ -1364,6 +1523,13 @@ export default function PickingListClient() {
           </div>
         )}
       </DataTable>
-    </div>
+      </div>
+      <PickingListPrintView
+        orders={visibleOrders}
+        activeBranch={selectedBranch}
+        pickedDetailKeys={pickedDetailKeys}
+        nowMs={nowMs}
+      />
+    </>
   );
 }
