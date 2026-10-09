@@ -15,14 +15,12 @@ import {
 import { postSetDataDocument } from "../shared/post-setdata";
 import { jsonSafeNumber, resolveIsoDate, uniqueBasketIds } from "../validation";
 import {
-    ANATROF_DEFAULT_BRANCH,
     ANATROF_DEFAULT_SERIES,
     ANATROF_ENDPOINT_ENV_KEY,
     ANATROF_LOG_LABEL,
     ANATROF_PAYMENT,
     ANATROF_SHIPKIND,
     ANATROF_SOCASH,
-    ANATROF_SUPPLYING_BRANCH,
     ANATROF_TABLE_ACTION,
     ANATROF_TRDR,
     ANATROF_TRUCKS,
@@ -30,7 +28,7 @@ import {
 import { buildAnatrofPayload } from "./build-anatrof-payload";
 
 export type RawAnatrofItem = RawOrderItem & {
-    branch?: unknown;
+    requestingBranch?: unknown;
     BRANCH?: unknown;
     QTY?: unknown;
     QTY_REQUESTED?: unknown;
@@ -40,22 +38,20 @@ export type AnatrofOrderRequestBody = {
     appUserId: string;
     deliveryDate?: string;
     notes?: string;
-    branch?: number | string;
+    requestingBranch: number | string;
+    supplyingBranch: number | string;
     items: RawAnatrofItem[];
 };
 
-function firstItemNumber(items: RawAnatrofItem[], keys: string[]) {
-    for (const item of items) {
-        for (const key of keys) {
-            const parsed = jsonSafeNumber(item[key]);
+function requireBranch(value: unknown, role: "requesting" | "supplying") {
+    const branch = jsonSafeNumber(value);
 
-            if (parsed != null) {
-                return parsed;
-            }
-        }
+    if (!branch) {
+        const label = role === "requesting" ? "αίτησης" : "τροφοδοσίας";
+        throw new Error(`Λείπει το υποκατάστημα ${label}.`);
     }
 
-    return undefined;
+    return branch;
 }
 
 export async function submitAnatrofOrder(body: AnatrofOrderRequestBody) {
@@ -69,40 +65,61 @@ export async function submitAnatrofOrder(body: AnatrofOrderRequestBody) {
     const rawItems = requireRawItems(body.items) as RawAnatrofItem[];
     const lines = requireLines(normalizeOrderLines(rawItems));
 
-    const branch =
-        jsonSafeNumber(body.branch) ??
-        firstItemNumber(rawItems, ["branch", "BRANCH"]) ??
-        ANATROF_DEFAULT_BRANCH;
-    const trdBranch = getTrdBranchByBranchCode(branch);
+    const requestingBranch = requireBranch(body.requestingBranch, "requesting");
+    const supplyingBranch = requireBranch(body.supplyingBranch, "supplying");
+    const invalidItemBranch = rawItems.find((item) => {
+        const itemBranch = jsonSafeNumber(item.requestingBranch ?? item.BRANCH);
 
-    if (!trdBranch) {
+        return itemBranch !== requestingBranch;
+    });
+
+    if (invalidItemBranch) {
         throw new Error(
-            `Δεν βρέθηκε TRDBRANCH για το υποκατάστημα αίτησης (${branch})`
+            'Οι γραμμές του καλαθιού δεν ανήκουν στο υποκατάστημα αίτησης.'
         );
     }
 
-    const clientID = getSoftOneSetDataClientID(branch);
+    const trdBranch = getTrdBranchByBranchCode(requestingBranch);
+
+    if (!trdBranch) {
+        throw new Error(
+            `Δεν βρέθηκε TRDBRANCH για το υποκατάστημα αίτησης (${requestingBranch})`
+        );
+    }
+
+    const clientID = getSoftOneSetDataClientID(supplyingBranch);
 
     if (!clientID) {
-        throw new Error('Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne.');
+        throw new Error(
+            `Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne για το υποκατάστημα τροφοδοσίας (${supplyingBranch}).`
+        );
     }
 
     const basketIds = uniqueBasketIds(lines);
+    console.info(
+        `${ANATROF_LOG_LABEL} ${supplyingBranch} supplies -> ${requestingBranch} requested` +
+            ` (TRDBRANCH ${trdBranch}, BRANCHSEC/WHOUSESEC/WHOUSE ${supplyingBranch})`
+    );
     const payload = buildAnatrofPayload({
         clientID,
-        series: getSaldocSeriesByBranchCode(branch) ?? ANATROF_DEFAULT_SERIES,
+        series:
+            getSaldocSeriesByBranchCode(supplyingBranch) ??
+            ANATROF_DEFAULT_SERIES,
         trdr: ANATROF_TRDR, // fixed - ΠΑΣΧΑΛΙΔΗΣ
         trdBranch, // requesting branch
         payment: ANATROF_PAYMENT,
         trucks: ANATROF_TRUCKS,
         deliveryDate: resolveIsoDate(body.deliveryDate),
-        documentId: basketIds[0],
-        requestingBranchCode: branch,
-        requestingBranchName: getKnownBranchName(branch) ?? String(branch),
+        basketId: basketIds[0],
+        requestingBranchCode: requestingBranch,
+        requestingBranchName:
+            getKnownBranchName(requestingBranch) ?? String(requestingBranch),
+        supplyingBranchName:
+            getKnownBranchName(supplyingBranch) ?? String(supplyingBranch),
         remarks: String(body.notes ?? "").trim(),
         shipKind: ANATROF_SHIPKIND,
         socash: ANATROF_SOCASH,
-        supplyingBranch: ANATROF_SUPPLYING_BRANCH,
+        supplyingBranch,
         cccExtUser: appUserId,
         lines: lines.map((line) => ({ MTRL: line.mtrl, QTY1: line.qty })),
     });

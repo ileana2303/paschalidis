@@ -479,7 +479,10 @@ export interface StockRequestSubmitRoutePayload {
     appUserId?: string;
     deliveryDate?: string;
     notes?: string;
-    branch?: string | number;
+    /** Branch whose stock request is being fulfilled -> SALDOC.TRDBRANCH. */
+    requestingBranch: string | number;
+    /** Logged-in branch sending the basket -> MTRDOC branch/warehouse fields. */
+    supplyingBranch: string | number;
     items: IStockRequestListRow[];
 }
 

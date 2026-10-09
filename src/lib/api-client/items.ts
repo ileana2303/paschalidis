@@ -28,8 +28,8 @@ import type {
     PartInsightsRoutePayload,
 } from "@/lib/part-insights";
 
-// PAYMENT / TRUCKS / SHIPKIND / SOCASH / SERIES are decided server-side in
-// lib/orders/anatrof/anatrof-constants.ts - the UI only sends who and what.
+// PAYMENT / TRUCKS / SHIPKIND / SOCASH are decided server-side. Branch-dependent
+// values are sent explicitly so requester and supplier cannot be confused.
 const stockFeedbackInFlightRequests = new Map<
     string,
     Promise<StockFeedbackResponse>
@@ -269,12 +269,13 @@ export async function submitAnatrofOrder(
         appUserId: String(payload.appUserId ?? "").trim(),
         deliveryDate: payload.deliveryDate,
         notes: payload.notes,
-        branch: payload.branch,
+        requestingBranch: payload.requestingBranch,
+        supplyingBranch: payload.supplyingBranch,
         items: payload.items.map((item) => ({
             basketId: item.BASKETID,
             mtrl: item.MTRL,
             qty: item.QTY_REQUESTED || item.QTY,
-            branch: item.BRANCH || payload.branch,
+            requestingBranch: item.BRANCH || payload.requestingBranch,
         })),
     };
 

@@ -23,6 +23,7 @@ export type AnatrofMtrdoc = {
     DELIVDATE: string;
     DEPTRDR_CUSTOMER_CODE: "";
     BILLTRDR_CUSTOMER_CODE: "";
+    BRANCHSEC: number;
     WHOUSESEC: number;
     WHOUSE: number;
 };
@@ -41,9 +42,10 @@ export type BuildAnatrofPayloadParams = {
     payment: number;
     trucks: number;
     deliveryDate: string;
-    documentId: string;
+    basketId: string;
     requestingBranchCode: number;
     requestingBranchName: string;
+    supplyingBranchName: string;
     /** Free-text notes typed by the user. */
     remarks: string;
     shipKind: number;
@@ -62,9 +64,10 @@ export function buildAnatrofPayload({
     payment,
     trucks,
     deliveryDate,
-    documentId,
+    basketId,
     requestingBranchCode,
     requestingBranchName,
+    supplyingBranchName,
     remarks,
     shipKind,
     socash,
@@ -75,13 +78,13 @@ export function buildAnatrofPayload({
     return setDataEnvelope(clientID, {
         SALDOC: [
             {
-                SERIES: series, // per requesting branch
+                SERIES: series, // per supplying branch
                 TRDR: trdr,
-                TRDBRANCH: trdBranch,
+                TRDBRANCH: trdBranch, // requesting branch
                 PAYMENT: payment,
                 TRUCKS: trucks,
                 DELIVDATE: deliveryDate,
-                COMMENTS: `Παραγγελία Ανατροφοδοσίας Νο${documentId} από Λ. Αθηνών προς ${requestingBranchName} :: ${supplyingBranch}->${requestingBranchCode}`,
+                COMMENTS: `Παραγγελία Ανατροφοδοσίας Νο${basketId} από ${supplyingBranchName} προς ${requestingBranchName} :: ${supplyingBranch}->${requestingBranchCode}`,
                 REMARKS: remarks,
                 SHIPKIND: shipKind,
                 SOCASH: socash,
@@ -94,8 +97,9 @@ export function buildAnatrofPayload({
                 DELIVDATE: deliveryDate,
                 DEPTRDR_CUSTOMER_CODE: "", // fixed
                 BILLTRDR_CUSTOMER_CODE: "", // fixed
-                WHOUSESEC: supplyingBranch,
-                WHOUSE: supplyingBranch,
+                BRANCHSEC: supplyingBranch, // supplying branch
+                WHOUSESEC: supplyingBranch, // supplying branch
+                WHOUSE: supplyingBranch, // supplying branch warehouse
             },
         ],
         ITELINES: lines,

@@ -350,7 +350,8 @@ export default function StockRequestsClient() {
         try {
             const data = await submitAnatrofOrder({
                 appUserId: user?.username,
-                branch: currentBranchCode,
+                requestingBranch: selectedBranchCode,
+                supplyingBranch: currentBranchCode,
                 notes,
                 items: approvedRows,
             });
@@ -375,6 +376,7 @@ export default function StockRequestsClient() {
         currentBranchCode,
         loadRows,
         notes,
+        selectedBranchCode,
         setNotes,
         submitAnatrofOrder,
         user?.username,
