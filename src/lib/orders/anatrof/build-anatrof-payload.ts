@@ -41,7 +41,9 @@ export type BuildAnatrofPayloadParams = {
     payment: number;
     trucks: number;
     deliveryDate: string;
-    basketId: string;
+    documentId: string;
+    requestingBranchCode: number;
+    requestingBranchName: string;
     /** Free-text notes typed by the user. */
     remarks: string;
     shipKind: number;
@@ -60,7 +62,9 @@ export function buildAnatrofPayload({
     payment,
     trucks,
     deliveryDate,
-    basketId,
+    documentId,
+    requestingBranchCode,
+    requestingBranchName,
     remarks,
     shipKind,
     socash,
@@ -77,7 +81,7 @@ export function buildAnatrofPayload({
                 PAYMENT: payment,
                 TRUCKS: trucks,
                 DELIVDATE: deliveryDate,
-                COMMENTS: `ΠΑΡΑΣΤΑΤΙΚΟ ΑΝΑΤΡΟΦΟΔΟΣΙΑΣ Νο${basketId}`,
+                COMMENTS: `Παραγγελία Ανατροφοδοσίας Νο${documentId} από Λ. Αθηνών προς ${requestingBranchName} :: ${supplyingBranch}->${requestingBranchCode}`,
                 REMARKS: remarks,
                 SHIPKIND: shipKind,
                 SOCASH: socash,

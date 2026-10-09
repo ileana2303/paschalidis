@@ -81,7 +81,7 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
 
 - `TRDBRANCH` = TRDBRANCH of the **requesting** branch.
 - `WHOUSESEC` / `WHOUSE` = `1006`, the fixed **supplying** branch.
-- `COMMENTS` = `ΠΑΡΑΣΤΑΤΙΚΟ ΑΝΑΤΡΟΦΟΔΟΣΙΑΣ Νο<basketId>`.
+- `COMMENTS` = `Παραγγελία Ανατροφοδοσίας Νο<documentId> από Λ. Αθηνών προς <requestingBranchName> :: 1006-><requestingBranchCode>`.
 - `REMARKS` = free-text notes entered in the replenishment summary.
 - `CCCEXTUSER` = username of the logged-in user.
 

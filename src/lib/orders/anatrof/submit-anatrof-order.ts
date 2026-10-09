@@ -1,4 +1,5 @@
 import {
+    getKnownBranchName,
     getSaldocSeriesByBranchCode,
     getTrdBranchByBranchCode,
 } from "@/lib/auth/branches";
@@ -95,7 +96,9 @@ export async function submitAnatrofOrder(body: AnatrofOrderRequestBody) {
         payment: ANATROF_PAYMENT,
         trucks: ANATROF_TRUCKS,
         deliveryDate: resolveIsoDate(body.deliveryDate),
-        basketId: basketIds[0],
+        documentId: basketIds[0],
+        requestingBranchCode: branch,
+        requestingBranchName: getKnownBranchName(branch) ?? String(branch),
         remarks: String(body.notes ?? "").trim(),
         shipKind: ANATROF_SHIPKIND,
         socash: ANATROF_SOCASH,
