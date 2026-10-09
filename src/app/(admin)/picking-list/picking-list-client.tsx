@@ -78,10 +78,12 @@ type PickingOrderRowProps = {
   activeBranch: string;
   expanded: boolean;
   selected: boolean;
+  pickedDetailKeys: ReadonlySet<string>;
   updating: boolean;
   nowMs: number;
   onToggleExpanded: (order: PickingListOrder, expanded: boolean) => void;
   onToggleSelected: (findoc: string) => void;
+  onToggleDetailPicked: (detailKey: string) => void;
   onSaveComment: (order: PickingListOrder, comment: string) => void;
   onAdvanceStatus: (order: PickingListOrder) => void;
 };
@@ -147,12 +149,53 @@ function ElapsedTimeBadge({ label }: { label: string | null }) {
   );
 }
 
+function getPickingDetailKey(
+  findoc: string,
+  lineNumber: string,
+  code: string,
+  index: number
+) {
+  return `${findoc}:${lineNumber}:${code}:${index}`;
+}
+
+function PickingLineCheckbox({
+  checked,
+  ariaLabel,
+  onToggle,
+}: {
+  checked: boolean;
+  ariaLabel: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      onClick={onToggle}
+      className={[
+        "inline-flex size-6 shrink-0 items-center justify-center rounded border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 print:size-5 print:rounded-none print:border-black print:bg-white print:text-black",
+        checked
+          ? "border-success-500 bg-success-500 text-white"
+          : "border-gray-300 bg-white text-transparent hover:border-gray-400 dark:border-gray-600 dark:bg-gray-900",
+      ].join(" ")}
+    >
+      {checked ? <Check aria-hidden="true" className="size-4" /> : null}
+    </button>
+  );
+}
+
 function PickingOrderDetailsPanel({
   order,
   activeBranch,
+  pickedDetailKeys,
+  onToggleDetailPicked,
 }: {
   order: PickingListOrder;
   activeBranch: string;
+  pickedDetailKeys: ReadonlySet<string>;
+  onToggleDetailPicked: (detailKey: string) => void;
 }) {
   const parastatikoLabel = order.parastatiko || order.fincode;
 
@@ -186,6 +229,14 @@ function PickingOrderDetailsPanel({
               detail,
               activeBranch
             );
+            const detailKey = getPickingDetailKey(
+              order.findoc,
+              detail.lineNumber,
+              detail.code,
+              index
+            );
+            const detailLabel =
+              detail.description || detail.code || `${index + 1}`;
 
             return (
               <div
@@ -193,6 +244,11 @@ function PickingOrderDetailsPanel({
                 className="space-y-2 px-4 py-3"
               >
                 <div className="flex items-start justify-between gap-3">
+                  <PickingLineCheckbox
+                    checked={pickedDetailKeys.has(detailKey)}
+                    ariaLabel={`Σήμανση είδους ${detailLabel} ως συλλεγμένο`}
+                    onToggle={() => onToggleDetailPicked(detailKey)}
+                  />
                   <p className="min-w-0 flex-1 text-sm font-medium text-gray-900 dark:text-white">
                     {detail.description || "—"}
                   </p>
@@ -224,6 +280,13 @@ function PickingOrderDetailsPanel({
           <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
             <thead className="bg-gray-50 dark:bg-gray-950">
               <tr>
+                <th
+                  className="w-[64px] px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-500"
+                  title="Συλλογή"
+                >
+                  <span aria-hidden="true">✓</span>
+                  <span className="sr-only">Συλλογή</span>
+                </th>
                 <th className="w-[90px] px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
                   Ποσότητα
                 </th>
@@ -244,9 +307,26 @@ function PickingOrderDetailsPanel({
                   detail,
                   activeBranch
                 );
+                const detailKey = getPickingDetailKey(
+                  order.findoc,
+                  detail.lineNumber,
+                  detail.code,
+                  index
+                );
+                const detailLabel =
+                  detail.description || detail.code || `${index + 1}`;
 
                 return (
                   <tr key={`${detail.lineNumber}-${detail.code}-${index}`}>
+                    <td className="px-3 py-3 text-center">
+                      <div className="flex justify-center">
+                        <PickingLineCheckbox
+                          checked={pickedDetailKeys.has(detailKey)}
+                          ariaLabel={`Σήμανση είδους ${detailLabel} ως συλλεγμένο`}
+                          onToggle={() => onToggleDetailPicked(detailKey)}
+                        />
+                      </div>
+                    </td>
                     <td className="px-3 py-3 text-right text-sm text-gray-700 sm:px-4 dark:text-gray-200">
                       <NumberBadge value={detail.quantity || "0"} variant="brand" />
                     </td>
@@ -290,10 +370,12 @@ function PickingOrderCard({
   activeBranch,
   expanded,
   selected,
+  pickedDetailKeys,
   updating,
   nowMs,
   onToggleExpanded,
   onToggleSelected,
+  onToggleDetailPicked,
   onSaveComment,
   onAdvanceStatus,
 }: PickingOrderCardProps) {
@@ -433,7 +515,12 @@ function PickingOrderCard({
 
       {expanded ? (
         <div id={detailsId} className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800">
-          <PickingOrderDetailsPanel order={order} activeBranch={activeBranch} />
+          <PickingOrderDetailsPanel
+            order={order}
+            activeBranch={activeBranch}
+            pickedDetailKeys={pickedDetailKeys}
+            onToggleDetailPicked={onToggleDetailPicked}
+          />
         </div>
       ) : null}
     </article>
@@ -445,10 +532,12 @@ function PickingOrderRow({
   activeBranch,
   expanded,
   selected,
+  pickedDetailKeys,
   updating,
   nowMs,
   onToggleExpanded,
   onToggleSelected,
+  onToggleDetailPicked,
   onSaveComment,
   onAdvanceStatus,
 }: PickingOrderRowProps) {
@@ -596,6 +685,8 @@ function PickingOrderRow({
               <PickingOrderDetailsPanel
                 order={order}
                 activeBranch={activeBranch}
+                pickedDetailKeys={pickedDetailKeys}
+                onToggleDetailPicked={onToggleDetailPicked}
               />
             </div>
           </td>
@@ -629,6 +720,9 @@ export default function PickingListClient() {
     new Set()
   );
   const [selectedFindocs, setSelectedFindocs] = useState<Set<string>>(
+    new Set()
+  );
+  const [pickedDetailKeys, setPickedDetailKeys] = useState<Set<string>>(
     new Set()
   );
   const [updatingFindocs, setUpdatingFindocs] = useState<Set<string>>(
@@ -959,6 +1053,15 @@ export default function PickingListClient() {
     });
   }, []);
 
+  const toggleDetailPicked = useCallback((detailKey: string) => {
+    setPickedDetailKeys((current) => {
+      const next = new Set(current);
+      if (next.has(detailKey)) next.delete(detailKey);
+      else next.add(detailKey);
+      return next;
+    });
+  }, []);
+
   const toggleAllVisible = useCallback(() => {
     setSelectedFindocs((current) => {
       const next = new Set(current);
@@ -1145,10 +1248,12 @@ export default function PickingListClient() {
                 activeBranch={selectedBranch}
                 expanded={expandedFindocs.has(order.findoc)}
                 selected={selectedFindocs.has(order.findoc)}
+                pickedDetailKeys={pickedDetailKeys}
                 updating={updatingFindocs.has(order.findoc)}
                 nowMs={nowMs}
                 onToggleExpanded={handleToggleExpanded}
                 onToggleSelected={toggleSelected}
+                onToggleDetailPicked={toggleDetailPicked}
                 onSaveComment={handleSaveComment}
                 onAdvanceStatus={handleAdvanceStatus}
               />
@@ -1234,10 +1339,12 @@ export default function PickingListClient() {
                     activeBranch={selectedBranch}
                     expanded={expandedFindocs.has(order.findoc)}
                     selected={selectedFindocs.has(order.findoc)}
+                    pickedDetailKeys={pickedDetailKeys}
                     updating={updatingFindocs.has(order.findoc)}
                     nowMs={nowMs}
                     onToggleExpanded={handleToggleExpanded}
                     onToggleSelected={toggleSelected}
+                    onToggleDetailPicked={toggleDetailPicked}
                     onSaveComment={handleSaveComment}
                     onAdvanceStatus={handleAdvanceStatus}
                   />
