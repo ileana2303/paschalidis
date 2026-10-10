@@ -37,6 +37,7 @@
     "react-hot-toast": "^2.6.0",
     "swiper": "^12.1.2",
     "tailwind-merge": "^2.6.0",
+    "xlsx": "^0.18.5",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

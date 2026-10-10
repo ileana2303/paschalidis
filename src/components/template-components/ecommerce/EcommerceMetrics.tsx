@@ -1,8 +1,7 @@
 "use client";
 import { Branch_CardStyles } from "@/lib/branch-colors";
-import { useEffect, useState } from "react";
 import { Package } from "@/lib/icons/lucide";
-import { fetchStockFeedback } from "@/lib/api-client/items";
+import { useStockFeedbackTotalsQuery } from "@/hooks/queries/useStockFeedbackQueries";
 import { getStockBranchOrder, normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
 import { getAthensMonthName } from "@/lib/utils/athens-date";
@@ -10,37 +9,8 @@ import { formatNumber } from "@/lib/utils/stock-feedback";
 
 export const EcommerceMetrics = () => {
   const activeBranchCode = useAuthStore((state) => normalizeBranchCode(state.user?.mainBranch));
-  const [salesResults, setSalesResults] = useState<Record<string, number | null>>({});
+  const { data: salesResults, isPending } = useStockFeedbackTotalsQuery(activeBranchCode);
   const currentMonth = getAthensMonthName();
-
-  useEffect(() => {
-    if (!activeBranchCode) return;
-    let active = true;
-    const days = Number(new Intl.DateTimeFormat("en-US", {
-      day: "numeric",
-      timeZone: "Europe/Athens",
-    }).format(new Date()));
-    const branches = getStockBranchOrder(activeBranchCode);
-
-    void Promise.allSettled(
-      branches.map((branch) => fetchStockFeedback({ branch, days }))
-    ).then((results) => {
-      if (!active) return;
-      const nextResults: Record<string, number | null> = {};
-      results.forEach((result, index) => {
-        const branch = branches[index];
-        if (result.status === "fulfilled") {
-          nextResults[branch] = result.value.totalcount;
-        } else {
-          console.error(`[ecommerce-metrics] Failed to load sales for branch ${branch}`, result.reason);
-          nextResults[branch] = null;
-        }
-      });
-      setSalesResults(nextResults);
-    });
-
-    return () => { active = false; };
-  }, [activeBranchCode]);
 
   const orderedBranches = getStockBranchOrder(activeBranchCode);
 
@@ -60,9 +30,9 @@ export const EcommerceMetrics = () => {
               </span>
             </div>
             <h4 className={`mt-2 font-bold text-title-sm ${Branch_CardStyles[branch].value}`}>
-              {!activeBranchCode || salesResults[branch] === null
+              {!activeBranchCode || salesResults?.[branch] === null
                 ? "—"
-                : salesResults[branch] === undefined
+                : isPending || salesResults?.[branch] === undefined
                   ? "…"
                   : formatNumber(salesResults[branch])}
             </h4>

@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, ShoppingCart } from "@/lib/icons/lucide";
-import { fetchAllClientBaskets } from "@/lib/api-client/basket";
+import { useActiveClientBasketsCountQuery } from "@/hooks/queries/useBasketQueries";
 import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { getBranchColor } from "@/lib/branch-colors";
 import { BASKET_BRANCH_OPTIONS, DEFAULT_SEARCH, isBasketBranchCode } from "@/lib/utils/all-baskets";
 import { formatNumber } from "@/lib/utils/stock-feedback";
 import { useAuthStore } from "@/stores/authStore";
+import { useMemo } from "react";
 
 export default function ActiveBasketsCard() {
   const user = useAuthStore((state) => state.user);
@@ -18,30 +18,21 @@ export default function ActiveBasketsCard() {
     : isBasketBranchCode(activeBranch)
       ? activeBranch
       : BASKET_BRANCH_OPTIONS[0].code;
-  const [result, setResult] = useState<{ branch: string; count: number | null } | null>(null);
+  const basketsQueryParams = useMemo(
+    () =>
+      branch
+        ? {
+            search: DEFAULT_SEARCH,
+            page: 1,
+            pageSize: 1,
+            branch,
+          }
+        : null,
+    [branch]
+  );
 
-  useEffect(() => {
-    if (!branch) return;
-    let active = true;
-
-    void fetchAllClientBaskets({
-      search: DEFAULT_SEARCH,
-      page: 1,
-      pageSize: 1,
-      branch,
-    })
-      .then((data) => {
-        if (active) setResult({ branch, count: data.totalcount });
-      })
-      .catch((error) => {
-        console.error("[active-baskets-card] Failed to load baskets", error);
-        if (active) setResult({ branch, count: null });
-      });
-
-    return () => { active = false; };
-  }, [branch]);
-
-  const count = result?.branch === branch ? result.count : undefined;
+  const { data: count, isError, isPending } =
+    useActiveClientBasketsCountQuery(basketsQueryParams);
 
   return (
     <Link
@@ -64,11 +55,15 @@ export default function ActiveBasketsCard() {
         <p className="text-sm text-gray-500 dark:text-gray-400">Ενεργά καλάθια</p>
         <div className="mt-1">
           <span className="text-title-sm font-bold tabular-nums text-gray-800 dark:text-white/90" aria-live="polite">
-            {!branch || count === null ? "—" : count === undefined ? "…" : formatNumber(count)}
+            {!branch || isError
+              ? "—"
+              : isPending || count === undefined
+                ? "…"
+                : formatNumber(count)}
           </span>
         </div>
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {count === null ? "Δεν ήταν δυνατή η φόρτωση" : "Πελάτες με ανοιχτό καλάθι"}
+          {isError ? "Δεν ήταν δυνατή η φόρτωση" : "Πελάτες με ανοιχτό καλάθι"}
         </p>
       </div>
     </Link>

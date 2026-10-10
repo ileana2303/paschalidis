@@ -16,6 +16,7 @@ import {
   GitCompareArrows,
   type LucideIcon,
   Send,
+  Upload,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
 import { ListTodo, Warehouse } from "lucide-react";
@@ -47,6 +48,11 @@ const navItems: NavItem[] = [
     icon: PackageSearch,
     name: "Αναζήτηση Ανταλλακτικών",
     path: "/search-parts",
+  },
+  {
+    icon: Upload,
+    name: "Ανέβασμα Τιμοκαταλόγου",
+    path: "/supplier-price-catalog-upload",
   },
   {
     icon: GitCompareArrows,

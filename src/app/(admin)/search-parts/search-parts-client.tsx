@@ -2,7 +2,6 @@
 
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import { Modal } from "@/components/ui/modal";
-import { fetchRequestedPriceRequests } from "@/lib/api-client/basket";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSearchPartsStore } from "@/stores/searchPartsStore";
@@ -22,6 +21,7 @@ import {
     useFetchCustomerByTrdrMutation,
     useFetchPartCompetitionSalesMutation,
     useFetchPartLastOrdersMutation,
+    useFetchRequestedPriceRequestsMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useSearchPartsBasketController } from "@/hooks/search-parts/use-search-parts-basket-controller";
 import { useSearchPartsResultsController } from "@/hooks/search-parts/use-search-parts-results-controller";
@@ -64,6 +64,8 @@ export default function SearchPartsClient() {
     const { mutateAsync: fetchPartLastOrders } = useFetchPartLastOrdersMutation();
     const { mutateAsync: fetchPartCompetitionSales } =
         useFetchPartCompetitionSalesMutation();
+    const { mutateAsync: fetchRequestedPriceRequests } =
+        useFetchRequestedPriceRequestsMutation();
     const [storesReady, setStoresReady] = useState(false);
     const [orderConfirmOpen, setOrderConfirmOpen] = useState(false);
     const [pendingPriceRequestCount, setPendingPriceRequestCount] = useState(0);
@@ -449,7 +451,7 @@ export default function SearchPartsClient() {
         }
 
         await basketController.handleSendOrder();
-    }, [basketController, customer]);
+    }, [basketController, customer, fetchRequestedPriceRequests]);
 
     const handleConfirmSendOrder = useCallback(async () => {
         setOrderConfirmOpen(false);
