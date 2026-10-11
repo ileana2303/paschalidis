@@ -387,6 +387,40 @@ export interface IStockFeedbackRow {
 export interface StockFeedbackResponse
     extends ApiResponse<IStockFeedbackRow> { }
 
+export interface CentralStockRoutePayload {
+    days: number;
+}
+
+export interface CentralStockPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "SALES_PASCHA";
+    DAYS: string;
+}
+
+export interface ICentralStockRow {
+    MTRL: string;
+    CODE: string;
+    NAME: string;
+    CODE1: string;
+    CODE2: string;
+    QTY_SOLD: string;
+    CY: string;
+    CY_1: string;
+    CY_2: string;
+    CY_3: string;
+    CY_4: string;
+    ONGOING: string;
+    YP1000: string;
+    YP1006: string;
+    YP1007: string;
+    TOTAL_AVAIL: string;
+}
+
+export interface CentralStockResponse
+    extends ApiResponse<ICentralStockRow> { }
+
 export type StockRequestStatus = "approved" | "pending" | "deleted";
 
 export type StockRequestUpdateAction = "APPROVE" | "DELETE" | "UPDATE";

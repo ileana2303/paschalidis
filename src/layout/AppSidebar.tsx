@@ -102,6 +102,11 @@ const navItems: NavItem[] = [
     name: "Διαχείριση Καταστημάτων",
     subItems: [
       {
+        name: "Κεντρικός Εφοδιασμός",
+        path: "/central-stock",
+        icon: Warehouse,
+      },
+      {
         name: "Αιτήματα Ανατροφοδοσίας",
         path: "/stock-requests",
         icon: ClipboardList,

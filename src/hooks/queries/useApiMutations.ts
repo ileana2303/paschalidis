@@ -8,6 +8,7 @@ import type {
     BasketRequestPriceRoutePayload,
     BasketSubmitRoutePayload,
     BasketUpdateRoutePayload,
+    CentralStockRoutePayload,
     CustomerByTrdrRoutePayload,
     EndoBasketAddRoutePayload,
     EndoBasketSubmitRoutePayload,
@@ -43,6 +44,7 @@ import {
 import { fetchCustomerByTrdr, searchCustomers } from "@/lib/api-client/customers";
 import {
     fetchStockFeedback,
+    fetchCentralStock,
     fetchStockRequests,
     fetchPartCompetitionSales,
     fetchPartLastOrders,
@@ -110,6 +112,12 @@ export const useFetchStockFeedbackMutation = () =>
     useMutation({
         mutationFn: (payload: StockFeedbackRoutePayload) =>
             fetchStockFeedback(payload),
+    });
+
+export const useFetchCentralStockMutation = () =>
+    useMutation({
+        mutationFn: (payload: CentralStockRoutePayload) =>
+            fetchCentralStock(payload),
     });
 
 export const useRequestStockQuantityMutation = () =>

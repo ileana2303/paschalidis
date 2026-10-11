@@ -2,6 +2,8 @@ import {
     IItem,
     IItemTRDR,
     ApiResponse,
+    CentralStockResponse,
+    CentralStockRoutePayload,
     ItemEditLoadResponse,
     ItemEditSaveResponse,
     ItemEditUpdatePayload,
@@ -34,6 +36,10 @@ const stockFeedbackInFlightRequests = new Map<
     string,
     Promise<StockFeedbackResponse>
 >();
+const centralStockInFlightRequests = new Map<
+    string,
+    Promise<CentralStockResponse>
+>();
 const stockRequestListInFlightRequests = new Map<
     string,
     Promise<StockRequestListResponse>
@@ -44,6 +50,10 @@ function getStockFeedbackRequestKey(payload: StockFeedbackRoutePayload) {
         branch: String(payload.branch ?? "").trim(),
         days: String(payload.days ?? "").trim(),
     });
+}
+
+function getCentralStockRequestKey(payload: CentralStockRoutePayload) {
+    return String(payload.days ?? "").trim();
 }
 
 function getStockRequestListRequestKey(payload: StockRequestListRoutePayload) {
@@ -197,6 +207,54 @@ export async function fetchStockFeedback(
         return await requestPromise;
     } finally {
         stockFeedbackInFlightRequests.delete(requestKey);
+    }
+}
+
+export async function fetchCentralStock(
+    payload: CentralStockRoutePayload
+): Promise<CentralStockResponse> {
+    const requestKey = getCentralStockRequestKey(payload);
+    const inFlightRequest = centralStockInFlightRequests.get(requestKey);
+
+    if (inFlightRequest) {
+        return inFlightRequest;
+    }
+
+    const requestPromise = (async () => {
+        try {
+            const { data } = await httpClient.post<CentralStockResponse>(
+                "/api/items/central-stock",
+                payload
+            );
+
+            if (!data?.success) {
+                throw new Error(
+                    data?.message ?? "Αποτυχία φόρτωσης κεντρικού αποθέματος."
+                );
+            }
+
+            return data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                const message = (
+                    error.response?.data as Partial<CentralStockResponse> | undefined
+                )?.message;
+
+                throw new Error(
+                    message?.trim() || "Αποτυχία φόρτωσης κεντρικού αποθέματος."
+                );
+            }
+
+            throw error;
+        }
+    })();
+
+    centralStockInFlightRequests.set(requestKey, requestPromise);
+
+    try {
+        return await requestPromise;
+    } finally {
+        centralStockInFlightRequests.delete(requestKey);
     }
 }
 
