@@ -2,23 +2,39 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
+import CompanyStockOrderSummary, {
+  type CompanyStockBasketLine,
+} from "@/components/stock/company-stock-order-summary";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import QuantityControl from "@/components/ui/quantity-control";
-import { useFetchCompanyStockMutation } from "@/hooks/queries/useApiMutations";
+import {
+  useFetchCompanyStockMutation,
+  useRequestStockQuantityMutation,
+} from "@/hooks/queries/useApiMutations";
 import { useSessionState } from "@/hooks/useSessionState";
 import type { ICompanyStockRow } from "@/lib/interface";
 import {
   AlertCircle,
+  Loader2,
   Package,
   RefreshCw,
   ShoppingCart,
 } from "@/lib/icons/lucide";
-import { resolveBranchName } from "@/lib/auth/branches";
-import { formatNumber, toNumber } from "@/lib/utils/stock-feedback";
+import {
+  formatBranchLabel,
+  normalizeBranchCode,
+  resolveBranchName,
+} from "@/lib/auth/branches";
+import {
+  formatNumber,
+  toNumber,
+} from "@/lib/utils/stock-feedback";
+import { useAuthStore } from "@/stores/authStore";
+import toast from "react-hot-toast";
 
 const DAY_OPTIONS = [1, 3, 7, 10] as const;
 const SALES_HISTORY_FIELDS = ["CY", "CY_1", "CY_2", "CY_3", "CY_4"] as const;
@@ -50,13 +66,29 @@ function TableSkeleton() {
 }
 
 export default function CompanyStockClient() {
+  const user = useAuthStore((state) => state.user);
   const { mutateAsync: fetchCompanyStock } = useFetchCompanyStockMutation();
+  const { mutateAsync: requestStockQuantity } =
+    useRequestStockQuantityMutation();
+  const currentBranchCode = useMemo(
+    () => normalizeBranchCode(user?.mainBranch),
+    [user?.mainBranch]
+  );
+  const currentBranchLabel = useMemo(
+    () => formatBranchLabel(currentBranchCode),
+    [currentBranchCode]
+  );
   const [days, setDays] = useState<number>(1);
   const [rows, setRows] = useState<ICompanyStockRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useSessionState("company-stock-search", "");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [basketLines, setBasketLines] = useState<CompanyStockBasketLine[]>([]);
+  const [addErrors, setAddErrors] = useState<Record<string, string>>({});
+  const [addingItems, setAddingItems] = useState<Set<string>>(
+    new Set()
+  );
   const loadRequestId = useRef(0);
   const currentYear = new Date().getFullYear();
 
@@ -132,10 +164,88 @@ export default function CompanyStockClient() {
     setQuantities((current) => ({
       ...current,
       [itemKey]: Number.isFinite(nextQuantity)
-        ? Math.max(1, Math.floor(nextQuantity))
-        : 1,
+        ? Math.max(0, Math.floor(nextQuantity))
+        : 0,
     }));
   }, []);
+
+  const handleAddToCompanyBasket = useCallback(
+    async (row: ICompanyStockRow) => {
+      const itemKey = String(row.MTRL);
+      const quantity = quantities[itemKey] ?? 0;
+      const normalizedMtrl = Number(row.MTRL);
+
+      if (!currentBranchCode) {
+        setAddErrors((current) => ({
+          ...current,
+          [itemKey]: "Δεν βρέθηκε ενεργό κατάστημα χρήστη.",
+        }));
+        return;
+      }
+
+      if (!Number.isFinite(normalizedMtrl) || normalizedMtrl <= 0) {
+        setAddErrors((current) => ({
+          ...current,
+          [itemKey]: "Μη έγκυρο MTRL για προσθήκη στο καλάθι.",
+        }));
+        return;
+      }
+
+      if (!Number.isInteger(quantity) || quantity <= 0) {
+        setAddErrors((current) => ({
+          ...current,
+          [itemKey]: "Η ποσότητα πρέπει να είναι μεγαλύτερη από 0.",
+        }));
+        return;
+      }
+
+      setAddingItems((current) => new Set(current).add(itemKey));
+      setAddErrors((current) => ({ ...current, [itemKey]: "" }));
+
+      try {
+        const result = await requestStockQuantity({
+          mtrl: normalizedMtrl,
+          qty: quantity,
+          branch: currentBranchCode,
+          origin: "PASCHALIDIS",
+        });
+
+        const basketId = String(result.rows?.[0]?.NEW_ID ?? "").trim();
+        setBasketLines((current) => [
+          ...current,
+          {
+            id: `${basketId || itemKey}-${Date.now()}`,
+            basketId,
+            mtrl: itemKey,
+            code: row.CODE,
+            name: row.NAME,
+            quantity,
+          },
+        ]);
+        setQuantity(itemKey, 0);
+        toast.success(
+          `Προστέθηκαν ${quantity} τεμ. του είδους ${row.CODE} στο καλάθι.`
+        );
+      } catch (submitError) {
+        const message =
+          submitError instanceof Error
+            ? submitError.message
+            : "Αποτυχία προσθήκης στο καλάθι ανατροφοδοσίας εταιρίας.";
+        setAddErrors((current) => ({
+          ...current,
+          [itemKey]: message,
+        }));
+        toast.error(message);
+      } finally {
+        setAddingItems((current) => {
+          const next = new Set(current);
+          next.delete(itemKey);
+          return next;
+        });
+      }
+    },
+    [currentBranchCode, quantities, requestStockQuantity, setQuantity]
+  );
 
   return (
     <div className="w-full max-w-none space-y-6">
@@ -151,7 +261,8 @@ export default function CompanyStockClient() {
         </div>
       )}
 
-      <DataTable className="flex h-[calc(100dvh-8rem)] min-h-[28rem] flex-col">
+      <div className="flex min-w-0 max-w-full flex-col gap-5 xl:flex-row">
+        <DataTable className="flex h-[calc(100dvh-8rem)] min-h-[28rem] min-w-0 max-w-full shrink-0 flex-col xl:flex-1 xl:basis-3/4 xl:shrink">
         <DataTableHeader
           className="shrink-0"
           title="Πωλήσεις και Κεντρικό Απόθεμα"
@@ -243,7 +354,7 @@ export default function CompanyStockClient() {
                     Διαθεσιμότητα
                   </th>
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Προσθήκη στο καλάθι
+                    Προσθήκη
                   </th>
                 </tr>
               </thead>
@@ -251,8 +362,10 @@ export default function CompanyStockClient() {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filteredRows.map((row, index) => {
                   const itemKey = String(row.MTRL || row.CODE || index);
-                  const quantity = quantities[itemKey] ?? 1;
+                  const quantity = quantities[itemKey] ?? 0;
                   const totalAvailable = toNumber(row.TOTAL_AVAIL);
+                  const addError = addErrors[itemKey] ?? "";
+                  const isAddingItem = addingItems.has(itemKey);
 
                   return (
                     <tr
@@ -329,27 +442,50 @@ export default function CompanyStockClient() {
                       </td>
 
                       <td className="px-5 py-4 align-top">
-                        <div className="flex items-center justify-end gap-2">
-                          <QuantityControl
-                            value={quantity}
-                            onChange={(nextQuantity) =>
-                              setQuantity(itemKey, nextQuantity)
-                            }
-                            min={1}
-                            size="sm"
-                            inputLabel={`Ποσότητα για ${row.CODE}`}
-                            decrementLabel={`Μείωση ποσότητας για ${row.CODE}`}
-                            incrementLabel={`Αύξηση ποσότητας για ${row.CODE}`}
-                          />
-                          <button
-                            type="button"
-                            disabled
-                            title="Η σύνδεση με το καλάθι δεν είναι ακόμη διαθέσιμη"
-                            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gray-100 px-3 text-xs font-semibold text-gray-400 dark:bg-gray-800/70 dark:text-gray-500"
-                          >
-                            <ShoppingCart className="h-3.5 w-3.5" />
-                            <span>Στο καλάθι</span>
-                          </button>
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex items-center justify-end gap-2">
+                            <QuantityControl
+                              value={quantity}
+                              onChange={(nextQuantity) => {
+                                setQuantity(itemKey, nextQuantity);
+                                setAddErrors((current) => ({
+                                  ...current,
+                                  [itemKey]: "",
+                                }));
+                              }}
+                              min={0}
+                              size="sm"
+                              disabled={isAddingItem}
+                              displayZeroAsEmpty
+                              placeholder="0"
+                              inputLabel={`Ποσότητα για ${row.CODE}`}
+                              decrementLabel={`Μείωση ποσότητας για ${row.CODE}`}
+                              incrementLabel={`Αύξηση ποσότητας για ${row.CODE}`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => void handleAddToCompanyBasket(row)}
+                              disabled={
+                                isAddingItem ||
+                                quantity <= 0 ||
+                                !currentBranchCode
+                              }
+                              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
+                            >
+                              {isAddingItem ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <ShoppingCart className="h-3.5 w-3.5" />
+                              )}
+                              <span>Προσθήκη</span>
+                            </button>
+                          </div>
+
+                          {addError && (
+                            <p className="max-w-[220px] text-right text-[11px] font-medium leading-4 text-red-500">
+                              {addError}
+                            </p>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -359,7 +495,12 @@ export default function CompanyStockClient() {
             </table>
           </div>
         )}
-      </DataTable>
+        </DataTable>
+        <CompanyStockOrderSummary
+          branchLabel={currentBranchLabel}
+          lines={basketLines}
+        />
+      </div>
     </div>
   );
 }

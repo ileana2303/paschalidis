@@ -422,6 +422,7 @@ export interface CompanyStockResponse
     extends ApiResponse<ICompanyStockRow> { }
 
 export type StockRequestStatus = "approved" | "pending" | "deleted";
+export type StockRequestOrigin = "STORE" | "PASCHALIDIS";
 
 export type StockRequestUpdateAction = "APPROVE" | "DELETE" | "UPDATE";
 
@@ -429,6 +430,7 @@ export interface StockRequestRoutePayload {
     mtrl: number;
     qty: number;
     branch: string;
+    origin: StockRequestOrigin;
 }
 
 export interface StockRequestInsertPayload {
@@ -439,6 +441,7 @@ export interface StockRequestInsertPayload {
     MTRL: string;
     BRANCH: string;
     QTY_REQUESTED: number;
+    APPORIGIN: StockRequestOrigin;
     APPUSER_ID: string;
 }
 

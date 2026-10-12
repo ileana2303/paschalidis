@@ -278,6 +278,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
           mtrl: normalizedMtrl,
           qty,
           branch: currentBranchCode,
+          origin: "STORE",
         });
 
         setRequestStatuses((prev) => ({

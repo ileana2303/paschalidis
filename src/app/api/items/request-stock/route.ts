@@ -8,10 +8,22 @@ import {
 import type {
     StockRequestInsertPayload,
     StockRequestInsertResponse,
+    StockRequestOrigin,
     StockRequestRoutePayload,
 } from "@/lib/interface";
 
 const ZERO_GUID = "00000000-0000-0000-0000-000000000000";
+
+function normalizeOrigin(value: unknown): StockRequestOrigin | null {
+    const normalized =
+        typeof value === "string" ? value.trim().toUpperCase() : "";
+
+    if (normalized === "STORE" || normalized === "PASCHALIDIS") {
+        return normalized;
+    }
+
+    return null;
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -23,12 +35,13 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { mtrl, qty, branch } =
+        const { mtrl, qty, branch, origin } =
             (await req.json()) as StockRequestRoutePayload;
         const normalizedMtrl = Number(mtrl);
         const normalizedQty = Number(qty);
         const normalizedBranch =
             typeof branch === "string" && branch.trim() ? branch.trim() : "";
+        const normalizedOrigin = normalizeOrigin(origin);
         const clientID = getSoftOneClientID();
 
         if (!Number.isFinite(normalizedMtrl) || normalizedMtrl <= 0) {
@@ -52,6 +65,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        if (!normalizedOrigin) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: 'Η προέλευση πρέπει να είναι STORE ή PASCHALIDIS.',
+                },
+                { status: 400 }
+            );
+        }
+
         if (!clientID) {
             return NextResponse.json(
                 { success: false, message: 'Δεν έχει ρυθμιστεί ο πελάτης SoftOne.' },
@@ -67,6 +90,7 @@ export async function POST(req: NextRequest) {
             MTRL: String(normalizedMtrl),
             BRANCH: normalizedBranch,
             QTY_REQUESTED: normalizedQty,
+            APPORIGIN: normalizedOrigin,
             APPUSER_ID: ZERO_GUID,
         };
 

@@ -257,6 +257,7 @@ export function useSearchPartsResultsActions({
                 mtrl: Number(item.MTRL),
                 qty,
                 branch: currentBranchCode,
+                origin: "STORE",
             });
 
             setStockRequestStatuses((prev) => ({
