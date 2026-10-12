@@ -57,6 +57,7 @@ export interface CustomerOrderSummaryProps {
     collapsed?: boolean;
     onToggleCollapse?: () => void;
     onChangeQuantity?: (uid: string, quantity: number) => void;
+    fitContentWhenStacked?: boolean;
 }
 
 const receiptOptions = [
@@ -181,7 +182,8 @@ export default function CustomerOrderSummary({
     collapsible = false,
     collapsed = false,
     onToggleCollapse,
-    onChangeQuantity
+    onChangeQuantity,
+    fitContentWhenStacked = false,
 }: CustomerOrderSummaryProps) {
     const pathname = usePathname();
     const router = useRouter();
@@ -251,6 +253,7 @@ export default function CustomerOrderSummary({
             onToggleCollapse={onToggleCollapse}
             collapseTitle="Απόκρυψη καλαθιού"
             panelClassName="bg-[#FCFDFE]"
+            fitContentWhenStacked={fitContentWhenStacked}
             footer={
                 onSendOrder ? (
                     <SummaryPrimaryAction

@@ -149,6 +149,26 @@ export default function StockRequestsClient() {
         }
     }, [fetchStockRequests, selectedBranchCode]);
 
+    const refreshRows = async () => {
+        if (!selectedBranchCode) {
+            return;
+        }
+
+        try {
+            const data = await fetchStockRequests({
+                branch: selectedBranchCode,
+            });
+
+            setRows(sortStockRequestRows(data.rows ?? []));
+        } catch (err) {
+            toast.error(
+                err instanceof Error
+                    ? err.message
+                    : "Αποτυχία ανανέωσης αιτημάτων ανατροφοδοσίας"
+            );
+        }
+    };
+
     useEffect(() => {
         if (!selectedBranchCode) {
             return;
@@ -159,7 +179,7 @@ export default function StockRequestsClient() {
 
     useRequestListIntervalRefresh({
         enabled: Boolean(selectedBranchCode),
-        refetch: loadRows,
+        refetch: refreshRows,
     });
 
     const pendingRows = useMemo(
@@ -383,7 +403,7 @@ export default function StockRequestsClient() {
     ]);
 
     return (
-        <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
+        <div className="flex min-h-[calc(100dvh-8rem)] min-w-0 max-w-full flex-col md:min-h-[calc(100dvh-9rem)] xl:h-[calc(100dvh-9rem)] xl:min-h-0 xl:overflow-hidden">
             <div className="shrink-0">
                 <PageBreadcrumb pageTitle="Λίστα Αιτημάτων Ανατροφοδοσίας" />
             </div>
@@ -394,8 +414,8 @@ export default function StockRequestsClient() {
                     Φόρτωση αιτημάτων...
                 </div>
             ) : (
-                <div className="flex min-h-0 flex-1 flex-col gap-5 min-[1800px]:flex-row">
-                    <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col min-[1800px]:flex-[2]">
+                <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-5 xl:flex-row">
+                    <DataTable className="flex h-[60dvh] min-h-[420px] min-w-0 max-w-full shrink-0 flex-col xl:h-auto xl:min-h-0 xl:max-h-none xl:flex-1 xl:basis-3/4 xl:shrink">
                         <DataTableHeader
                             title={(
                                 <span className="flex flex-wrap items-center gap-2">
@@ -475,11 +495,11 @@ export default function StockRequestsClient() {
                                         <col className="w-[10%]" />
                                         <col className="w-[22%]" />
                                         <col className="w-[9%]" />
-                                        <col className="w-[8%]" />
-                                        <col className="w-[8%]" />
-                                        <col className="w-[8%]" />
+                                        <col className="w-[9%]" />
+                                        <col className="w-[9%]" />
+                                        <col className="w-[9%]" />
+                                        <col className="w-[10%]" />
                                         <col className="w-[14%]" />
-                                        <col className="w-[16%]" />
                                     </colgroup>
                                     <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                                         <tr>
@@ -507,10 +527,6 @@ export default function StockRequestsClient() {
                                                 Είδος
                                             </th>
 
-                                            {/* <th className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                                ΠΡΟΣ
-                                            </th> */}
-
                                             <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
                                                 Διαθέσιμα
                                             </th>
@@ -530,7 +546,7 @@ export default function StockRequestsClient() {
                                             ))}
 
                                             <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
-                                                Αιτούμενη Ποσότητα
+                                                Ποσότητα
                                             </th>
 
                                             <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">

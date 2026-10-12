@@ -24,6 +24,7 @@ export interface SummaryPanelProps {
     asideClassName?: string;
     panelClassName?: string;
     contentClassName?: string;
+    fitContentWhenStacked?: boolean;
 }
 
 type SummaryPanelMessageTone = "error" | "success" | "warning" | "info";
@@ -90,6 +91,7 @@ export default function SummaryPanel({
     asideClassName = "",
     panelClassName = "bg-white",
     contentClassName = "",
+    fitContentWhenStacked = false,
 }: SummaryPanelProps) {
     if (collapsible && collapsed) {
         return (
@@ -125,7 +127,9 @@ export default function SummaryPanel({
                 asideClassName,
             ].join(" ")}
         >
-            <div className={`flex h-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-gray-200 ${panelClassName} dark:border-gray-800 dark:bg-white/[0.03]`}>
+            <div
+                className={`flex min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-gray-200 ${fitContentWhenStacked ? "xl:h-full" : "h-full"} ${panelClassName} dark:border-gray-800 dark:bg-white/[0.03]`}
+            >
                 <div className="shrink-0 border-b border-gray-100 px-5 py-5 dark:border-gray-800">
                     <div className="flex min-w-0 items-start justify-between gap-3">
                         {href ? (
@@ -155,7 +159,15 @@ export default function SummaryPanel({
                     </div>
                 </div>
 
-                <div className={["min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-5", contentClassName].join(" ")}>
+                <div
+                    className={[
+                        "min-w-0 overflow-x-hidden px-5 py-5",
+                        fitContentWhenStacked
+                            ? "overflow-y-visible xl:flex-1 xl:overflow-y-auto"
+                            : "flex-1 overflow-y-auto",
+                        contentClassName,
+                    ].join(" ")}
+                >
                     {error && <SummaryPanelMessage tone="error">{error}</SummaryPanelMessage>}
                     {successMessage && (
                         <SummaryPanelMessage tone="success">

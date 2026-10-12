@@ -154,7 +154,7 @@ export default function BasketTable({
     };
 
     return (
-        <DataTable className="flex min-h-0 min-w-0 max-w-full flex-col min-[1800px]:basis-2/3">
+        <DataTable className="flex h-[60dvh] min-h-[420px] min-w-0 max-w-full shrink-0 flex-col xl:h-auto xl:min-h-0 xl:max-h-none xl:basis-2/3 xl:shrink">
             <DataTableHeader
                 title="Γραμμές Καλαθιού"
                 description="Ενημέρωση ποσοτήτων και επιλογή γραμμών για παραγγελία."

@@ -219,11 +219,30 @@ export default function PriceRequestsClient() {
         }
     }, [fetchRequestedPriceRequests]);
 
+    const refreshRows = async () => {
+        try {
+            const data = await fetchRequestedPriceRequests();
+            setRows(
+                [...(data.rows ?? [])].sort(
+                    (a, b) =>
+                        (normalizeBasketId(b.BASKETID) ?? 0) -
+                        (normalizeBasketId(a.BASKETID) ?? 0)
+                )
+            );
+        } catch (err) {
+            toast.error(
+                err instanceof Error
+                    ? err.message
+                    : "Αποτυχία ανανέωσης αιτημάτων τιμής"
+            );
+        }
+    };
+
     useEffect(() => {
         void loadRows();
     }, [loadRows]);
 
-    useRequestListIntervalRefresh({ refetch: loadRows });
+    useRequestListIntervalRefresh({ refetch: refreshRows });
 
     const filteredRows = useMemo(() => {
         const query = searchTerm.trim().toLowerCase();

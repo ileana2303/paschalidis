@@ -50,6 +50,7 @@ export default function StockOrderSummary({
             label="Σύνοψη Ανατροφοδοσίας"
             title="Αποστολή Ανατροφοδοσίας S1"
             asideClassName="xl:!basis-[25%] xl:!min-w-[272px]"
+            fitContentWhenStacked
             collapsible={collapsible}
             collapsed={collapsed}
             onToggleCollapse={onToggleCollapse}
