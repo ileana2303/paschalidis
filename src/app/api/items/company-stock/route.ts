@@ -6,9 +6,9 @@ import {
     postSoftOne,
 } from "@/lib/softone";
 import type {
-    CentralStockPayload,
-    CentralStockResponse,
-    CentralStockRoutePayload,
+    CompanyStockPayload,
+    CompanyStockResponse,
+    CompanyStockRoutePayload,
 } from "@/lib/interface";
 
 function hasSession(req: NextRequest) {
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const body = (await req.json().catch(() => ({}))) as CentralStockRoutePayload;
+        const body = (await req.json().catch(() => ({}))) as CompanyStockRoutePayload;
         const days = normalizeDays(body.days);
 
         if (days == null) {
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const payload: CentralStockPayload = {
+        const payload: CompanyStockPayload = {
             service: "SqlData",
             clientID,
             appId: "1305",
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("[items/central-stock] Upstream error body:", errorText);
+            console.error("[items/company-stock] Upstream error body:", errorText);
 
             return NextResponse.json(
                 {
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const data = await parseJsonWithEncodingFallback<CentralStockResponse>(
+        const data = await parseJsonWithEncodingFallback<CompanyStockResponse>(
             response
         );
 
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error("[items/central-stock] Server error", error);
+        console.error("[items/company-stock] Server error", error);
 
         return NextResponse.json(
             {

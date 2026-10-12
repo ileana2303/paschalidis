@@ -8,9 +8,9 @@ import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import QuantityControl from "@/components/ui/quantity-control";
-import { useFetchCentralStockMutation } from "@/hooks/queries/useApiMutations";
+import { useFetchCompanyStockMutation } from "@/hooks/queries/useApiMutations";
 import { useSessionState } from "@/hooks/useSessionState";
-import type { ICentralStockRow } from "@/lib/interface";
+import type { ICompanyStockRow } from "@/lib/interface";
 import {
   AlertCircle,
   Package,
@@ -49,24 +49,22 @@ function TableSkeleton() {
   );
 }
 
-export default function CentralStockClient() {
-  const { mutateAsync: fetchCentralStock } = useFetchCentralStockMutation();
+export default function CompanyStockClient() {
+  const { mutateAsync: fetchCompanyStock } = useFetchCompanyStockMutation();
   const [days, setDays] = useState<number>(1);
-  const [rows, setRows] = useState<ICentralStockRow[]>([]);
+  const [rows, setRows] = useState<ICompanyStockRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useSessionState("central-stock-search", "");
+  const [searchTerm, setSearchTerm] = useSessionState("company-stock-search", "");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const loadRequestId = useRef(0);
   const currentYear = new Date().getFullYear();
 
   const loadRows = useCallback(async () => {
     const requestId = ++loadRequestId.current;
-    setLoading(true);
-    setError("");
 
     try {
-      const data = await fetchCentralStock({ days });
+      const data = await fetchCompanyStock({ days });
 
       if (requestId !== loadRequestId.current) {
         return;
@@ -93,11 +91,26 @@ export default function CentralStockClient() {
         setLoading(false);
       }
     }
-  }, [days, fetchCentralStock]);
+  }, [days, fetchCompanyStock]);
 
   useEffect(() => {
+    // Remote data is intentionally synchronized when the selected period changes.
+    // State updates inside loadRows occur only after the request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadRows();
   }, [loadRows]);
+
+  const refreshRows = useCallback(() => {
+    setLoading(true);
+    setError("");
+    void loadRows();
+  }, [loadRows]);
+
+  const handleDaysChange = useCallback((nextDays: number) => {
+    setLoading(true);
+    setError("");
+    setDays(nextDays);
+  }, []);
 
   const filteredRows = useMemo(() => {
     const query = searchTerm.trim().toLocaleLowerCase("el-GR");
@@ -149,7 +162,9 @@ export default function CentralStockClient() {
                 Περίοδος:
                 <select
                   value={days}
-                  onChange={(event) => setDays(Number(event.target.value))}
+                  onChange={(event) =>
+                    handleDaysChange(Number(event.target.value))
+                  }
                   disabled={loading}
                   aria-label="Ημέρες δεδομένων πωλήσεων"
                   className="min-w-[110px] border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
@@ -165,7 +180,7 @@ export default function CentralStockClient() {
               <DataTableSearchBar
                 value={searchTerm}
                 onChange={setSearchTerm}
-                onRefresh={() => void loadRows()}
+                onRefresh={refreshRows}
                 isRefreshing={loading}
                 refreshDisabled={loading}
                 placeholder="Αναζήτηση CODE, NAME, CODE1 ή CODE2..."
@@ -184,7 +199,7 @@ export default function CentralStockClient() {
             action={(
               <button
                 type="button"
-                onClick={() => void loadRows()}
+                onClick={refreshRows}
                 className="inline-flex h-9 items-center gap-2 rounded-xl bg-brand-500 px-4 text-xs font-semibold text-white transition hover:bg-brand-600"
               >
                 <RefreshCw className="h-3.5 w-3.5" />

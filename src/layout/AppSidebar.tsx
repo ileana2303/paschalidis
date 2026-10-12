@@ -103,7 +103,7 @@ const navItems: NavItem[] = [
     subItems: [
       {
         name: "Κεντρικός Εφοδιασμός",
-        path: "/central-stock",
+        path: "/company-stock",
         icon: Warehouse,
       },
       {

@@ -387,11 +387,11 @@ export interface IStockFeedbackRow {
 export interface StockFeedbackResponse
     extends ApiResponse<IStockFeedbackRow> { }
 
-export interface CentralStockRoutePayload {
+export interface CompanyStockRoutePayload {
     days: number;
 }
 
-export interface CentralStockPayload {
+export interface CompanyStockPayload {
     service: "SqlData";
     clientID: string;
     appId: "1305";
@@ -399,7 +399,7 @@ export interface CentralStockPayload {
     DAYS: string;
 }
 
-export interface ICentralStockRow {
+export interface ICompanyStockRow {
     MTRL: string;
     CODE: string;
     NAME: string;
@@ -418,8 +418,8 @@ export interface ICentralStockRow {
     TOTAL_AVAIL: string;
 }
 
-export interface CentralStockResponse
-    extends ApiResponse<ICentralStockRow> { }
+export interface CompanyStockResponse
+    extends ApiResponse<ICompanyStockRow> { }
 
 export type StockRequestStatus = "approved" | "pending" | "deleted";
 

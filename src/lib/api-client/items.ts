@@ -2,8 +2,8 @@ import {
     IItem,
     IItemTRDR,
     ApiResponse,
-    CentralStockResponse,
-    CentralStockRoutePayload,
+    CompanyStockResponse,
+    CompanyStockRoutePayload,
     ItemEditLoadResponse,
     ItemEditSaveResponse,
     ItemEditUpdatePayload,
@@ -36,9 +36,9 @@ const stockFeedbackInFlightRequests = new Map<
     string,
     Promise<StockFeedbackResponse>
 >();
-const centralStockInFlightRequests = new Map<
+const companyStockInFlightRequests = new Map<
     string,
-    Promise<CentralStockResponse>
+    Promise<CompanyStockResponse>
 >();
 const stockRequestListInFlightRequests = new Map<
     string,
@@ -52,7 +52,7 @@ function getStockFeedbackRequestKey(payload: StockFeedbackRoutePayload) {
     });
 }
 
-function getCentralStockRequestKey(payload: CentralStockRoutePayload) {
+function getCompanyStockRequestKey(payload: CompanyStockRoutePayload) {
     return String(payload.days ?? "").trim();
 }
 
@@ -210,11 +210,11 @@ export async function fetchStockFeedback(
     }
 }
 
-export async function fetchCentralStock(
-    payload: CentralStockRoutePayload
-): Promise<CentralStockResponse> {
-    const requestKey = getCentralStockRequestKey(payload);
-    const inFlightRequest = centralStockInFlightRequests.get(requestKey);
+export async function fetchCompanyStock(
+    payload: CompanyStockRoutePayload
+): Promise<CompanyStockResponse> {
+    const requestKey = getCompanyStockRequestKey(payload);
+    const inFlightRequest = companyStockInFlightRequests.get(requestKey);
 
     if (inFlightRequest) {
         return inFlightRequest;
@@ -222,8 +222,8 @@ export async function fetchCentralStock(
 
     const requestPromise = (async () => {
         try {
-            const { data } = await httpClient.post<CentralStockResponse>(
-                "/api/items/central-stock",
+            const { data } = await httpClient.post<CompanyStockResponse>(
+                "/api/items/company-stock",
                 payload
             );
 
@@ -237,7 +237,7 @@ export async function fetchCentralStock(
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 const message = (
-                    error.response?.data as Partial<CentralStockResponse> | undefined
+                    error.response?.data as Partial<CompanyStockResponse> | undefined
                 )?.message;
 
                 throw new Error(
@@ -249,12 +249,12 @@ export async function fetchCentralStock(
         }
     })();
 
-    centralStockInFlightRequests.set(requestKey, requestPromise);
+    companyStockInFlightRequests.set(requestKey, requestPromise);
 
     try {
         return await requestPromise;
     } finally {
-        centralStockInFlightRequests.delete(requestKey);
+        companyStockInFlightRequests.delete(requestKey);
     }
 }
 
