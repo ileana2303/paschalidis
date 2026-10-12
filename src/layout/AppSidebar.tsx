@@ -19,7 +19,7 @@ import {
   Upload,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
-import { ListTodo, Warehouse } from "lucide-react";
+import { ListTodo, ShoppingBasket, Warehouse } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 
 type NavSubItem = {
@@ -88,7 +88,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: Users,
+    icon: ShoppingBasket,
     name: "Καλάθια Πελατών",
     path: "/all-baskets",
   },
