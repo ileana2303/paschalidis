@@ -49,11 +49,11 @@ const navItems: NavItem[] = [
     name: "Αναζήτηση Ανταλλακτικών",
     path: "/search-parts",
   },
-  {
-    icon: Upload,
-    name: "Ανέβασμα Τιμοκαταλόγου",
-    path: "/supplier-price-catalog-upload",
-  },
+  // {
+  //   icon: Upload,
+  //   name: "Ανέβασμα Τιμοκαταλόγου",
+  //   path: "/supplier-price-catalog-upload",
+  // },
   {
     icon: GitCompareArrows,
     name: "Ορισμός Ομοίων",
