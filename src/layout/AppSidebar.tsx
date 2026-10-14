@@ -16,6 +16,7 @@ import {
   GitCompareArrows,
   type LucideIcon,
   Send,
+  Table2,
   Upload,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
@@ -121,6 +122,11 @@ const navItems: NavItem[] = [
         path: "/users",
         icon: Users,
         superAdminOnly: true,
+      },
+      {
+        name: "Διαχείριση Suffix",
+        path: "/suffix-management",
+        icon: Table2,
       },
     ],
   },
