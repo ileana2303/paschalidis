@@ -426,6 +426,35 @@ export interface ICompanyStockRow {
 export interface CompanyStockResponse
     extends ApiResponse<ICompanyStockRow> { }
 
+export interface ItemForensicsRoutePayload {
+    mtrl: string | number;
+}
+
+export interface ItemForensicsPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "ITEM_FORENSICS_QTY";
+    MTRL: string;
+}
+
+export interface IItemForensicsRow {
+    PERIOD: string;
+    QTY_SELF: string;
+    QTY_SIMILAR: string;
+    QTY_TOTAL: string;
+    QTY_GROUP: string;
+    QTY_B2B: string;
+    VAL_SELF: string;
+    VAL_SIMILAR: string;
+    VAL_TOTAL: string;
+    VAL_GROUP: string;
+    VAL_B2B: string;
+}
+
+export interface ItemForensicsResponse
+    extends ApiResponse<IItemForensicsRow> { }
+
 export type StockRequestStatus = "approved" | "pending" | "deleted";
 export type StockRequestOrigin = "STORE" | "PASCHALIDIS";
 

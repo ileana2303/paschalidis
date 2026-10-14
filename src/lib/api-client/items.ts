@@ -4,6 +4,8 @@ import {
     ApiResponse,
     CompanyStockResponse,
     CompanyStockRoutePayload,
+    ItemForensicsResponse,
+    ItemForensicsRoutePayload,
     ItemEditLoadResponse,
     ItemEditSaveResponse,
     ItemEditUpdatePayload,
@@ -39,6 +41,10 @@ const stockFeedbackInFlightRequests = new Map<
 const companyStockInFlightRequests = new Map<
     string,
     Promise<CompanyStockResponse>
+>();
+const itemForensicsInFlightRequests = new Map<
+    string,
+    Promise<ItemForensicsResponse>
 >();
 const stockRequestListInFlightRequests = new Map<
     string,
@@ -255,6 +261,54 @@ export async function fetchCompanyStock(
         return await requestPromise;
     } finally {
         companyStockInFlightRequests.delete(requestKey);
+    }
+}
+
+export async function fetchItemForensics(
+    payload: ItemForensicsRoutePayload
+): Promise<ItemForensicsResponse> {
+    const requestKey = String(payload.mtrl ?? "").trim();
+    const inFlightRequest = itemForensicsInFlightRequests.get(requestKey);
+
+    if (inFlightRequest) {
+        return inFlightRequest;
+    }
+
+    const requestPromise = (async () => {
+        try {
+            const { data } = await httpClient.post<ItemForensicsResponse>(
+                "/api/items/forensics",
+                payload
+            );
+
+            if (!data?.success) {
+                throw new Error(
+                    data?.message ?? "Αποτυχία φόρτωσης ιστορικού πωλήσεων."
+                );
+            }
+
+            return data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                const message = (
+                    error.response?.data as Partial<ItemForensicsResponse> | undefined
+                )?.message;
+
+                throw new Error(
+                    message?.trim() || "Αποτυχία φόρτωσης ιστορικού πωλήσεων."
+                );
+            }
+
+            throw error;
+        }
+    })();
+
+    itemForensicsInFlightRequests.set(requestKey, requestPromise);
+
+    try {
+        return await requestPromise;
+    } finally {
+        itemForensicsInFlightRequests.delete(requestKey);
     }
 }
 
