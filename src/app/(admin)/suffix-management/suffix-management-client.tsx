@@ -2,14 +2,19 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import SuffixEditModal from "@/components/suffix-management/suffix-edit-modal";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
-import { useSuffixListQuery } from "@/hooks/queries/useSuffixManagementQuery";
+import {
+  useSaveSuffixMutation,
+  useSuffixListQuery,
+} from "@/hooks/queries/useSuffixManagementQuery";
 import {
   AlertCircle,
   Loader2,
+  Pencil,
   RefreshCw,
   Search,
   Table2,
@@ -20,6 +25,7 @@ import type {
   SuffixListFilters,
   SuffixRow,
 } from "@/lib/suffix-management/types";
+import { getSuffixSaveOutcome } from "@/lib/suffix-management/save-result";
 
 const selectClassName =
   "h-10 min-w-0 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200";
@@ -70,7 +76,7 @@ function CategoryBadge({ category }: { category: Exclude<CategoryFilter, "all"> 
 
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ${colorClass}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold ${colorClass}`}
     >
       {label}
     </span>
@@ -100,7 +106,10 @@ export default function SuffixManagementClient() {
   const [b2bId, setB2bId] = useState("");
   const [needsExtra, setNeedsExtra] = useState(false);
   const [filters, setFilters] = useState<SuffixListFilters>({});
+  const [editingSuffix, setEditingSuffix] = useState<SuffixRow | null>(null);
+  const [updatingSuffix, setUpdatingSuffix] = useState("");
   const query = useSuffixListQuery(filters);
+  const { mutateAsync: saveSuffix } = useSaveSuffixMutation();
   const errorMessage =
     query.error instanceof Error ? query.error.message : "Αποτυχία φόρτωσης των suffix.";
 
@@ -154,6 +163,48 @@ export default function SuffixManagementClient() {
     }
 
     setFilters(nextFilters);
+  };
+
+  const toggleSuffixActive = async (row: SuffixRow) => {
+    if (updatingSuffix) return;
+
+    const nextActive = row.ISACTIVE === 1 ? 0 : 1;
+    const action = nextActive === 1 ? "ενεργοποιήσετε" : "απενεργοποιήσετε";
+
+    if (!window.confirm(`Θέλετε να ${action} το suffix ${row.SOSUFIX};`)) {
+      return;
+    }
+
+    setUpdatingSuffix(row.SOSUFIX);
+
+    try {
+      const response = await saveSuffix({
+        rows: [{ SOSUFIX: row.SOSUFIX, IS_ACTIVE: nextActive }],
+      });
+      const outcome = getSuffixSaveOutcome(response);
+
+      if (outcome.saved > 0) {
+        await query.refetch();
+      }
+
+      if (outcome.completed) {
+        toast.success(
+          nextActive === 1
+            ? `Το suffix ${row.SOSUFIX} ενεργοποιήθηκε.`
+            : `Το suffix ${row.SOSUFIX} απενεργοποιήθηκε.`
+        );
+      } else {
+        toast.error(outcome.message);
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Η αλλαγή κατάστασης δεν ολοκληρώθηκε."
+      );
+    } finally {
+      setUpdatingSuffix("");
+    }
   };
 
   const groups = (query.data?.groups ?? []).filter((group) => group.ZGROUP_ID !== 0);
@@ -374,24 +425,35 @@ export default function SuffixManagementClient() {
           />
         ) : (
           <div className="max-h-[70vh] max-w-full overflow-auto overscroll-contain">
-            <table className="w-full min-w-[1700px] divide-y divide-gray-100 text-left text-sm dark:divide-gray-800">
-              <thead className="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-400 [&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-gray-50 dark:[&_th]:bg-gray-900">
+            <table className="w-full min-w-[1240px] table-fixed divide-y divide-gray-100 text-left text-xs dark:divide-gray-800 [&_td]:!px-2 [&_td]:!py-2 [&_th]:!px-2 [&_th]:!py-2.5">
+              <thead className="bg-gray-50 text-[10px] uppercase tracking-normal text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-400 [&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-gray-50 dark:[&_th]:bg-gray-900">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Κατηγορία</th>
-                  <th className="px-4 py-3 font-semibold">SOSUFIX</th>
-                  <th className="px-4 py-3 font-semibold">NAME</th>
-                  <th className="px-4 py-3 font-semibold">ZGROUP_ID</th>
-                  <th className="px-4 py-3 font-semibold">ZGROUP_CODE</th>
-                  <th className="px-4 py-3 font-semibold">ZB2B_ID</th>
-                  <th className="px-4 py-3 font-semibold">ZB2B_CODE</th>
-                  <th className="px-4 py-3 font-semibold">SUPPLIER_NAME</th>
-                  <th className="px-3 py-3 text-right font-semibold">PERCNT01</th>
-                  <th className="px-3 py-3 text-right font-semibold">PERCNT02</th>
-                  <th className="px-3 py-3 text-right font-semibold">PERCNT03</th>
-                  <th className="px-3 py-3 text-right font-semibold">PERCNT04</th>
-                  <th className="px-3 py-3 text-right font-semibold">PERCNT05</th>
-                  <th className="px-4 py-3 font-semibold">ISACTIVE</th>
-                  <th className="px-4 py-3 font-semibold">NEEDS_EXTRA</th>
+                  <th className="w-[76px] px-4 py-3 font-semibold">Κατηγορία</th>
+                  <th className="w-[62px] px-4 py-3 font-semibold">SOSUFIX</th>
+                  <th className="w-[132px] px-4 py-3 font-semibold">NAME</th>
+                  <th className="w-[60px] !px-1.5 font-semibold leading-3">
+                    ZGROUP_<wbr />ID
+                  </th>
+                  <th className="w-[78px] !px-1.5 font-semibold leading-3">
+                    ZGROUP_<wbr />CODE
+                  </th>
+                  <th className="w-[56px] !px-1.5 font-semibold leading-3">
+                    ZB2B_<wbr />ID
+                  </th>
+                  <th className="w-[78px] !px-1.5 font-semibold leading-3">
+                    ZB2B_<wbr />CODE
+                  </th>
+                  <th className="w-[104px] !px-1.5 font-semibold leading-3">
+                    SUPPLIER_<wbr />NAME
+                  </th>
+                  <th className="w-[62px] px-3 py-3 text-right font-semibold">PERCNT01</th>
+                  <th className="w-[62px] px-3 py-3 text-right font-semibold">PERCNT02</th>
+                  <th className="w-[62px] px-3 py-3 text-right font-semibold">PERCNT03</th>
+                  <th className="w-[62px] px-3 py-3 text-right font-semibold">PERCNT04</th>
+                  <th className="w-[62px] px-3 py-3 text-right font-semibold">PERCNT05</th>
+                  <th className="w-[72px] px-4 py-3 font-semibold">ISACTIVE</th>
+                  <th className="w-[96px] px-4 py-3 font-semibold">NEEDS_EXTRA</th>
+                  <th className="w-[86px] !px-1.5 text-right font-semibold">ΕΝΕΡΓΕΙΕΣ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
@@ -407,15 +469,20 @@ export default function SuffixManagementClient() {
                         </td>
                         <td className="px-4 py-3 text-gray-400">—</td>
                         <td className="px-4 py-3 text-gray-400">—</td>
-                        <td className="whitespace-nowrap px-4 py-3 font-mono font-semibold text-gray-900 dark:text-white">
+                        <td className="whitespace-nowrap !px-1.5 font-mono font-semibold text-gray-900 dark:text-white">
                           {item.group.ZGROUP_ID}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3">
-                          {groupOptionLabel(item.group)}
+                        <td className="!px-1.5">
+                          <span
+                            className="block truncate"
+                            title={groupOptionLabel(item.group)}
+                          >
+                            {groupOptionLabel(item.group)}
+                          </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-400">—</td>
-                        <td className="px-4 py-3 text-gray-400">—</td>
-                        <td colSpan={8} className="px-4 py-3 text-gray-400">
+                        <td className="!px-1.5 text-gray-400">—</td>
+                        <td className="!px-1.5 text-gray-400">—</td>
+                        <td colSpan={9} className="px-4 py-3 text-gray-400">
                           —
                         </td>
                       </tr>
@@ -431,17 +498,22 @@ export default function SuffixManagementClient() {
                         <td className="whitespace-nowrap px-4 py-3">
                           <CategoryBadge category="b2b" />
                         </td>
-                        <td className="px-4 py-3 text-gray-400">—</td>
-                        <td className="px-4 py-3 text-gray-400">—</td>
-                        <td className="px-4 py-3 text-gray-400">—</td>
-                        <td className="px-4 py-3 text-gray-400">—</td>
-                        <td className="whitespace-nowrap px-4 py-3 font-mono font-semibold text-gray-900 dark:text-white">
+                        <td className="!px-1.5 text-gray-400">—</td>
+                        <td className="!px-1.5 text-gray-400">—</td>
+                        <td className="!px-1.5 text-gray-400">—</td>
+                        <td className="!px-1.5 text-gray-400">—</td>
+                        <td className="whitespace-nowrap !px-1.5 font-mono font-semibold text-gray-900 dark:text-white">
                           {item.b2b.ZB2B_ID}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3">
-                          {b2bOptionLabel(item.b2b)}
+                        <td className="!px-1.5">
+                          <span
+                            className="block truncate"
+                            title={b2bOptionLabel(item.b2b)}
+                          >
+                            {b2bOptionLabel(item.b2b)}
+                          </span>
                         </td>
-                        <td colSpan={8} className="px-4 py-3 text-gray-400">
+                        <td colSpan={9} className="px-4 py-3 text-gray-400">
                           —
                         </td>
                       </tr>
@@ -466,21 +538,51 @@ export default function SuffixManagementClient() {
                           {displayValue(row.NAME)}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 tabular-nums">
-                        {row.ZGROUP_ID === 0
-                          ? "Μη αντιστοιχισμένο"
-                          : row.ZGROUP_ID}
+                      <td className="!px-1.5 tabular-nums">
+                        <span
+                          className="block truncate"
+                          title={
+                            row.ZGROUP_ID === 0
+                              ? "Μη αντιστοιχισμένο"
+                              : String(row.ZGROUP_ID)
+                          }
+                        >
+                          {row.ZGROUP_ID === 0
+                            ? "Μη αντιστοιχισμένο"
+                            : row.ZGROUP_ID}
+                        </span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3">
-                        {displayValue(row.ZGROUP_CODE)}
+                      <td className="!px-1.5">
+                        <span
+                          className="block truncate"
+                          title={row.ZGROUP_CODE || undefined}
+                        >
+                          {displayValue(row.ZGROUP_CODE)}
+                        </span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 tabular-nums">
-                        {row.ZB2B_ID === 0 ? "Μη αντιστοιχισμένο" : row.ZB2B_ID}
+                      <td className="!px-1.5 tabular-nums">
+                        <span
+                          className="block truncate"
+                          title={
+                            row.ZB2B_ID === 0
+                              ? "Μη αντιστοιχισμένο"
+                              : String(row.ZB2B_ID)
+                          }
+                        >
+                          {row.ZB2B_ID === 0
+                            ? "Μη αντιστοιχισμένο"
+                            : row.ZB2B_ID}
+                        </span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3">
-                        {displayValue(row.ZB2B_CODE)}
+                      <td className="!px-1.5">
+                        <span
+                          className="block truncate"
+                          title={row.ZB2B_CODE || undefined}
+                        >
+                          {displayValue(row.ZB2B_CODE)}
+                        </span>
                       </td>
-                      <td className="max-w-56 px-4 py-3">
+                      <td className="max-w-56 !px-1.5">
                         <span
                           className="block truncate"
                           title={row.SUPPLIER_NAME || undefined}
@@ -496,7 +598,7 @@ export default function SuffixManagementClient() {
                       <td className="whitespace-nowrap px-4 py-3">
                         <span
                           className={[
-                            "inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold",
+                            "inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold",
                             row.ISACTIVE === 1
                               ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
                               : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
@@ -507,12 +609,45 @@ export default function SuffixManagementClient() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
                         {row.NEEDS_EXTRA === 1 ? (
-                          <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                          <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
                             Προς συμπλήρωση
                           </span>
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
+                      </td>
+                      <td className="whitespace-nowrap !px-1.5 text-right">
+                        <div className="inline-flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                          <button
+                            type="button"
+                            onClick={() => setEditingSuffix(row)}
+                            disabled={Boolean(updatingSuffix)}
+                            title="Επεξεργασία"
+                            aria-label={`Επεξεργασία suffix ${row.SOSUFIX}`}
+                            className="flex h-8 w-8 items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-brand-600 disabled:opacity-40 dark:hover:bg-gray-800"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
+                          <button
+                            type="button"
+                            onClick={() => void toggleSuffixActive(row)}
+                            disabled={Boolean(updatingSuffix)}
+                            className={`flex h-8 min-w-12 items-center justify-center px-1.5 text-[10px] font-semibold disabled:opacity-40 ${
+                              row.ISACTIVE === 1
+                                ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                                : "text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                            }`}
+                          >
+                            {updatingSuffix === row.SOSUFIX ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : row.ISACTIVE === 1 ? (
+                              "Disable"
+                            ) : (
+                              "Enable"
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -522,6 +657,17 @@ export default function SuffixManagementClient() {
           </div>
         )}
       </DataTable>
+
+      {editingSuffix ? (
+        <SuffixEditModal
+          isOpen
+          record={editingSuffix}
+          groups={groups}
+          b2b={b2bEntries}
+          onClose={() => setEditingSuffix(null)}
+          onSaved={() => query.refetch()}
+        />
+      ) : null}
     </div>
   );
 }

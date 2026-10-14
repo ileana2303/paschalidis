@@ -4,11 +4,14 @@ import type {
   SuffixListFilters,
   SuffixListResponse,
   SuffixListSuccessResponse,
+  SuffixSaveResponse,
+  SuffixSaveRoutePayload,
 } from "@/lib/suffix-management/types";
 
-const FALLBACK_ERROR = "Αποτυχία φόρτωσης των suffix.";
+const LIST_FALLBACK_ERROR = "Αποτυχία φόρτωσης των suffix.";
+const SAVE_FALLBACK_ERROR = "Η αποθήκευση του suffix δεν ολοκληρώθηκε.";
 
-function getSuffixListError(error: unknown): Error {
+function getSuffixError(error: unknown, fallbackMessage: string): Error {
   if (axios.isAxiosError(error)) {
     const response = error.response?.data as
       | { error?: unknown; message?: unknown }
@@ -20,7 +23,7 @@ function getSuffixListError(error: unknown): Error {
     }
   }
 
-  return error instanceof Error ? error : new Error(FALLBACK_ERROR);
+  return error instanceof Error ? error : new Error(fallbackMessage);
 }
 
 export async function fetchSuffixList(
@@ -33,11 +36,26 @@ export async function fetchSuffixList(
     );
 
     if (data.success !== true) {
-      throw new Error(data.error?.trim() || FALLBACK_ERROR);
+      throw new Error(data.error?.trim() || LIST_FALLBACK_ERROR);
     }
 
     return data;
   } catch (error) {
-    throw getSuffixListError(error);
+    throw getSuffixError(error, LIST_FALLBACK_ERROR);
+  }
+}
+
+export async function saveSuffixRows(
+  payload: SuffixSaveRoutePayload
+): Promise<SuffixSaveResponse> {
+  try {
+    const { data } = await httpClient.patch<SuffixSaveResponse>(
+      "/api/suffix-management",
+      payload
+    );
+
+    return data;
+  } catch (error) {
+    throw getSuffixError(error, SAVE_FALLBACK_ERROR);
   }
 }

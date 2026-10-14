@@ -1,8 +1,14 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { fetchSuffixList } from "@/lib/api-client/suffix-management";
-import type { SuffixListFilters } from "@/lib/suffix-management/types";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import {
+  fetchSuffixList,
+  saveSuffixRows,
+} from "@/lib/api-client/suffix-management";
+import type {
+  SuffixListFilters,
+  SuffixSaveRoutePayload,
+} from "@/lib/suffix-management/types";
 
 export const suffixListQueryKey = (filters: SuffixListFilters) =>
   ["suffix-management", "getlist", filters] as const;
@@ -12,5 +18,11 @@ export function useSuffixListQuery(filters: SuffixListFilters) {
     queryKey: suffixListQueryKey(filters),
     queryFn: () => fetchSuffixList(filters),
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useSaveSuffixMutation() {
+  return useMutation({
+    mutationFn: (payload: SuffixSaveRoutePayload) => saveSuffixRows(payload),
   });
 }

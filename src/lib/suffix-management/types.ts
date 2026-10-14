@@ -70,3 +70,64 @@ export interface SuffixListErrorResponse {
 export type SuffixListResponse =
   | SuffixListSuccessResponse
   | SuffixListErrorResponse;
+
+export interface SuffixSaveFields {
+  NAME: string;
+  ZGROUP_ID: number;
+  ZGROUP_CODE: string;
+  ZB2B_ID: number;
+  ZB2B_CODE: string;
+  SUPPLIER_CODE: string;
+  SUPPLIER_NAME: string;
+  PERCNT00: number | "";
+  PERCNT01: number | "";
+  PERCNT02: number | "";
+  PERCNT03: number | "";
+  PERCNT04: number | "";
+  PERCNT05: number | "";
+  PERCNT99: number | "";
+  REMARKS: string;
+  NOTES: string;
+  /** Soft1 uses IS_ACTIVE for writes even though getlist returns ISACTIVE. */
+  IS_ACTIVE: SoftOneFlag;
+}
+
+export type SuffixSaveRow = {
+  SOSUFIX: string;
+} & Partial<SuffixSaveFields>;
+
+export interface SuffixSaveRoutePayload {
+  rows: SuffixSaveRow[];
+}
+
+export interface SuffixSaveRequest extends SuffixSaveRoutePayload {
+  clientID: string;
+  kind: "SUFIX";
+}
+
+export interface SuffixSaveErrorItem {
+  row: number;
+  key: string | null;
+  error: string;
+}
+
+export interface SuffixSaveSuccessResponse {
+  success: true;
+  kind: "SUFIX";
+  saved: number;
+  failed: number;
+  errors: SuffixSaveErrorItem[];
+}
+
+export interface SuffixSaveFailureResponse {
+  success: false;
+  kind?: "SUFIX";
+  saved?: number;
+  failed?: number;
+  errors?: SuffixSaveErrorItem[];
+  error?: string;
+}
+
+export type SuffixSaveResponse =
+  | SuffixSaveSuccessResponse
+  | SuffixSaveFailureResponse;
