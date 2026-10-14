@@ -1,13 +1,15 @@
-import { Loader2, RefreshCw, Search } from "@/lib/icons/lucide";
+import { Loader2, RefreshCw, Search, X } from "@/lib/icons/lucide";
 
 interface DataTableSearchBarProps {
   value: string;
   onChange: (value: string) => void;
   onRefresh: () => void;
   onSubmit?: () => void;
+  onClear?: () => void;
   isRefreshing?: boolean;
   refreshDisabled?: boolean;
   placeholder?: string;
+  clearAriaLabel?: string;
   className?: string;
 }
 
@@ -16,11 +18,24 @@ export default function DataTableSearchBar({
   onChange,
   onRefresh,
   onSubmit,
+  onClear,
   isRefreshing = false,
   refreshDisabled = false,
   placeholder = "Αναζήτηση...",
+  clearAriaLabel = "Καθαρισμός αναζήτησης",
   className = "",
 }: DataTableSearchBarProps) {
+  const hasValue = value.trim().length > 0;
+
+  const handleClear = () => {
+    if (onClear) {
+      onClear();
+      return;
+    }
+
+    onChange("");
+  };
+
   return (
     <div className={["flex w-full items-center gap-2 lg:w-auto", className].join(" ")}>
       <div className="relative w-full lg:min-w-[320px] lg:max-w-sm">
@@ -36,8 +51,22 @@ export default function DataTableSearchBar({
             }
           }}
           placeholder={placeholder}
-          className="h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+          className={[
+            "h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200",
+            hasValue ? "pr-9" : "pr-3",
+          ].join(" ")}
         />
+
+        {hasValue ? (
+          <button
+            type="button"
+            onClick={handleClear}
+            aria-label={clearAriaLabel}
+            className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
 
       <button

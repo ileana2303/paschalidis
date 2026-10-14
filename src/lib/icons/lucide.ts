@@ -48,6 +48,7 @@ export {
   ShoppingCart,
   StickyNote,
   Table2,
+  Truck,
   Trash2,
   Upload,
   UserRound,

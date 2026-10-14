@@ -18,6 +18,7 @@ import {
   Send,
   Table2,
   Upload,
+  Truck,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
 import { ListTodo, ShoppingBasket, Warehouse } from "lucide-react";
@@ -69,6 +70,13 @@ const navItems: NavItem[] = [
     icon: Warehouse,
     name: "Ανατροφοδοσία",
     path: "/stock-feedback",
+    subItems: [
+      {
+        icon: Truck,
+        name: "Λίστα Προμηθευτών",
+        path: "/suppliers-list",
+      },
+    ],
   },
   {
     icon: GitCompareArrows,

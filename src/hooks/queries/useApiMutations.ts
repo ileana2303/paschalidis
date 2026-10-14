@@ -43,6 +43,7 @@ import {
     updateEndoListQty,
 } from "@/lib/api-client/endo";
 import { fetchCustomerByTrdr, searchCustomers } from "@/lib/api-client/customers";
+import { searchSuppliers } from "@/lib/api-client/suppliers";
 import {
     fetchStockFeedback,
     fetchCompanyStock,
@@ -63,6 +64,11 @@ import type { PartInsightsRoutePayload } from "@/lib/part-insights";
 export const useSearchCustomersMutation = () =>
     useMutation({
         mutationFn: (search: string) => searchCustomers(search),
+    });
+
+export const useSearchSuppliersMutation = () =>
+    useMutation({
+        mutationFn: (search: string) => searchSuppliers(search),
     });
 
 export const useFetchCustomerByTrdrMutation = () =>

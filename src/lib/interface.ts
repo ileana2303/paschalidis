@@ -1,4 +1,25 @@
 // sqlCustomerSEARCH :: Search customers for customer selection in search parts page.
+export interface ISupplierRow {
+    TRDR: string;
+    CODE: string;
+    NAME: string;
+    AFM: string;
+}
+
+export interface SupplierSearchRoutePayload {
+    search: string;
+}
+
+export interface SuppliersSqlPayload {
+    service: "SqlData";
+    clientID: string;
+    appId: "1305";
+    SqlName: "SUPPLIERS";
+    SEARCH: string;
+}
+
+export interface SupplierSearchResponse extends ApiResponse<ISupplierRow> {}
+
 export interface ICustomerInfo {
     TRDR: string;
     CODE: string;
