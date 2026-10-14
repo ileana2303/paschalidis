@@ -411,6 +411,11 @@ export interface ICompanyStockRow {
     CY_2: string;
     CY_3: string;
     CY_4: string;
+    SIM_CY: string;
+    SIM_CY_1: string;
+    SIM_CY_2: string;
+    SIM_CY_3: string;
+    SIM_CY_4: string;
     ONGOING: string;
     YP1000: string;
     YP1006: string;

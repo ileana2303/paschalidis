@@ -38,6 +38,12 @@ import toast from "react-hot-toast";
 
 const DAY_OPTIONS = [1, 3, 7, 10] as const;
 const SALES_HISTORY_FIELDS = ["CY", "CY_1", "CY_2", "CY_3", "CY_4"] as const;
+
+function salesHistorySimField(
+  field: (typeof SALES_HISTORY_FIELDS)[number]
+): keyof ICompanyStockRow {
+  return field === "CY" ? "SIM_CY" : (`SIM_${field}` as keyof ICompanyStockRow);
+}
 const AVAILABILITY_FIELDS = [
   { key: "YP1000", branch: "1000" },
   { key: "YP1006", branch: "1006" },
@@ -248,21 +254,23 @@ export default function CompanyStockClient() {
   );
 
   return (
-    <div className="w-full max-w-none space-y-6">
-      <PageBreadcrumb pageTitle="Κεντρική Διαχείριση Αποθέματος" />
+    <div className="flex min-h-[calc(100dvh-8rem)] min-w-0 max-w-full flex-col md:min-h-[calc(100dvh-9rem)] xl:h-[calc(100dvh-9rem)] xl:min-h-0 xl:overflow-hidden">
+      <div className="shrink-0 space-y-4">
+        <PageBreadcrumb pageTitle="Κεντρική Διαχείριση Αποθέματος" />
 
-      {error && (
-        <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-          <div>
-            <p className="font-semibold">Δεν ήταν δυνατή η φόρτωση δεδομένων</p>
-            <p className="mt-1">{error}</p>
+        {error ? (
+          <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">Δεν ήταν δυνατή η φόρτωση δεδομένων</p>
+              <p className="mt-1">{error}</p>
+            </div>
           </div>
-        </div>
-      )}
+        ) : null}
+      </div>
 
-      <div className="flex min-w-0 max-w-full flex-col gap-5 xl:flex-row">
-        <DataTable className="flex h-[calc(100dvh-8rem)] min-h-[28rem] min-w-0 max-w-full shrink-0 flex-col xl:flex-1 xl:basis-3/4 xl:shrink">
+      <div className="mt-4 flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-5 xl:flex-row xl:min-h-0">
+        <DataTable className="flex h-[60dvh] min-h-[20rem] min-w-0 max-w-full shrink-0 flex-col overflow-hidden xl:h-auto xl:min-h-0 xl:max-h-full xl:flex-1 xl:basis-3/4 xl:shrink">
         <DataTableHeader
           className="shrink-0"
           title="Πωλήσεις και Κεντρικό Απόθεμα"
@@ -301,9 +309,12 @@ export default function CompanyStockClient() {
         />
 
         {loading ? (
-          <TableSkeleton />
+          <div className="min-h-0 flex-1 overflow-auto">
+            <TableSkeleton />
+          </div>
         ) : error ? (
           <DataTableEmptyState
+            className="min-h-0 flex-1"
             icon={<AlertCircle className="h-7 w-7" />}
             title="Αποτυχία φόρτωσης δεδομένων"
             description={error}
@@ -320,13 +331,14 @@ export default function CompanyStockClient() {
           />
         ) : filteredRows.length === 0 ? (
           <DataTableEmptyState
+            className="min-h-0 flex-1"
             icon={<Package className="h-7 w-7" />}
             title="Δεν βρέθηκαν είδη"
             description="Δεν υπάρχουν δεδομένα για την επιλεγμένη περίοδο ή η αναζήτηση δεν επέστρεψε αποτελέσματα."
           />
         ) : (
-          <div className="min-h-0 w-full flex-1 overflow-auto">
-            <table className="w-full min-w-[1540px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
+          <div className="min-h-0 min-w-0 w-full max-w-full flex-1 overflow-x-auto overflow-y-auto">
+            <table className="w-full min-w-[1680px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
               <colgroup>
                 <col className="w-[24%]" />
                 <col className="w-[8%]" />
@@ -341,13 +353,13 @@ export default function CompanyStockClient() {
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Είδος
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     QTY_SOLD
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Ιστορικό πωλήσεων
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     ONGOING
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -372,7 +384,7 @@ export default function CompanyStockClient() {
                       key={`${itemKey}-${row.CODE}-${index}`}
                       className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
                     >
-                      <td className="px-5 py-4 align-top">
+                      <td className="px-5 py-4 align-middle">
                         <p className="break-words font-medium leading-5 text-gray-900 dark:text-white">
                           {row.NAME || "—"}
                         </p>
@@ -385,34 +397,49 @@ export default function CompanyStockClient() {
                         </div>
                       </td>
 
-                      <td className="whitespace-nowrap px-4 py-4 text-right align-top tabular-nums font-semibold text-gray-900 dark:text-white">
+                      <td className="whitespace-nowrap px-4 py-4 text-center align-middle tabular-nums font-semibold text-gray-900 dark:text-white">
                         {formatNumber(row.QTY_SOLD)}
                       </td>
 
-                      <td className="px-4 py-4 align-top">
+                      <td className="px-4 py-4 align-middle">
                         <div className="grid grid-cols-5 gap-1.5">
-                          {SALES_HISTORY_FIELDS.map((field, historyIndex) => (
-                            <div
-                              key={field}
-                              className="rounded-lg bg-gray-50 px-2 py-1.5 text-center dark:bg-gray-800/70"
-                              title={`${field}: ${currentYear - historyIndex}`}
-                            >
-                              <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
-                                {field} · {currentYear - historyIndex}
-                              </p>
-                              <p className="mt-0.5 font-semibold tabular-nums text-gray-800 dark:text-gray-100">
-                                {formatNumber(row[field])}
-                              </p>
-                            </div>
-                          ))}
+                          {SALES_HISTORY_FIELDS.map((field, historyIndex) => {
+                            const year = currentYear - historyIndex;
+                            const simField = salesHistorySimField(field);
+
+                            return (
+                              <div
+                                key={field}
+                                className="min-w-0 rounded-lg bg-gray-50 px-1.5 py-1.5 text-center dark:bg-gray-800/70"
+                                title={`${field}-${year} · ${simField}`}
+                              >
+                                <p
+                                  className="whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500"
+                                >
+                                  {field}-{year}
+                                </p>
+                                <p className="mt-0.5 text-sm font-semibold tabular-nums leading-tight text-gray-800 dark:text-gray-100">
+                                  {formatNumber(row[field])}
+                                </p>
+                                <p
+                                  className="mt-1 whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500"
+                                >
+                                  {simField}
+                                </p>
+                                <p className="mt-0.5 text-xs font-medium tabular-nums leading-tight text-gray-600 dark:text-gray-300">
+                                  {formatNumber(row[simField])}
+                                </p>
+                              </div>
+                            );
+                          })}
                         </div>
                       </td>
 
-                      <td className="whitespace-nowrap px-4 py-4 text-right align-top tabular-nums text-gray-700 dark:text-gray-200">
+                      <td className="whitespace-nowrap px-4 py-4 text-center align-middle tabular-nums text-gray-700 dark:text-gray-200">
                         {formatNumber(row.ONGOING)}
                       </td>
 
-                      <td className="px-4 py-4 align-top">
+                      <td className="px-4 py-4 align-middle">
                         <div className="grid grid-cols-4 gap-1.5">
                           {AVAILABILITY_FIELDS.map(({ key, branch }) => (
                             <div
@@ -441,8 +468,8 @@ export default function CompanyStockClient() {
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 align-top">
-                        <div className="flex flex-col items-end gap-2">
+                      <td className="px-5 py-4 align-middle">
+                        <div className="flex flex-col items-end justify-center gap-2">
                           <div className="flex items-center justify-end gap-2">
                             <QuantityControl
                               value={quantity}

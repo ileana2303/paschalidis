@@ -35,7 +35,7 @@ export default function CompanyStockOrderSummary({
         <SummaryPanel
             label="Σύνοψη Κεντρικού Εφοδιασμού"
             title="Καλάθι Ανατροφοδοσίας Εταιρίας"
-            asideClassName="xl:!basis-[25%] xl:!min-w-[272px]"
+            asideClassName="xl:!basis-[25%] xl:!min-w-[272px] xl:max-h-full xl:min-h-0 xl:self-stretch"
             fitContentWhenStacked
             footer={(
                 <SummaryPrimaryAction
