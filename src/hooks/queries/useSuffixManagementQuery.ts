@@ -1,6 +1,11 @@
 "use client";
 
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   fetchSuffixList,
   saveSuffixRows,
@@ -10,8 +15,10 @@ import type {
   SuffixSaveRoutePayload,
 } from "@/lib/suffix-management/types";
 
+export const suffixListQueryRoot = ["suffix-management", "getlist"] as const;
+
 export const suffixListQueryKey = (filters: SuffixListFilters) =>
-  ["suffix-management", "getlist", filters] as const;
+  [...suffixListQueryRoot, filters] as const;
 
 export function useSuffixListQuery(filters: SuffixListFilters) {
   return useQuery({
@@ -22,7 +29,17 @@ export function useSuffixListQuery(filters: SuffixListFilters) {
 }
 
 export function useSaveSuffixMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (payload: SuffixSaveRoutePayload) => saveSuffixRows(payload),
+    onSuccess: (response) => {
+      if ((response.saved ?? 0) > 0) {
+        void queryClient.invalidateQueries({
+          queryKey: suffixListQueryRoot,
+          refetchType: "none",
+        });
+      }
+    },
   });
 }

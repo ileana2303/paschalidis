@@ -1,4 +1,5 @@
 export type SoftOneFlag = 0 | 1;
+export type SuffixSaveKind = "SUFIX" | "GROUP" | "B2B";
 
 export interface SuffixRow {
   SOSUFIX: string;
@@ -105,13 +106,37 @@ export type SuffixSaveRow = {
   SOSUFIX: string;
 } & Partial<SuffixSaveFields>;
 
-export interface SuffixSaveRoutePayload {
-  rows: SuffixSaveRow[];
+export interface GroupSaveFields {
+  ZGROUP_NAME: string;
+  DESCR: string;
+  SORT_ORDER: number;
+  IS_ACTIVE: SoftOneFlag;
 }
 
-export interface SuffixSaveRequest extends SuffixSaveRoutePayload {
+export type GroupSaveRow = {
+  ZGROUP_CODE: string;
+} & Partial<GroupSaveFields>;
+
+export interface B2BSaveFields {
+  ZB2B_NAME: string;
+  DESCR: string;
+  SORT_ORDER: number;
+  IS_ACTIVE: SoftOneFlag;
+}
+
+export type B2BSaveRow = {
+  ZB2B_CODE: string;
+} & Partial<B2BSaveFields>;
+
+export type SuffixSaveRoutePayload =
+  | { kind?: "SUFIX"; rows: SuffixSaveRow[] }
+  | { kind: "GROUP"; rows: GroupSaveRow[] }
+  | { kind: "B2B"; rows: B2BSaveRow[] };
+
+export interface SuffixSaveRequest {
   clientID: string;
-  kind: "SUFIX";
+  kind: SuffixSaveKind;
+  rows: Array<SuffixSaveRow | GroupSaveRow | B2BSaveRow>;
 }
 
 export interface SuffixSaveErrorItem {
@@ -122,7 +147,7 @@ export interface SuffixSaveErrorItem {
 
 export interface SuffixSaveSuccessResponse {
   success: true;
-  kind: "SUFIX";
+  kind: SuffixSaveKind;
   saved: number;
   failed: number;
   errors: SuffixSaveErrorItem[];
@@ -130,7 +155,7 @@ export interface SuffixSaveSuccessResponse {
 
 export interface SuffixSaveFailureResponse {
   success: false;
-  kind?: "SUFIX";
+  kind?: SuffixSaveKind;
   saved?: number;
   failed?: number;
   errors?: SuffixSaveErrorItem[];

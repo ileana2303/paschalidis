@@ -14,7 +14,7 @@ import type {
   SuffixListResponse,
   SuffixSaveRequest,
   SuffixSaveResponse,
-  SuffixSaveRow,
+  SuffixSaveKind,
 } from "@/lib/suffix-management/types";
 
 const SUFFIX_SERVICE_PATH = "/JS/SiteData.SUFIX";
@@ -85,17 +85,15 @@ function sanitizeFilters(body: Partial<Record<keyof SuffixListFilters, unknown>>
   } satisfies SuffixListFilters;
 }
 
-const SAVE_TEXT_FIELDS = [
+const SUFIX_SAVE_FIELDS = [
+  "SOSUFIX",
   "NAME",
+  "ZGROUP_ID",
   "ZGROUP_CODE",
+  "ZB2B_ID",
   "ZB2B_CODE",
   "SUPPLIER_CODE",
   "SUPPLIER_NAME",
-  "REMARKS",
-  "NOTES",
-] as const;
-
-const SAVE_PERCENTAGE_FIELDS = [
   "PERCNT00",
   "PERCNT01",
   "PERCNT02",
@@ -103,60 +101,49 @@ const SAVE_PERCENTAGE_FIELDS = [
   "PERCNT04",
   "PERCNT05",
   "PERCNT99",
+  "REMARKS",
+  "NOTES",
+  "IS_ACTIVE",
+] as const;
+
+const GROUP_SAVE_FIELDS = [
+  "ZGROUP_CODE",
+  "ZGROUP_NAME",
+  "DESCR",
+  "SORT_ORDER",
+  "IS_ACTIVE",
+] as const;
+
+const B2B_SAVE_FIELDS = [
+  "ZB2B_CODE",
+  "ZB2B_NAME",
+  "DESCR",
+  "SORT_ORDER",
+  "IS_ACTIVE",
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function sanitizeSaveRow(value: unknown): SuffixSaveRow {
-  if (!isRecord(value)) {
-    throw new Error("Κάθε γραμμή suffix πρέπει να είναι αντικείμενο.");
-  }
+function isSaveKind(value: unknown): value is SuffixSaveKind {
+  return value === "SUFIX" || value === "GROUP" || value === "B2B";
+}
 
-  if (typeof value.SOSUFIX !== "string" || !value.SOSUFIX.trim()) {
-    throw new Error("Κάθε γραμμή πρέπει να περιέχει έγκυρο SOSUFIX.");
-  }
+function getSaveFields(kind: SuffixSaveKind): readonly string[] {
+  if (kind === "GROUP") return GROUP_SAVE_FIELDS;
+  if (kind === "B2B") return B2B_SAVE_FIELDS;
+  return SUFIX_SAVE_FIELDS;
+}
 
-  const row: SuffixSaveRow = { SOSUFIX: value.SOSUFIX };
+function pickSaveFields(value: unknown, fields: readonly string[]) {
+  if (!isRecord(value)) return {};
 
-  for (const field of SAVE_TEXT_FIELDS) {
-    if (!Object.prototype.hasOwnProperty.call(value, field)) continue;
-    if (typeof value[field] !== "string") {
-      throw new Error(`Το ${field} πρέπει να είναι κείμενο.`);
-    }
-    row[field] = value[field];
-  }
-
-  for (const field of ["ZGROUP_ID", "ZB2B_ID"] as const) {
-    if (!Object.prototype.hasOwnProperty.call(value, field)) continue;
-    if (!Number.isInteger(value[field]) || Number(value[field]) < 0) {
-      throw new Error(`Το ${field} πρέπει να είναι μη αρνητικός ακέραιος.`);
-    }
-    row[field] = Number(value[field]);
-  }
-
-  for (const field of SAVE_PERCENTAGE_FIELDS) {
-    if (!Object.prototype.hasOwnProperty.call(value, field)) continue;
-    const fieldValue = value[field];
-    if (fieldValue !== "" && (typeof fieldValue !== "number" || !Number.isFinite(fieldValue))) {
-      throw new Error(`Το ${field} πρέπει να είναι αριθμός ή κενό.`);
-    }
-    row[field] = fieldValue;
-  }
-
-  if (Object.prototype.hasOwnProperty.call(value, "IS_ACTIVE")) {
-    if (value.IS_ACTIVE !== 0 && value.IS_ACTIVE !== 1) {
-      throw new Error("Το IS_ACTIVE πρέπει να είναι 0 ή 1.");
-    }
-    row.IS_ACTIVE = value.IS_ACTIVE;
-  }
-
-  if (Object.keys(row).length === 1) {
-    throw new Error("Δεν υπάρχουν αλλαγές για αποθήκευση.");
-  }
-
-  return row;
+  return Object.fromEntries(
+    fields
+      .filter((field) => Object.prototype.hasOwnProperty.call(value, field))
+      .map((field) => [field, value[field]])
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -218,15 +205,25 @@ export async function PATCH(req: NextRequest) {
       return jsonError("Δεν έχει ρυθμιστεί ο SoftOne client ID.", 500);
     }
 
-    const body = (await req.json().catch(() => ({}))) as { rows?: unknown };
+    const body = (await req.json().catch(() => ({}))) as {
+      kind?: unknown;
+      rows?: unknown;
+    };
     if (!Array.isArray(body.rows) || body.rows.length === 0) {
-      return jsonError("Απαιτείται τουλάχιστον μία γραμμή suffix.", 400);
+      return jsonError("Απαιτείται τουλάχιστον μία γραμμή.", 400);
+    }
+
+    const kind = body.kind ?? "SUFIX";
+    if (!isSaveKind(kind)) {
+      return jsonError("Το kind πρέπει να είναι SUFIX, GROUP ή B2B.", 400);
     }
 
     const payload: SuffixSaveRequest = {
       clientID,
-      kind: "SUFIX",
-      rows: body.rows.map(sanitizeSaveRow),
+      kind,
+      rows: body.rows.map((row) =>
+        pickSaveFields(row, getSaveFields(kind))
+      ) as SuffixSaveRequest["rows"],
     };
     const response = await postSoftOne(payload, {
       endpoint: getSuffixEndpoint(SAVE_SUFFIX_ACTION),

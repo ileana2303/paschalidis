@@ -9,7 +9,7 @@ import type {
 } from "@/lib/suffix-management/types";
 
 const LIST_FALLBACK_ERROR = "Αποτυχία φόρτωσης των suffix.";
-const SAVE_FALLBACK_ERROR = "Η αποθήκευση του suffix δεν ολοκληρώθηκε.";
+const SAVE_FALLBACK_ERROR = "Η αποθήκευση δεν ολοκληρώθηκε.";
 
 function getSuffixError(error: unknown, fallbackMessage: string): Error {
   if (axios.isAxiosError(error)) {

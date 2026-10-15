@@ -56,11 +56,25 @@ function displayValue(value: string | number | null | undefined) {
 }
 
 function groupOptionLabel(group: SuffixGroup) {
-  return displayValue(group.ZGROUP_CODE);
+  const code = group.ZGROUP_CODE.trim();
+  const name = group.ZGROUP_NAME.trim();
+
+  if (code && name && code !== name) {
+    return `${code} — ${name}`;
+  }
+
+  return displayValue(name || code);
 }
 
 function b2bOptionLabel(entry: SuffixB2B) {
-  return displayValue(entry.ZB2B_CODE);
+  const code = entry.ZB2B_CODE.trim();
+  const name = entry.ZB2B_NAME.trim();
+
+  if (code && name && code !== name) {
+    return `${code} — ${name}`;
+  }
+
+  return displayValue(name || code);
 }
 
 function TableSkeleton() {

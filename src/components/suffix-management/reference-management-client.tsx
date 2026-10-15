@@ -2,33 +2,33 @@
 
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import ReferenceEditModal, {
+  type ReferenceEditRecord,
+} from "@/components/suffix-management/reference-edit-modal";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
-import { useSuffixListQuery } from "@/hooks/queries/useSuffixManagementQuery";
+import {
+  useSaveSuffixMutation,
+  useSuffixListQuery,
+} from "@/hooks/queries/useSuffixManagementQuery";
 import {
   AlertCircle,
   Loader2,
+  Pencil,
+  Plus,
   RefreshCw,
   Search,
   Table2,
 } from "@/lib/icons/lucide";
+import { getSuffixSaveOutcome } from "@/lib/suffix-management/save-result";
 
 type ReferenceKind = "groups" | "b2b";
 type ActiveFilter = "" | "1" | "0";
 
 type ReferenceManagementClientProps = {
   kind: ReferenceKind;
-};
-
-type ReferenceEntry = {
-  id: number;
-  code: string;
-  name: string;
-  description: string;
-  sortOrder: number | null;
-  isActive: 0 | 1 | null;
 };
 
 const inputClassName =
@@ -52,7 +52,12 @@ export default function ReferenceManagementClient({
 }: ReferenceManagementClientProps) {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("");
+  const [creating, setCreating] = useState(false);
+  const [editingRecord, setEditingRecord] =
+    useState<ReferenceEditRecord | null>(null);
+  const [updatingCode, setUpdatingCode] = useState("");
   const query = useSuffixListQuery({});
+  const { mutateAsync: saveRows } = useSaveSuffixMutation();
   const isGroup = kind === "groups";
   const title = isGroup ? "Διαχείριση Group" : "Διαχείριση B2B";
   const idLabel = isGroup ? "ZGROUP_ID" : "ZB2B_ID";
@@ -66,14 +71,53 @@ export default function ReferenceManagementClient({
     if (query.isError) toast.error(errorMessage);
   }, [errorMessage, query.isError]);
 
+  const toggleActive = async (entry: ReferenceEditRecord) => {
+    if (updatingCode) return;
+
+    const nextActive = entry.isActive === 1 ? 0 : 1;
+    const action = nextActive === 1 ? "ενεργοποιήσετε" : "απενεργοποιήσετε";
+
+    if (!window.confirm(`Θέλετε να ${action} το ${entry.code};`)) return;
+
+    setUpdatingCode(entry.code);
+
+    try {
+      const response = isGroup
+        ? await saveRows({
+            kind: "GROUP",
+            rows: [
+              { ZGROUP_CODE: entry.code, IS_ACTIVE: nextActive },
+            ],
+          })
+        : await saveRows({
+            kind: "B2B",
+            rows: [{ ZB2B_CODE: entry.code, IS_ACTIVE: nextActive }],
+          });
+      const outcome = getSuffixSaveOutcome(response);
+
+      if (outcome.saved > 0) await query.refetch();
+
+      if (outcome.completed) toast.success(outcome.message);
+      else toast.error(outcome.message);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Η αλλαγή κατάστασης δεν ολοκληρώθηκε."
+      );
+    } finally {
+      setUpdatingCode("");
+    }
+  };
+
   const entries = useMemo(() => {
-    const normalized: ReferenceEntry[] = isGroup
+    const normalized: ReferenceEditRecord[] = isGroup
       ? (query.data?.groups ?? [])
           .filter((entry) => entry.ZGROUP_ID !== 0)
           .map((entry) => ({
             id: entry.ZGROUP_ID,
             code: entry.ZGROUP_CODE,
-            name: entry.ZGROUP_NAME.trim(),
+            name: entry.ZGROUP_NAME,
             description: entry.DESCR,
             sortOrder: entry.SORT_ORDER,
             isActive: entry.IS_ACTIVE,
@@ -83,7 +127,7 @@ export default function ReferenceManagementClient({
           .map((entry) => ({
             id: entry.ZB2B_ID,
             code: entry.ZB2B_CODE,
-            name: entry.ZB2B_NAME.trim(),
+            name: entry.ZB2B_NAME,
             description: entry.DESCR,
             sortOrder: entry.SORT_ORDER,
             isActive: entry.IS_ACTIVE,
@@ -137,6 +181,16 @@ export default function ReferenceManagementClient({
                 {isGroup ? "Groups" : "B2B"}: {count}
               </span>
             ) : undefined
+          }
+          action={
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white transition hover:bg-brand-600"
+            >
+              <Plus className="h-4 w-4" />
+              Νέο {isGroup ? "Group" : "B2B"}
+            </button>
           }
         />
 
@@ -218,7 +272,7 @@ export default function ReferenceManagementClient({
           />
         ) : (
           <div className="max-h-[70vh] max-w-full overflow-auto overscroll-contain">
-            <table className="w-full min-w-[760px] table-fixed divide-y divide-gray-100 text-left text-xs dark:divide-gray-800">
+            <table className="w-full min-w-[860px] table-fixed divide-y divide-gray-100 text-left text-xs dark:divide-gray-800">
               <thead className="bg-gray-50 text-[10px] uppercase tracking-normal text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-400 [&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-gray-50 dark:[&_th]:bg-gray-900">
                 <tr>
                   <th className="w-32 px-3 py-2.5 font-semibold">{idLabel}</th>
@@ -233,6 +287,9 @@ export default function ReferenceManagementClient({
                     SORT_ORDER
                   </th>
                   <th className="w-24 px-3 py-2.5 font-semibold">IS_ACTIVE</th>
+                  <th className="w-24 px-3 py-2.5 text-right font-semibold">
+                    ΕΝΕΡΓΕΙΕΣ
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
@@ -279,6 +336,39 @@ export default function ReferenceManagementClient({
                         {entry.isActive === 1 ? "Ενεργό" : "Ανενεργό"}
                       </span>
                     </td>
+                    <td className="whitespace-nowrap px-2 py-2 text-right">
+                      <div className="inline-flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                        <button
+                          type="button"
+                          onClick={() => setEditingRecord(entry)}
+                          disabled={Boolean(updatingCode)}
+                          title="Επεξεργασία"
+                          aria-label={`Επεξεργασία ${entry.code}`}
+                          className="flex h-8 w-8 items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-brand-600 disabled:opacity-40 dark:hover:bg-gray-800"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
+                        <button
+                          type="button"
+                          onClick={() => void toggleActive(entry)}
+                          disabled={Boolean(updatingCode)}
+                          className={`flex h-8 min-w-12 items-center justify-center px-1.5 text-[10px] font-semibold disabled:opacity-40 ${
+                            entry.isActive === 1
+                              ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                              : "text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                          }`}
+                        >
+                          {updatingCode === entry.code ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : entry.isActive === 1 ? (
+                            "Disable"
+                          ) : (
+                            "Enable"
+                          )}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -286,6 +376,19 @@ export default function ReferenceManagementClient({
           </div>
         )}
       </DataTable>
+
+      {creating || editingRecord ? (
+        <ReferenceEditModal
+          key={editingRecord ? `${kind}-${editingRecord.code}` : `${kind}-new`}
+          kind={kind}
+          record={editingRecord ?? undefined}
+          onClose={() => {
+            setCreating(false);
+            setEditingRecord(null);
+          }}
+          onSaved={() => query.refetch()}
+        />
+      ) : null}
     </div>
   );
 }

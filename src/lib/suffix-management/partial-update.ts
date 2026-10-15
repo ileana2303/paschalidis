@@ -144,6 +144,7 @@ export function buildSuffixPartialUpdate({
       "Group"
     );
     if (result.error) errors.push(result.error);
+    else if (result.value === 0) update.ZGROUP_CODE = "";
     else update.ZGROUP_ID = result.value;
   }
 
@@ -154,6 +155,7 @@ export function buildSuffixPartialUpdate({
       "B2B"
     );
     if (result.error) errors.push(result.error);
+    else if (result.value === 0) update.ZB2B_CODE = "";
     else update.ZB2B_ID = result.value;
   }
 
