@@ -51,7 +51,8 @@ export interface SuffixListCounts {
 }
 
 export interface SuffixListFilters {
-  sosufix?: string;
+  /** A suffix key or an exact list of keys. Values remain strings to preserve leading zeroes. */
+  sosufix?: string | string[];
   zgroupId?: number;
   zb2bId?: number;
   search?: string;

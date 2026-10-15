@@ -49,6 +49,21 @@ function optionalText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function optionalSuffixFilter(value: unknown): string | string[] | undefined {
+  if (typeof value === "string") {
+    return value.trim() || undefined;
+  }
+
+  if (!Array.isArray(value)) return undefined;
+
+  const suffixes = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return suffixes.length > 0 ? suffixes : undefined;
+}
+
 function optionalPositiveInteger(value: unknown) {
   const parsed = typeof value === "number" ? value : Number(value);
 
@@ -56,7 +71,7 @@ function optionalPositiveInteger(value: unknown) {
 }
 
 function sanitizeFilters(body: Partial<Record<keyof SuffixListFilters, unknown>>) {
-  const sosufix = optionalText(body.sosufix);
+  const sosufix = optionalSuffixFilter(body.sosufix);
   const search = optionalText(body.search);
   const zgroupId = optionalPositiveInteger(body.zgroupId);
   const zb2bId = optionalPositiveInteger(body.zb2bId);

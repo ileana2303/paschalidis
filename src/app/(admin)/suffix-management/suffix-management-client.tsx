@@ -32,8 +32,14 @@ const selectClassName =
 
 function compactFilters(filters: SuffixListFilters): SuffixListFilters {
   const search = filters.search?.trim();
+  const sosufix = Array.isArray(filters.sosufix)
+    ? filters.sosufix.map((value) => value.trim()).filter(Boolean)
+    : filters.sosufix?.trim();
 
   return {
+    ...(sosufix && (typeof sosufix === "string" || sosufix.length > 0)
+      ? { sosufix }
+      : {}),
     ...(search ? { search } : {}),
     ...(filters.zgroupId ? { zgroupId: filters.zgroupId } : {}),
     ...(filters.zb2bId ? { zb2bId: filters.zb2bId } : {}),
