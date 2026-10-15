@@ -6,13 +6,9 @@ type SidebarContextType = {
   isMobile: boolean;
   isMobileOpen: boolean;
   isHovered: boolean;
-  activeItem: string | null;
-  openSubmenu: string | null;
   toggleSidebar: () => void;
   toggleMobileSidebar: () => void;
   setIsHovered: (isHovered: boolean) => void;
-  setActiveItem: (item: string | null) => void;
-  toggleSubmenu: (item: string) => void;
 };
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
@@ -32,13 +28,31 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [activeItem, setActiveItem] = useState<string | null>(null);
-  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
   useEffect(() => {
+    let previousViewport: "mobile" | "laptop" | "desktop" | null = null;
+
     const handleResize = () => {
-      const mobile = window.innerWidth < 1024;
+      const viewportWidth = window.innerWidth;
+      const mobile = viewportWidth < 1024;
+      const isLaptopDisplay = window.screen.width <= 2056;
+      const laptop =
+        viewportWidth >= 1024 &&
+        (viewportWidth < 1920 || isLaptopDisplay);
+      const viewport = mobile ? "mobile" : laptop ? "laptop" : "desktop";
+
       setIsMobile(mobile);
+
+      if (viewport === "laptop") {
+        setIsExpanded(false);
+      } else if (viewport === "desktop" && viewport !== previousViewport) {
+        setIsExpanded(true);
+      }
+
+      if (viewport !== previousViewport) {
+        previousViewport = viewport;
+      }
+
       if (!mobile) {
         setIsMobileOpen(false);
       }
@@ -60,10 +74,6 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsMobileOpen((prev) => !prev);
   };
 
-  const toggleSubmenu = (item: string) => {
-    setOpenSubmenu((prev) => (prev === item ? null : item));
-  };
-
   return (
     <SidebarContext.Provider
       value={{
@@ -71,13 +81,9 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
         isMobile,
         isMobileOpen,
         isHovered,
-        activeItem,
-        openSubmenu,
         toggleSidebar,
         toggleMobileSidebar,
         setIsHovered,
-        setActiveItem,
-        toggleSubmenu,
       }}
     >
       {children}

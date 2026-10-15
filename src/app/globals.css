@@ -185,66 +185,6 @@
   }
 }
 
-@utility menu-item {
-  @apply relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium transition-all;
-}
-
-@utility menu-item-active {
-  @apply bg-brand-500 text-white;
-}
-
-@utility menu-item-inactive {
-  @apply text-gray-700 hover:bg-brand-100 dark:text-gray-300 dark:hover:bg-white/[0.05];
-}
-
-@utility menu-item-icon {
-  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400;
-}
-
-@utility menu-item-icon-active {
-  @apply text-white;
-}
-
-@utility menu-item-icon-inactive {
-  @apply text-gray-500 group-hover:text-brand-600 dark:text-gray-400 dark:group-hover:text-brand-300;
-}
-
-@utility menu-item-arrow {
-  @apply relative;
-}
-
-@utility menu-item-arrow-active {
-  @apply rotate-180 text-white;
-}
-
-@utility menu-item-arrow-inactive {
-  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
-}
-
-@utility menu-dropdown-item {
-  @apply relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-theme-sm font-medium;
-}
-
-@utility menu-dropdown-item-active {
-  @apply bg-brand-500 text-white;
-}
-
-@utility menu-dropdown-item-inactive {
-  @apply text-gray-700 hover:bg-brand-100 dark:text-gray-300 dark:hover:bg-white/[0.05];
-}
-
-@utility menu-dropdown-badge {
-  @apply block rounded-full px-2.5 py-0.5 text-xs font-medium uppercase text-brand-500 dark:text-brand-400;
-}
-
-@utility menu-dropdown-badge-active {
-  @apply bg-brand-100 dark:bg-brand-500/20;
-}
-
-@utility menu-dropdown-badge-inactive {
-  @apply bg-brand-50 group-hover:bg-brand-100 dark:bg-brand-500/15 dark:group-hover:bg-brand-500/20;
-}
-
 @utility no-scrollbar {
   &::-webkit-scrollbar {
     display: none;

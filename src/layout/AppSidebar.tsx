@@ -10,15 +10,16 @@ import {
   MoreHorizontal,
   PackageSearch,
   Pencil,
-  Search,
+  Layers2,
+  LayoutDashboard,
   Settings,
+  SlidersHorizontal,
   Users,
   GitCompareArrows,
   type LucideIcon,
   Send,
-  Table2,
-  Upload,
   Truck,
+  UserSearch,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
 import { ListTodo, ShoppingBasket, Warehouse } from "lucide-react";
@@ -27,9 +28,7 @@ import { useAuthStore } from "@/stores/authStore";
 type NavSubItem = {
   name: string;
   path: string;
-  icon?: LucideIcon;
-  pro?: boolean;
-  new?: boolean;
+  icon: LucideIcon;
   superAdminOnly?: boolean;
 };
 
@@ -42,7 +41,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    icon: Search,
+    icon: UserSearch,
     name: "Αναζήτηση Πελατών",
     path: "/search-customer",
   },
@@ -51,26 +50,25 @@ const navItems: NavItem[] = [
     name: "Αναζήτηση Ανταλλακτικών",
     path: "/search-parts",
   },
-  // {
-  //   icon: Upload,
-  //   name: "Ανέβασμα Τιμοκαταλόγου",
-  //   path: "/supplier-price-catalog-upload",
-  // },
   {
-    icon: GitCompareArrows,
-    name: "Ορισμός Ομοίων",
-    path: "/search-set-similar",
-  },
-  {
-    icon: Pencil,
-    name: "Επεξεργασία Ειδών",
-    path: "/edit-items",
-  },
-  {
-    icon: Warehouse,
-    name: "Ανατροφοδοσία",
-    path: "/stock-feedback",
+    icon: LayoutDashboard,
+    name: "Επεξεργασία Αποθήκης",
     subItems: [
+      {
+        icon: Layers2,
+        name: "Ορισμός Ομοίων",
+        path: "/search-set-similar",
+      },
+      {
+        icon: Pencil,
+        name: "Επεξεργασία Ειδών",
+        path: "/edit-items",
+      },
+      {
+        icon: SlidersHorizontal,
+        name: "Διαχείριση Suffix",
+        path: "/suffix-management",
+      },
       {
         icon: Truck,
         name: "Λίστα Προμηθευτών",
@@ -79,11 +77,15 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    icon: Warehouse,
+    name: "Ανατροφοδοσία",
+    path: "/stock-feedback",
+  },
+  {
     icon: GitCompareArrows,
     name: "Ενδοδιακίνηση",
     path: "/endo/endo-parts",
     subItems: [
-
       {
         icon: Send,
         name: "Εισερχόμενα Αιτήματα",
@@ -131,11 +133,6 @@ const navItems: NavItem[] = [
         icon: Users,
         superAdminOnly: true,
       },
-      {
-        name: "Διαχείριση Suffix",
-        path: "/suffix-management",
-        icon: Table2,
-      },
     ],
   },
 ];
@@ -161,6 +158,7 @@ const AppSidebar: React.FC = () => {
     (state) => state.user?.isSuperAdmin === 1
   );
   const isActive = (path: string) => path === pathname;
+  const isSidebarExpanded = isExpanded || isHovered || isMobileOpen;
 
   const renderMenuItems = (navItems: NavItem[]) => (
     <ul className="flex flex-col gap-4">
@@ -178,7 +176,7 @@ const AppSidebar: React.FC = () => {
         if (isManagement) {
           return (
             <li key={nav.name}>
-              {(isExpanded || isHovered || isMobileOpen) ? (
+              {isSidebarExpanded ? (
                 <div className="rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-gray-200/60 dark:border-gray-800/60 shadow-sm backdrop-blur-sm p-4">
 
                   <div className="-mx-4 -mt-4 mb-3 px-4 py-2 rounded-t-2xl border-b border-gray-200/60 dark:border-gray-800/60 bg-brand-100/40 dark:bg-brand-900/20">
@@ -209,9 +207,7 @@ const AppSidebar: React.FC = () => {
                               : "text-gray-600 dark:text-gray-400 hover:bg-white/70 hover:text-gray-600 dark:hover:bg-white/[0.05] dark:hover:text-gray-300"}
           `}
                         >
-                          {SubItemIcon && (
-                            <SubItemIcon className="h-3.5 w-3.5 shrink-0" />
-                          )}
+                          <SubItemIcon className="h-3.5 w-3.5 shrink-0" />
 
                           <span className="font-normal">{subItem.name}</span>
                         </Link>
@@ -220,8 +216,36 @@ const AppSidebar: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex justify-center">
-                  <Icon className="w-5 h-5 text-gray-500" />
+                <div className="flex flex-col items-center gap-1">
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${isGroupActive
+                      ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
+                      : "text-gray-500"
+                      }`}
+                    title={nav.name}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+
+                  {visibleSubItems?.map((subItem) => {
+                    const SubItemIcon = subItem.icon;
+
+                    return (
+                      <Link
+                        key={subItem.name}
+                        href={subItem.path}
+                        prefetch={false}
+                        aria-label={subItem.name}
+                        title={subItem.name}
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 ${isActive(subItem.path)
+                          ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
+                          : "text-gray-500 hover:bg-white/70 hover:text-brand-600 dark:text-gray-400 dark:hover:bg-white/[0.05] dark:hover:text-gray-300"
+                          }`}
+                      >
+                        <SubItemIcon className="h-4 w-4" />
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </li>
@@ -250,8 +274,8 @@ const AppSidebar: React.FC = () => {
                     <Icon className="h-4 w-4" />
                   </span>
 
-                  {(isExpanded || isHovered || isMobileOpen) && (
-                    <span className="menu-item-text">{nav.name}</span>
+                  {isSidebarExpanded && (
+                    <span>{nav.name}</span>
                   )}
                 </Link>
               ) : (
@@ -260,7 +284,7 @@ const AppSidebar: React.FC = () => {
                     ${isGroupActive
                       ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
                       : "text-gray-600 dark:text-gray-300"}
-                    ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}`}
+                    ${!isSidebarExpanded ? "lg:justify-center" : "lg:justify-start"}`}
                 >
                   <span
                     className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all
@@ -272,8 +296,8 @@ const AppSidebar: React.FC = () => {
                     <Icon className="h-4 w-4" />
                   </span>
 
-                  {(isExpanded || isHovered || isMobileOpen) && (
-                    <span className="menu-item-text">{nav.name}</span>
+                  {isSidebarExpanded && (
+                    <span>{nav.name}</span>
                   )}
                 </div>
               )
@@ -295,75 +319,76 @@ const AppSidebar: React.FC = () => {
                     <Icon className="h-4 w-4" />
                   </span>
 
-                  {(isExpanded || isHovered || isMobileOpen) && (
-                    <span className="menu-item-text">{nav.name}</span>
+                  {isSidebarExpanded && (
+                    <span>{nav.name}</span>
                   )}
                 </Link>
               )
             )}
 
-            {nav.subItems &&
-              nav.name !== "Διαχείριση Καταστημάτων" &&
-              (isExpanded || isHovered || isMobileOpen) && (
-                <ul className="mt-2 ml-10 pl-3 border-l border-brand-200/70 dark:border-brand-800/60 space-y-1">
-                  {visibleSubItems?.map((subItem) => {
-                    const SubItemIcon = subItem.icon;
+            {nav.subItems && (
+              <ul
+                className={isSidebarExpanded
+                  ? "mt-2 ml-10 pl-3 border-l border-brand-200/70 dark:border-brand-800/60 space-y-1"
+                  : "mt-2 flex flex-col items-center gap-1"}
+              >
+                {visibleSubItems?.map((subItem) => {
+                  const SubItemIcon = subItem.icon;
 
-                    return (
-                      <li key={subItem.name}>
-                        <Link
-                          href={subItem.path}
-                          prefetch={false}
-                          className={`group flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] transition-all duration-200
+                  return (
+                    <li key={subItem.name}>
+                      <Link
+                        href={subItem.path}
+                        prefetch={false}
+                        aria-label={subItem.name}
+                        title={subItem.name}
+                        className={`group flex items-center rounded-lg text-[13px] transition-all duration-200 ${isSidebarExpanded
+                          ? "gap-2 px-2.5 py-2"
+                          : "h-10 w-10 justify-center"
+                          }
                             ${isActive(subItem.path)
+                            ? isSidebarExpanded
                               ? "bg-white text-brand-700 shadow-sm dark:bg-brand-800/40 dark:text-brand-100"
-                              : "text-gray-600 dark:text-gray-400 hover:bg-white/70 hover:text-gray-600 dark:hover:bg-white/[0.05] dark:hover:text-gray-300"}
+                              : "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-white/70 hover:text-gray-600 dark:hover:bg-white/[0.05] dark:hover:text-gray-300"}
                             `}
-                        >
-                          {SubItemIcon && (
-                            <SubItemIcon className="h-3.5 w-3.5 shrink-0" />
-                          )}
+                      >
+                        <SubItemIcon className={`${isSidebarExpanded ? "h-3.5 w-3.5" : "h-4 w-4"} shrink-0`} />
+                        {isSidebarExpanded && (
                           <span className="font-normal">{subItem.name}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </li>
         );
       })}
     </ul>
   );
 
-  const isSidebarExpanded = isExpanded || isHovered || isMobileOpen;
-  const showExpandedLogo = isSidebarExpanded;
-
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-2 px-5 left-2 border border-gray-200/60 bg-brand-100/40 dark:border-gray-800 dark:bg-white/[0.03] rounded-2xl shadow-sm dark:shadow-none backdrop-blur-sm text-gray-900 dark:text-gray-100 h-screen transition-all duration-300 ease-in-out z-50
-        ${isExpanded || isMobileOpen
-          ? "w-[290px]"
-          : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
-        }
+        ${isSidebarExpanded ? "w-[290px]" : "w-[90px]"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-[calc(100%+1rem)]"}
         lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`py-8 flex  ${showExpandedLogo ? "justify-start" : "lg:justify-center"
+        className={`py-8 flex  ${isSidebarExpanded ? "justify-start" : "lg:justify-center"
           }`}
       >
         <Link href="/" prefetch={false}>
           <div
-            className={`relative h-10 transition-all duration-300 ${showExpandedLogo ? "w-[150px]" : "w-10"
+            className={`relative h-10 transition-all duration-300 ${isSidebarExpanded ? "w-[150px]" : "w-10"
               }`}
           >
             <Image
-              className={`absolute left-0 top-1/2 -translate-y-1/2 dark:hidden transition-opacity duration-200 ${showExpandedLogo ? "opacity-100" : "opacity-0 pointer-events-none"
+              className={`absolute left-0 top-1/2 -translate-y-1/2 dark:hidden transition-opacity duration-200 ${isSidebarExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
                 }`}
               src="/images/logo/logo.png"
               alt="Logo"
@@ -373,7 +398,7 @@ const AppSidebar: React.FC = () => {
               style={{ width: "150px", height: "auto" }}
             />
             <Image
-              className={`absolute left-0 top-1/2 -translate-y-1/2 hidden dark:block transition-opacity duration-200 ${showExpandedLogo ? "opacity-100" : "opacity-0 pointer-events-none"
+              className={`absolute left-0 top-1/2 -translate-y-1/2 hidden dark:block transition-opacity duration-200 ${isSidebarExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
                 }`}
               src="/images/logo/logo-dark.png"
               alt="Logo"
@@ -382,7 +407,7 @@ const AppSidebar: React.FC = () => {
               style={{ width: "150px", height: "auto" }}
             />
             <Image
-              className={`absolute left-0 top-1/2 -translate-y-1/2 transition-opacity duration-200 ${showExpandedLogo ? "opacity-0 pointer-events-none" : "opacity-100"
+              className={`absolute left-0 top-1/2 -translate-y-1/2 transition-opacity duration-200 ${isSidebarExpanded ? "opacity-0 pointer-events-none" : "opacity-100"
                 }`}
               src="/images/logo/logo-icon.png"
               alt="Logo"
@@ -397,12 +422,12 @@ const AppSidebar: React.FC = () => {
           <div className="flex flex-col gap-4">
             <div>
               <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isSidebarExpanded
                   ? "lg:justify-center"
                   : "justify-start"
                   }`}
               >
-                {isExpanded || isHovered || isMobileOpen ? (
+                {isSidebarExpanded ? (
                   "Menu"
                 ) : (
                   <MoreHorizontal className="h-5 w-5" />
@@ -413,35 +438,6 @@ const AppSidebar: React.FC = () => {
           </div>
         </nav>
       </div>
-
-      {/* <div className="mb-5 mt-3 shrink-0">
-        <a
-          href="https://oval-guide.vercel.app/"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Οδηγός εφαρμογής"
-          title="Οδηγός εφαρμογής"
-          className={`group flex items-center border border-brand-200/80 bg-brand-50/80 text-brand-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-100/80 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 dark:border-brand-500/25 dark:bg-brand-500/10 dark:text-brand-200 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/15 ${isSidebarExpanded ? "min-h-16 gap-3 rounded-2xl px-3 py-2.5" : "mx-auto h-10 w-10 justify-center rounded-full"}`}
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm transition group-hover:bg-brand-700 dark:bg-brand-500 dark:group-hover:bg-brand-400">
-            <BookOpenText className="h-4 w-4" />
-          </span>
-
-          {isSidebarExpanded && (
-            <>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold leading-5">
-                  Οδηγός εφαρμογής
-                </span>
-                <span className="block text-[11px] font-normal leading-4 text-gray-500 dark:text-gray-400">
-                  Platform Guide & FAQs
-                </span>
-              </span>
-              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-brand-500 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 dark:text-brand-300" />
-            </>
-          )}
-        </a>
-      </div> */}
     </aside>
   );
 };
