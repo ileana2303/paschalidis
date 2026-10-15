@@ -24,6 +24,7 @@ export {
   Filter,
   FolderOpen,
   GitCompareArrows,
+  Handshake,
   Layers2,
   LayoutDashboard,
   ListChevronsDownUp,
@@ -56,6 +57,7 @@ export {
   UserRound,
   UserSearch,
   Users,
+  UsersRound,
   X,
   Warehouse,
 } from "lucide-react";

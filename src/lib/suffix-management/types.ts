@@ -29,11 +29,19 @@ export interface SuffixRow {
 export interface SuffixGroup {
   ZGROUP_ID: number;
   ZGROUP_CODE: string;
+  ZGROUP_NAME: string;
+  DESCR: string;
+  SORT_ORDER: number;
+  IS_ACTIVE: SoftOneFlag;
 }
 
 export interface SuffixB2B {
   ZB2B_ID: number;
   ZB2B_CODE: string;
+  ZB2B_NAME: string;
+  DESCR: string;
+  SORT_ORDER: number;
+  IS_ACTIVE: SoftOneFlag;
 }
 
 export interface SuffixListCounts {

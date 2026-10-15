@@ -30,13 +30,6 @@ import { getSuffixSaveOutcome } from "@/lib/suffix-management/save-result";
 const selectClassName =
   "h-10 min-w-0 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200";
 
-type CategoryFilter = "all" | "sufix" | "groups" | "b2b";
-
-type ManagementListItem =
-  | { category: "sufix"; key: string; suffix: SuffixRow }
-  | { category: "groups"; key: string; group: SuffixGroup }
-  | { category: "b2b"; key: string; b2b: SuffixB2B };
-
 function compactFilters(filters: SuffixListFilters): SuffixListFilters {
   const search = filters.search?.trim();
 
@@ -64,25 +57,6 @@ function b2bOptionLabel(entry: SuffixB2B) {
   return displayValue(entry.ZB2B_CODE);
 }
 
-function CategoryBadge({ category }: { category: Exclude<CategoryFilter, "all"> }) {
-  const label =
-    category === "sufix" ? "Suffix" : category === "groups" ? "Group" : "B2B";
-  const colorClass =
-    category === "sufix"
-      ? "bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300"
-      : category === "groups"
-        ? "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"
-        : "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300";
-
-  return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold ${colorClass}`}
-    >
-      {label}
-    </span>
-  );
-}
-
 function TableSkeleton() {
   return (
     <div className="animate-pulse divide-y divide-gray-100 dark:divide-gray-800">
@@ -100,11 +74,11 @@ function TableSkeleton() {
 }
 
 export default function SuffixManagementClient() {
-  const [category, setCategory] = useState<CategoryFilter>("all");
   const [searchInput, setSearchInput] = useState("");
-  const [groupId, setGroupId] = useState("");
-  const [b2bId, setB2bId] = useState("");
-  const [needsExtra, setNeedsExtra] = useState(false);
+  const [groupCode, setGroupCode] = useState("");
+  const [b2bCode, setB2bCode] = useState("");
+  const [supplierName, setSupplierName] = useState("");
+  const [suggestedTraderName, setSuggestedTraderName] = useState("");
   const [filters, setFilters] = useState<SuffixListFilters>({});
   const [editingSuffix, setEditingSuffix] = useState<SuffixRow | null>(null);
   const [updatingSuffix, setUpdatingSuffix] = useState("");
@@ -119,15 +93,37 @@ export default function SuffixManagementClient() {
     }
   }, [errorMessage, query.isError]);
 
-  const nextFilters = useMemo(
+  const groups = useMemo(
     () =>
-      compactFilters({
+      (query.data?.groups ?? []).filter(
+        (group) => group.ZGROUP_ID !== 0 && group.ZGROUP_CODE.trim()
+      ),
+    [query.data?.groups]
+  );
+  const b2bEntries = useMemo(
+    () =>
+      (query.data?.b2b ?? []).filter(
+        (entry) => entry.ZB2B_ID !== 0 && entry.ZB2B_CODE.trim()
+      ),
+    [query.data?.b2b]
+  );
+
+  const nextFilters = useMemo(
+    () => {
+      const selectedGroup = groups.find(
+        (group) => group.ZGROUP_CODE.trim() === groupCode
+      );
+      const selectedB2B = b2bEntries.find(
+        (entry) => entry.ZB2B_CODE.trim() === b2bCode
+      );
+
+      return compactFilters({
         search: searchInput,
-        zgroupId: groupId ? Number(groupId) : undefined,
-        zb2bId: b2bId ? Number(b2bId) : undefined,
-        needsExtra: needsExtra ? 1 : undefined,
-      }),
-    [b2bId, groupId, needsExtra, searchInput]
+        zgroupId: selectedGroup?.ZGROUP_ID,
+        zb2bId: selectedB2B?.ZB2B_ID,
+      });
+    },
+    [b2bCode, b2bEntries, groupCode, groups, searchInput]
   );
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
@@ -142,16 +138,21 @@ export default function SuffixManagementClient() {
   };
 
   const applySelectFilters = (
-    nextGroupId: string,
-    nextB2bId: string,
-    nextNeedsExtra: boolean
+    nextGroupCode: string,
+    nextB2bCode: string
   ) => {
+    const selectedGroup = groups.find(
+      (group) => group.ZGROUP_CODE.trim() === nextGroupCode
+    );
+    const selectedB2B = b2bEntries.find(
+      (entry) => entry.ZB2B_CODE.trim() === nextB2bCode
+    );
+
     setFilters(
       compactFilters({
         search: searchInput,
-        zgroupId: nextGroupId ? Number(nextGroupId) : undefined,
-        zb2bId: nextB2bId ? Number(nextB2bId) : undefined,
-        needsExtra: nextNeedsExtra ? 1 : undefined,
+        zgroupId: selectedGroup?.ZGROUP_ID,
+        zb2bId: selectedB2B?.ZB2B_ID,
       })
     );
   };
@@ -207,32 +208,45 @@ export default function SuffixManagementClient() {
     }
   };
 
-  const groups = (query.data?.groups ?? []).filter((group) => group.ZGROUP_ID !== 0);
-  const b2bEntries = (query.data?.b2b ?? []).filter((entry) => entry.ZB2B_ID !== 0);
-  const rows = query.data?.sufix ?? [];
+  const rows = useMemo(() => query.data?.sufix ?? [], [query.data?.sufix]);
   const counts = query.data?.counts;
-  const hasActiveFilters = Object.keys(filters).length > 0;
-  const listItems: ManagementListItem[] = [
-    ...rows.map((suffix, index) => ({
-      category: "sufix" as const,
-      key: `sufix-${suffix.SOSUFIX}-${index}`,
-      suffix,
-    })),
-    ...groups.map((group) => ({
-      category: "groups" as const,
-      key: `group-${group.ZGROUP_ID}`,
-      group,
-    })),
-    ...b2bEntries.map((b2b) => ({
-      category: "b2b" as const,
-      key: `b2b-${b2b.ZB2B_ID}`,
-      b2b,
-    })),
-  ];
-  const visibleItems =
-    category === "all"
-      ? listItems
-      : listItems.filter((item) => item.category === category);
+  const supplierNames = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (query.data?.sufix ?? [])
+            .map((row) => row.SUPPLIER_NAME.trim())
+            .filter(Boolean)
+        )
+      ).sort((first, second) => first.localeCompare(second, "el")),
+    [query.data?.sufix]
+  );
+  const suggestedTraderNames = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (query.data?.sufix ?? [])
+            .map((row) => row.SUGGESTED_TRDR_NAME.trim())
+            .filter(Boolean)
+        )
+      ).sort((first, second) => first.localeCompare(second, "el")),
+    [query.data?.sufix]
+  );
+  const visibleRows = useMemo(
+    () =>
+      rows.filter(
+        (row) =>
+          (!groupCode || row.ZGROUP_CODE.trim() === groupCode) &&
+          (!b2bCode || row.ZB2B_CODE.trim() === b2bCode) &&
+          (!supplierName || row.SUPPLIER_NAME.trim() === supplierName) &&
+          (!suggestedTraderName ||
+            row.SUGGESTED_TRDR_NAME.trim() === suggestedTraderName)
+      ),
+    [b2bCode, groupCode, rows, suggestedTraderName, supplierName]
+  );
+  const hasActiveFilters =
+    Object.keys(filters).length > 0 ||
+    Boolean(groupCode || b2bCode || supplierName || suggestedTraderName);
 
   return (
     <div className="min-w-0 max-w-full">
@@ -250,21 +264,13 @@ export default function SuffixManagementClient() {
 
       <DataTable>
         <DataTableHeader
-          title="Suffix / Groups / B2B"
-          description="Ενιαία προβολή των τριών λιστών που επιστρέφει το Soft1"
+          title="Suffix"
+          description="Διαχείριση των suffix που επιστρέφει το Soft1"
           count={
             counts ? (
-              <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
-                <span className="rounded-full bg-brand-50 px-2.5 py-1 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-                  Suffix: {counts.sufix}
-                </span>
-                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                  Groups: {counts.groups}
-                </span>
-                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                  B2B: {counts.b2b}
-                </span>
-              </div>
+              <span className="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+                Suffix: {counts.sufix}
+              </span>
             ) : undefined
           }
         />
@@ -273,7 +279,7 @@ export default function SuffixManagementClient() {
           onSubmit={submitSearch}
           className="border-b border-gray-100 bg-gray-50/50 px-5 py-4 dark:border-gray-800 dark:bg-gray-900/20"
         >
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.3fr)_minmax(140px,0.7fr)_minmax(140px,0.7fr)_minmax(140px,0.7fr)_minmax(140px,0.7fr)_auto]">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[minmax(220px,1.2fr)_repeat(4,minmax(130px,0.7fr))_auto]">
             <label className="min-w-0">
               <span className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
                 Αναζήτηση
@@ -291,36 +297,20 @@ export default function SuffixManagementClient() {
 
             <label className="min-w-0">
               <span className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
-                Κατηγορία
-              </span>
-              <select
-                value={category}
-                onChange={(event) => setCategory(event.target.value as CategoryFilter)}
-                className={`${selectClassName} w-full`}
-              >
-                <option value="all">Όλες</option>
-                <option value="sufix">Suffix</option>
-                <option value="groups">Groups</option>
-                <option value="b2b">B2B</option>
-              </select>
-            </label>
-
-            <label className="min-w-0">
-              <span className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
                 Group
               </span>
               <select
-                value={groupId}
+                value={groupCode}
                 onChange={(event) => {
                   const value = event.target.value;
-                  setGroupId(value);
-                  applySelectFilters(value, b2bId, needsExtra);
+                  setGroupCode(value);
+                  applySelectFilters(value, b2bCode);
                 }}
                 className={`${selectClassName} w-full`}
               >
                 <option value="">Όλα τα Groups</option>
                 {groups.map((group) => (
-                  <option key={group.ZGROUP_ID} value={group.ZGROUP_ID}>
+                  <option key={group.ZGROUP_ID} value={group.ZGROUP_CODE.trim()}>
                     {groupOptionLabel(group)}
                   </option>
                 ))}
@@ -332,17 +322,17 @@ export default function SuffixManagementClient() {
                 B2B
               </span>
               <select
-                value={b2bId}
+                value={b2bCode}
                 onChange={(event) => {
                   const value = event.target.value;
-                  setB2bId(value);
-                  applySelectFilters(groupId, value, needsExtra);
+                  setB2bCode(value);
+                  applySelectFilters(groupCode, value);
                 }}
                 className={`${selectClassName} w-full`}
               >
                 <option value="">Όλα τα B2B</option>
                 {b2bEntries.map((entry) => (
-                  <option key={entry.ZB2B_ID} value={entry.ZB2B_ID}>
+                  <option key={entry.ZB2B_ID} value={entry.ZB2B_CODE.trim()}>
                     {b2bOptionLabel(entry)}
                   </option>
                 ))}
@@ -351,19 +341,37 @@ export default function SuffixManagementClient() {
 
             <label className="min-w-0">
               <span className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
-                Needs Extra
+                Όνομα Προμηθευτή
               </span>
               <select
-                value={needsExtra ? "1" : ""}
-                onChange={(event) => {
-                  const value = event.target.value === "1";
-                  setNeedsExtra(value);
-                  applySelectFilters(groupId, b2bId, value);
-                }}
+                value={supplierName}
+                onChange={(event) => setSupplierName(event.target.value)}
                 className={`${selectClassName} w-full`}
               >
-                <option value="">Όλα</option>
-                <option value="1">Προς συμπλήρωση</option>
+                <option value="">Όλοι οι προμηθευτές</option>
+                {supplierNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="min-w-0">
+              <span className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                Προτεινόμενος προμηθευτής
+              </span>
+              <select
+                value={suggestedTraderName}
+                onChange={(event) => setSuggestedTraderName(event.target.value)}
+                className={`${selectClassName} w-full`}
+              >
+                <option value="">Όλοι οι προτεινόμενοι</option>
+                {suggestedTraderNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -411,26 +419,29 @@ export default function SuffixManagementClient() {
               </button>
             }
           />
-        ) : visibleItems.length === 0 ? (
+        ) : visibleRows.length === 0 ? (
           <DataTableEmptyState
             icon={<Table2 className="h-7 w-7" />}
             title="Δεν βρέθηκαν εγγραφές"
             description={
-              category !== "all"
-                ? "Δεν υπάρχουν εγγραφές στην επιλεγμένη κατηγορία."
-                : hasActiveFilters
+              hasActiveFilters
                 ? "Δεν υπάρχουν εγγραφές που να ταιριάζουν με τα επιλεγμένα φίλτρα."
-                : "Το Soft1 δεν επέστρεψε εγγραφές Suffix, Groups ή B2B."
+                : "Το Soft1 δεν επέστρεψε εγγραφές Suffix."
             }
           />
         ) : (
           <div className="max-h-[70vh] max-w-full overflow-auto overscroll-contain">
-            <table className="w-full min-w-[1240px] table-fixed divide-y divide-gray-100 text-left text-xs dark:divide-gray-800 [&_td]:!px-2 [&_td]:!py-2 [&_th]:!px-2 [&_th]:!py-2.5">
+            <table className="w-full min-w-[2040px] table-fixed divide-y divide-gray-100 text-left text-xs dark:divide-gray-800 [&_td]:!px-2 [&_td]:!py-2 [&_th]:!px-2 [&_th]:!py-2.5">
               <thead className="bg-gray-50 text-[10px] uppercase tracking-normal text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-400 [&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-gray-50 dark:[&_th]:bg-gray-900">
                 <tr>
-                  <th className="w-[76px] px-4 py-3 font-semibold">Κατηγορία</th>
                   <th className="w-[62px] px-4 py-3 font-semibold">SOSUFIX</th>
-                  <th className="w-[132px] px-4 py-3 font-semibold">NAME</th>
+                  <th className="w-[150px] px-4 py-3 font-semibold">NAME</th>
+                  <th className="w-[62px] text-right font-semibold">PERCNT01</th>
+                  <th className="w-[62px] text-right font-semibold">PERCNT02</th>
+                  <th className="w-[62px] text-right font-semibold">PERCNT03</th>
+                  <th className="w-[62px] text-right font-semibold">PERCNT04</th>
+                  <th className="w-[62px] text-right font-semibold">PERCNT05</th>
+                  <th className="w-[72px] font-semibold">ISACTIVE</th>
                   <th className="w-[60px] !px-1.5 font-semibold leading-3">
                     ZGROUP_<wbr />ID
                   </th>
@@ -443,99 +454,69 @@ export default function SuffixManagementClient() {
                   <th className="w-[78px] !px-1.5 font-semibold leading-3">
                     ZB2B_<wbr />CODE
                   </th>
-                  <th className="w-[104px] !px-1.5 font-semibold leading-3">
+                  <th className="w-[90px] !px-1.5 font-semibold leading-3">
+                    SUPPLIER_<wbr />CODE
+                  </th>
+                  <th className="w-[130px] !px-1.5 font-semibold leading-3">
                     SUPPLIER_<wbr />NAME
                   </th>
-                  <th className="w-[62px] px-3 py-3 text-right font-semibold">PERCNT01</th>
-                  <th className="w-[62px] px-3 py-3 text-right font-semibold">PERCNT02</th>
-                  <th className="w-[62px] px-3 py-3 text-right font-semibold">PERCNT03</th>
-                  <th className="w-[62px] px-3 py-3 text-right font-semibold">PERCNT04</th>
-                  <th className="w-[62px] px-3 py-3 text-right font-semibold">PERCNT05</th>
-                  <th className="w-[72px] px-4 py-3 font-semibold">ISACTIVE</th>
-                  <th className="w-[96px] px-4 py-3 font-semibold">NEEDS_EXTRA</th>
+                  <th className="w-[180px] font-semibold">REMARKS</th>
+                  <th className="w-[150px] font-semibold">NOTES</th>
+                  <th className="w-[90px] font-semibold leading-3">
+                    SUGGESTED_<wbr />TRDR
+                  </th>
+                  <th className="w-[110px] font-semibold leading-3">
+                    SUGGESTED_<wbr />TRDR_CODE
+                  </th>
+                  <th className="w-[160px] font-semibold leading-3">
+                    SUGGESTED_<wbr />TRDR_NAME
+                  </th>
+                  <th className="w-[80px] font-semibold leading-3">
+                    EXTRA_<wbr />ACTIVE
+                  </th>
+                  <th className="w-[96px] font-semibold">NEEDS_EXTRA</th>
                   <th className="w-[86px] !px-1.5 text-right font-semibold">ΕΝΕΡΓΕΙΕΣ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
-                {visibleItems.map((item) => {
-                  if (item.category === "groups") {
-                    return (
-                      <tr
-                        key={item.key}
-                        className="transition hover:bg-gray-50/80 dark:hover:bg-white/[0.02]"
-                      >
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <CategoryBadge category="groups" />
-                        </td>
-                        <td className="px-4 py-3 text-gray-400">—</td>
-                        <td className="px-4 py-3 text-gray-400">—</td>
-                        <td className="whitespace-nowrap !px-1.5 font-mono font-semibold text-gray-900 dark:text-white">
-                          {item.group.ZGROUP_ID}
-                        </td>
-                        <td className="!px-1.5">
-                          <span
-                            className="block truncate"
-                            title={groupOptionLabel(item.group)}
-                          >
-                            {groupOptionLabel(item.group)}
-                          </span>
-                        </td>
-                        <td className="!px-1.5 text-gray-400">—</td>
-                        <td className="!px-1.5 text-gray-400">—</td>
-                        <td colSpan={9} className="px-4 py-3 text-gray-400">
-                          —
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  if (item.category === "b2b") {
-                    return (
-                      <tr
-                        key={item.key}
-                        className="transition hover:bg-gray-50/80 dark:hover:bg-white/[0.02]"
-                      >
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <CategoryBadge category="b2b" />
-                        </td>
-                        <td className="!px-1.5 text-gray-400">—</td>
-                        <td className="!px-1.5 text-gray-400">—</td>
-                        <td className="!px-1.5 text-gray-400">—</td>
-                        <td className="!px-1.5 text-gray-400">—</td>
-                        <td className="whitespace-nowrap !px-1.5 font-mono font-semibold text-gray-900 dark:text-white">
-                          {item.b2b.ZB2B_ID}
-                        </td>
-                        <td className="!px-1.5">
-                          <span
-                            className="block truncate"
-                            title={b2bOptionLabel(item.b2b)}
-                          >
-                            {b2bOptionLabel(item.b2b)}
-                          </span>
-                        </td>
-                        <td colSpan={9} className="px-4 py-3 text-gray-400">
-                          —
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  const row = item.suffix;
-
-                  return (
+                {visibleRows.map((row, index) => (
                     <tr
-                      key={item.key}
+                      key={`${row.SOSUFIX}-${index}`}
                       className="transition hover:bg-gray-50/80 dark:hover:bg-white/[0.02]"
                     >
-                      <td className="whitespace-nowrap px-4 py-3">
-                        <CategoryBadge category="sufix" />
-                      </td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono font-semibold text-gray-900 dark:text-white">
                         {row.SOSUFIX}
                       </td>
                       <td className="max-w-64 px-4 py-3">
                         <span className="block truncate" title={row.NAME || undefined}>
                           {displayValue(row.NAME)}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap text-right tabular-nums">
+                        {displayValue(row.PERCNT01)}
+                      </td>
+                      <td className="whitespace-nowrap text-right tabular-nums">
+                        {displayValue(row.PERCNT02)}
+                      </td>
+                      <td className="whitespace-nowrap text-right tabular-nums">
+                        {displayValue(row.PERCNT03)}
+                      </td>
+                      <td className="whitespace-nowrap text-right tabular-nums">
+                        {displayValue(row.PERCNT04)}
+                      </td>
+                      <td className="whitespace-nowrap text-right tabular-nums">
+                        {displayValue(row.PERCNT05)}
+                      </td>
+                      <td className="whitespace-nowrap">
+                        <span
+                          className={[
+                            "inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold",
+                            row.ISACTIVE === 1
+                              ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                              : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+                          ].join(" ")}
+                        >
+                          {row.ISACTIVE === 1 ? "Ενεργό" : "Ανενεργό"}
                         </span>
                       </td>
                       <td className="!px-1.5 tabular-nums">
@@ -582,7 +563,15 @@ export default function SuffixManagementClient() {
                           {displayValue(row.ZB2B_CODE)}
                         </span>
                       </td>
-                      <td className="max-w-56 !px-1.5">
+                      <td className="!px-1.5">
+                        <span
+                          className="block truncate"
+                          title={row.SUPPLIER_CODE || undefined}
+                        >
+                          {displayValue(row.SUPPLIER_CODE)}
+                        </span>
+                      </td>
+                      <td className="!px-1.5">
                         <span
                           className="block truncate"
                           title={row.SUPPLIER_NAME || undefined}
@@ -590,24 +579,54 @@ export default function SuffixManagementClient() {
                           {displayValue(row.SUPPLIER_NAME)}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">{displayValue(row.PERCNT01)}</td>
-                      <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">{displayValue(row.PERCNT02)}</td>
-                      <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">{displayValue(row.PERCNT03)}</td>
-                      <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">{displayValue(row.PERCNT04)}</td>
-                      <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">{displayValue(row.PERCNT05)}</td>
-                      <td className="whitespace-nowrap px-4 py-3">
+                      <td>
+                        <span
+                          className="block truncate"
+                          title={row.REMARKS || undefined}
+                        >
+                          {displayValue(row.REMARKS)}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className="block truncate"
+                          title={row.NOTES || undefined}
+                        >
+                          {displayValue(row.NOTES)}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap tabular-nums">
+                        {displayValue(row.SUGGESTED_TRDR)}
+                      </td>
+                      <td>
+                        <span
+                          className="block truncate"
+                          title={row.SUGGESTED_TRDR_CODE || undefined}
+                        >
+                          {displayValue(row.SUGGESTED_TRDR_CODE)}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className="block truncate"
+                          title={row.SUGGESTED_TRDR_NAME || undefined}
+                        >
+                          {displayValue(row.SUGGESTED_TRDR_NAME)}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap">
                         <span
                           className={[
                             "inline-flex rounded-full px-2 py-0.5 text-[9px] font-semibold",
-                            row.ISACTIVE === 1
+                            row.EXTRA_ACTIVE === 1
                               ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
                               : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
                           ].join(" ")}
                         >
-                          {row.ISACTIVE === 1 ? "Ενεργό" : "Ανενεργό"}
+                          {row.EXTRA_ACTIVE === 1 ? "Ενεργό" : "Ανενεργό"}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3">
+                      <td className="whitespace-nowrap">
                         {row.NEEDS_EXTRA === 1 ? (
                           <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
                             Προς συμπλήρωση
@@ -650,8 +669,7 @@ export default function SuffixManagementClient() {
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
           </div>

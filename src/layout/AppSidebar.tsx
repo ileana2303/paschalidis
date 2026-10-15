@@ -16,10 +16,12 @@ import {
   SlidersHorizontal,
   Users,
   GitCompareArrows,
+  Handshake,
   type LucideIcon,
   Send,
   Truck,
   UserSearch,
+  UsersRound,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
 import { ListTodo, ShoppingBasket, Warehouse } from "lucide-react";
@@ -68,6 +70,16 @@ const navItems: NavItem[] = [
         icon: SlidersHorizontal,
         name: "Διαχείριση Suffix",
         path: "/suffix-management",
+      },
+      {
+        icon: UsersRound,
+        name: "Διαχείριση Group",
+        path: "/group-management",
+      },
+      {
+        icon: Handshake,
+        name: "Διαχείριση B2B",
+        path: "/b2b-management",
       },
       {
         icon: Truck,
