@@ -599,8 +599,6 @@ export default function SearchPartsClient() {
                         selectedTotal={basketController.selectedTotal}
                         receiptType={basketController.receiptType}
                         onReceiptTypeChange={basketController.setReceiptType}
-                        pickupPoint={basketController.pickupPoint}
-                        onPickupPointChange={basketController.setPickupPoint}
                         notes={basketController.notes}
                         onNotesChange={basketController.setNotes}
                         onSendOrder={handleSendOrder}

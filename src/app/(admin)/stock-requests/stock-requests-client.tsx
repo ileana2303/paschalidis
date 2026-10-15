@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import StockOrderSummary from "@/components/stock/stock-order-summary";
 import {
@@ -18,7 +18,6 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
-import StatusBadge from "@/components/ui/data-table/status-badge";
 import type {
     IStockRequestListRow,
     StockRequestUpdateAction,
@@ -34,6 +33,7 @@ import { normalizeBranchCode } from "@/lib/auth/branches";
 import { getBranchColor } from "@/lib/branch-colors";
 import toast from "react-hot-toast";
 import { useSessionState } from "@/hooks/useSessionState";
+import { useLoadOnChange } from "@/hooks/useLoadOnChange";
 import {
     STOCK_BRANCH_COLUMNS,
     STOCK_REQUEST_BRANCH_OPTIONS,
@@ -51,7 +51,6 @@ import {
 
 export default function StockRequestsClient() {
     const user = useAuthStore((state) => state.user);
-
     const currentBranchCode = useMemo(
         () => normalizeBranchCode(user?.mainBranch),
         [user?.mainBranch]
@@ -74,7 +73,11 @@ export default function StockRequestsClient() {
         ""
     );
     const [notes, setNotes] = useSessionState("stock-requests-notes", "");
-    const [selectedBranchCode, setSelectedBranchCode] = useState<StockBranchCode | "">("");
+    const [selectedBranchCode, setSelectedBranchCode] = useState<StockBranchCode>(() => {
+        return isStockRequestBranchCode(currentBranchCode)
+            ? currentBranchCode
+            : STOCK_REQUEST_BRANCH_OPTIONS[0].code;
+    });
 
     const selectedBranchLabel = useMemo(() => {
         const selectedBranch = STOCK_REQUEST_BRANCH_OPTIONS.find(
@@ -89,10 +92,6 @@ export default function StockRequestsClient() {
     }, [selectedBranchCode]);
 
     const orderedStockBranchColumns = useMemo(() => {
-        if (!selectedBranchCode) {
-            return STOCK_BRANCH_COLUMNS;
-        }
-
         const selectedColumn = STOCK_BRANCH_COLUMNS.find(
             (column) => column.code === selectedBranchCode
         );
@@ -107,26 +106,7 @@ export default function StockRequestsClient() {
         ];
     }, [selectedBranchCode]);
 
-    useEffect(() => {
-        if (selectedBranchCode) {
-            return;
-        }
-
-        const normalizedCurrentBranch = normalizeBranchCode(currentBranchCode);
-
-        if (isStockRequestBranchCode(normalizedCurrentBranch)) {
-            setSelectedBranchCode(normalizedCurrentBranch);
-            return;
-        }
-
-        setSelectedBranchCode(STOCK_REQUEST_BRANCH_OPTIONS[0].code);
-    }, [currentBranchCode, selectedBranchCode]);
-
     const loadRows = useCallback(async () => {
-        if (!selectedBranchCode) {
-            return;
-        }
-
         setLoading(true);
 
         try {
@@ -150,10 +130,6 @@ export default function StockRequestsClient() {
     }, [fetchStockRequests, selectedBranchCode]);
 
     const refreshRows = async () => {
-        if (!selectedBranchCode) {
-            return;
-        }
-
         try {
             const data = await fetchStockRequests({
                 branch: selectedBranchCode,
@@ -169,16 +145,10 @@ export default function StockRequestsClient() {
         }
     };
 
-    useEffect(() => {
-        if (!selectedBranchCode) {
-            return;
-        }
-
-        void loadRows();
-    }, [loadRows, selectedBranchCode]);
+    useLoadOnChange(loadRows);
 
     useRequestListIntervalRefresh({
-        enabled: Boolean(selectedBranchCode),
+        enabled: true,
         refetch: refreshRows,
     });
 
@@ -399,7 +369,7 @@ export default function StockRequestsClient() {
         selectedBranchCode,
         setNotes,
         submitAnatrofOrder,
-        user?.username,
+        user,
     ]);
 
     return (

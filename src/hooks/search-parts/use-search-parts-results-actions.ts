@@ -219,7 +219,7 @@ export function useSearchPartsResultsActions({
         setEndoBasketSuccess,
         setEndoPendingQuantities,
         setEndoRequestedQty,
-        user?.username,
+        user,
     ]);
 
     const isAddingToEndoBasket = useCallback((

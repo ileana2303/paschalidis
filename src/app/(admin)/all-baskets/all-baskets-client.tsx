@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import DataTable from "@/components/ui/data-table/data-table";
@@ -26,6 +26,7 @@ import { normalizeBranchCode } from "@/lib/auth/branches";
 import { useAuthStore } from "@/stores/authStore";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useSessionState } from "@/hooks/useSessionState";
+import { useLoadOnChange } from "@/hooks/useLoadOnChange";
 import {
   BASKET_BRANCH_OPTIONS,
   DEFAULT_PAGE_SIZE,
@@ -43,10 +44,6 @@ export default function AllBasketsClient() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const setCustomer = useCustomerStore((state) => state.setCustomer);
-  const currentBranchCode = useMemo(
-    () => normalizeBranchCode(user?.mainBranch),
-    [user?.mainBranch]
-  );
   const { mutateAsync: fetchAllClientBaskets } =
     useFetchAllClientBasketsMutation();
   const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
@@ -66,33 +63,19 @@ export default function AllBasketsClient() {
   const [totalcount, setTotalcount] = useState(0);
   const [rows, setRows] = useState<BasketListRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBranchCode, setSelectedBranchCode] = useState<
-    BasketBranchCode | ""
-  >("");
+  const [selectedBranchCode, setSelectedBranchCode] = useState<BasketBranchCode>(
+    () => {
+      const currentBranchCode = normalizeBranchCode(user?.mainBranch);
+      return isBasketBranchCode(currentBranchCode)
+        ? currentBranchCode
+        : BASKET_BRANCH_OPTIONS[0].code;
+    }
+  );
   const [deletingSelected, setDeletingSelected] = useState(false);
   const [navigatingTrdr, setNavigatingTrdr] = useState<string | null>(null);
   const [selectedTrdrs, setSelectedTrdrs] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (selectedBranchCode) {
-      return;
-    }
-
-    const normalizedCurrentBranch = normalizeBranchCode(currentBranchCode);
-
-    if (isBasketBranchCode(normalizedCurrentBranch)) {
-      setSelectedBranchCode(normalizedCurrentBranch);
-      return;
-    }
-
-    setSelectedBranchCode(BASKET_BRANCH_OPTIONS[0].code);
-  }, [currentBranchCode, selectedBranchCode]);
-
   const loadData = useCallback(async () => {
-    if (!selectedBranchCode) {
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -120,13 +103,7 @@ export default function AllBasketsClient() {
     }
   }, [appliedSearch, fetchAllClientBaskets, page, pageSize, selectedBranchCode]);
 
-  useEffect(() => {
-    if (!selectedBranchCode) {
-      return;
-    }
-
-    void loadData();
-  }, [loadData, selectedBranchCode]);
+  useLoadOnChange(loadData);
 
   const handleSearchOrRefresh = useCallback(() => {
     const normalizedSearch = searchInput.trim() || DEFAULT_SEARCH;

@@ -56,24 +56,6 @@ import {
 
 const EMPTY_PICKING_ORDERS: PickingListOrder[] = [];
 
-function setsEqual(left: Set<string>, right: Set<string>) {
-  if (left.size !== right.size) return false;
-
-  for (const value of left) {
-    if (!right.has(value)) return false;
-  }
-
-  return true;
-}
-
-function pruneFindocSet(current: Set<string>, allowedFindocs: Set<string>) {
-  const next = new Set(
-    Array.from(current).filter((findoc) => allowedFindocs.has(findoc))
-  );
-
-  return setsEqual(current, next) ? current : next;
-}
-
 type PickingOrderRowProps = {
   order: PickingListOrder;
   activeBranch: string;
@@ -903,23 +885,27 @@ export default function PickingListClient() {
     );
   }, [error, isError]);
 
-  const orderFindocsKey = useMemo(
-    () => orders.map((order) => order.findoc).join("\u0000"),
-    [orders]
+  const branchOptions = useMemo(
+    () => getUserBranchOptions(user, permissions),
+    [permissions, user]
   );
+  const activeBranch = useMemo(() => {
+    const validCodes = new Set(branchOptions.map((branch) => branch.code));
 
-  useEffect(() => {
-    const allowedFindocs = new Set(
-      orderFindocsKey ? orderFindocsKey.split("\u0000") : []
-    );
+    if (selectedBranch && validCodes.has(selectedBranch)) {
+      return selectedBranch;
+    }
 
-    setSelectedFindocs((current) => pruneFindocSet(current, allowedFindocs));
-    setExpandedFindocs((current) => pruneFindocSet(current, allowedFindocs));
-  }, [orderFindocsKey]);
+    if (currentBranch && validCodes.has(currentBranch)) {
+      return currentBranch;
+    }
+
+    return branchOptions[0]?.code ?? "";
+  }, [branchOptions, currentBranch, selectedBranch]);
 
   usePickingListIntervalNotifications({
-    branch: selectedBranch,
-    enabled: !isLoading && Boolean(selectedBranch),
+    branch: activeBranch,
+    enabled: !isLoading && Boolean(activeBranch),
     orders,
     refetch,
   });
@@ -942,34 +928,15 @@ export default function PickingListClient() {
     setExpandedFindocs(new Set());
   }, [currentBranch]);
 
-  const branchOptions = useMemo(
-    () => getUserBranchOptions(user, permissions),
-    [permissions, user]
-  );
-
-  useEffect(() => {
-    if (branchOptions.length === 0) return;
-
-    const validCodes = new Set(branchOptions.map((branch) => branch.code));
-    if (selectedBranch && validCodes.has(selectedBranch)) return;
-
-    const nextBranch =
-      currentBranch && validCodes.has(currentBranch)
-        ? currentBranch
-        : branchOptions[0].code;
-
-    setSelectedBranch(nextBranch);
-  }, [branchOptions, currentBranch, selectedBranch]);
-
   const visibleOrders = useMemo(
     () =>
       orders.filter(
         (order) =>
-          order.branch === selectedBranch &&
+          order.branch === activeBranch &&
           (statusFilter === "ALL" || order.status === statusFilter) &&
           matchesPickingOrderSearch(order, searchTerm)
       ),
-    [orders, searchTerm, selectedBranch, statusFilter]
+    [activeBranch, orders, searchTerm, statusFilter]
   );
 
   const visibleFindocs = useMemo(
@@ -1063,13 +1030,13 @@ export default function PickingListClient() {
   );
 
   useEffect(() => {
-    if (isLoading || !selectedBranch) return;
+    if (isLoading || !activeBranch) return;
 
     const ordersToLoad = orders.flatMap((order) => {
       const status = getAutomaticPickingStatus(order.status);
 
       if (
-        order.branch !== selectedBranch ||
+        order.branch !== activeBranch ||
         !status ||
         automaticLoadAttemptedFindocs.current.has(order.findoc)
       ) {
@@ -1096,7 +1063,7 @@ export default function PickingListClient() {
         )
       )
     );
-  }, [isLoading, orders, persistOrderUpdate, selectedBranch]);
+  }, [activeBranch, isLoading, orders, persistOrderUpdate]);
 
   const handleToggleExpanded = useCallback(
     (order: PickingListOrder, expanded: boolean) => {
@@ -1302,15 +1269,15 @@ export default function PickingListClient() {
                 {branchOptions.length <= 1 ? (
                   <span
                     className="min-w-0 flex-1 truncate text-xs font-semibold normal-case text-gray-700 sm:min-w-[140px] sm:flex-none dark:text-gray-200"
-                    title={formatBranchLabel(selectedBranch)}
+                    title={formatBranchLabel(activeBranch)}
                   >
-                    {formatBranchLabel(selectedBranch)}
+                    {formatBranchLabel(activeBranch)}
                   </span>
                 ) : (
                   <label className="min-w-0 flex-1 sm:min-w-[140px] sm:flex-none">
                     <span className="sr-only">Επιλογή καταστήματος</span>
                     <select
-                      value={selectedBranch}
+                      value={activeBranch}
                       onChange={(event) => {
                         const nextBranch = normalizeBranchCode(
                           event.target.value
@@ -1404,7 +1371,7 @@ export default function PickingListClient() {
               <PickingOrderCard
                 key={`mobile-${order.findoc}-${order.pickerComment}`}
                 order={order}
-                activeBranch={selectedBranch}
+                activeBranch={activeBranch}
                 expanded={expandedFindocs.has(order.findoc)}
                 selected={selectedFindocs.has(order.findoc)}
                 pickedDetailKeys={pickedDetailKeys}
@@ -1495,7 +1462,7 @@ export default function PickingListClient() {
                   <PickingOrderRow
                     key={`${order.findoc}-${order.pickerComment}`}
                     order={order}
-                    activeBranch={selectedBranch}
+                    activeBranch={activeBranch}
                     expanded={expandedFindocs.has(order.findoc)}
                     selected={selectedFindocs.has(order.findoc)}
                     pickedDetailKeys={pickedDetailKeys}
@@ -1519,14 +1486,14 @@ export default function PickingListClient() {
             <span>
               {visibleOrders.length} παραγγελίες · {selectedVisibleCount} επιλεγμένες
             </span>
-            <span>{formatBranchLabel(selectedBranch)}</span>
+            <span>{formatBranchLabel(activeBranch)}</span>
           </div>
         )}
       </DataTable>
       </div>
       <PickingListPrintView
         orders={visibleOrders}
-        activeBranch={selectedBranch}
+        activeBranch={activeBranch}
         pickedDetailKeys={pickedDetailKeys}
         nowMs={nowMs}
       />

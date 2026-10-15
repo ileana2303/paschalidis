@@ -7,7 +7,6 @@ import PageBreadcrumb from "@/components/template-components/common/PageBreadCru
 import Label from "@/components/template-components/form/Label";
 import Input from "@/components/template-components/form/input/InputField";
 import DataTable from "@/components/ui/data-table/data-table";
-import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import { FileSpreadsheet, Loader2, Upload } from "@/lib/icons/lucide";
 import { useUploadSupplierPriceCatalogMutation } from "@/hooks/queries/useSupplierPriceCatalogMutations";
 import { useWarnBeforeLeaveWhileBusy } from "@/hooks/useWarnBeforeLeaveWhileBusy";

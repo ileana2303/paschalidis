@@ -19,6 +19,7 @@ import {
     mapEndoRequestedRows,
 } from "@/lib/utils/endo";
 import { useModal } from "@/hooks/useModal";
+import { useLoadOnChange } from "@/hooks/useLoadOnChange";
 import PartsSearchModal from "@/components/search/parts-search-modal";
 import SearchBar from "@/components/search/search-bar";
 import ResultsFilterInput from "@/components/search/results-filter-input";
@@ -42,7 +43,6 @@ export default function EndoPartsClient() {
     const [modalSearch, setModalSearch] = useState("");
     const [loading, setLoading] = useState(false);
     const [hasScrolledResults, setHasScrolledResults] = useState(false);
-    const [hasMounted, setHasMounted] = useState(false);
     const [isResultsScrollable, setIsResultsScrollable] = useState<boolean | null>(null);
     const [sidebarVisible, setSidebarVisible] = useState(true);
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -55,6 +55,7 @@ export default function EndoPartsClient() {
     const [summaryLoading, setSummaryLoading] = useState(true);
     const [basketError, setBasketError] = useState("");
     const [basketSuccess, setBasketSuccess] = useState("");
+    const pendingBasketItemIdRef = useRef(0);
     const search = useSearchEndoStore((state) => state.searchTerm);
     const setSearch = useSearchEndoStore((state) => state.setSearchTerm);
     const items = useSearchEndoStore((state) => state.items);
@@ -320,14 +321,8 @@ export default function EndoPartsClient() {
     }, [openSearchModal]);
 
     useEffect(() => {
-        setHasMounted(true);
+        searchInputRef.current?.focus();
     }, []);
-
-    useEffect(() => {
-        if (hasMounted) {
-            searchInputRef.current?.focus();
-        }
-    }, [hasMounted]);
 
     useEffect(() => {
         const updateScrollability = () => {
@@ -345,7 +340,7 @@ export default function EndoPartsClient() {
         return () => {
             window.removeEventListener("resize", updateScrollability);
         };
-    }, [hasMounted, items.length]);
+    }, [items.length]);
 
     useEffect(() => {
         if (isSearchModalOpen) {
@@ -353,9 +348,7 @@ export default function EndoPartsClient() {
         }
     }, [isSearchModalOpen]);
 
-    useEffect(() => {
-        void loadRequestedEndoLines();
-    }, [loadRequestedEndoLines]);
+    useLoadOnChange(loadRequestedEndoLines);
 
     useEffect(() => {
         const handleEnterShortcut = (event: KeyboardEvent) => {
@@ -624,7 +617,7 @@ export default function EndoPartsClient() {
             const nextBasketItem: EndoBasketUiItem = {
                 uid: basketId
                     ? `endo-${basketId}`
-                    : `endo-pending-${item.MTRL}-${sourceBranchCode}-${Date.now()}`,
+                    : `endo-pending-${item.MTRL}-${sourceBranchCode}-${pendingBasketItemIdRef.current++}`,
                 basketIds: basketId ? [basketId] : [],
                 mtrl: Number(item.MTRL),
                 qty: requestedQty,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
@@ -31,6 +31,7 @@ import type {
 } from "@/lib/interface";
 import toast from "react-hot-toast";
 import { useSessionState } from "@/hooks/useSessionState";
+import { useLoadOnChange } from "@/hooks/useLoadOnChange";
 import {
     QTY_ACTIONS_COLUMN_KEY,
     REQUESTED_QTY_COLUMN_KEY,
@@ -176,9 +177,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         }
     }, [currentBranchCode, fetchEndoLists, hasValidBranch, scope]);
 
-    useEffect(() => {
-        loadRows();
-    }, [loadRows]);
+    useLoadOnChange(loadRows);
 
     const filteredRows = useMemo(() => filterRows(rows, search), [rows, search]);
 
@@ -295,7 +294,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         deletingSelectedRows,
         loadRows,
         selectedBasketIds,
-        user?.username,
+        user,
     ]);
 
     const getResolvedQty = useCallback(
@@ -429,7 +428,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             isReceivedScope,
             resetEditedQuantity,
             updateEndoListQty,
-            user?.username,
+            user,
         ]
     );
 
@@ -511,7 +510,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
             loadRows,
             requestedQtyByRow,
             submitEndoBasketOrder,
-            user?.username,
+            user,
         ]
     );
 

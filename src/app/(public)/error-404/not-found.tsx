@@ -1,7 +1,6 @@
 import GridShape from "@/components/template-components/common/GridShape";
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
 
 export default function NotFound() {
   return (

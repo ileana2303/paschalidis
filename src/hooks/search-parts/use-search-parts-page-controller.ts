@@ -94,7 +94,7 @@ export function useSearchPartsPageController({
             setLoading(false);
         }
     }, [
-        customer?.TRDR,
+        customer,
         searchItems,
         searchItemsByTrdr,
         setHasSearched,

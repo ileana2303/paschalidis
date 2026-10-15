@@ -119,7 +119,6 @@ function PermissionsDetails({ record }: { record: UserWithPermissions }) {
 export default function UsersClient() {
     const router = useRouter();
     const currentUser = useAuthStore((state) => state.user);
-    const [mounted, setMounted] = useState(false);
     const [records, setRecords] = useState<UserWithPermissions[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [loadError, setLoadError] = useState("");
@@ -132,14 +131,10 @@ export default function UsersClient() {
     const { mutateAsync: saveUser } = useSaveUserMutation();
 
     useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if (mounted && currentUser?.isSuperAdmin !== 1) {
+        if (currentUser?.isSuperAdmin !== 1) {
             router.replace("/");
         }
-    }, [currentUser?.isSuperAdmin, mounted, router]);
+    }, [currentUser?.isSuperAdmin, router]);
 
     const loadUsers = useCallback(async () => {
         setLoadError("");
@@ -161,7 +156,6 @@ export default function UsersClient() {
 
     useEffect(() => {
         if (
-            !mounted ||
             currentUser?.isSuperAdmin !== 1 ||
             initialLoadStarted.current
         ) {
@@ -170,7 +164,7 @@ export default function UsersClient() {
 
         initialLoadStarted.current = true;
         void loadUsers();
-    }, [currentUser?.isSuperAdmin, loadUsers, mounted]);
+    }, [currentUser?.isSuperAdmin, loadUsers]);
 
     const upsertRecord = useCallback((savedRecord: UserWithPermissions) => {
         const normalized = normalizeRecord(savedRecord);
@@ -262,7 +256,7 @@ export default function UsersClient() {
         }
     };
 
-    if (!mounted || currentUser?.isSuperAdmin !== 1) {
+    if (currentUser?.isSuperAdmin !== 1) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
                 <Loader2 className="h-7 w-7 animate-spin text-brand-500" />
@@ -454,12 +448,15 @@ export default function UsersClient() {
                 )}
             </DataTable>
 
-            <UserFormModal
-                isOpen={isFormOpen}
-                record={editingRecord}
-                onClose={() => setIsFormOpen(false)}
-                onSaved={upsertRecord}
-            />
+            {isFormOpen && (
+                <UserFormModal
+                    key={editingRecord?.user.username ?? "new-user"}
+                    isOpen
+                    record={editingRecord}
+                    onClose={() => setIsFormOpen(false)}
+                    onSaved={upsertRecord}
+                />
+            )}
         </div>
     );
 }

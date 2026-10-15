@@ -9,15 +9,27 @@ export function useSessionState<T>(key: string, initialValue: T) {
     const namespacedKey = storageKey(key);
 
     useEffect(() => {
-        try {
-            const raw = sessionStorage.getItem(namespacedKey);
-            if (raw != null) {
-                setValue(JSON.parse(raw) as T);
+        let cancelled = false;
+
+        queueMicrotask(() => {
+            if (cancelled) {
+                return;
             }
-        } catch {
-            // Ignore invalid session payloads.
-        }
-        setHydrated(true);
+
+            try {
+                const raw = sessionStorage.getItem(namespacedKey);
+                if (raw != null) {
+                    setValue(JSON.parse(raw) as T);
+                }
+            } catch {
+                // Ignore invalid session payloads.
+            }
+            setHydrated(true);
+        });
+
+        return () => {
+            cancelled = true;
+        };
     }, [namespacedKey]);
 
     useEffect(() => {

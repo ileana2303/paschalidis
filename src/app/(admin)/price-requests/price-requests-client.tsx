@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import { Check, Loader2 } from "@/lib/icons/lucide";
 import DataTable from "@/components/ui/data-table/data-table";
@@ -19,6 +19,7 @@ import {
 } from "@/hooks/queries/useApiMutations";
 import { useRequestListIntervalRefresh } from "@/hooks/queries/useRequestListIntervalRefresh";
 import { useSessionState } from "@/hooks/useSessionState";
+import { useLoadOnChange } from "@/hooks/useLoadOnChange";
 import { resolveBranchName } from "@/lib/auth/branches";
 import { getBranchColor } from "@/lib/branch-colors";
 import {
@@ -238,9 +239,7 @@ export default function PriceRequestsClient() {
         }
     };
 
-    useEffect(() => {
-        void loadRows();
-    }, [loadRows]);
+    useLoadOnChange(loadRows);
 
     useRequestListIntervalRefresh({ refetch: refreshRows });
 

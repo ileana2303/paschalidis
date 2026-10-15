@@ -4,7 +4,7 @@ import Input from "@/components/template-components/form/input/InputField";
 import Label from "@/components/template-components/form/Label";
 import { ChevronLeft, Eye, EyeOff } from "@/lib/icons/lucide";
 import Link from "next/link";
-import React, { useState } from "react";
+import { useState } from "react";
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);

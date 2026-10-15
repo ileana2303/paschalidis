@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Modal } from "@/components/ui/modal";
 import Checkbox from "@/components/template-components/form/input/Checkbox";
@@ -18,7 +18,6 @@ import {
     useSaveUserMutation,
 } from "@/hooks/queries/useUserQueries";
 import type {
-    AppUser,
     NumericFlag,
     SaveUserRoutePayload,
     UserPermission,
@@ -247,12 +246,6 @@ export default function UserFormModal({
         useFetchUsersMutation();
     const { mutateAsync: submitUser, isPending: saving } = useSaveUserMutation();
     const isEditing = record !== null;
-
-    useEffect(() => {
-        if (isOpen) {
-            setForm(createFormState(record));
-        }
-    }, [isOpen, record]);
 
     const branchOptions = useMemo(() => {
         const knownOptions = getKnownBranchOptions();

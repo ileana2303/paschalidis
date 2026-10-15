@@ -37,14 +37,12 @@ export default function BasketClient() {
     const [basket, setBasket] = useState<IBasket | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
     const [orderSubmittedSuccess, setOrderSubmittedSuccess] = useState(false);
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [receiptType, setReceiptType] = useSessionState<ReceiptType>(
         "basket-receipt-type",
         "invoice"
     );
-    const [pickupPoint, setPickupPoint] = useSessionState("basket-pickup-point", "");
     const [notes, setNotes] = useSessionState("basket-notes", "");
     const [sendingOrder, setSendingOrder] = useState(false);
     const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
@@ -123,36 +121,47 @@ export default function BasketClient() {
     }, [fetchBasketItems]);
 
     useEffect(() => {
-        if (!urlTrdr) {
-            basketRequestIdRef.current += 1;
-            basketLoadInFlightRef.current = null;
-            basketLoadInFlightTrdrRef.current = null;
-            basketLoadInFlightIdRef.current = null;
-            if (customer) {
+        let cancelled = false;
+
+        queueMicrotask(() => {
+            if (cancelled) {
+                return;
+            }
+
+            if (!urlTrdr) {
+                basketRequestIdRef.current += 1;
+                basketLoadInFlightRef.current = null;
+                basketLoadInFlightTrdrRef.current = null;
+                basketLoadInFlightIdRef.current = null;
+                if (customer) {
+                    clearCustomer();
+                }
+                setBasket(null);
+                setError("");
+                setOrderSubmittedSuccess(false);
+                setSelectedItems(new Set());
+                setRemovingItems(new Set());
+                setRemovingSelectedItems(false);
+                setUpdatingQtyItems(new Set());
+                setRequestedPrices({});
+                setSubmittingRequestedPrices(new Set());
+                setLoading(false);
+                return;
+            }
+
+            const customerTrdr = String(customer?.TRDR ?? "").trim();
+            if (customerTrdr && customerTrdr !== urlTrdr) {
                 clearCustomer();
             }
-            setBasket(null);
-            setError("");
-            setSuccessMessage("");
-            setOrderSubmittedSuccess(false);
-            setSelectedItems(new Set());
-            setRemovingItems(new Set());
-            setRemovingSelectedItems(false);
-            setUpdatingQtyItems(new Set());
+
             setRequestedPrices({});
             setSubmittingRequestedPrices(new Set());
-            setLoading(false);
-            return;
-        }
+            void loadBasket(urlTrdr);
+        });
 
-        const customerTrdr = String(customer?.TRDR ?? "").trim();
-        if (customerTrdr && customerTrdr !== urlTrdr) {
-            clearCustomer();
-        }
-
-        setRequestedPrices({});
-        setSubmittingRequestedPrices(new Set());
-        loadBasket(urlTrdr);
+        return () => {
+            cancelled = true;
+        };
     }, [clearCustomer, customer, loadBasket, urlTrdr]);
 
     const refreshBasket = useCallback(() => {
@@ -227,7 +236,6 @@ export default function BasketClient() {
         }
 
         setError("");
-        setSuccessMessage("");
         setOrderSubmittedSuccess(false);
         setBasketItemQty(uid, normalizedQty);
         setUpdatingQtyItems((prev) => new Set(prev).add(uid));
@@ -238,7 +246,6 @@ export default function BasketClient() {
                 QTY: normalizedQty,
             });
             const message = "Η ποσότητα ενημερώθηκε";
-            setSuccessMessage(message);
             toast.success(message);
         } catch (err) {
             setBasketItemQty(uid, previousQty);
@@ -279,7 +286,6 @@ export default function BasketClient() {
         }
 
         setError("");
-        setSuccessMessage("");
         setOrderSubmittedSuccess(false);
         setSubmittingRequestedPrices((prev) => new Set(prev).add(uid));
 
@@ -290,7 +296,6 @@ export default function BasketClient() {
             });
             setRequestedPrices((prev) => ({ ...prev, [uid]: "" }));
             const message = "Το αίτημα τιμής υποβλήθηκε";
-            setSuccessMessage(message);
             toast.success(message);
             await refreshBasket();
         } catch (err) {
@@ -314,7 +319,6 @@ export default function BasketClient() {
 
         setSendingOrder(true);
         setError("");
-        setSuccessMessage("");
         setOrderSubmittedSuccess(false);
 
         try {
@@ -365,7 +369,6 @@ export default function BasketClient() {
         }
 
         setError("");
-        setSuccessMessage("");
         setOrderSubmittedSuccess(false);
 
         try {
@@ -376,7 +379,6 @@ export default function BasketClient() {
                 s1Key: "1305",
             });
             const message = "Αφαίρεση προϊόντος από το καλάθι";
-            setSuccessMessage(message);
             toast.success(message);
             await loadBasket(urlTrdr);
         } catch (err) {
@@ -512,8 +514,6 @@ export default function BasketClient() {
                     selectedTotal={selectedTotal}
                     receiptType={receiptType}
                     onReceiptTypeChange={setReceiptType}
-                    pickupPoint={pickupPoint}
-                    onPickupPointChange={setPickupPoint}
                     notes={notes}
                     onNotesChange={setNotes}
                     onSendOrder={handleSendOrder}

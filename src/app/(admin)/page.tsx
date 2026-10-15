@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { EcommerceMetrics } from "@/components/template-components/ecommerce/EcommerceMetrics";
 import MonthlySalesChart from "@/components/template-components/ecommerce/MonthlySalesChart";
-import StatisticsChart from "@/components/template-components/ecommerce/StatisticsChart";
 import RecentOrders from "@/components/template-components/ecommerce/RecentOrders";
 import ActiveBasketsCard from "@/components/template-components/ecommerce/ActiveBasketsCard";
 

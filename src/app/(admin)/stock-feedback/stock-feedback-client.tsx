@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import QuantityControl from "@/components/ui/quantity-control";
@@ -34,6 +34,7 @@ import toast from "react-hot-toast";
 import { getStockBranchOrder, normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { getBranchColor } from "@/lib/branch-colors";
 import { useSessionState } from "@/hooks/useSessionState";
+import { useLoadOnChange } from "@/hooks/useLoadOnChange";
 import {
   buildPendingStockState,
   formatDaysLabel,
@@ -191,9 +192,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
     }
   }, [currentBranchCode, days, fetchStockFeedback, fetchStockRequests]);
 
-  useEffect(() => {
-    loadRows();
-  }, [loadRows]);
+  useLoadOnChange(loadRows);
 
   const filteredRows = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();

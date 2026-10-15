@@ -48,7 +48,6 @@ export function useSearchPartsBasketController({
     const [basketError, setBasketError] = useState("");
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [receiptType, setReceiptType] = useState<ReceiptType>("invoice");
-    const [pickupPoint, setPickupPoint] = useState("");
     const [notes, setNotes] = useState("");
     const [orderSubmittedSuccess, setOrderSubmittedSuccess] = useState(false);
     const [sendingOrder, setSendingOrder] = useState(false);
@@ -200,25 +199,37 @@ export function useSearchPartsBasketController({
     }, [fetchBasketItems]);
 
     useEffect(() => {
-        if (customer?.TRDR) {
+        let cancelled = false;
+
+        queueMicrotask(() => {
+            if (cancelled) {
+                return;
+            }
+
+            if (customer?.TRDR) {
+                setBasketLineRequestedPrices({});
+                setSubmittingBasketLineRequestedPrices(new Set());
+                void loadBasket(customer.TRDR);
+                return;
+            }
+
+            basketRequestIdRef.current += 1;
+            basketLoadInFlightRef.current = null;
+            basketLoadInFlightTrdrRef.current = null;
+            basketLoadInFlightIdRef.current = null;
+            setBasket(null);
+            setBasketError("");
+            setOrderSubmittedSuccess(false);
+            setNotes("");
+            setSelectedItems(new Set());
             setBasketLineRequestedPrices({});
             setSubmittingBasketLineRequestedPrices(new Set());
-            void loadBasket(customer.TRDR);
-            return;
-        }
+            setBasketLoading(false);
+        });
 
-        basketRequestIdRef.current += 1;
-        basketLoadInFlightRef.current = null;
-        basketLoadInFlightTrdrRef.current = null;
-        basketLoadInFlightIdRef.current = null;
-        setBasket(null);
-        setBasketError("");
-        setOrderSubmittedSuccess(false);
-        setNotes("");
-        setSelectedItems(new Set());
-        setBasketLineRequestedPrices({});
-        setSubmittingBasketLineRequestedPrices(new Set());
-        setBasketLoading(false);
+        return () => {
+            cancelled = true;
+        };
     }, [customer?.TRDR, loadBasket]);
 
     const handleAddToBasket = useCallback(async (item: IItem) => {
@@ -726,8 +737,6 @@ export function useSearchPartsBasketController({
         selectedTotal,
         receiptType,
         setReceiptType,
-        pickupPoint,
-        setPickupPoint,
         notes,
         setNotes,
         orderSubmittedSuccess,

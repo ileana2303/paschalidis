@@ -15,7 +15,7 @@ import {
     useSearchItemsMutation,
     useUpdateEditableItemMutation,
 } from "@/hooks/queries/useApiMutations";
-import type { IItem, ItemEditFields } from "@/lib/interface";
+import type { ItemEditFields } from "@/lib/interface";
 import { useEditItemsSearchStore } from "@/stores/editItemsSearchStore";
 import {
     DISABLED_ITEM_FIELDS,

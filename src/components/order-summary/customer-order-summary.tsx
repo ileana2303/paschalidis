@@ -38,8 +38,6 @@ export interface CustomerOrderSummaryProps {
     selectedTotal?: number;
     receiptType?: ReceiptType;
     onReceiptTypeChange?: (type: ReceiptType) => void;
-    pickupPoint?: string;
-    onPickupPointChange?: (value: string) => void;
     notes?: string;
     onNotesChange?: (value: string) => void;
     onSendOrder?: () => void;
@@ -64,12 +62,6 @@ const receiptOptions = [
     { value: "invoice", label: "Τιμολόγιο" },
     { value: "receipt", label: "Απόδειξη" },
 ] satisfies Array<{ value: ReceiptType; label: string }>;
-
-const pickupPointOptions = [
-    { value: "1006", label: "Λ.Αθηνών" },
-    { value: "1007", label: "Λ.Μεσογείων" },
-    { value: "1000", label: "Κασομούλη" },
-];
 
 const formatPrice = (price: number | null) => {
     if (price == null) return "--";
@@ -114,44 +106,6 @@ function SegmentedControl<T extends string>({
     );
 }
 
-function SelectField<T extends string>({
-    id,
-    label,
-    icon,
-    value,
-    onChange,
-    placeholder,
-    options,
-    fieldClassName = "",
-}: {
-    id: string;
-    label: ReactNode;
-    icon?: ReactNode;
-    value: T;
-    onChange?: (value: T) => void;
-    placeholder?: ReactNode;
-    options: Array<{ value: T; label: ReactNode }>;
-    fieldClassName?: string;
-}) {
-    return (
-        <SummaryFormField label={label} icon={icon} htmlFor={id} className={fieldClassName}>
-            <select
-                id={id}
-                value={value}
-                onChange={(event) => onChange?.(event.target.value as T)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-            >
-                {placeholder && <option value="">{placeholder}</option>}
-                {options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                        {option.label}
-                    </option>
-                ))}
-            </select>
-        </SummaryFormField>
-    );
-}
-
 export default function CustomerOrderSummary({
     customer,
     basket,
@@ -164,8 +118,6 @@ export default function CustomerOrderSummary({
     selectedTotal,
     receiptType = "invoice",
     onReceiptTypeChange,
-    pickupPoint = "",
-    onPickupPointChange,
     notes = "",
     onNotesChange,
     onSendOrder,
@@ -343,17 +295,6 @@ export default function CustomerOrderSummary({
                     options={receiptOptions}
                 />
             </SummaryFormField>
-
-            {/* <SelectField
-                id="pickup-point"
-                label="Σημείο Παραλαβής"
-                icon={<MapPin className="h-4 w-4" />}
-                value={pickupPoint}
-                onChange={(value) => onPickupPointChange?.(value)}
-                placeholder="Επιλέξτε σημείο..."
-                options={pickupPointOptions}
-                fieldClassName="mt-5"
-            /> */}
 
             <SummaryTextareaField
                 id="order-notes"

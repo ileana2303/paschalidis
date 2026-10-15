@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Minus, Plus } from "@/lib/icons/lucide";
 
 export type QuantityControlSize = "sm" | "md";
@@ -97,14 +97,20 @@ export default function QuantityControl({
     const normalizedStep = Math.max(1, normalizeBoundary(step, 1));
 
     const boundedValue = clampQuantity(value, normalizedMin, normalizedMax);
-
-    const [inputValue, setInputValue] = useState(() =>
-        formatInputValue(boundedValue, displayZeroAsEmpty)
+    const formattedBoundedValue = formatInputValue(
+        boundedValue,
+        displayZeroAsEmpty
     );
 
-    useEffect(() => {
-        setInputValue(formatInputValue(boundedValue, displayZeroAsEmpty));
-    }, [boundedValue, displayZeroAsEmpty]);
+    const [lastExternalValue, setLastExternalValue] = useState(
+        formattedBoundedValue
+    );
+    const [inputValue, setInputValue] = useState(formattedBoundedValue);
+
+    if (formattedBoundedValue !== lastExternalValue) {
+        setLastExternalValue(formattedBoundedValue);
+        setInputValue(formattedBoundedValue);
+    }
 
     const sizeClasses = SIZE_CLASSES[size];
 
