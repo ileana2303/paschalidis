@@ -457,27 +457,35 @@ export default function EditItemsClient() {
                             <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
                                 Επιλέξτε είδος για επεξεργασία
                             </p>
+                            <div
+                                className="hidden gap-4 px-4 text-xs font-medium text-gray-500 sm:grid sm:grid-cols-[11rem_minmax(0,1fr)_11rem]"
+                                aria-hidden
+                            >
+                                <span>Κωδικός</span>
+                                <span>Περιγραφή</span>
+                                <span className="text-right">Κωδικός 2</span>
+                            </div>
                             {searchResults.map((item) => (
                                 <button
                                     key={item.MTRL}
                                     type="button"
                                     onClick={() => handleItemSelect(item.MTRL)}
-                                    className="grid w-full gap-2 rounded-xl border border-gray-200 p-4 text-left transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-800 dark:hover:bg-brand-950/20 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]"
+                                    className="grid w-full gap-2 rounded-xl border border-gray-200 p-4 text-left transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-800 dark:hover:bg-brand-950/20 sm:grid-cols-[11rem_minmax(0,1fr)_11rem] sm:items-start sm:gap-4"
                                 >
-                                    <div>
-                                        <p className="text-xs text-gray-500">Κωδικός</p>
+                                    <div className="min-w-0">
+                                        <p className="text-xs text-gray-500 sm:hidden">Κωδικός</p>
                                         <p className="font-semibold text-gray-900 dark:text-white">
                                             {item.ITEM_CODE || "—"}
                                         </p>
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500">Περιγραφή</p>
+                                    <div className="min-w-0">
+                                        <p className="text-xs text-gray-500 sm:hidden">Περιγραφή</p>
                                         <p className="font-medium text-gray-800 dark:text-gray-100">
                                             {item.ITEM_DESCR || "—"}
                                         </p>
                                     </div>
-                                    <div className="sm:text-right">
-                                        <p className="text-xs text-gray-500">Κωδικός 2</p>
+                                    <div className="min-w-0 sm:text-right">
+                                        <p className="text-xs text-gray-500 sm:hidden">Κωδικός 2</p>
                                         <p className="text-sm text-gray-700 dark:text-gray-300">
                                             {item.ITEM_CODE2 || "—"}
                                         </p>
