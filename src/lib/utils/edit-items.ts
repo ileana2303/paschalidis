@@ -2,11 +2,11 @@ import type { ItemEditFields, ItemEditValue } from "@/lib/interface";
 import { parseSoftOneNumber } from "@/lib/utils/number";
 
 export const EDIT_ITEM_CATALOG_PRICE_PAIRS = [
-    ["PRICEW01", "PRICEW08"],
-    ["PRICEW02", "PRICEW09"],
-    ["PRICEW03", "PRICEW10"],
-    ["PRICEW04", "PRICEW11"],
-    ["PRICEW05", "PRICEW12"],
+    ["PRICEW01", "CCCPRICEW13"],
+    ["PRICEW02", "CCCPRICEW14"],
+    ["PRICEW03", "CCCPRICEW15"],
+    ["PRICEW04", "CCCPRICEW16"],
+    ["PRICEW05", "CCCPRICEW17"],
 ] as const;
 
 export const SALE_TO_COMPUTED_PRICE: Record<string, string> = Object.fromEntries(
@@ -14,13 +14,12 @@ export const SALE_TO_COMPUTED_PRICE: Record<string, string> = Object.fromEntries
 );
 
 export const DISABLED_ITEM_FIELDS = new Set([
-    "STANDCOST",
     "MTRUNIT1",
-    "PRICEW08",
-    "PRICEW09",
-    "PRICEW10",
-    "PRICEW11",
-    "PRICEW12",
+    "CCCPRICEW13",
+    "CCCPRICEW14",
+    "CCCPRICEW15",
+    "CCCPRICEW16",
+    "CCCPRICEW17",
 ]);
 
 export function toItemEditInputValue(value: ItemEditValue): string {

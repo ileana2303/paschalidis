@@ -15,7 +15,7 @@ import {
     useSearchItemsMutation,
     useUpdateEditableItemMutation,
 } from "@/hooks/queries/useApiMutations";
-import type { ItemEditFields } from "@/lib/interface";
+import type { IItem, ItemEditFields } from "@/lib/interface";
 import { useEditItemsSearchStore } from "@/stores/editItemsSearchStore";
 import {
     DISABLED_ITEM_FIELDS,
@@ -36,13 +36,12 @@ const EDITABLE_FIELDS = [
     { name: "MTRUNIT1", label: "Μονάδα μέτρησης" },
     { name: "NAME", label: "Περιγραφή" },
     { name: "PRICEW", label: "Τιμή χονδρικής (€)" },
-    { name: "STANDCOST", label: "Υπολογισμός τιμών βάσει SUFIX (€)" },
     ...[1, 2, 3, 4, 5].map((priceList) => ({
         name: `PRICEW${String(priceList).padStart(2, "0")}`,
         label: `Τιμές πώλησης ${String(priceList).padStart(2, "0")}`,
     })),
-    ...[8, 9, 10, 11, 12].map((priceList, index) => ({
-        name: `PRICEW${String(priceList).padStart(2, "0")}`,
+    ...[13, 14, 15, 16, 17].map((priceList, index) => ({
+        name: `CCCPRICEW${priceList}`,
         label: `Υπολογισμένες τιμές πώλησης ${String(index + 1).padStart(2, "0")} (€)`,
     })),
     { name: "MTRMANFCTR", label: "Κατασκευαστής" },
@@ -71,6 +70,20 @@ const INPUT_CLASS_NAME =
 
 const READONLY_VALUE_CLASS_NAME =
     "flex h-11 w-full items-center text-sm font-medium text-gray-900 dark:text-white";
+
+const ITEM_SEARCH_COMPUTED_PRICE_FIELDS = [
+    "CCCPRICEW13",
+    "CCCPRICEW14",
+    "CCCPRICEW15",
+    "CCCPRICEW16",
+    "CCCPRICEW17",
+] as const;
+
+function getItemSearchComputedPrices(item: IItem): ItemEditFields {
+    return Object.fromEntries(
+        ITEM_SEARCH_COMPUTED_PRICE_FIELDS.map((name) => [name, item[name]])
+    );
+}
 
 function Bool03Dropdown({
     value,
@@ -271,7 +284,7 @@ export default function EditItemsClient() {
         }
     };
 
-    const loadItem = async (key: string) => {
+    const loadItem = async (key: string, searchItem: IItem) => {
         const normalizedKey = String(key ?? "").trim();
         if (!normalizedKey) return;
 
@@ -290,10 +303,14 @@ export default function EditItemsClient() {
             }
 
             const nextItemExtra = normalizeItemExtra(data.itemExtra);
+            const nextFields = {
+                ...item,
+                ...getItemSearchComputedPrices(searchItem),
+            };
 
             setLoadedKey(data.key || normalizedKey);
-            setOriginalFields(item);
-            setFields(item);
+            setOriginalFields(nextFields);
+            setFields(nextFields);
             setOriginalItemExtra(nextItemExtra);
             setItemExtra(nextItemExtra);
         } catch (requestError) {
@@ -310,8 +327,8 @@ export default function EditItemsClient() {
         }
     };
 
-    const handleItemSelect = (key: string) => {
-        const normalizedKey = String(key ?? "").trim();
+    const handleItemSelect = (item: IItem) => {
+        const normalizedKey = String(item.MTRL ?? "").trim();
         if (!normalizedKey) {
             toast.error("Το είδος δεν περιέχει έγκυρο KEY.");
             return;
@@ -323,7 +340,7 @@ export default function EditItemsClient() {
         setOriginalItemExtra(getEmptyItemExtraFields());
         setItemExtra(getEmptyItemExtraFields());
         setIsEditModalOpen(true);
-        void loadItem(normalizedKey);
+        void loadItem(normalizedKey, item);
     };
 
     const updateField = (name: string, nextValue: string) => {
@@ -512,7 +529,7 @@ export default function EditItemsClient() {
                                 <button
                                     key={item.MTRL}
                                     type="button"
-                                    onClick={() => handleItemSelect(item.MTRL)}
+                                    onClick={() => handleItemSelect(item)}
                                     className="grid w-full gap-2 rounded-xl border border-gray-200 p-4 text-left transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-gray-800 dark:hover:border-brand-800 dark:hover:bg-brand-950/20 sm:grid-cols-[11rem_minmax(0,1fr)_11rem] sm:items-start sm:gap-4"
                                 >
                                     <div className="min-w-0">
@@ -587,14 +604,25 @@ export default function EditItemsClient() {
                                 {renderField("CODE2")}
                                 {renderField("NAME", "md:col-span-2")}
                                 {renderField("PRICEW")}
-                                {renderField("STANDCOST")}
                             </div>
 
-                            <div className="mt-4 grid gap-4 md:grid-cols-2">
-                                {EDIT_ITEM_CATALOG_PRICE_PAIRS.flatMap(([leftName, rightName]) => [
-                                    renderField(leftName),
-                                    renderField(rightName),
-                                ])}
+                            <div className="mt-6 grid gap-6 border-t border-gray-100 pt-6 dark:border-gray-800 md:grid-cols-2 md:gap-4">
+                                <div className="grid gap-4">
+                                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                        Τιμές πώλησης (€)
+                                    </h4>
+                                    {EDIT_ITEM_CATALOG_PRICE_PAIRS.map(([leftName]) =>
+                                        renderField(leftName)
+                                    )}
+                                </div>
+                                <div className="grid gap-4">
+                                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                        Υπολογισμός τιμών βάσει SUFIX (€)
+                                    </h4>
+                                    {EDIT_ITEM_CATALOG_PRICE_PAIRS.map(([, rightName]) =>
+                                        renderField(rightName)
+                                    )}
+                                </div>
                             </div>
 
                             <div className="mt-4 grid gap-4 md:grid-cols-2">

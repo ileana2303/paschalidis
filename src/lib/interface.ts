@@ -73,6 +73,11 @@ export interface IItem {
     PRICEW03: string;
     PRICEW04: string;
     PRICEW05: string;
+    CCCPRICEW13: string;
+    CCCPRICEW14: string;
+    CCCPRICEW15: string;
+    CCCPRICEW16: string;
+    CCCPRICEW17: string;
     STANDCOST: string;
     PRICE_MESSAGE: string;
 
