@@ -28,9 +28,14 @@ export async function POST(req: NextRequest) {
 
         const body = (await req.json().catch(() => ({}))) as Partial<ItemForensicsRoutePayload>;
         const mtrl = String(body.mtrl ?? "").trim();
+        const days = Number(body.days);
 
         if (!/^\d+$/.test(mtrl) || Number(mtrl) <= 0) {
             return errorResponse("Απαιτείται έγκυρο αναγνωριστικό είδους (MTRL).", 400);
+        }
+
+        if (!Number.isInteger(days) || days < 1 || days > 10) {
+            return errorResponse("Οι ημέρες πρέπει να είναι ακέραιος από 1 έως 10.", 400);
         }
 
         const clientID = getSoftOneClientID();
@@ -46,6 +51,7 @@ export async function POST(req: NextRequest) {
             appId: "1305",
             SqlName: "ITEM_FORENSICS_QTY",
             MTRL: mtrl,
+            DAYS: String(days),
         };
         const response = await postSoftOne(payload);
 

@@ -267,7 +267,10 @@ export async function fetchCompanyStock(
 export async function fetchItemForensics(
     payload: ItemForensicsRoutePayload
 ): Promise<ItemForensicsResponse> {
-    const requestKey = String(payload.mtrl ?? "").trim();
+    const requestKey = JSON.stringify({
+        mtrl: String(payload.mtrl ?? "").trim(),
+        days: String(payload.days ?? "").trim(),
+    });
     const inFlightRequest = itemForensicsInFlightRequests.get(requestKey);
 
     if (inFlightRequest) {

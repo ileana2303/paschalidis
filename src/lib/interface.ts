@@ -449,6 +449,7 @@ export interface CompanyStockResponse
 
 export interface ItemForensicsRoutePayload {
     mtrl: string | number;
+    days: number;
 }
 
 export interface ItemForensicsPayload {
@@ -457,20 +458,54 @@ export interface ItemForensicsPayload {
     appId: "1305";
     SqlName: "ITEM_FORENSICS_QTY";
     MTRL: string;
+    DAYS: string;
 }
 
 export interface IItemForensicsRow {
-    PERIOD: string;
-    QTY_SELF: string;
-    QTY_SIMILAR: string;
-    QTY_TOTAL: string;
-    QTY_GROUP: string;
-    QTY_B2B: string;
-    VAL_SELF: string;
-    VAL_SIMILAR: string;
-    VAL_TOTAL: string;
-    VAL_GROUP: string;
-    VAL_B2B: string;
+    IS_SELF: string;
+    SAME_GROUP: string;
+    SAME_B2B: string;
+    SXESI: string;
+    RN: string;
+    MTRL: string;
+    CODE: string;
+    NAME: string;
+    CODE1?: string;
+    CODE2?: string;
+    CCCSUFIX?: string;
+    ZGROUP_CODE?: string;
+    ZB2B_CODE?: string;
+    SUGGESTED_TRDR?: string;
+    SUGGESTED_TRDR_CODE?: string;
+    SUGGESTED_TRDR_NAME?: string;
+    QTY_SOLD: string;
+    CY: string;
+    CY_1: string;
+    CY_2: string;
+    CY_3: string;
+    CY_4: string;
+    ONGOING: string;
+    YP1000: string;
+    YP1006: string;
+    YP1007: string;
+    TOTAL_AVAIL: string;
+    FAM_ITEMS: string;
+    FAM_QTY_SOLD: string;
+    FAM_CY: string;
+    FAM_CY_1: string;
+    FAM_AVAIL: string;
+    GRP_ITEMS: string;
+    GRP_QTY_SOLD: string;
+    GRP_CY: string;
+    GRP_CY_1: string;
+    GRP_AVAIL: string;
+    B2B_ITEMS: string;
+    B2B_QTY_SOLD: string;
+    B2B_CY: string;
+    B2B_CY_1: string;
+    B2B_AVAIL: string;
+    SELECTED_GROUP?: string;
+    SELECTED_B2B?: string;
 }
 
 export interface ItemForensicsResponse

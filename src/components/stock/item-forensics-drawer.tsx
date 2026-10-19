@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { ApexOptions } from "apexcharts";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import { useFetchItemForensicsMutation } from "@/hooks/queries/useApiMutations";
@@ -17,7 +17,6 @@ import {
 } from "@/lib/icons/lucide";
 import {
   formatElNumber,
-  formatEuro,
   parseSoftOneNumber,
 } from "@/lib/utils/number";
 
@@ -25,125 +24,12 @@ const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 interface ItemForensicsDrawerProps {
   item: ICompanyStockRow;
+  days: number;
   onClose: () => void;
 }
 
-interface NumericForensicsRow {
-  period: string;
-  year: number;
-  month: number;
-  qtySelf: number;
-  qtySimilar: number;
-  qtyTotal: number;
-  qtyGroup: number;
-  qtyB2b: number;
-  valSelf: number;
-  valSimilar: number;
-  valTotal: number;
-  valGroup: number;
-  valB2b: number;
-}
-
-interface YearSummary {
-  year: number;
-  rows: NumericForensicsRow[];
-  qtyTotal: number;
-  qtyB2b: number;
-  qtyGroup: number;
-  valTotal: number;
-}
-
-const monthFormatter = new Intl.DateTimeFormat("el-GR", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
-const shortMonthFormatter = new Intl.DateTimeFormat("el-GR", {
-  month: "short",
-  year: "numeric",
-  timeZone: "UTC",
-});
-const monthOnlyFormatter = new Intl.DateTimeFormat("el-GR", {
-  month: "short",
-  timeZone: "UTC",
-});
-const MONTH_LABELS = Array.from({ length: 12 }, (_, month) =>
-  monthOnlyFormatter.format(new Date(Date.UTC(2020, month, 1)))
-);
-
 function numberValue(value: unknown) {
   return parseSoftOneNumber(value) ?? 0;
-}
-
-function parsePeriod(periodValue: unknown) {
-  const period = String(periodValue ?? "").trim();
-  const match = /^(\d{4})(0[1-9]|1[0-2])$/.exec(period);
-
-  if (!match) return null;
-
-  return {
-    period,
-    year: Number(match[1]),
-    month: Number(match[2]),
-  };
-}
-
-function normalizeRow(row: IItemForensicsRow): NumericForensicsRow | null {
-  const parsedPeriod = parsePeriod(row.PERIOD);
-
-  if (!parsedPeriod) return null;
-
-  return {
-    ...parsedPeriod,
-    qtySelf: numberValue(row.QTY_SELF),
-    qtySimilar: numberValue(row.QTY_SIMILAR),
-    qtyTotal: numberValue(row.QTY_TOTAL),
-    qtyGroup: numberValue(row.QTY_GROUP),
-    qtyB2b: numberValue(row.QTY_B2B),
-    valSelf: numberValue(row.VAL_SELF),
-    valSimilar: numberValue(row.VAL_SIMILAR),
-    valTotal: numberValue(row.VAL_TOTAL),
-    valGroup: numberValue(row.VAL_GROUP),
-    valB2b: numberValue(row.VAL_B2B),
-  };
-}
-
-function formatPeriod(row: Pick<NumericForensicsRow, "year" | "month">) {
-  const label = monthFormatter.format(new Date(Date.UTC(row.year, row.month - 1, 1)));
-  return label.charAt(0).toLocaleUpperCase("el-GR") + label.slice(1);
-}
-
-function formatShortPeriod(row: Pick<NumericForensicsRow, "year" | "month">) {
-  return shortMonthFormatter.format(new Date(Date.UTC(row.year, row.month - 1, 1)));
-}
-
-function formatShortMonth(row: Pick<NumericForensicsRow, "year" | "month">) {
-  return monthOnlyFormatter.format(new Date(Date.UTC(row.year, row.month - 1, 1)));
-}
-
-function sum(rows: NumericForensicsRow[], field: keyof NumericForensicsRow) {
-  return rows.reduce((total, row) => total + Number(row[field]), 0);
-}
-
-function buildYearSummaries(rows: NumericForensicsRow[]) {
-  const grouped = new Map<number, NumericForensicsRow[]>();
-
-  for (const row of rows) {
-    const yearRows = grouped.get(row.year) ?? [];
-    yearRows.push(row);
-    grouped.set(row.year, yearRows);
-  }
-
-  return [...grouped.entries()]
-    .sort(([firstYear], [secondYear]) => secondYear - firstYear)
-    .map(([year, yearRows]): YearSummary => ({
-      year,
-      rows: [...yearRows].sort((first, second) => first.month - second.month),
-      qtyTotal: sum(yearRows, "qtyTotal"),
-      qtyB2b: sum(yearRows, "qtyB2b"),
-      qtyGroup: sum(yearRows, "qtyGroup"),
-      valTotal: sum(yearRows, "valTotal"),
-    }));
 }
 
 function KpiCard({ label, value }: { label: string; value: string }) {
@@ -186,111 +72,86 @@ function ChartCard({
   );
 }
 
-function ContextBars({
-  title,
-  years,
-  field,
-  colorClass,
-}: {
-  title: string;
-  years: YearSummary[];
-  field: "qtyB2b" | "qtyGroup";
-  colorClass: string;
-}) {
-  const max = Math.max(...years.map((year) => year[field]), 0);
+const RELATIONSHIP_ORDER = ["ΤΟ ΙΔΙΟ", "ΟΜΟΙΟ + ΙΔΙΟ B2B", "ΟΜΟΙΟ"];
 
-  return (
-    <div className="rounded-xl bg-gray-50 p-3.5 dark:bg-gray-900/70">
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">{title}</p>
-        <p className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
-          {formatElNumber(years.reduce((total, year) => total + year[field], 0))}
-        </p>
-      </div>
-      <div className="space-y-2">
-        {years.map((year) => (
-          <div key={year.year} className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-2 text-[11px]">
-            <span className="font-medium text-gray-500 dark:text-gray-400">{year.year}</span>
-            <span className="h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
-              <span
-                className={`block h-full rounded-full ${colorClass}`}
-                style={{
-                  width: `${
-                    max > 0 && year[field] > 0
-                      ? Math.max(2, (year[field] / max) * 100)
-                      : 0
-                  }%`,
-                }}
-              />
-            </span>
-            <span className="min-w-10 text-right tabular-nums text-gray-600 dark:text-gray-300">
-              {formatElNumber(year[field])}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function relationshipClassName(relationship: string) {
+  if (relationship === "ΤΟ ΙΔΙΟ") {
+    return "bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300";
+  }
+
+  if (relationship.includes("B2B")) {
+    return "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400";
+  }
+
+  return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300";
 }
 
-function YearDetails({ summary, initiallyOpen }: { summary: YearSummary; initiallyOpen: boolean }) {
+function RelatedItemsGroup({
+  relationship,
+  rows,
+  days,
+  initiallyOpen,
+}: {
+  relationship: string;
+  rows: IItemForensicsRow[];
+  days: number;
+  initiallyOpen: boolean;
+}) {
+  const currentYear = new Date().getFullYear();
+
   return (
     <details
       open={initiallyOpen}
       className="group overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.02]"
     >
-      <summary className="flex cursor-pointer list-none flex-col gap-3 px-4 py-4 marker:content-none sm:flex-row sm:items-center sm:justify-between sm:px-5">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-14 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-sm font-bold text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
-            {summary.year}
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 marker:content-none sm:px-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${relationshipClassName(relationship)}`}>
+            {relationship}
           </span>
-          <div className="grid grid-cols-2 gap-x-5 gap-y-1 text-xs sm:grid-cols-4">
-            <span className="text-gray-500 dark:text-gray-400">
-              Σύνολο: <strong className="tabular-nums text-gray-800 dark:text-gray-200">{formatElNumber(summary.qtyTotal)}</strong>
-            </span>
-            <span className="text-gray-500 dark:text-gray-400">
-              B2B: <strong className="tabular-nums text-gray-800 dark:text-gray-200">{formatElNumber(summary.qtyB2b)}</strong>
-            </span>
-            <span className="text-gray-500 dark:text-gray-400">
-              Group: <strong className="tabular-nums text-gray-800 dark:text-gray-200">{formatElNumber(summary.qtyGroup)}</strong>
-            </span>
-            <span className="text-gray-500 dark:text-gray-400">
-              Αξία: <strong className="whitespace-nowrap tabular-nums text-gray-800 dark:text-gray-200">{formatEuro(summary.valTotal)}</strong>
-            </span>
-          </div>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {rows.length} {rows.length === 1 ? "είδος" : "είδη"}
+          </span>
         </div>
         <ChevronDown className="h-5 w-5 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
       </summary>
 
       <div className="overflow-x-auto border-t border-gray-100 dark:border-gray-800">
-        <table className="w-full min-w-[720px] text-xs">
+        <table className="w-full min-w-[880px] text-xs">
           <thead className="bg-gray-50 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:bg-gray-900/80 dark:text-gray-400">
             <tr>
-              <th className="px-4 py-2.5 text-left">Μήνας</th>
-              <th className="px-3 py-2.5 text-right">Qty Total</th>
-              <th className="px-3 py-2.5 text-right">Qty Self</th>
-              <th className="px-3 py-2.5 text-right">Qty Similar</th>
-              <th className="px-3 py-2.5 text-right">B2B</th>
-              <th className="px-3 py-2.5 text-right">Group</th>
-              <th className="px-4 py-2.5 text-right">Value Total</th>
+              <th className="px-4 py-2.5 text-left">Είδος</th>
+              <th className="px-3 py-2.5 text-left">Group / B2B</th>
+              <th className="px-3 py-2.5 text-right">Πωλ. {days}ημ.</th>
+              <th className="px-3 py-2.5 text-right">{currentYear}</th>
+              <th className="px-3 py-2.5 text-right">{currentYear - 1}</th>
+              <th className="px-3 py-2.5 text-right">Ongoing</th>
+              <th className="px-4 py-2.5 text-right">Διαθέσιμα</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {summary.rows.map((row) => (
-              <tr key={row.period} className="text-gray-600 dark:text-gray-300">
-                <td className="whitespace-nowrap px-4 py-2.5 font-medium text-gray-800 dark:text-gray-100">
-                  {formatPeriod(row)}
+            {rows.map((row) => (
+              <tr key={`${row.MTRL}-${row.RN}`} className="text-gray-600 dark:text-gray-300">
+                <td className="px-4 py-3">
+                  <p className="max-w-md break-words font-medium text-gray-900 dark:text-white">
+                    {row.NAME || "—"}
+                  </p>
+                  <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                    {row.CODE || "—"} · MTRL {row.MTRL || "—"}
+                  </p>
                 </td>
-                <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-gray-900 dark:text-white">{formatElNumber(row.qtyTotal)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{formatElNumber(row.qtySelf)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{formatElNumber(row.qtySimilar)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{formatElNumber(row.qtyB2b)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{formatElNumber(row.qtyGroup)}</td>
-                <td
-                  className="whitespace-nowrap px-4 py-2.5 text-right font-medium tabular-nums text-gray-800 dark:text-gray-100"
-                  title={`Self: ${formatEuro(row.valSelf)} · Similar: ${formatEuro(row.valSimilar)} · B2B: ${formatEuro(row.valB2b)} · Group: ${formatEuro(row.valGroup)}`}
-                >
-                  {formatEuro(row.valTotal)}
+                <td className="px-3 py-3">
+                  <p>{row.ZGROUP_CODE || "—"}</p>
+                  <p className="mt-1 text-[11px] text-gray-400">{row.ZB2B_CODE || "—"}</p>
+                </td>
+                <td className="px-3 py-3 text-right font-semibold tabular-nums text-gray-900 dark:text-white">
+                  {formatElNumber(row.QTY_SOLD)}
+                </td>
+                <td className="px-3 py-3 text-right tabular-nums">{formatElNumber(row.CY)}</td>
+                <td className="px-3 py-3 text-right tabular-nums">{formatElNumber(row.CY_1)}</td>
+                <td className="px-3 py-3 text-right tabular-nums">{formatElNumber(row.ONGOING)}</td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-800 dark:text-gray-100">
+                  {formatElNumber(row.TOTAL_AVAIL)}
                 </td>
               </tr>
             ))}
@@ -298,6 +159,167 @@ function YearDetails({ summary, initiallyOpen }: { summary: YearSummary; initial
         </table>
       </div>
     </details>
+  );
+}
+
+function ItemForensicsContent({
+  rows,
+  days,
+}: {
+  rows: IItemForensicsRow[];
+  days: number;
+}) {
+  const currentYear = new Date().getFullYear();
+  const selected = rows.find((row) => row.IS_SELF === "1") ?? rows[0];
+  const relationshipGroups = useMemo(() => {
+    const groups = new Map<string, IItemForensicsRow[]>();
+
+    for (const row of rows) {
+      const relationship = row.SXESI?.trim() || "ΛΟΙΠΑ";
+      const groupRows = groups.get(relationship) ?? [];
+      groupRows.push(row);
+      groups.set(relationship, groupRows);
+    }
+
+    return [...groups.entries()].sort(([first], [second]) => {
+      const firstIndex = RELATIONSHIP_ORDER.indexOf(first);
+      const secondIndex = RELATIONSHIP_ORDER.indexOf(second);
+      return (firstIndex < 0 ? 99 : firstIndex) - (secondIndex < 0 ? 99 : secondIndex);
+    });
+  }, [rows]);
+
+  const annualOptions = useMemo<ApexOptions>(() => ({
+    chart: { fontFamily: "Google Sans, sans-serif", toolbar: { show: false } },
+    colors: ["#465fff"],
+    dataLabels: { enabled: false },
+    grid: { borderColor: "#e4e7ec", strokeDashArray: 4 },
+    plotOptions: {
+      bar: { borderRadius: 5, columnWidth: "48%", borderRadiusApplication: "end" },
+    },
+    tooltip: { y: { formatter: (value: number) => `${formatElNumber(value)} τεμ.` } },
+    xaxis: {
+      categories: Array.from({ length: 5 }, (_, index) => String(currentYear - 4 + index)),
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: { min: 0, labels: { formatter: (value: number) => formatElNumber(value) } },
+  }), [currentYear]);
+
+  const comparisonOptions = useMemo<ApexOptions>(() => ({
+    chart: { fontFamily: "Google Sans, sans-serif", toolbar: { show: false } },
+    colors: ["#465fff", "#9cb9ff"],
+    dataLabels: { enabled: false },
+    grid: { borderColor: "#e4e7ec", strokeDashArray: 4 },
+    legend: { position: "top", horizontalAlign: "left", fontSize: "12px" },
+    plotOptions: {
+      bar: { borderRadius: 4, columnWidth: "56%", borderRadiusApplication: "end" },
+    },
+    tooltip: { y: { formatter: (value: number) => `${formatElNumber(value)} τεμ.` } },
+    xaxis: {
+      categories: ["Είδος", "Οικογένεια", "Group", "B2B"],
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
+    yaxis: { min: 0, labels: { formatter: (value: number) => formatElNumber(value) } },
+  }), []);
+
+  if (!selected) return null;
+
+  return (
+    <div className="space-y-5 p-4 sm:p-6">
+      <section aria-label="Σύνοψη forensics">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          <KpiCard label={`Πωλήσεις ${days}ημ.`} value={formatElNumber(selected.QTY_SOLD)} />
+          <KpiCard label={`${currentYear} ποσότητα`} value={formatElNumber(selected.CY)} />
+          <KpiCard label={`${currentYear - 1} ποσότητα`} value={formatElNumber(selected.CY_1)} />
+          <KpiCard label="Διαθέσιμα" value={formatElNumber(selected.TOTAL_AVAIL)} />
+          <KpiCard label="Ongoing" value={formatElNumber(selected.ONGOING)} />
+          <KpiCard label="Είδη οικογένειας" value={formatElNumber(selected.FAM_ITEMS)} />
+        </div>
+      </section>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <ChartCard
+          title="Ετήσια πορεία επιλεγμένου είδους"
+          description="Ποσότητα πωλήσεων του είδους για τα πέντε διαθέσιμα έτη."
+        >
+          <div className="px-3 py-2">
+            <Chart
+              options={annualOptions}
+              series={[{
+                name: "Ποσότητα",
+                data: [selected.CY_4, selected.CY_3, selected.CY_2, selected.CY_1, selected.CY].map(numberValue),
+              }]}
+              type="bar"
+              height={270}
+            />
+          </div>
+        </ChartCard>
+
+        <ChartCard
+          title="Πλαίσιο είδους και οικογένειας"
+          description="Σύγκριση τρέχοντος και προηγούμενου έτους για είδος, οικογένεια, Group και B2B."
+        >
+          <div className="px-3 py-2">
+            <Chart
+              options={comparisonOptions}
+              series={[
+                {
+                  name: String(currentYear),
+                  data: [selected.CY, selected.FAM_CY, selected.GRP_CY, selected.B2B_CY].map(numberValue),
+                },
+                {
+                  name: String(currentYear - 1),
+                  data: [selected.CY_1, selected.FAM_CY_1, selected.GRP_CY_1, selected.B2B_CY_1].map(numberValue),
+                },
+              ]}
+              type="bar"
+              height={270}
+            />
+          </div>
+        </ChartCard>
+      </div>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.02] sm:p-5">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-900/70">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Οικογένεια</p>
+            <p className="mt-1 text-sm font-semibold text-gray-800 dark:text-gray-100">{formatElNumber(selected.FAM_ITEMS)} είδη</p>
+            <p className="mt-1 text-xs text-gray-500">Διαθέσιμα: {formatElNumber(selected.FAM_AVAIL)}</p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-900/70">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Group · {selected.SELECTED_GROUP || "—"}</p>
+            <p className="mt-1 text-sm font-semibold text-gray-800 dark:text-gray-100">{formatElNumber(selected.GRP_ITEMS)} είδη</p>
+            <p className="mt-1 text-xs text-gray-500">Διαθέσιμα: {formatElNumber(selected.GRP_AVAIL)}</p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-900/70">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">B2B · {selected.SELECTED_B2B || "—"}</p>
+            <p className="mt-1 text-sm font-semibold text-gray-800 dark:text-gray-100">{formatElNumber(selected.B2B_ITEMS)} είδη</p>
+            <p className="mt-1 text-xs text-gray-500">Διαθέσιμα: {formatElNumber(selected.B2B_AVAIL)}</p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="related-items-title" className="space-y-3">
+        <div>
+          <h3 id="related-items-title" className="font-semibold text-gray-900 dark:text-white">
+            Ανάλυση σχετικών ειδών
+          </h3>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+            Τα {rows.length} είδη ομαδοποιούνται με βάση τη σχέση τους με το επιλεγμένο είδος.
+          </p>
+        </div>
+        {relationshipGroups.map(([relationship, groupRows], index) => (
+          <RelatedItemsGroup
+            key={relationship}
+            relationship={relationship}
+            rows={groupRows}
+            days={days}
+            initiallyOpen={index === 0}
+          />
+        ))}
+      </section>
+    </div>
   );
 }
 
@@ -319,9 +341,8 @@ function DrawerLoading() {
   );
 }
 
-export default function ItemForensicsDrawer({ item, onClose }: ItemForensicsDrawerProps) {
+export default function ItemForensicsDrawer({ item, days, onClose }: ItemForensicsDrawerProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const [trendYear, setTrendYear] = useState<"all" | number>("all");
   const {
     data,
     error,
@@ -330,8 +351,8 @@ export default function ItemForensicsDrawer({ item, onClose }: ItemForensicsDraw
   } = useFetchItemForensicsMutation();
 
   useEffect(() => {
-    mutate({ mtrl: item.MTRL });
-  }, [item.MTRL, mutate]);
+    mutate({ mtrl: item.MTRL, days });
+  }, [days, item.MTRL, mutate]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -350,112 +371,12 @@ export default function ItemForensicsDrawer({ item, onClose }: ItemForensicsDraw
   }, [onClose]);
 
   const rows = useMemo(
-    () => (data?.rows ?? [])
-      .map(normalizeRow)
-      .filter((row): row is NumericForensicsRow => row !== null)
-      .sort((first, second) => first.period.localeCompare(second.period)),
+    () => [...(data?.rows ?? [])]
+      .sort((first, second) => numberValue(first.RN) - numberValue(second.RN)),
     [data?.rows]
   );
-  const years = useMemo(() => buildYearSummaries(rows), [rows]);
-  const trendRows = useMemo(
-    () => trendYear === "all" ? rows : rows.filter((row) => row.year === trendYear),
-    [rows, trendYear]
-  );
-  const currentYear = new Date().getFullYear();
-  const totalQty = sum(rows, "qtyTotal");
-  const currentYearQty = sum(rows.filter((row) => row.year === currentYear), "qtyTotal");
-  const previousYearQty = sum(rows.filter((row) => row.year === currentYear - 1), "qtyTotal");
-  const b2bQty = sum(rows, "qtyB2b");
-  const latest = rows.at(-1);
-  const trendSeries = useMemo(
-    () => {
-      if (trendYear === "all") {
-        return years.map((year) => ({
-          name: String(year.year),
-          data: Array.from({ length: 12 }, (_, monthIndex) =>
-            year.rows.find((row) => row.month === monthIndex + 1)?.qtyTotal ?? null
-          ),
-        }));
-      }
 
-      return [
-        { name: "Qty Total", data: trendRows.map((row) => row.qtyTotal) },
-        { name: "Qty Self", data: trendRows.map((row) => row.qtySelf) },
-        { name: "Qty Similar", data: trendRows.map((row) => row.qtySimilar) },
-      ];
-    },
-    [trendRows, trendYear, years]
-  );
-
-  const trendOptions = useMemo<ApexOptions>(() => ({
-    chart: {
-      fontFamily: "Google Sans, sans-serif",
-      toolbar: { show: false },
-      zoom: { enabled: false },
-    },
-    colors: [
-      "#465fff",
-      "#12b76a",
-      "#f79009",
-      "#7a5af8",
-      "#06aed4",
-      "#ee46bc",
-      "#6172f3",
-      "#f04438",
-      "#15b79e",
-      "#93370d",
-    ],
-    dataLabels: { enabled: false },
-    grid: { borderColor: "#e4e7ec", strokeDashArray: 4 },
-    legend: {
-      position: "top",
-      horizontalAlign: "left",
-      fontSize: "12px",
-    },
-    markers: { size: 0, hover: { size: 5 } },
-    stroke: {
-      curve: "smooth",
-      width: trendYear === "all" ? 2.5 : [3, 1.5, 1.5],
-      dashArray: trendYear === "all" ? 0 : [0, 5, 5],
-    },
-    tooltip: {
-      shared: true,
-      intersect: false,
-      y: { formatter: (value: number) => `${formatElNumber(value)} τεμ.` },
-    },
-    xaxis: {
-      categories: trendYear === "all"
-        ? MONTH_LABELS
-        : trendRows.map(formatShortMonth),
-      axisBorder: { show: false },
-      axisTicks: { show: false },
-      labels: { rotate: -45, hideOverlappingLabels: true, trim: true },
-    },
-    yaxis: {
-      min: 0,
-      labels: { formatter: (value: number) => formatElNumber(value) },
-    },
-  }), [trendRows, trendYear]);
-
-  const yearChartRows = useMemo(() => [...years].reverse(), [years]);
-  const yearOptions = useMemo<ApexOptions>(() => ({
-    chart: { fontFamily: "Google Sans, sans-serif", toolbar: { show: false } },
-    colors: ["#465fff"],
-    dataLabels: { enabled: false },
-    grid: { borderColor: "#e4e7ec", strokeDashArray: 4 },
-    plotOptions: {
-      bar: { borderRadius: 5, columnWidth: "48%", borderRadiusApplication: "end" },
-    },
-    tooltip: { y: { formatter: (value: number) => `${formatElNumber(value)} τεμ.` } },
-    xaxis: {
-      categories: yearChartRows.map((year) => String(year.year)),
-      axisBorder: { show: false },
-      axisTicks: { show: false },
-    },
-    yaxis: { min: 0, labels: { formatter: (value: number) => formatElNumber(value) } },
-  }), [yearChartRows]);
-
-  const retry = () => mutate({ mtrl: item.MTRL });
+  const retry = () => mutate({ mtrl: item.MTRL, days });
   const errorMessage = error instanceof Error ? error.message : "Αποτυχία φόρτωσης ιστορικού πωλήσεων.";
 
   return (
@@ -517,101 +438,11 @@ export default function ItemForensicsDrawer({ item, onClose }: ItemForensicsDraw
             <DataTableEmptyState
               className="min-h-[420px]"
               icon={<PackageSearch className="h-7 w-7" />}
-              title="Δεν υπάρχει ιστορικό πωλήσεων"
-              description="Δεν βρέθηκαν μηνιαία δεδομένα για το επιλεγμένο είδος."
+              title="Δεν υπάρχουν δεδομένα forensics"
+              description="Η υπηρεσία δεν επέστρεψε αναγνωρίσιμα δεδομένα για το επιλεγμένο είδος."
             />
           ) : (
-            <div className="space-y-5 p-4 sm:p-6">
-              <section aria-label="Σύνοψη πωλήσεων">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                  <KpiCard label="Συνολική ποσότητα" value={formatElNumber(totalQty)} />
-                  <KpiCard label={`${currentYear} ποσότητα`} value={formatElNumber(currentYearQty)} />
-                  <KpiCard label={`${currentYear - 1} ποσότητα`} value={formatElNumber(previousYearQty)} />
-                  <KpiCard label="Μηνιαίος μ.ό." value={formatElNumber(totalQty / rows.length)} />
-                  <KpiCard label="B2B ποσότητα" value={formatElNumber(b2bQty)} />
-                  <KpiCard label={latest ? `Τελευταίος · ${formatShortPeriod(latest)}` : "Τελευταίος μήνας"} value={formatElNumber(latest?.qtyTotal ?? 0)} />
-                </div>
-              </section>
-
-              <ChartCard
-                title="Μηνιαία πορεία πωλήσεων"
-                description={trendYear === "all"
-                  ? "Κάθε γραμμή δείχνει το QTY_TOTAL ενός έτους, ώστε να συγκρίνονται άμεσα οι εποχικές καμπύλες."
-                  : `Ανάλυση ${trendYear}: QTY_TOTAL με Self και Similar ως δευτερεύουσες σειρές.`}
-                action={(
-                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                    Έτος
-                    <select
-                      value={trendYear}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setTrendYear(value === "all" ? "all" : Number(value));
-                      }}
-                      aria-label="Επιλογή έτους για τη μηνιαία πορεία πωλήσεων"
-                      className="h-9 min-w-32 rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                    >
-                      <option value="all">Όλα τα έτη</option>
-                      {years.map((year) => (
-                        <option key={year.year} value={year.year}>
-                          {year.year}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-              >
-                <div className="overflow-x-auto px-2 pb-2 pt-3 sm:px-4">
-                  <div className="min-w-[720px]">
-                    <Chart
-                      options={trendOptions}
-                      series={trendSeries}
-                      type="line"
-                      height={300}
-                    />
-                  </div>
-                </div>
-              </ChartCard>
-
-              <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-                <ChartCard
-                  title="Σύγκριση ανά έτος"
-                  description="Συνολική ποσότητα πωλήσεων για κάθε έτος."
-                >
-                  <div className="px-3 py-2">
-                    <Chart
-                      options={yearOptions}
-                      series={[{ name: "Qty Total", data: yearChartRows.map((year) => year.qtyTotal) }]}
-                      type="bar"
-                      height={245}
-                    />
-                  </div>
-                </ChartCard>
-
-                <ChartCard
-                  title="B2B / Group πλαίσιο"
-                  description="Ξεχωριστές κλίμακες ώστε οι μεγάλες τιμές Group να μην κρύβουν τις B2B διαφορές."
-                >
-                  <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                    <ContextBars title="B2B ποσότητα" years={years} field="qtyB2b" colorClass="bg-success-500" />
-                    <ContextBars title="Group ποσότητα" years={years} field="qtyGroup" colorClass="bg-orange-400" />
-                  </div>
-                </ChartCard>
-              </div>
-
-              <section aria-labelledby="monthly-details-title" className="space-y-3">
-                <div>
-                  <h3 id="monthly-details-title" className="font-semibold text-gray-900 dark:text-white">
-                    Μηνιαίες λεπτομέρειες
-                  </h3>
-                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                    Τα έτη εμφανίζονται από το πιο πρόσφατο. Αναπτύξτε ένα έτος για τις ακριβείς τιμές.
-                  </p>
-                </div>
-                {years.map((summary, index) => (
-                  <YearDetails key={summary.year} summary={summary} initiallyOpen={index === 0} />
-                ))}
-              </section>
-            </div>
+            <ItemForensicsContent rows={rows} days={days} />
           )}
         </div>
       </aside>
