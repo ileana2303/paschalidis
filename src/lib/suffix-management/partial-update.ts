@@ -12,6 +12,9 @@ export type SuffixEditFormState = {
   ZB2B_ID: string;
   SUPPLIER_CODE: string;
   SUPPLIER_NAME: string;
+  SUGGESTED_TRDR: string;
+  SUGGESTED_TRDR_CODE: string;
+  SUGGESTED_TRDR_NAME: string;
   PERCNT00: string;
   PERCNT01: string;
   PERCNT02: string;
@@ -69,6 +72,9 @@ export function createSuffixEditForm(row: SuffixRow): SuffixEditFormState {
     ZB2B_ID: String(row.ZB2B_ID),
     SUPPLIER_CODE: formValue(row.SUPPLIER_CODE),
     SUPPLIER_NAME: formValue(row.SUPPLIER_NAME),
+    SUGGESTED_TRDR: formValue(row.SUGGESTED_TRDR),
+    SUGGESTED_TRDR_CODE: formValue(row.SUGGESTED_TRDR_CODE),
+    SUGGESTED_TRDR_NAME: formValue(row.SUGGESTED_TRDR_NAME),
     PERCNT00: formValue(row.PERCNT00),
     PERCNT01: formValue(row.PERCNT01),
     PERCNT02: formValue(row.PERCNT02),
@@ -157,6 +163,17 @@ export function buildSuffixPartialUpdate({
     if (result.error) errors.push(result.error);
     else if (result.value === 0) update.ZB2B_CODE = "";
     else update.ZB2B_ID = result.value;
+  }
+
+  const suggestedSupplierChanged =
+    form.SUGGESTED_TRDR !== formValue(original.SUGGESTED_TRDR) ||
+    form.SUGGESTED_TRDR_CODE !== formValue(original.SUGGESTED_TRDR_CODE) ||
+    form.SUGGESTED_TRDR_NAME !== formValue(original.SUGGESTED_TRDR_NAME);
+
+  if (suggestedSupplierChanged) {
+    update.SUGGESTED_TRDR = form.SUGGESTED_TRDR;
+    update.SUGGESTED_TRDR_CODE = form.SUGGESTED_TRDR_CODE;
+    update.SUGGESTED_TRDR_NAME = form.SUGGESTED_TRDR_NAME;
   }
 
   if (form.ISACTIVE !== original.ISACTIVE) {

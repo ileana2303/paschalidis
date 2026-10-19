@@ -89,6 +89,9 @@ export interface SuffixSaveFields {
   ZB2B_CODE: string;
   SUPPLIER_CODE: string;
   SUPPLIER_NAME: string;
+  SUGGESTED_TRDR: number | string | "";
+  SUGGESTED_TRDR_CODE: string;
+  SUGGESTED_TRDR_NAME: string;
   PERCNT00: number | "";
   PERCNT01: number | "";
   PERCNT02: number | "";
@@ -98,7 +101,6 @@ export interface SuffixSaveFields {
   PERCNT99: number | "";
   REMARKS: string;
   NOTES: string;
-  /** Soft1 uses IS_ACTIVE for writes even though getlist returns ISACTIVE. */
   IS_ACTIVE: SoftOneFlag;
 }
 
