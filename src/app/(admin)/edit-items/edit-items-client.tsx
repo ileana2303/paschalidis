@@ -140,23 +140,35 @@ function Date03Picker({
             return;
         }
 
-        pickerRef.current = flatpickr(inputRef.current, {
+        const picker = flatpickr(inputRef.current, {
             dateFormat: "Y-m-d",
             allowInput: false,
+            disableMobile: true,
             maxDate: "today",
             defaultDate: parseSoftOneDate(value),
             onReady: (_selectedDates, _dateStr, instance) => {
-                instance.calendarContainer.style.zIndex = "100001";
+                const calendarContainer = instance.calendarContainer as
+                    | HTMLDivElement
+                    | undefined;
+                if (calendarContainer) {
+                    calendarContainer.style.zIndex = "100001";
+                }
             },
             onChange: (selectedDates) => {
                 const selected = selectedDates[0];
                 onChange(selected ? formatSoftOneDate(selected) : "");
             },
         });
+        const instance = Array.isArray(picker) ? picker[0] : picker;
+        pickerRef.current = instance ?? null;
 
         return () => {
-            pickerRef.current?.destroy();
-            pickerRef.current = null;
+            if (instance && typeof instance.destroy === "function") {
+                instance.destroy();
+            }
+            if (pickerRef.current === instance) {
+                pickerRef.current = null;
+            }
         };
         // Initialize once; sync later via setDate.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,7 +176,11 @@ function Date03Picker({
 
     useEffect(() => {
         const picker = pickerRef.current;
-        if (!picker) {
+        if (
+            !picker ||
+            typeof picker.setDate !== "function" ||
+            typeof picker.clear !== "function"
+        ) {
             return;
         }
 
@@ -208,13 +224,13 @@ export default function EditItemsClient() {
         getEmptyItemExtraFields
     );
     const [itemExtra, setItemExtra] = useState<ItemEditFields>(getEmptyItemExtraFields);
+    const loadRequestIdRef = useRef(0);
     const { mutateAsync: searchItemsRequest, isPending: searchingItems } =
         useSearchItemsMutation();
     const { mutateAsync: fetchEditableItem, isPending: loadingItem } =
         useFetchEditableItemMutation();
     const { mutateAsync: updateEditableItem, isPending: saving } =
         useUpdateEditableItemMutation();
-    const loading = searchingItems || loadingItem;
 
     const hasChanges = useMemo(
         () =>
@@ -225,9 +241,12 @@ export default function EditItemsClient() {
 
     const searchItems = async () => {
         const search = searchKey.trim();
-        if (!search || loading) return;
+        if (!search || searchingItems) return;
 
+        loadRequestIdRef.current += 1;
         setHasSearched(true);
+        setSearchResults([]);
+        setIsEditModalOpen(false);
         setLoadedKey("");
         setOriginalFields({});
         setFields({});
@@ -253,24 +272,36 @@ export default function EditItemsClient() {
     };
 
     const loadItem = async (key: string) => {
-        if (!key || loading) return;
+        const normalizedKey = String(key ?? "").trim();
+        if (!normalizedKey) return;
+
+        const requestId = ++loadRequestIdRef.current;
 
         try {
-            const data = await fetchEditableItem(key);
+            const data = await fetchEditableItem(normalizedKey);
             const item = data.item;
 
             if (!item) {
                 throw new Error("Το προϊόν δεν περιέχει επεξεργάσιμα στοιχεία.");
             }
 
+            if (requestId !== loadRequestIdRef.current) {
+                return;
+            }
+
             const nextItemExtra = normalizeItemExtra(data.itemExtra);
 
-            setLoadedKey(data.key || key);
+            setLoadedKey(data.key || normalizedKey);
             setOriginalFields(item);
             setFields(item);
             setOriginalItemExtra(nextItemExtra);
             setItemExtra(nextItemExtra);
         } catch (requestError) {
+            if (requestId !== loadRequestIdRef.current) {
+                return;
+            }
+
+            setIsEditModalOpen(false);
             const message =
                 requestError instanceof Error
                     ? requestError.message
@@ -280,8 +311,19 @@ export default function EditItemsClient() {
     };
 
     const handleItemSelect = (key: string) => {
+        const normalizedKey = String(key ?? "").trim();
+        if (!normalizedKey) {
+            toast.error("Το είδος δεν περιέχει έγκυρο KEY.");
+            return;
+        }
+
+        setLoadedKey("");
+        setOriginalFields({});
+        setFields({});
+        setOriginalItemExtra(getEmptyItemExtraFields());
+        setItemExtra(getEmptyItemExtraFields());
         setIsEditModalOpen(true);
-        void loadItem(key);
+        void loadItem(normalizedKey);
     };
 
     const updateField = (name: string, nextValue: string) => {
@@ -415,6 +457,7 @@ export default function EditItemsClient() {
     };
 
     const clearSearch = () => {
+        loadRequestIdRef.current += 1;
         clearSearchState();
         setIsEditModalOpen(false);
         setLoadedKey("");
@@ -445,7 +488,7 @@ export default function EditItemsClient() {
                         onSearch={() => void searchItems()}
                         onClear={clearSearch}
                         placeholder="Κωδικός ανταλλακτικού, όνομα, περιγραφή..."
-                        loading={loading}
+                        loading={searchingItems}
                         clearOnFocus={false}
                         containerClassName="mt-5 max-w-2xl"
                     />
