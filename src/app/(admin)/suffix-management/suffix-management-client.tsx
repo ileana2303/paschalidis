@@ -454,8 +454,12 @@ export default function SuffixManagementClient() {
             <table className="w-full min-w-[2040px] table-fixed divide-y divide-gray-100 text-left text-xs dark:divide-gray-800 [&_td]:!px-2 [&_td]:!py-2 [&_th]:!px-2 [&_th]:!py-2.5">
               <thead className="bg-gray-50 text-[10px] uppercase tracking-normal text-gray-500 shadow-sm dark:bg-gray-900 dark:text-gray-400 [&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-gray-50 dark:[&_th]:bg-gray-900">
                 <tr>
-                  <th className="w-[62px] px-4 py-3 font-semibold">SOSUFIX</th>
-                  <th className="w-[150px] px-4 py-3 font-semibold">NAME</th>
+                  <th className="!sticky !left-0 !z-30 w-[62px] bg-gray-50 px-4 py-3 font-semibold dark:bg-gray-900">
+                    SOSUFIX
+                  </th>
+                  <th className="!sticky !left-[62px] !z-30 w-[150px] border-r border-gray-200 bg-gray-50 px-4 py-3 font-semibold shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] dark:border-gray-700 dark:bg-gray-900">
+                    NAME
+                  </th>
                   <th className="w-[62px] text-right font-semibold">PERCNT01</th>
                   <th className="w-[62px] text-right font-semibold">PERCNT02</th>
                   <th className="w-[62px] text-right font-semibold">PERCNT03</th>
@@ -495,19 +499,21 @@ export default function SuffixManagementClient() {
                     EXTRA_<wbr />ACTIVE
                   </th>
                   <th className="w-[96px] font-semibold">NEEDS_EXTRA</th>
-                  <th className="w-[86px] !px-1.5 text-right font-semibold">ΕΝΕΡΓΕΙΕΣ</th>
+                  <th className="!sticky !right-0 !z-30 w-[86px] border-l border-gray-200 bg-gray-50 !px-1.5 text-right font-semibold shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] dark:border-gray-700 dark:bg-gray-900">
+                    ΕΝΕΡΓΕΙΕΣ
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
                 {visibleRows.map((row, index) => (
                     <tr
                       key={`${row.SOSUFIX}-${index}`}
-                      className="transition hover:bg-gray-50/80 dark:hover:bg-white/[0.02]"
+                      className="group transition hover:bg-gray-50/80 dark:hover:bg-white/[0.02]"
                     >
-                      <td className="whitespace-nowrap px-4 py-3 font-mono font-semibold text-gray-900 dark:text-white">
+                      <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-4 py-3 font-mono font-semibold text-gray-900 transition group-hover:bg-gray-50 dark:bg-gray-950 dark:text-white dark:group-hover:bg-gray-900">
                         {row.SOSUFIX}
                       </td>
-                      <td className="max-w-64 px-4 py-3">
+                      <td className="sticky left-[62px] z-10 max-w-64 border-r border-gray-200 bg-white px-4 py-3 shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] transition group-hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:group-hover:bg-gray-900">
                         <span className="block truncate" title={row.NAME || undefined}>
                           {displayValue(row.NAME)}
                         </span>
@@ -655,7 +661,7 @@ export default function SuffixManagementClient() {
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap !px-1.5 text-right">
+                      <td className="sticky right-0 z-10 whitespace-nowrap border-l border-gray-200 bg-white !px-1.5 text-right shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] transition group-hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:group-hover:bg-gray-900">
                         <div className="inline-flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
                           <button
                             type="button"

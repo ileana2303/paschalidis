@@ -52,13 +52,11 @@ const TEXT_FIELDS: SuffixEditTextField[] = [
 ];
 
 export const PERCENTAGE_FIELDS: SuffixEditPercentageField[] = [
-  "PERCNT00",
   "PERCNT01",
   "PERCNT02",
   "PERCNT03",
   "PERCNT04",
   "PERCNT05",
-  "PERCNT99",
 ];
 
 function formValue(value: string | number | null | undefined) {
