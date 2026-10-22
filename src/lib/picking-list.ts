@@ -271,7 +271,7 @@ export function groupPickingListRows(
     if (leftTimestamp === null) return 1;
     if (rightTimestamp === null) return -1;
 
-    return leftTimestamp - rightTimestamp;
+    return rightTimestamp - leftTimestamp;
   });
 }
 

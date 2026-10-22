@@ -53,6 +53,14 @@ export function formatMinutesAgoEl(value: unknown, nowMs: number) {
         Math.floor((nowMs - parsed.getTime()) / 60_000)
     );
 
+    if (elapsedMinutes > 72 * 60) {
+        const elapsedDays = Math.floor(elapsedMinutes / (24 * 60));
+
+        return elapsedDays === 1
+            ? "1 ημέρα πριν"
+            : `${elapsedDays} ημέρες πριν`;
+    }
+
     if (elapsedMinutes >= 60) {
         const elapsedHours = Math.floor(elapsedMinutes / 60);
         const remainingMinutes = elapsedMinutes % 60;
