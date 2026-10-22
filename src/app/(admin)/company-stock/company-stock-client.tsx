@@ -25,6 +25,7 @@ import {
   Package,
   RefreshCw,
   ShoppingCart,
+  Truck,
 } from "@/lib/icons/lucide";
 import {
   formatBranchLabel,
@@ -61,10 +62,11 @@ function TableSkeleton() {
     <div className="divide-y divide-gray-100 dark:divide-gray-800">
       {Array.from({ length: 8 }).map((_, index) => (
         <div key={index} className="grid grid-cols-12 gap-4 px-5 py-4">
-          <div className="col-span-3 h-12 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="col-span-2 h-12 rounded bg-gray-100 dark:bg-gray-800" />
           <div className="col-span-1 h-12 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="col-span-3 h-12 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="col-span-2 h-12 rounded bg-gray-100 dark:bg-gray-800" />
           <div className="col-span-1 h-12 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="col-span-2 h-12 rounded bg-gray-100 dark:bg-gray-800" />
           <div className="col-span-2 h-12 rounded bg-gray-100 dark:bg-gray-800" />
           <div className="col-span-2 h-12 rounded bg-gray-100 dark:bg-gray-800" />
         </div>
@@ -167,7 +169,17 @@ export default function CompanyStockClient() {
     }
 
     return rows.filter((row) =>
-      [row.CODE, row.NAME, row.CODE1, row.CODE2]
+      [
+        row.CODE,
+        row.NAME,
+        row.CODE1,
+        row.CCCSUFIX,
+        row.ZGROUP_CODE,
+        row.ZB2B_CODE,
+        row.SUGGESTED_TRDR,
+        row.SUGGESTED_TRDR_CODE,
+        row.SUGGESTED_TRDR_NAME,
+      ]
         .map((value) => String(value ?? ""))
         .join(" ")
         .toLocaleLowerCase("el-GR")
@@ -311,7 +323,7 @@ export default function CompanyStockClient() {
                 onRefresh={refreshRows}
                 isRefreshing={loading}
                 refreshDisabled={loading}
-                placeholder="Αναζήτηση CODE, NAME, CODE1 ή CODE2..."
+                placeholder="Αναζήτηση είδους ή προτεινόμενου προμηθευτή..."
               />
             </div>
           )}
@@ -347,13 +359,14 @@ export default function CompanyStockClient() {
           />
         ) : (
           <div className="min-h-0 min-w-0 w-full max-w-full flex-1 overflow-x-auto overflow-y-auto">
-            <table className="w-full min-w-[1680px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
+            <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
               <colgroup>
-                <col className="w-[24%]" />
-                <col className="w-[8%]" />
-                <col className="w-[25%]" />
-                <col className="w-[8%]" />
-                <col className="w-[20%]" />
+                <col className="w-[18%]" />
+                <col className="w-[6%]" />
+                <col className="w-[23%]" />
+                <col className="w-[6%]" />
+                <col className="w-[21%]" />
+                <col className="w-[11%]" />
                 <col className="w-[15%]" />
               </colgroup>
 
@@ -373,6 +386,9 @@ export default function CompanyStockClient() {
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Διαθεσιμότητα
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Προτεινόμενος Προμηθευτής
                   </th>
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Προσθήκη
@@ -413,7 +429,9 @@ export default function CompanyStockClient() {
                           </span>
                           <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400">
                             <span>CODE1: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.CODE1 || "—"}</strong></span>
-                            <span>CODE2: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.CODE2 || "—"}</strong></span>
+                            <span>SUFFIX: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.CCCSUFIX || "—"}</strong></span>
+                            <span>GROUP: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.ZGROUP_CODE || "—"}</strong></span>
+                            <span>B2B: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.ZB2B_CODE || "—"}</strong></span>
                           </span>
                         </button>
                       </td>
@@ -465,7 +483,7 @@ export default function CompanyStockClient() {
                           {AVAILABILITY_FIELDS.map(({ key, branch }) => (
                             <div
                               key={key}
-                              className="rounded-lg bg-gray-50 px-2 py-1.5 text-center dark:bg-gray-800/70"
+                              className="min-w-0 rounded-lg bg-gray-50 px-1.5 py-1.5 text-center dark:bg-gray-800/70"
                               title={`${key} · ${resolveBranchName(branch)}`}
                             >
                               <p className="truncate text-[10px] font-medium text-gray-400 dark:text-gray-500">
@@ -476,7 +494,7 @@ export default function CompanyStockClient() {
                               </p>
                             </div>
                           ))}
-                          <div className="flex flex-col items-center rounded-lg bg-brand-50 px-2 py-1.5 text-center dark:bg-brand-500/10">
+                          <div className="flex min-w-0 flex-col items-center rounded-lg bg-brand-50 px-1.5 py-1.5 text-center dark:bg-brand-500/10">
                             <p className="text-[10px] font-medium text-brand-500 dark:text-brand-300">
                               TOTAL
                             </p>
@@ -489,9 +507,29 @@ export default function CompanyStockClient() {
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 align-middle">
-                        <div className="flex flex-col items-end justify-center gap-2">
-                          <div className="flex items-center justify-end gap-2">
+                      <td className="px-2 py-3 align-middle">
+                        <div
+                          className="min-w-0 rounded-lg border border-brand-100 bg-brand-50/60 px-2.5 py-2 dark:border-brand-500/20 dark:bg-brand-500/10"
+                          title={row.SUGGESTED_TRDR_NAME || undefined}
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            <Truck className="h-3.5 w-3.5 shrink-0 text-brand-500 dark:text-brand-300" />
+                            <p className="truncate text-xs font-semibold text-gray-900 dark:text-white">
+                              {row.SUGGESTED_TRDR_NAME || "—"}
+                            </p>
+                          </div>
+
+                          <p className="mt-1 truncate text-[10px] tabular-nums text-gray-500 dark:text-gray-400">
+                            TRDR <strong className="font-semibold text-gray-700 dark:text-gray-200">{row.SUGGESTED_TRDR || "—"}</strong>
+                            <span className="px-1 text-brand-300 dark:text-brand-500">·</span>
+                            Κωδ. <strong className="font-semibold text-gray-700 dark:text-gray-200">{row.SUGGESTED_TRDR_CODE || "—"}</strong>
+                          </p>
+                        </div>
+                      </td>
+
+                      <td className="px-2 py-3 align-middle">
+                        <div className="flex min-w-0 flex-col items-stretch justify-center gap-2">
+                          <div className="flex min-w-0 flex-col gap-2">
                             <QuantityControl
                               value={quantity}
                               onChange={(nextQuantity) => {
@@ -503,6 +541,7 @@ export default function CompanyStockClient() {
                               }}
                               min={0}
                               size="sm"
+                              fullWidth
                               disabled={isAddingItem}
                               displayZeroAsEmpty
                               placeholder="0"
@@ -518,7 +557,7 @@ export default function CompanyStockClient() {
                                 quantity <= 0 ||
                                 !currentBranchCode
                               }
-                              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
+                              className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-2 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
                             >
                               {isAddingItem ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -530,7 +569,7 @@ export default function CompanyStockClient() {
                           </div>
 
                           {addError && (
-                            <p className="max-w-[220px] text-right text-[11px] font-medium leading-4 text-red-500">
+                            <p className="text-left text-[11px] font-medium leading-4 text-red-500">
                               {addError}
                             </p>
                           )}
