@@ -20,11 +20,15 @@ export interface CompanyStockBasketLine {
 interface CompanyStockOrderSummaryProps {
     branchLabel: string;
     lines: CompanyStockBasketLine[];
+    collapsed?: boolean;
+    onToggleCollapse?: () => void;
 }
 
 export default function CompanyStockOrderSummary({
     branchLabel,
     lines,
+    collapsed = false,
+    onToggleCollapse,
 }: CompanyStockOrderSummaryProps) {
     const totalQuantity = lines.reduce(
         (total, line) => total + line.quantity,
@@ -35,7 +39,13 @@ export default function CompanyStockOrderSummary({
         <SummaryPanel
             label="Σύνοψη Κεντρικού Εφοδιασμού"
             title="Καλάθι Ανατροφοδοσίας Εταιρίας"
-            asideClassName="xl:!basis-[25%] xl:!min-w-[272px] xl:max-h-full xl:min-h-0 xl:self-stretch"
+            collapsible
+            collapsed={collapsed}
+            onToggleCollapse={onToggleCollapse}
+            collapseTitle="Απόκρυψη καλαθιού"
+            asideClassName={collapsed
+                ? "xl:!basis-auto xl:!min-w-0"
+                : "xl:!basis-[25%] xl:!min-w-[272px] xl:max-h-full xl:min-h-0 xl:self-stretch"}
             fitContentWhenStacked
             footer={(
                 <SummaryPrimaryAction

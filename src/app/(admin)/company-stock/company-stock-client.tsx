@@ -93,6 +93,7 @@ export default function CompanyStockClient() {
   const [searchTerm, setSearchTerm] = useSessionState("company-stock-search", "");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [basketLines, setBasketLines] = useState<CompanyStockBasketLine[]>([]);
+  const [summaryVisible, setSummaryVisible] = useState(true);
   const [selectedForensicsItem, setSelectedForensicsItem] =
     useState<ICompanyStockRow | null>(null);
   const [addErrors, setAddErrors] = useState<Record<string, string>>({});
@@ -546,6 +547,8 @@ export default function CompanyStockClient() {
         <CompanyStockOrderSummary
           branchLabel={currentBranchLabel}
           lines={basketLines}
+          collapsed={!summaryVisible}
+          onToggleCollapse={() => setSummaryVisible((visible) => !visible)}
         />
       </div>
       {selectedForensicsItem ? (
