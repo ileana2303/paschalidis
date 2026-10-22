@@ -24,16 +24,13 @@ export interface ICustomerInfo {
     TRDR: string;
     CODE: string;
     NAME: string;
-    EMAIL?: string;
+    EMAIL: string;
     AFM: string;
-    PHONE01?: string;
     MAIN_ADDRESS: string;
-    MAIN_ZIP: string;
     MAIN_CITY: string;
+    PRICE_TIER: string;
     NUMBER_OF_BRANCHES: string;
     INDEX_SEARCH: string;
-    /** From BCUSTOMERS e.g. "1"–"5" or "-100" (wholesale without PRICER). */
-    PRICE_TIER: string;
 }
 
 // SEARCH ITEM :: Search items without customer - no basket info.

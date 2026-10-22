@@ -50,17 +50,18 @@ export default function CustomerInfoContainer({
                                             {customer.TRDR}
                                         </span>
                                     )}
+                                    <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold tabular-nums text-amber-800 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/25">
+                                        Tier {customer.PRICE_TIER}
+                                    </span>
                                 </span>
 
                                 <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
                                     <span>
                                         ΑΦΜ <span className="font-medium tabular-nums text-gray-700 dark:text-gray-300">{customer.AFM}</span>
                                     </span>
-                                    {customer.PHONE01 && (
-                                        <span>
-                                            Τηλ. <span className="font-medium tabular-nums text-gray-700 dark:text-gray-300">{customer.PHONE01}</span>
-                                        </span>
-                                    )}
+                                    <span>
+                                        Κωδικός <span className="font-medium tabular-nums text-gray-700 dark:text-gray-300">{customer.CODE}</span>
+                                    </span>
                                 </span>
                             </span>
 
@@ -95,23 +96,18 @@ export default function CustomerInfoContainer({
                                 </div>
 
                                 <div className="min-w-0 space-y-3">
-                                    <InfoItem label="Τιμοκατάλογος" value={customer.PRICE_TIER} />
                                     <InfoItem label="Υποκαταστήματα" value={customer.NUMBER_OF_BRANCHES} />
+                                    <InfoItem label="ΑΦΜ" value={customer.AFM} />
                                 </div>
 
                                 <div className="min-w-0 space-y-3">
                                     <InfoItem label="Email" value={customer.EMAIL} />
-                                    <InfoItem label="Τηλέφωνο" value={customer.PHONE01} />
                                 </div>
 
                                 <div className="min-w-0 space-y-3">
                                     <InfoItem
                                         label="Διεύθυνση"
-                                        value={
-                                            customer.MAIN_ADDRESS && customer.MAIN_ZIP
-                                                ? `${customer.MAIN_ADDRESS}, ${customer.MAIN_ZIP}`
-                                                : customer.MAIN_ADDRESS || customer.MAIN_ZIP
-                                        }
+                                        value={customer.MAIN_ADDRESS}
                                     />
                                     <InfoItem label="Πόλη" value={customer.MAIN_CITY} />
                                 </div>
