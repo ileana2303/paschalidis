@@ -69,6 +69,7 @@ export default function SearchPartsClient() {
     const [storesReady, setStoresReady] = useState(false);
     const [orderConfirmOpen, setOrderConfirmOpen] = useState(false);
     const [pendingPriceRequestCount, setPendingPriceRequestCount] = useState(0);
+    const [resultsTextFilter, setResultsTextFilter] = useState("");
     const [partInsightsItem, setPartInsightsItem] = useState<IItem | null>(null);
     const [lastOrdersState, setLastOrdersState] = useState<
         InsightSectionState<LastOrdersResponse>
@@ -185,11 +186,13 @@ export default function SearchPartsClient() {
     const prepareResultsForSearch = resultsController.prepareForSearch;
 
     const handleSearch = async () => {
+        setResultsTextFilter("");
         prepareResultsForSearch();
         await runPageSearch();
     };
 
     const handleModalSearch = async () => {
+        setResultsTextFilter("");
         prepareResultsForSearch();
         await runPageModalSearch();
     };
@@ -212,6 +215,7 @@ export default function SearchPartsClient() {
 
         lastUrlPartSearchRef.current = searchKey;
         pendingScopedNavigationRef.current = Boolean(urlTrdr);
+        setResultsTextFilter("");
         prepareResultsForSearch();
 
         void runPageDirectSearch(urlPart).then((hasRunSearch) => {
@@ -521,6 +525,8 @@ export default function SearchPartsClient() {
                                 items,
                                 loading,
                                 hasSearched,
+                                textFilter: resultsTextFilter,
+                                onTextFilterChange: setResultsTextFilter,
                                 currentBranchCode: resultsController.currentBranchCode,
                                 stockRequestCardsVisible: resultsController.stockRequestCardsVisible,
                                 onToggleStockRequestCardsVisibility: resultsController.toggleStockRequestCardsVisibility,

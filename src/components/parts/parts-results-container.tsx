@@ -28,6 +28,8 @@ interface PartsResultsStateProps {
     items: IItem[];
     loading: boolean;
     hasSearched: boolean;
+    textFilter: string;
+    onTextFilterChange: (value: string) => void;
     currentBranchCode: string;
     stockRequestCardsVisible: boolean;
     onToggleStockRequestCardsVisibility: () => void;
@@ -108,6 +110,8 @@ export default function PartsResultsContainer({
         items,
         loading,
         hasSearched,
+        textFilter,
+        onTextFilterChange,
         currentBranchCode,
         stockRequestCardsVisible,
         onToggleStockRequestCardsVisibility,
@@ -154,7 +158,6 @@ export default function PartsResultsContainer({
         formatPrice,
     } = basket;
 
-    const [textFilter, setTextFilter] = useState("");
     const [statusFilterSelection, setStatusFilterSelection] = useState<Set<string> | null>(null);
     const [isResultsActionsOpen, setIsResultsActionsOpen] = useState(false);
 
@@ -270,7 +273,7 @@ export default function PartsResultsContainer({
 
                                     <ResultsFilterInput
                                         value={textFilter}
-                                        onChange={setTextFilter}
+                                        onChange={onTextFilterChange}
                                     />
 
                                     {availableStatusLabels.length > 0 && (
