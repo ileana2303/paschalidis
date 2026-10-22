@@ -107,6 +107,9 @@ export default function CompanyStockClient() {
   const [searchTerm, setSearchTerm] = useSessionState("company-stock-search", "");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [basketLines, setBasketLines] = useState<CompanyStockBasketLine[]>([]);
+  const [selectedSupplierBasketTrdr, setSelectedSupplierBasketTrdr] = useState<
+    string | null
+  >(null);
   const [supplierOverrides, setSupplierOverrides] = useState<
     Record<string, CompanyStockSuggestedSupplier>
   >({});
@@ -155,7 +158,9 @@ export default function CompanyStockClient() {
   }, [days, fetchCompanyStock]);
 
   useEffect(() => {
-        void loadRows();
+    // Remote data is synchronized after the selected period changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadRows();
   }, [loadRows]);
 
   const refreshRows = useCallback(() => {
@@ -303,8 +308,12 @@ export default function CompanyStockClient() {
             quantity,
             supplierName: selectedSupplier.name,
             supplierTrdr: selectedSupplier.trdr,
+            supplierCode: selectedSupplier.code,
           },
         ]);
+        setSelectedSupplierBasketTrdr(
+          (current) => current ?? selectedSupplier.trdr
+        );
         setQuantity(itemKey, 0);
         setSupplierOverrides((current) => {
           if (!(itemKey in current)) return current;
@@ -657,6 +666,8 @@ export default function CompanyStockClient() {
         <CompanyStockOrderSummary
           branchLabel={currentBranchLabel}
           lines={basketLines}
+          selectedSupplierTrdr={selectedSupplierBasketTrdr}
+          onSelectedSupplierTrdrChange={setSelectedSupplierBasketTrdr}
           collapsed={!summaryVisible}
           onToggleCollapse={() => setSummaryVisible((visible) => !visible)}
         />
