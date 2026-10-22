@@ -6,6 +6,9 @@ import CompanyStockOrderSummary, {
   type CompanyStockBasketLine,
 } from "@/components/stock/company-stock-order-summary";
 import ItemForensicsDrawer from "@/components/stock/item-forensics-drawer";
+import SuggestedSupplierCell, {
+  type CompanyStockSuggestedSupplier,
+} from "@/components/stock/suggested-supplier-cell";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
@@ -25,7 +28,6 @@ import {
   Package,
   RefreshCw,
   ShoppingCart,
-  Truck,
 } from "@/lib/icons/lucide";
 import {
   formatBranchLabel,
@@ -55,6 +57,16 @@ const AVAILABILITY_FIELDS = [
 
 function formatDaysLabel(days: number) {
   return days === 1 ? "1 ημέρα" : `${days} ημέρες`;
+}
+
+function getSuggestedSupplier(
+  row: ICompanyStockRow
+): CompanyStockSuggestedSupplier {
+  return {
+    trdr: String(row.SUGGESTED_TRDR ?? "").trim(),
+    code: String(row.SUGGESTED_TRDR_CODE ?? "").trim(),
+    name: String(row.SUGGESTED_TRDR_NAME ?? "").trim(),
+  };
 }
 
 function TableSkeleton() {
@@ -95,6 +107,9 @@ export default function CompanyStockClient() {
   const [searchTerm, setSearchTerm] = useSessionState("company-stock-search", "");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [basketLines, setBasketLines] = useState<CompanyStockBasketLine[]>([]);
+  const [supplierOverrides, setSupplierOverrides] = useState<
+    Record<string, CompanyStockSuggestedSupplier>
+  >({});
   const [summaryVisible, setSummaryVisible] = useState(true);
   const [selectedForensicsItem, setSelectedForensicsItem] =
     useState<ICompanyStockRow | null>(null);
@@ -120,6 +135,7 @@ export default function CompanyStockClient() {
           (first, second) => toNumber(second.QTY_SOLD) - toNumber(first.QTY_SOLD)
         )
       );
+      setSupplierOverrides({});
     } catch (loadError) {
       if (requestId !== loadRequestId.current) {
         return;
@@ -139,10 +155,7 @@ export default function CompanyStockClient() {
   }, [days, fetchCompanyStock]);
 
   useEffect(() => {
-    // Remote data is intentionally synchronized when the selected period changes.
-    // State updates inside loadRows occur only after the request resolves.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadRows();
+        void loadRows();
   }, [loadRows]);
 
   const refreshRows = useCallback(() => {
@@ -196,11 +209,51 @@ export default function CompanyStockClient() {
     }));
   }, []);
 
+  const handleSuggestedSupplierChange = useCallback(
+    (itemKey: string, supplier: CompanyStockSuggestedSupplier) => {
+      setSupplierOverrides((current) => ({
+        ...current,
+        [itemKey]: supplier,
+      }));
+      setAddErrors((current) => ({ ...current, [itemKey]: "" }));
+    },
+    []
+  );
+
+  const handleSuggestedSupplierSaved = useCallback(
+    (
+      itemKey: string,
+      suffix: string,
+      supplier: CompanyStockSuggestedSupplier
+    ) => {
+      setRows((current) =>
+        current.map((row) =>
+          String(row.CCCSUFIX ?? "").trim() === suffix.trim()
+            ? {
+                ...row,
+                SUGGESTED_TRDR: supplier.trdr,
+                SUGGESTED_TRDR_CODE: supplier.code,
+                SUGGESTED_TRDR_NAME: supplier.name,
+              }
+            : row
+        )
+      );
+      setSupplierOverrides((current) => {
+        const next = { ...current };
+        delete next[itemKey];
+        return next;
+      });
+    },
+    []
+  );
+
   const handleAddToCompanyBasket = useCallback(
     async (row: ICompanyStockRow) => {
       const itemKey = String(row.MTRL);
       const quantity = quantities[itemKey] ?? 0;
       const normalizedMtrl = Number(row.MTRL);
+      const selectedSupplier =
+        supplierOverrides[itemKey] ?? getSuggestedSupplier(row);
 
       if (!currentBranchCode) {
         setAddErrors((current) => ({
@@ -235,6 +288,7 @@ export default function CompanyStockClient() {
           qty: quantity,
           branch: currentBranchCode,
           origin: "PASCHALIDIS",
+          trdr: selectedSupplier.trdr,
         });
 
         const basketId = String(result.rows?.[0]?.NEW_ID ?? "").trim();
@@ -247,9 +301,18 @@ export default function CompanyStockClient() {
             code: row.CODE,
             name: row.NAME,
             quantity,
+            supplierName: selectedSupplier.name,
+            supplierTrdr: selectedSupplier.trdr,
           },
         ]);
         setQuantity(itemKey, 0);
+        setSupplierOverrides((current) => {
+          if (!(itemKey in current)) return current;
+
+          const next = { ...current };
+          delete next[itemKey];
+          return next;
+        });
         toast.success(
           `Προστέθηκαν ${quantity} τεμ. του είδους ${row.CODE} στο καλάθι.`
         );
@@ -271,7 +334,13 @@ export default function CompanyStockClient() {
         });
       }
     },
-    [currentBranchCode, quantities, requestStockQuantity, setQuantity]
+    [
+      currentBranchCode,
+      quantities,
+      requestStockQuantity,
+      setQuantity,
+      supplierOverrides,
+    ]
   );
 
   return (
@@ -361,13 +430,13 @@ export default function CompanyStockClient() {
           <div className="min-h-0 min-w-0 w-full max-w-full flex-1 overflow-x-auto overflow-y-auto">
             <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
               <colgroup>
-                <col className="w-[18%]" />
-                <col className="w-[6%]" />
-                <col className="w-[23%]" />
-                <col className="w-[6%]" />
-                <col className="w-[21%]" />
-                <col className="w-[11%]" />
-                <col className="w-[15%]" />
+                <col className="w-[20%]" />
+                <col className="w-[5%]" />
+                <col className="w-[25%]" />
+                <col className="w-[5%]" />
+                <col className="w-[19%]" />
+                <col className="w-[14%]" />
+                <col className="w-[12%]" />
               </colgroup>
 
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
@@ -376,13 +445,13 @@ export default function CompanyStockClient() {
                     Είδος
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    QTY_SOLD
+                    SOLD
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Ιστορικό πωλήσεων
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    ONGOING
+                  <th className="px-1 py-3 text-center text-[10px] font-semibold uppercase tracking-tight text-gray-500 dark:text-gray-400">
+                    Σε Εξέλξη
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Διαθεσιμότητα
@@ -403,6 +472,9 @@ export default function CompanyStockClient() {
                   const totalAvailable = toNumber(row.TOTAL_AVAIL);
                   const addError = addErrors[itemKey] ?? "";
                   const isAddingItem = addingItems.has(itemKey);
+                  const persistedSupplier = getSuggestedSupplier(row);
+                  const selectedSupplier =
+                    supplierOverrides[itemKey] ?? persistedSupplier;
 
                   return (
                     <tr
@@ -474,7 +546,7 @@ export default function CompanyStockClient() {
                         </div>
                       </td>
 
-                      <td className="whitespace-nowrap px-4 py-4 text-center align-middle tabular-nums text-gray-700 dark:text-gray-200">
+                      <td className="whitespace-nowrap px-1 py-4 text-center align-middle text-xs tabular-nums text-gray-700 dark:text-gray-200">
                         {formatNumber(row.ONGOING)}
                       </td>
 
@@ -508,23 +580,22 @@ export default function CompanyStockClient() {
                       </td>
 
                       <td className="px-2 py-3 align-middle">
-                        <div
-                          className="min-w-0 rounded-lg border border-brand-100 bg-brand-50/60 px-2.5 py-2 dark:border-brand-500/20 dark:bg-brand-500/10"
-                          title={row.SUGGESTED_TRDR_NAME || undefined}
-                        >
-                          <div className="flex min-w-0 items-center gap-2">
-                            <Truck className="h-3.5 w-3.5 shrink-0 text-brand-500 dark:text-brand-300" />
-                            <p className="truncate text-xs font-semibold text-gray-900 dark:text-white">
-                              {row.SUGGESTED_TRDR_NAME || "—"}
-                            </p>
-                          </div>
-
-                          <p className="mt-1 truncate text-[10px] tabular-nums text-gray-500 dark:text-gray-400">
-                            TRDR <strong className="font-semibold text-gray-700 dark:text-gray-200">{row.SUGGESTED_TRDR || "—"}</strong>
-                            <span className="px-1 text-brand-300 dark:text-brand-500">·</span>
-                            Κωδ. <strong className="font-semibold text-gray-700 dark:text-gray-200">{row.SUGGESTED_TRDR_CODE || "—"}</strong>
-                          </p>
-                        </div>
+                        <SuggestedSupplierCell
+                          suffix={row.CCCSUFIX}
+                          persistedSupplier={persistedSupplier}
+                          value={selectedSupplier}
+                          disabled={isAddingItem}
+                          onChange={(supplier) =>
+                            handleSuggestedSupplierChange(itemKey, supplier)
+                          }
+                          onSaved={(supplier) =>
+                            handleSuggestedSupplierSaved(
+                              itemKey,
+                              row.CCCSUFIX,
+                              supplier
+                            )
+                          }
+                        />
                       </td>
 
                       <td className="px-2 py-3 align-middle">

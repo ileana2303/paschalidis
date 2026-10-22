@@ -556,6 +556,8 @@ export interface StockRequestRoutePayload {
     qty: number;
     branch: string;
     origin: StockRequestOrigin;
+    /** Optional supplier override used for this basket insertion only. */
+    trdr?: string | number;
 }
 
 export interface StockRequestInsertPayload {
@@ -568,6 +570,7 @@ export interface StockRequestInsertPayload {
     QTY_REQUESTED: number;
     APPORIGIN: StockRequestOrigin;
     APPUSER_ID: string;
+    TRDR?: string;
 }
 
 interface IStockRequestInsertRow {

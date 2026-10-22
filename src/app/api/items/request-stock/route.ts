@@ -35,13 +35,14 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { mtrl, qty, branch, origin } =
+        const { mtrl, qty, branch, origin, trdr } =
             (await req.json()) as StockRequestRoutePayload;
         const normalizedMtrl = Number(mtrl);
         const normalizedQty = Number(qty);
         const normalizedBranch =
             typeof branch === "string" && branch.trim() ? branch.trim() : "";
         const normalizedOrigin = normalizeOrigin(origin);
+        const normalizedTrdr = String(trdr ?? "").trim();
         const clientID = getSoftOneClientID();
 
         if (!Number.isFinite(normalizedMtrl) || normalizedMtrl <= 0) {
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest) {
             QTY_REQUESTED: normalizedQty,
             APPORIGIN: normalizedOrigin,
             APPUSER_ID: ZERO_GUID,
+            ...(normalizedTrdr ? { TRDR: normalizedTrdr } : {}),
         };
 
         const response = await postSoftOne(upstreamPayload);

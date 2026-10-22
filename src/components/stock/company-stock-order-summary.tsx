@@ -15,6 +15,8 @@ export interface CompanyStockBasketLine {
     code: string;
     name: string;
     quantity: number;
+    supplierName?: string;
+    supplierTrdr?: string;
 }
 
 interface CompanyStockOrderSummaryProps {
@@ -119,6 +121,11 @@ export default function CompanyStockOrderSummary({
                                         <p className="mt-1 text-xs text-gray-500">
                                             {line.code || line.mtrl}
                                         </p>
+                                        {line.supplierTrdr && (
+                                            <p className="mt-1 truncate text-[11px] text-brand-600 dark:text-brand-300">
+                                                {line.supplierName || "Προμηθευτής"} · {line.supplierTrdr}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <span className="shrink-0 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-xs font-semibold tabular-nums text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
