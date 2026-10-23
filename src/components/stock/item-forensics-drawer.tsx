@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { ApexOptions } from "apexcharts";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import { useFetchItemForensicsMutation } from "@/hooks/queries/useApiMutations";
-import type { ICompanyStockRow, IItemForensicsRow } from "@/lib/interface";
+import type { IItemForensicsRow } from "@/lib/interface";
 import {
   AlertCircle,
   ChartColumn,
@@ -23,13 +23,21 @@ import {
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 interface ItemForensicsDrawerProps {
-  item: ICompanyStockRow;
+  item: {
+    MTRL: string;
+    CODE: string;
+    NAME: string;
+  };
   days: number;
   onClose: () => void;
 }
 
 function numberValue(value: unknown) {
   return parseSoftOneNumber(value) ?? 0;
+}
+
+function salesPeriodLabel(days: number) {
+  return days === 0 ? "Σήμερα" : `${days}ημ.`;
 }
 
 function KpiCard({ label, value }: { label: string; value: string }) {
@@ -122,7 +130,7 @@ function RelatedItemsGroup({
             <tr>
               <th className="px-4 py-2.5 text-left">Είδος</th>
               <th className="px-3 py-2.5 text-left">Group / B2B</th>
-              <th className="px-3 py-2.5 text-right">Πωλ. {days}ημ.</th>
+              <th className="px-3 py-2.5 text-right">Πωλ. {salesPeriodLabel(days)}</th>
               <th className="px-3 py-2.5 text-right">{currentYear}</th>
               <th className="px-3 py-2.5 text-right">{currentYear - 1}</th>
               <th className="px-3 py-2.5 text-right">Ongoing</th>
@@ -229,7 +237,7 @@ function ItemForensicsContent({
     <div className="space-y-5 p-4 sm:p-6">
       <section aria-label="Σύνοψη forensics">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-          <KpiCard label={`Πωλήσεις ${days}ημ.`} value={formatElNumber(selected.QTY_SOLD)} />
+          <KpiCard label={`Πωλήσεις ${salesPeriodLabel(days)}`} value={formatElNumber(selected.QTY_SOLD)} />
           <KpiCard label={`${currentYear} ποσότητα`} value={formatElNumber(selected.CY)} />
           <KpiCard label={`${currentYear - 1} ποσότητα`} value={formatElNumber(selected.CY_1)} />
           <KpiCard label="Διαθέσιμα" value={formatElNumber(selected.TOTAL_AVAIL)} />

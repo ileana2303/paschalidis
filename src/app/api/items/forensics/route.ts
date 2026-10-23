@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
             return errorResponse("Απαιτείται έγκυρο αναγνωριστικό είδους (MTRL).", 400);
         }
 
-        if (!Number.isInteger(days) || days < 1 || days > 10) {
-            return errorResponse("Οι ημέρες πρέπει να είναι ακέραιος από 1 έως 10.", 400);
+        if (!Number.isInteger(days) || days < 0 || days > 10) {
+            return errorResponse("Οι ημέρες πρέπει να είναι ακέραιος από 0 έως 10.", 400);
         }
 
         const clientID = getSoftOneClientID();

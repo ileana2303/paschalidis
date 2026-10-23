@@ -3,9 +3,11 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
+import ItemForensicsDrawer from "@/components/stock/item-forensics-drawer";
 import QuantityControl from "@/components/ui/quantity-control";
 import {
   AlertCircle,
+  ChartColumn,
   ExternalLink,
   Loader2,
   Package,
@@ -19,14 +21,9 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
-import StatusBadge from "@/components/ui/data-table/status-badge";
-import type {
-  IStockFeedbackRow,
-  StockRequestStatus,
-} from "@/lib/interface";
+import type { IStockFeedbackRow } from "@/lib/interface";
 import {
   useFetchStockFeedbackMutation,
-  useFetchStockRequestsMutation,
   useRequestStockQuantityMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
@@ -36,10 +33,8 @@ import { getBranchColor } from "@/lib/branch-colors";
 import { useSessionState } from "@/hooks/useSessionState";
 import { useLoadOnChange } from "@/hooks/useLoadOnChange";
 import {
-  buildPendingStockState,
   formatDaysLabel,
   formatNumber,
-  getRequestStatusLabel,
   toNumber,
 } from "@/lib/utils/stock-feedback";
 
@@ -101,7 +96,6 @@ function TableSkeleton() {
 export default function StockFeedbackClient({ embedded = false }: { embedded?: boolean }) {
   const user = useAuthStore((state) => state.user);
   const { mutateAsync: fetchStockFeedback } = useFetchStockFeedbackMutation();
-  const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
   const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
 
   const currentBranchCode = useMemo(
@@ -127,16 +121,12 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
   const [requestQuantities, setRequestQuantities] = useState<
     Record<string, number>
   >({});
-  const [requestStatuses, setRequestStatuses] = useState<
-    Record<string, StockRequestStatus>
-  >({});
-  const [requestedStatusQty, setRequestedStatusQty] = useState<
-    Record<string, number>
-  >({});
   const [requestErrors, setRequestErrors] = useState<Record<string, string>>({});
   const [submittingRequests, setSubmittingRequests] = useState<Set<string>>(
     new Set()
   );
+  const [selectedForensicsItem, setSelectedForensicsItem] =
+    useState<IStockFeedbackRow | null>(null);
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -144,8 +134,6 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
 
     if (!currentBranchCode) {
       setRows([]);
-      setRequestStatuses({});
-      setRequestedStatusQty({});
       setLoading(false);
       setError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη.");
       return;
@@ -162,27 +150,8 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
       );
 
       setRows(nextRows);
-
-      try {
-        const stockRequestData = await fetchStockRequests({
-          branch: currentBranchCode,
-          origin: "STORE",
-        });
-        const pendingState = buildPendingStockState(stockRequestData.rows);
-        setRequestStatuses(pendingState.statuses);
-        setRequestedStatusQty(pendingState.requestedQty);
-      } catch (stockRequestError) {
-        console.error(
-          "[stock-feedback] Failed to hydrate pending request statuses",
-          stockRequestError
-        );
-        setRequestStatuses({});
-        setRequestedStatusQty({});
-      }
     } catch (err) {
       setRows([]);
-      setRequestStatuses({});
-      setRequestedStatusQty({});
       setError(
         err instanceof Error
           ? err.message
@@ -191,13 +160,13 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
     } finally {
       setLoading(false);
     }
-  }, [currentBranchCode, days, fetchStockFeedback, fetchStockRequests]);
+  }, [currentBranchCode, days, fetchStockFeedback]);
 
   useLoadOnChange(loadRows);
 
   const filteredRows = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    const visibleRows = !query
+    return !query
       ? rows
       : rows.filter((row) => {
         return [row.CODE, row.NAME]
@@ -205,21 +174,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
           .toLowerCase()
           .includes(query);
       });
-
-    return visibleRows
-      .map((row, index) => ({ row, index }))
-      .sort((a, b) => {
-        const aIsPending = requestStatuses[String(a.row.MTRL)] === "pending";
-        const bIsPending = requestStatuses[String(b.row.MTRL)] === "pending";
-
-        if (aIsPending !== bIsPending) {
-          return aIsPending ? 1 : -1;
-        }
-
-        return a.index - b.index;
-      })
-      .map(({ row }) => row);
-  }, [rows, searchTerm, requestStatuses]);
+  }, [rows, searchTerm]);
 
   const getRequestQuantity = useCallback(
     (mtrl: string) => requestQuantities[mtrl] ?? 0,
@@ -235,6 +190,10 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
       ...prev,
       [mtrl]: normalizedQty,
     }));
+  }, []);
+
+  const closeForensicsDrawer = useCallback(() => {
+    setSelectedForensicsItem(null);
   }, []);
 
   const handleSubmitStockRequest = useCallback(
@@ -274,24 +233,17 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
       }));
 
       try {
-        await requestStockQuantity({
+        const result = await requestStockQuantity({
           mtrl: normalizedMtrl,
           qty,
           branch: currentBranchCode,
           origin: "STORE",
         });
 
-        setRequestStatuses((prev) => ({
-          ...prev,
-          [mtrlKey]: "pending",
-        }));
-        setRequestedStatusQty((prev) => ({
-          ...prev,
-          [mtrlKey]: (prev[mtrlKey] ?? 0) + qty,
-        }));
         setRequestQuantity(mtrlKey, 0);
+        const requestId = String(result.rows?.[0]?.NEW_ID ?? "").trim();
         toast.success(
-          `Το αίτημα για ${qty} τεμ. καταχωρήθηκε για το είδος ${row.CODE}.`
+          `ID: ${requestId || "—"} έχει καταχωρηθεί στα Αιτήματα Ανατροφοδοσίας επιτυχώς`
         );
       } catch (submitError) {
         const message =
@@ -455,8 +407,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                 <col className="w-[10%]" />
                 <col className="w-[8%]" />
                 <col className="w-[8%]" />
-                <col className="w-[8%]" />
-                <col className="w-[20%]" />
+                <col className="w-[24%]" />
               </colgroup>
 
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
@@ -486,9 +437,6 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Διαθέσιμο
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Κατάσταση
-                  </th>
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Αίτημα
                   </th>
@@ -501,8 +449,6 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                   const qtySold = toNumber(row.QTY_SOLD);
                   const mtrlKey = String(row.MTRL);
                   const requestQty = getRequestQuantity(mtrlKey);
-                  const requestStatus = requestStatuses[mtrlKey] ?? null;
-                  const statusRequestedQty = requestedStatusQty[mtrlKey];
                   const requestError = requestErrors[mtrlKey] ?? "";
                   const isSubmittingRequest = submittingRequests.has(mtrlKey);
 
@@ -511,19 +457,28 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                       key={`${row.MTRL}-${row.CODE}-${index}`}
                       className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
                     >
-                      <td className="px-5 py-4 align-top">
-                        <div className="pr-4">
-                          <p className="break-words font-medium leading-5 text-gray-900 dark:text-white">
-                            {row.NAME}
-                          </p>
-
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            Κωδικός:{" "}
-                            <span className="font-medium text-gray-700 dark:text-gray-300">
-                              {row.CODE}
+                      <td className="px-3 py-2 align-top">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedForensicsItem(row)}
+                          className="group/item w-full rounded-xl px-2 py-2 text-left transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:hover:bg-brand-500/10"
+                          aria-label={`Προβολή ιστορικού πωλήσεων για ${row.NAME || row.CODE}`}
+                        >
+                          <span className="flex items-start justify-between gap-3">
+                            <span className="min-w-0 pr-4">
+                              <span className="block break-words font-medium leading-5 text-gray-900 group-hover/item:text-brand-600 dark:text-white dark:group-hover/item:text-brand-300">
+                                {row.NAME || "—"}
+                              </span>
+                              <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                                Κωδικός:{" "}
+                                <span className="font-medium text-gray-700 dark:text-gray-300">
+                                  {row.CODE || "—"}
+                                </span>
+                              </span>
                             </span>
-                          </p>
-                        </div>
+                            <ChartColumn className="mt-0.5 h-4 w-4 shrink-0 text-gray-300 transition group-hover/item:text-brand-500 dark:text-gray-600" />
+                          </span>
+                        </button>
                       </td>
 
                       <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums font-semibold text-gray-900 dark:text-white">
@@ -554,22 +509,6 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                           variant={totalAvail > 0 ? "success" : "danger"}
                           className="min-w-[72px]"
                         />
-                      </td>
-
-                      <td className="px-3 py-4 align-top">
-                        <div className="flex justify-end">
-                          {requestStatus ? (
-                            <StatusBadge
-                              status={requestStatus}
-                              label={getRequestStatusLabel(
-                                requestStatus,
-                                statusRequestedQty
-                              )}
-                            />
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </div>
                       </td>
 
                       <td className="px-5 py-4 align-top">
@@ -624,6 +563,14 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
           </div>
         )}
       </DataTable>
+      {selectedForensicsItem ? (
+        <ItemForensicsDrawer
+          key={`${selectedForensicsItem.MTRL}-${days}`}
+          item={selectedForensicsItem}
+          days={days}
+          onClose={closeForensicsDrawer}
+        />
+      ) : null}
     </div>
   );
 }
