@@ -2,6 +2,21 @@ import type {
     MassDeleteTableAction,
     OrderSubmitType,
 } from "./order-submit-types";
+import { ANATROF_TABLE_ACTION } from "./anatrof/anatrof-constants";
+import { BASKET_TABLE_ACTION } from "./customer-basket/basket-constants";
+import { ENDO_TABLE_ACTION } from "./endo/endo-constants";
+import { SUPPLIER_BASKET_TABLE_ACTION } from "./supplier-basket/supplier-basket-constants";
+
+const tableActionBySubmitType = {
+    basket: BASKET_TABLE_ACTION,
+    endo: ENDO_TABLE_ACTION,
+    anatrof: ANATROF_TABLE_ACTION,
+    "supplier-basket": SUPPLIER_BASKET_TABLE_ACTION,
+} satisfies Record<OrderSubmitType, MassDeleteTableAction>;
+
+const massDeleteTableActions = new Set<unknown>(
+    Object.values(tableActionBySubmitType)
+);
 
 export function jsonSafeNumber(value: unknown): number | undefined {
     const parsed = Number(value);
@@ -50,15 +65,7 @@ export function validateMassDeleteSafety(params: {
     submitType: OrderSubmitType;
     tableAction: MassDeleteTableAction;
 }) {
-    const expectedTableActionByType: Record<OrderSubmitType, MassDeleteTableAction> =
-        {
-            basket: "USRCUST",
-            endo: "ENDO",
-            anatrof: "ANATROF",
-            "supplier-basket": "COMPANY STOCK",
-        };
-
-    const expected = expectedTableActionByType[params.submitType];
+    const expected = tableActionBySubmitType[params.submitType];
 
     if (params.tableAction !== expected) {
         throw new Error('Μη ασφαλής ρύθμιση μαζικής διαγραφής για τον τύπο υποβολής.');
@@ -68,10 +75,5 @@ export function validateMassDeleteSafety(params: {
 export function isMassDeleteTableAction(
     value: unknown
 ): value is MassDeleteTableAction {
-    return (
-        value === "USRCUST" ||
-        value === "ENDO" ||
-        value === "ANATROF" ||
-        value === "COMPANY STOCK"
-    );
+    return massDeleteTableActions.has(value);
 }

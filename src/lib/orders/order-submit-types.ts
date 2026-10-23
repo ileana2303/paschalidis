@@ -1,11 +1,16 @@
 
+import type { ANATROF_TABLE_ACTION } from "./anatrof/anatrof-constants";
+import type { BASKET_TABLE_ACTION } from "./customer-basket/basket-constants";
+import type { ENDO_TABLE_ACTION } from "./endo/endo-constants";
+import type { SUPPLIER_BASKET_TABLE_ACTION } from "./supplier-basket/supplier-basket-constants";
+
 export type OrderSubmitType = "basket" | "endo" | "anatrof" | "supplier-basket";
 
 export type MassDeleteTableAction =
-    | "USRCUST"
-    | "ENDO"
-    | "ANATROF"
-    | "COMPANY STOCK";
+    | typeof BASKET_TABLE_ACTION
+    | typeof ENDO_TABLE_ACTION
+    | typeof ANATROF_TABLE_ACTION
+    | typeof SUPPLIER_BASKET_TABLE_ACTION;
 
 export type MassDeletePayload = {
     service: "SqlData";
