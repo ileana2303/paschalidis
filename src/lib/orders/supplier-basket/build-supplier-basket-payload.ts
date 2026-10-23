@@ -28,7 +28,6 @@ export type SupplierBasketMtrdoc = {
 export type SupplierBasketItemLine = {
     MTRL: number;
     QTY1: number;
-    PRICE?: number;
 };
 
 export type SupplierBasketSetDataPayload = SetDataEnvelope<

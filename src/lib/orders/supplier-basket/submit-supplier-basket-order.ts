@@ -71,7 +71,6 @@ export async function submitSupplierBasketOrder(
         lines: lines.map((line) => ({
             MTRL: line.mtrl,
             QTY1: line.qty,
-            ...(line.price > 0 ? { PRICE: line.price } : {}),
         })),
     });
 
