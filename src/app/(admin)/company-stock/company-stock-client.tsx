@@ -439,8 +439,8 @@ export default function CompanyStockClient() {
           <div className="min-h-0 min-w-0 w-full max-w-full flex-1 overflow-x-auto overflow-y-auto">
             <table className="w-full table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
               <colgroup>
-                <col className="w-[20%]" />
-                <col className="w-[5%]" />
+                <col className="w-[19%]" />
+                <col className="w-[6%]" />
                 <col className="w-[25%]" />
                 <col className="w-[5%]" />
                 <col className="w-[19%]" />
@@ -454,12 +454,12 @@ export default function CompanyStockClient() {
                     Είδος
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    SOLD
+                    Πωλήσεις
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Ιστορικό πωλήσεων
                   </th>
-                  <th className="px-1 py-3 text-center text-[10px] font-semibold uppercase tracking-tight text-gray-500 dark:text-gray-400">
+                  <th className="px-1 py-3 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Σε Εξέλξη
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">

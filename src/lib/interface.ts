@@ -43,6 +43,16 @@ export interface IItem {
     ITEM_DESCR: string;
     MNF_DESCR: string;
 
+    SUFIX: string;
+    SUFIX_NAME: string;
+    ZGROUP_CODE: string;
+    ZB2B_CODE: string;
+    SUFIX_SUPPLIER: string;
+    SUGGESTED_TRDR: string;
+    SUGGESTED_TRDR_CODE: string;
+    SUGGESTED_TRDR_NAME: string;
+    SUFIX_NEEDS_EXTRA: string;
+
     STATUS_LABEL: string;
     STATUS_NOW: string;
     STATUS_MOBILE: string;
@@ -53,10 +63,21 @@ export interface IItem {
     THESI1006: string;
     YP1007: string;
     THESI1007: string;
+    YP1008: string;
 
     TOTAL_AVAIL: string;
     ONGOING: string;
     NET_QTY_AVAILABLE: string;
+
+    RES1000: string;
+    RES1006: string;
+    RES1007: string;
+    RES_TOTAL: string;
+
+    END1000: string;
+    END1006: string;
+    END1007: string;
+    END_TOTAL: string;
 
     SoOrdered: string;
     SoReserved: string;
@@ -76,6 +97,11 @@ export interface IItem {
     CCCPRICEW16: string;
     CCCPRICEW17: string;
     STANDCOST: string;
+    SUFIX_PCT01: string;
+    SUFIX_PCT02: string;
+    SUFIX_PCT03: string;
+    SUFIX_PCT04: string;
+    SUFIX_PCT05: string;
     PRICE_MESSAGE: string;
 
     BASKET_QTY: string;
@@ -84,7 +110,7 @@ export interface IItem {
     BASKET_ERP_PRICE: string;
 }
 
-// SEARCH_PARTS_TRDR :: Search items with selected customer - includes basket info. 
+// SEARCH_PARTS_PER_TRDR :: Search items with selected customer - includes basket info.
 export interface IItemTRDR extends IItem {
     BasketReserved: string;
     BASKET_QTY: string;
@@ -399,12 +425,25 @@ export interface IStockFeedbackRow {
     MTRL: string;
     CODE: string;
     NAME: string;
+    CODE1: string;
+    CODE2: string;
     QTY_SOLD: string;
     ONGOING: string;
     YP1000: string;
     YP1006: string;
     YP1007: string;
     TOTAL_AVAIL: string;
+    RES1000: string;
+    RES1006: string;
+    RES1007: string;
+    RES_TOTAL: string;
+    END1000: string;
+    END1006: string;
+    END1007: string;
+    END_TOTAL: string;
+    FREE_AVAIL: string;
+    RES_BRANCH: string;
+    YP_BRANCH: string;
 }
 
 export interface StockFeedbackResponse
@@ -427,6 +466,7 @@ export interface ICompanyStockRow {
     CODE: string;
     NAME: string;
     CODE1: string;
+    CODE2: string;
     CCCSUFIX: string;
     ZGROUP_CODE: string;
     ZB2B_CODE: string;
