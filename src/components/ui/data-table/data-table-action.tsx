@@ -12,6 +12,7 @@ interface RowActionGroupProps {
   onEdit: () => void;
   onApprove: () => void;
   onDelete: () => void;
+  showApprove?: boolean;
   editTitle?: string;
   approveTitle?: string;
   deleteTitle?: string;
@@ -28,6 +29,7 @@ export function RowActionGroup({
   onEdit,
   onApprove,
   onDelete,
+  showApprove = true,
   editTitle = "Επεξεργασία",
   approveTitle = "Έγκριση",
   deleteTitle = "Διαγραφή",
@@ -59,21 +61,23 @@ export function RowActionGroup({
           <span className="sr-only">{editTitle}</span>
         </button>
 
-        <button
-          type="button"
-          onClick={onApprove}
-          disabled={loading || disabled}
-          title={approveTitle}
-          aria-label={approveAriaLabel}
-          className="flex h-11 min-w-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none dark:disabled:bg-gray-700"
-        >
-          {loading ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-          ) : (
-            <Check className="h-4 w-4 shrink-0" />
-          )}
-          <span className="sr-only">{approveTitle}</span>
-        </button>
+        {showApprove && (
+          <button
+            type="button"
+            onClick={onApprove}
+            disabled={loading || disabled}
+            title={approveTitle}
+            aria-label={approveAriaLabel}
+            className="flex h-11 min-w-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none dark:disabled:bg-gray-700"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4 shrink-0" />
+            )}
+            <span className="sr-only">{approveTitle}</span>
+          </button>
+        )}
 
         <button
           type="button"
@@ -108,22 +112,26 @@ export function RowActionGroup({
         <Pencil className="h-3.5 w-3.5" />
       </button>
 
-      <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
+      {showApprove && (
+        <>
+          <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
-      <button
-        type="button"
-        onClick={onApprove}
-        disabled={loading || disabled}
-        title={approveTitle}
-        aria-label={approveAriaLabel}
-        className="flex h-9 w-9 items-center justify-center text-emerald-600 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-30 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
-      >
-        {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Check className="h-4 w-4" />
-        )}
-      </button>
+          <button
+            type="button"
+            onClick={onApprove}
+            disabled={loading || disabled}
+            title={approveTitle}
+            aria-label={approveAriaLabel}
+            className="flex h-9 w-9 items-center justify-center text-emerald-600 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-30 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4" />
+            )}
+          </button>
+        </>
+      )}
 
       <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
 

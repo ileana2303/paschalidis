@@ -49,7 +49,30 @@ import {
     type StockBranchCode,
 } from "@/lib/utils/stock-requests";
 
-export default function StockRequestsClient() {
+const quantityOptions = Array.from({ length: 100 }, (_, index) => index + 1);
+
+function getQuantityOptions(currentValue: string) {
+    const currentQuantity = Number(currentValue);
+
+    if (
+        !Number.isInteger(currentQuantity) ||
+        currentQuantity <= 0 ||
+        quantityOptions.includes(currentQuantity)
+    ) {
+        return quantityOptions;
+    }
+
+    return [...quantityOptions, currentQuantity].sort((a, b) => a - b);
+}
+
+interface StockRequestsClientProps {
+    mode?: "requests" | "list";
+}
+
+export default function StockRequestsClient({
+    mode = "requests",
+}: StockRequestsClientProps) {
+    const isStockList = mode === "list";
     const user = useAuthStore((state) => state.user);
     const currentBranchCode = useMemo(
         () => normalizeBranchCode(user?.mainBranch),
@@ -69,7 +92,7 @@ export default function StockRequestsClient() {
     const [editedQty, setEditedQty] = useState("");
     const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useSessionState(
-        "stock-requests-search",
+        isStockList ? "stock-list-search" : "stock-requests-search",
         ""
     );
     const [notes, setNotes] = useSessionState("stock-requests-notes", "");
@@ -298,6 +321,10 @@ export default function StockRequestsClient() {
     };
 
     const handleApproveRow = async (row: IStockRequestListRow) => {
+        if (isStockList) {
+            return;
+        }
+
         const qty = getActionQty(row);
 
         if (!qty) {
@@ -377,7 +404,13 @@ export default function StockRequestsClient() {
     return (
         <div className="flex min-h-[calc(100dvh-8rem)] min-w-0 max-w-full flex-col md:min-h-[calc(100dvh-9rem)] xl:h-[calc(100dvh-9rem)] xl:min-h-0 xl:overflow-hidden">
             <div className="shrink-0">
-                <PageBreadcrumb pageTitle="Λίστα Αιτημάτων Ανατροφοδοσίας" />
+                <PageBreadcrumb
+                    pageTitle={
+                        isStockList
+                            ? "Λίστα Ανατροφοδοσίας"
+                            : "Λίστα Αιτημάτων Ανατροφοδοσίας"
+                    }
+                />
             </div>
 
             {loading ? (
@@ -387,7 +420,12 @@ export default function StockRequestsClient() {
                 </div>
             ) : (
                 <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-5 xl:flex-row">
-                    <DataTable className="flex h-[60dvh] min-h-[420px] min-w-0 max-w-full shrink-0 flex-col xl:h-auto xl:min-h-0 xl:max-h-none xl:flex-1 xl:basis-3/4 xl:shrink">
+                    <DataTable
+                        className={[
+                            "flex h-[60dvh] min-h-[420px] min-w-0 max-w-full shrink-0 flex-col xl:h-auto xl:min-h-0 xl:max-h-none xl:flex-1 xl:shrink",
+                            isStockList ? "xl:basis-full" : "xl:basis-3/4",
+                        ].join(" ")}
+                    >
                         <DataTableHeader
                             title={(
                                 <span className="flex flex-wrap items-center gap-2">
@@ -606,30 +644,59 @@ export default function StockRequestsClient() {
 
                                                     <td className="px-3 py-4 text-right align-top xl:px-4">
                                                         {rowIsEditing ? (
-                                                            <input
-                                                                type="number"
-                                                                min={1}
-                                                                step={1}
-                                                                autoFocus
-                                                                disabled={rowUpdating}
-                                                                value={editedQty}
-                                                                onChange={(event) => setEditedQty(event.target.value)}
-                                                                onKeyDown={(event) => {
-                                                                    if (event.key === "Enter") {
-                                                                        void handleUpdateQty(row);
-                                                                    }
+                                                            isStockList ? (
+                                                                <select
+                                                                    autoFocus
+                                                                    disabled={rowUpdating}
+                                                                    value={editedQty}
+                                                                    onChange={(event) => setEditedQty(event.target.value)}
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === "Escape") {
+                                                                            handleCancelQtyEdit();
+                                                                        }
+                                                                    }}
+                                                                    aria-label={`Ποσότητα αιτήματος ${row.BASKETID}`}
+                                                                    className={[
+                                                                        "h-9 w-20 rounded-xl border px-2 text-right text-sm font-semibold tabular-nums outline-none transition disabled:cursor-not-allowed disabled:opacity-60",
+                                                                        qtyChanged
+                                                                            ? "border-brand-500 bg-brand-50 text-gray-900 ring-2 ring-brand-500/20 dark:border-brand-400 dark:bg-brand-500/10 dark:text-white"
+                                                                            : "border-gray-300 bg-white text-gray-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white",
+                                                                    ].join(" ")}
+                                                                >
+                                                                    {getQuantityOptions(currentRequestedQty).map(
+                                                                        (quantity) => (
+                                                                            <option key={quantity} value={quantity}>
+                                                                                {quantity}
+                                                                            </option>
+                                                                        )
+                                                                    )}
+                                                                </select>
+                                                            ) : (
+                                                                <input
+                                                                    type="number"
+                                                                    min={1}
+                                                                    step={1}
+                                                                    autoFocus
+                                                                    disabled={rowUpdating}
+                                                                    value={editedQty}
+                                                                    onChange={(event) => setEditedQty(event.target.value)}
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === "Enter") {
+                                                                            void handleUpdateQty(row);
+                                                                        }
 
-                                                                    if (event.key === "Escape") {
-                                                                        handleCancelQtyEdit();
-                                                                    }
-                                                                }}
-                                                                className={[
-                                                                    "h-9 w-20 rounded-xl border px-2 text-right text-sm font-semibold tabular-nums outline-none transition disabled:cursor-not-allowed disabled:opacity-60",
-                                                                    qtyChanged
-                                                                        ? "border-brand-500 bg-brand-50 text-gray-900 ring-2 ring-brand-500/20 dark:border-brand-400 dark:bg-brand-500/10 dark:text-white"
-                                                                        : "border-gray-300 bg-white text-gray-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white",
-                                                                ].join(" ")}
-                                                            />
+                                                                        if (event.key === "Escape") {
+                                                                            handleCancelQtyEdit();
+                                                                        }
+                                                                    }}
+                                                                    className={[
+                                                                        "h-9 w-20 rounded-xl border px-2 text-right text-sm font-semibold tabular-nums outline-none transition disabled:cursor-not-allowed disabled:opacity-60",
+                                                                        qtyChanged
+                                                                            ? "border-brand-500 bg-brand-50 text-gray-900 ring-2 ring-brand-500/20 dark:border-brand-400 dark:bg-brand-500/10 dark:text-white"
+                                                                            : "border-gray-300 bg-white text-gray-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white",
+                                                                    ].join(" ")}
+                                                                />
+                                                            )
                                                         ) : (
                                                             <NumberBadge
                                                                 value={currentRequestedQty}
@@ -671,6 +738,7 @@ export default function StockRequestsClient() {
                                                                 onEdit={() => handleStartQtyEdit(row)}
                                                                 onApprove={() => void handleApproveRow(row)}
                                                                 onDelete={() => void handleDeleteRow(row)}
+                                                                showApprove={!isStockList}
                                                                 editTitle="Επεξεργασία ποσότητας"
                                                                 approveTitle="Έγκριση αιτήματος"
                                                                 deleteTitle="Διαγραφή αιτήματος"
@@ -727,20 +795,22 @@ export default function StockRequestsClient() {
                         )}
                     </DataTable>
 
-                    <StockOrderSummary
-                        rows={approvedRows}
-                        requestedQtyTotal={approvedRequestedQty}
-                        branchLabel={selectedBranchLabel}
-                        getStatusStyle={getStatusStyle}
-                        getRequestedQty={getRequestedQty}
-                        formatDateTime={formatDateTime}
-                        loading={loading}
-                        onRefresh={loadRows}
-                        sendingOrder={submittingAnatrof}
-                        onSendOrder={() => void handleSubmitAnatrofOrder()}
-                        notes={notes}
-                        onNotesChange={setNotes}
-                    />
+                    {!isStockList && (
+                        <StockOrderSummary
+                            rows={approvedRows}
+                            requestedQtyTotal={approvedRequestedQty}
+                            branchLabel={selectedBranchLabel}
+                            getStatusStyle={getStatusStyle}
+                            getRequestedQty={getRequestedQty}
+                            formatDateTime={formatDateTime}
+                            loading={loading}
+                            onRefresh={loadRows}
+                            sendingOrder={submittingAnatrof}
+                            onSendOrder={() => void handleSubmitAnatrofOrder()}
+                            notes={notes}
+                            onNotesChange={setNotes}
+                        />
+                    )}
                 </div>
             )}
         </div>

@@ -92,6 +92,13 @@ const navItems: NavItem[] = [
     icon: Warehouse,
     name: "Ανατροφοδοσία",
     path: "/stock-feedback",
+    subItems: [
+      {
+        icon: ClipboardList,
+        name: "Λίστα Ανατροφοδοσίας",
+        path: "/stock-list",
+      },
+    ],
   },
   {
     icon: GitCompareArrows,
