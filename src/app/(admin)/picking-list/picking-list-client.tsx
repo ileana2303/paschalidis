@@ -674,16 +674,21 @@ function PickingOrderRow({
   const submittedMinutesAgo = formatMinutesAgoEl(order.submittedAt, nowMs);
   const showRetailCustomerName = shouldShowRetailCustomerName(order);
   const displayedComments = formatPickingOrderComments(order.comments);
+  const pinnedCellBackground = expanded
+    ? "bg-brand-25/60 dark:bg-gray-950"
+    : "bg-white dark:bg-gray-950";
 
   return (
     <Fragment>
       <tr
         className={[
-          "transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04]",
+          "group transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04]",
           expanded ? "bg-brand-25/60 dark:bg-brand-500/[0.04]" : "",
         ].join(" ")}
       >
-        <td className="px-3 py-3 align-top">
+        <td
+          className={`sticky left-0 z-20 px-3 py-3 align-top transition-colors group-hover:bg-gray-50 dark:group-hover:bg-gray-900 ${pinnedCellBackground}`}
+        >
           <DataTableSelectionCheckbox
             ariaLabel={`Επιλογή παραγγελίας ${order.parastatiko || order.findoc}`}
             checked={selected}
@@ -708,7 +713,9 @@ function PickingOrderRow({
           </button>
         </td>
 
-        <td className="px-3 py-3 align-top">
+        <td
+          className={`sticky left-[48px] z-20 border-r border-gray-200 px-3 py-3 align-top shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] transition-colors group-hover:bg-gray-50 dark:border-gray-700 dark:group-hover:bg-gray-900 ${pinnedCellBackground}`}
+        >
           <div className="flex flex-wrap items-center gap-1.5">
             <p className="break-words text-sm font-medium text-gray-800 dark:text-white/90">
               {order.customerName || "—"}
@@ -792,7 +799,9 @@ function PickingOrderRow({
           </div>
         </td>
 
-        <td className="px-3 py-3 align-top">
+        <td
+          className={`sticky right-0 z-20 border-l border-gray-200 px-3 py-3 align-top shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] transition-colors group-hover:bg-gray-50 dark:border-gray-700 dark:group-hover:bg-gray-900 ${pinnedCellBackground}`}
+        >
           <div className="min-w-[170px]">
             <PickingCompletionButton
               order={order}
@@ -1401,7 +1410,7 @@ export default function PickingListClient() {
               </colgroup>
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                 <tr>
-                  <th className="px-3 py-3 text-left">
+                  <th className="sticky left-0 z-30 bg-gray-50 px-3 py-3 text-left dark:bg-gray-950">
                     <DataTableSelectionCheckbox
                       ariaLabel="Επιλογή όλων των ορατών παραγγελιών"
                       checked={allVisibleSelected}
@@ -1433,7 +1442,7 @@ export default function PickingListClient() {
                       )}
                     </button>
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
+                  <th className="sticky left-[48px] z-30 border-r border-gray-200 bg-gray-50 px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] dark:border-gray-700 dark:bg-gray-950">
                     Πελάτης
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
@@ -1451,7 +1460,7 @@ export default function PickingListClient() {
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Σχόλιο picker
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
+                  <th className="sticky right-0 z-30 border-l border-gray-200 bg-gray-50 px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] dark:border-gray-700 dark:bg-gray-950">
                     Κατάσταση
                   </th>
                 </tr>
