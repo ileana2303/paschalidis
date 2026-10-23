@@ -27,8 +27,6 @@ import {
 export type RawBasketItem = RawOrderItem & {
     branch?: unknown;
     BRANCH?: unknown;
-    trdBranch?: unknown;
-    TRD_BRANCH?: unknown;
 };
 
 export type BasketOrderRequestBody = {
@@ -39,8 +37,6 @@ export type BasketOrderRequestBody = {
     notes?: string;
     receiptType?: BasketReceiptType;
     trdr?: number;
-    /** Customer branch, read from the selected customer's basket rows. */
-    trdBranch?: number;
     /** Sending branch, drives both SERIES and the setData clientID. */
     branch?: number;
     items: RawBasketItem[];
@@ -111,14 +107,6 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         throw new Error('Λείπει ο πελάτης (TRDR) της παραγγελίας.');
     }
 
-    const trdBranch =
-        jsonSafeNumber(body.trdBranch) ??
-        firstItemNumber(rawItems, ["trdBranch", "TRD_BRANCH"]);
-
-    if (!trdBranch) {
-        throw new Error('Λείπει το υποκατάστημα του πελάτη (TRDBRANCH).');
-    }
-
     const receiptType: BasketReceiptType =
         body.receiptType === "receipt" ? "receipt" : "invoice";
 
@@ -127,7 +115,6 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         series: getSaldocSeriesByBranchCode(branch) ?? BASKET_DEFAULT_SERIES,
         customerTrdr,
         receiptType,
-        trdBranch,
         payment: BASKET_PAYMENT,
         trucks: BASKET_TRUCKS,
         deliveryDate: resolveIsoDate(body.deliveryDate),

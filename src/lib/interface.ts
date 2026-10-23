@@ -166,7 +166,6 @@ export interface IBasketItem {
     PRICE_ERP: string;
     PRICE_REQ: string;
     BRANCH: string;
-    TRD_BRANCH: string;
     IS_APROVED: string;
     APPUSER_ID: string;
     BASKET_DATE: string;
@@ -250,7 +249,6 @@ export interface BasketInRoutePayload {
     PRICE_ERP: number;
     PRICE_REQ?: number;
     BRANCH?: number;
-    TRD_BRANCH?: number;
     COMPANY?: number;
     APPUSER_ID?: string;
 }
@@ -272,7 +270,6 @@ export interface BasketInPayload {
     PRICE_ERP: number;
     PRICE_REQ: number;
     BRANCH: number;
-    TRD_BRANCH: number;
     APPUSER_ID: string;
     COMPANY: number;
 }

@@ -14,7 +14,6 @@ import {
 export type BasketSaldoc = {
     SERIES: string;
     TRDR: number;
-    TRDBRANCH: number;
     PAYMENT: number;
     TRUCKS: number;
     DELIVDATE: string;
@@ -47,8 +46,6 @@ export type BuildBasketPayloadParams = {
     /** The real selected customer's TRDR, including for retail comments. */
     customerTrdr: number;
     receiptType: BasketReceiptType;
-    /** TRDBRANCH of the customer. */
-    trdBranch: number;
     payment: number;
     trucks: number;
     deliveryDate: string;
@@ -72,7 +69,6 @@ export function buildBasketPayload({
     series,
     customerTrdr,
     receiptType,
-    trdBranch,
     payment,
     trucks,
     deliveryDate,
@@ -89,7 +85,6 @@ export function buildBasketPayload({
             {
                 SERIES: series,
                 TRDR: isReceipt ? BASKET_RETAIL_TRDR : customerTrdr,
-                TRDBRANCH: trdBranch, // customer branch
                 PAYMENT: payment,
                 TRUCKS: trucks,
                 DELIVDATE: deliveryDate,

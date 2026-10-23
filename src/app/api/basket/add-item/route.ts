@@ -11,7 +11,6 @@ import type {
     BasketInRoutePayload,
 } from "@/lib/interface";
 
-const DEFAULT_TRD_BRANCH = 1000;
 const DEFAULT_COMPANY = 1001;
 const ZERO_GUID = "00000000-0000-0000-0000-000000000000";
 
@@ -33,8 +32,6 @@ export async function POST(req: NextRequest) {
         const normalizedPriceReq =
             body.PRICE_REQ != null ? Number(body.PRICE_REQ) : 0;
         const normalizedBranch = Number(body.BRANCH);
-        const normalizedTrdBranch =
-            body.TRD_BRANCH != null ? Number(body.TRD_BRANCH) : DEFAULT_TRD_BRANCH;
         const normalizedCompany =
             body.COMPANY != null ? Number(body.COMPANY) : DEFAULT_COMPANY;
         const normalizedAppUserId = String(body.APPUSER_ID ?? "").trim() || ZERO_GUID;
@@ -100,7 +97,6 @@ export async function POST(req: NextRequest) {
             PRICE_ERP: normalizedPriceErp,
             PRICE_REQ: normalizedPriceReq,
             BRANCH: normalizedBranch,
-            TRD_BRANCH: normalizedTrdBranch,
             APPUSER_ID: normalizedAppUserId,
             COMPANY: normalizedCompany,
         };

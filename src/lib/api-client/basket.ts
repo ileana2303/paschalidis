@@ -203,7 +203,6 @@ export async function submitBasketOrder(
         notes: params.NOTES,
         receiptType: params.RECEIPT_TYPE,
         trdr: asPositiveNumber(params.TRDR),
-        trdBranch: asPositiveNumber(firstItem?.TRD_BRANCH),
         branch: asPositiveNumber(firstItem?.BRANCH),
         items: params.items.map((item) => ({
             basketId: item.BASKETID,
@@ -211,7 +210,6 @@ export async function submitBasketOrder(
             qty: getBasketSubmitQty(item),
             price: getBasketItemEffectivePrice(item as IBasketItem),
             branch: item.BRANCH,
-            trdBranch: item.TRD_BRANCH,
         })),
     };
 
