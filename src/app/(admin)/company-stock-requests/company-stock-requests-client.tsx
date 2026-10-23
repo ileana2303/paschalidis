@@ -504,7 +504,7 @@ export default function CompanyStockRequestsClient() {
                                     key={group.key}
                                     className="grid grid-cols-[48px_minmax(0,1fr)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900/60"
                                 >
-                                    <div className="flex items-start justify-center border-r border-brand-100 bg-gradient-to-b from-brand-50/80 to-white pt-3 dark:border-brand-500/15 dark:from-brand-500/10 dark:to-transparent">
+                                    <div className="flex items-start justify-center border-r border-brand-100 bg-brand-50 pt-3 dark:border-brand-500/15 dark:bg-brand-500/10">
                                         <button
                                             type="button"
                                             onClick={() =>
@@ -533,7 +533,7 @@ export default function CompanyStockRequestsClient() {
 
                                     <div className="min-w-0">
                                     <header
-                                        className={`flex flex-col gap-3 bg-gradient-to-r from-brand-50/60 via-white to-white px-4 py-3 dark:from-brand-500/[0.08] dark:via-transparent dark:to-transparent sm:flex-row sm:items-center sm:justify-between ${isSupplierExpanded ? "border-b border-gray-100 dark:border-gray-800" : ""}`}
+                                        className={`flex flex-col gap-3 bg-brand-50 px-4 py-3 dark:bg-brand-500/10 sm:flex-row sm:items-center sm:justify-between ${isSupplierExpanded ? "border-b border-gray-100 dark:border-gray-800" : ""}`}
                                     >
                                         <div className="min-w-0">
                                             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-600 dark:text-brand-300">
@@ -550,15 +550,15 @@ export default function CompanyStockRequestsClient() {
                                         </div>
 
                                         <div className="flex shrink-0 flex-wrap items-center gap-2">
-                                            <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+                                            <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2.5 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                                                 Γραμμές
-                                                <strong className="font-semibold tabular-nums text-gray-800 dark:text-gray-100">
+                                                <strong className="font-semibold tabular-nums text-gray-950 dark:text-white">
                                                     {group.rows.length}
                                                 </strong>
                                             </span>
-                                            <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-brand-100 bg-brand-50/70 px-2.5 text-xs text-brand-600 dark:border-brand-500/20 dark:bg-brand-500/10 dark:text-brand-300">
+                                            <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2.5 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                                                 Ποσότητα
-                                                <strong className="font-semibold tabular-nums text-brand-700 dark:text-brand-200">
+                                                <strong className="font-semibold tabular-nums text-gray-950 dark:text-white">
                                                     {group.requestedQty}
                                                 </strong>
                                             </span>
@@ -573,7 +573,7 @@ export default function CompanyStockRequestsClient() {
                                                         ? "Αποστολή καλαθιού προμηθευτή στο SoftOne"
                                                         : "Λείπει το TRDR του προμηθευτή"
                                                 }
-                                                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-brand-200 bg-white px-3 text-xs font-semibold text-brand-700 transition hover:border-brand-300 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 dark:border-brand-500/30 dark:bg-transparent dark:text-brand-300 dark:hover:border-brand-500/50 dark:hover:bg-brand-500/10 dark:disabled:border-gray-700 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
+                                                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-brand-600 bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:border-brand-700 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500/25 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none dark:border-brand-500 dark:bg-brand-600 dark:hover:border-brand-400 dark:hover:bg-brand-500 dark:disabled:border-gray-700 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
                                             >
                                                 {isSupplierSending ? (
                                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -582,7 +582,7 @@ export default function CompanyStockRequestsClient() {
                                                 )}
                                                 {isSupplierSending
                                                     ? "Αποστολή..."
-                                                    : "Αποστολή στο S1"}
+                                                    : "Αποστολή PURDOC"}
                                             </button>
                                         </div>
                                     </header>
