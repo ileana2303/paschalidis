@@ -54,7 +54,7 @@ function normalizePositiveIntegerString(value: unknown) {
 }
 
 function normalizeListOrigin(value: unknown): StockRequestListOrigin | null {
-    return value === "STORES" || value === "PASCHALIDIS" ? value : null;
+    return value === "STORE" || value === "PASCHALIDIS" ? value : null;
 }
 
 function unauthorizedResponse() {
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: 'Η προέλευση λίστας πρέπει να είναι STORES ή PASCHALIDIS.',
+                    message: 'Η προέλευση λίστας πρέπει να είναι STORE ή PASCHALIDIS.',
                 },
                 { status: 400 }
             );

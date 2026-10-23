@@ -340,7 +340,7 @@ export async function requestStockQuantity(
 
     invalidateStockRequestListRequest({
         branch: payload.branch,
-        origin: payload.origin === "STORE" ? "STORES" : "PASCHALIDIS",
+        origin: payload.origin,
     });
 
     return data;

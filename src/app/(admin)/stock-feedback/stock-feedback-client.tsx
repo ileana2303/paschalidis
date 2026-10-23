@@ -166,7 +166,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
       try {
         const stockRequestData = await fetchStockRequests({
           branch: currentBranchCode,
-          origin: "STORES",
+          origin: "STORE",
         });
         const pendingState = buildPendingStockState(stockRequestData.rows);
         setRequestStatuses(pendingState.statuses);

@@ -620,7 +620,7 @@ export interface StockRequestListRoutePayload {
     origin: StockRequestListOrigin;
 }
 
-export type StockRequestListOrigin = "STORES" | "PASCHALIDIS";
+export type StockRequestListOrigin = "STORE" | "PASCHALIDIS";
 
 export interface StockRequestListPayload {
     service: "SqlData";
