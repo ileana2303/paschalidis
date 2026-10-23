@@ -6,6 +6,7 @@ import {
 
 export type AnatrofSaldoc = {
     SERIES: string;
+    TAXSERIES: string;
     TRDR: number;
     TRDBRANCH: number;
     PAYMENT: number;
@@ -37,6 +38,7 @@ export type AnatrofSetDataPayload = SetDataEnvelope<{
 export type BuildAnatrofPayloadParams = {
     clientID: string;
     series: string;
+    taxSeries: string;
     trdr: number;
     trdBranch: number;
     payment: number;
@@ -59,6 +61,7 @@ export type BuildAnatrofPayloadParams = {
 export function buildAnatrofPayload({
     clientID,
     series,
+    taxSeries,
     trdr,
     trdBranch,
     payment,
@@ -78,7 +81,8 @@ export function buildAnatrofPayload({
     return setDataEnvelope(clientID, {
         SALDOC: [
             {
-                SERIES: series, // per supplying branch
+                SERIES: series,
+                TAXSERIES: taxSeries,
                 TRDR: trdr,
                 TRDBRANCH: trdBranch, // requesting branch
                 PAYMENT: payment,

@@ -22,5 +22,5 @@ export const BASKET_SOCASH = 1005;
 export const BASKET_DEFAULT_SERIES = "17002";
 export const BASKET_DEFAULT_BRANCH = 1006;
 
-export const BASKET_TABLE_ACTION = "USRCUST" as const;
+export const BASKET_TABLE_ACTION = "ΚΑΛΑΘΙ ΠΕΛΑΤΗ" as const;
 export const BASKET_LOG_LABEL = "[orders/basket]";

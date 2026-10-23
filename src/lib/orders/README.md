@@ -84,7 +84,8 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
 - `TRDBRANCH` = TRDBRANCH of the **requesting** branch.
 - `BRANCHSEC` / `WHOUSESEC` / `WHOUSE` = the **supplying** branch (the
   logged-in branch sending the basket to SoftOne).
-- The supplying branch also selects the setData clientID and document series.
+- The supplying branch selects the setData clientID. The document always uses
+  `SERIES 7004|πΔ`, `TAXSERIES πΔ`, and `SOCASH 1005`.
 - `COMMENTS` identifies the supplying and requesting branches dynamically.
 - `REMARKS` = free-text notes entered in the replenishment summary.
 - `CCCEXTUSER` = username of the logged-in user.

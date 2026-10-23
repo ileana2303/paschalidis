@@ -1,6 +1,5 @@
 import {
     getKnownBranchName,
-    getSaldocSeriesByBranchCode,
     getTrdBranchByBranchCode,
 } from "@/lib/auth/branches";
 import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
@@ -15,13 +14,14 @@ import {
 import { postSetDataDocument } from "../shared/post-setdata";
 import { jsonSafeNumber, resolveIsoDate, uniqueBasketIds } from "../validation";
 import {
-    ANATROF_DEFAULT_SERIES,
     ANATROF_ENDPOINT_ENV_KEY,
     ANATROF_LOG_LABEL,
     ANATROF_PAYMENT,
+    ANATROF_SERIES,
     ANATROF_SHIPKIND,
     ANATROF_SOCASH,
     ANATROF_TABLE_ACTION,
+    ANATROF_TAXSERIES,
     ANATROF_TRDR,
     ANATROF_TRUCKS,
 } from "./anatrof-constants";
@@ -102,9 +102,8 @@ export async function submitAnatrofOrder(body: AnatrofOrderRequestBody) {
     );
     const payload = buildAnatrofPayload({
         clientID,
-        series:
-            getSaldocSeriesByBranchCode(supplyingBranch) ??
-            ANATROF_DEFAULT_SERIES,
+        series: ANATROF_SERIES,
+        taxSeries: ANATROF_TAXSERIES,
         trdr: ANATROF_TRDR, // fixed - ΠΑΣΧΑΛΙΔΗΣ
         trdBranch, // requesting branch
         payment: ANATROF_PAYMENT,

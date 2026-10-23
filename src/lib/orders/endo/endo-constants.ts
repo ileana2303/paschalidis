@@ -22,5 +22,5 @@ export const ENDO_SOCASH = 3800;
 /** ΠΑΣΧΑΛΙΔΗΣ - the internal counterparty every ENDO document is issued to. */
 export const ENDO_TRDR = 8674;
 
-export const ENDO_TABLE_ACTION = "ENDO" as const;
+export const ENDO_TABLE_ACTION = "ΕΝΔΟΔΙΑΚΙΝΗΣΗ ΑΝΤΑΛΛΑΚΤΙΚΩΝ" as const;
 export const ENDO_LOG_LABEL = "[orders/endo]";
