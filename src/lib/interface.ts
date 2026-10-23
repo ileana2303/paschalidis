@@ -647,6 +647,7 @@ export interface IStockRequestListRow {
     ONGOING: string;
     ORDERED: string;
     QTY_IN_BASKETS: string;
+    TRDR: string;
     APPROVED_TS?: string;
 }
 
