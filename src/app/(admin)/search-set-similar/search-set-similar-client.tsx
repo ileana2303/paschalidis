@@ -116,6 +116,12 @@ export default function SearchSetSimilarClient() {
         const term = (side === "left" ? leftSearch : rightSearch).trim();
         if (!term || isSearchingLeft || isSearchingRight) return;
 
+        if (side === "left") {
+            setTextFilter("");
+        } else {
+            setRightTextFilter("");
+        }
+
         setError("");
         setSuccess("");
         setHasSearchedSide(side, true);
@@ -129,10 +135,8 @@ export default function SearchSetSimilarClient() {
             if (side === "left") {
                 setLeftItems(rows);
                 setSelectedLeft(null);
-                setTextFilter("");
             } else {
                 setRightItems(rows);
-                setRightTextFilter("");
             }
 
             if (!result.success) {
@@ -277,7 +281,7 @@ export default function SearchSetSimilarClient() {
                                 <div className="z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-gray-100 bg-white px-4 py-2 dark:border-gray-800 dark:bg-[#0f172a]">
                                     <p className="truncate text-sm text-gray-500">
                                         {normalizedTextFilter
-                                            ? `Βρέθηκαν ${filteredLeftItems.length} αποτελέσματα`
+                                            ? `Βρέθηκαν ${filteredLeftItems.length} από τα ${leftItems.length}`
                                             : `Βρέθηκαν ${leftItems.length} αποτελέσματα`}
                                     </p>
 
@@ -392,7 +396,7 @@ export default function SearchSetSimilarClient() {
                                 <div className="z-10 flex shrink-0 flex-wrap items-center gap-2 border-b border-gray-100 bg-white px-4 py-2 dark:border-gray-800 dark:bg-[#0f172a]">
                                     <p className="truncate text-sm text-gray-500">
                                         {normalizedRightTextFilter
-                                            ? `Βρέθηκαν ${filteredRightItems.length} αποτελέσματα`
+                                            ? `Βρέθηκαν ${filteredRightItems.length} από τα ${rightItems.length}`
                                             : `Βρέθηκαν ${rightItems.length} αποτελέσματα`}
                                     </p>
 

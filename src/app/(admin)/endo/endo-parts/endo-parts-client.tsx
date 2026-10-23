@@ -387,6 +387,7 @@ export default function EndoPartsClient() {
             return false;
         }
 
+        setTextFilter("");
         setHasSearched(true);
         setLoading(true);
 
@@ -717,7 +718,7 @@ export default function EndoPartsClient() {
                                                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                                                     <p className="truncate text-sm text-gray-500">
                                                         {hasActiveFilters
-                                                            ? `Βρέθηκαν ${filteredItems.length} αποτελέσματα`
+                                                            ? `Βρέθηκαν ${filteredItems.length} από τα ${items.length}`
                                                             : `Βρέθηκαν ${items.length} αποτελέσματα`}
                                                     </p>
 
