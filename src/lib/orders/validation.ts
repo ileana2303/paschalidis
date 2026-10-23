@@ -55,6 +55,7 @@ export function validateMassDeleteSafety(params: {
             basket: "USRCUST",
             endo: "ENDO",
             anatrof: "ANATROF",
+            "supplier-basket": "COMPANY STOCK",
         };
 
     const expected = expectedTableActionByType[params.submitType];
@@ -67,5 +68,10 @@ export function validateMassDeleteSafety(params: {
 export function isMassDeleteTableAction(
     value: unknown
 ): value is MassDeleteTableAction {
-    return value === "USRCUST" || value === "ENDO" || value === "ANATROF";
+    return (
+        value === "USRCUST" ||
+        value === "ENDO" ||
+        value === "ANATROF" ||
+        value === "COMPANY STOCK"
+    );
 }

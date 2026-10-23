@@ -8,7 +8,7 @@ setData envelope, the POST helper and MASS_DELETE.
 | Ενδοδιακίνηση Ανταλλακτικών | `POST /api/orders/endo` | `endo/` | `S1_ENDO_ENDPOINT` | `ENDO` | one **per basket line** |
 | Καλάθι Πελάτη | `POST /api/orders/basket` | `customer-basket/` | `S1_BASKET_ENDPOINT` | `USRCUST` | one per basket |
 | Αιτήματα Αποθέματος | `POST /api/orders/anatrof` | `anatrof/` | `S1_ANATROF_ENDPOINT` | `ANATROF` | one per request list |
-| Καλάθια Προμηθευτών | `POST /api/orders/supplier-basket` | `supplier-basket/` | `S1_SUPPLIER_BASKET_ENDPOINT` | — | one PURDOC per supplier basket |
+| Καλάθια Προμηθευτών | `POST /api/orders/supplier-basket` | `supplier-basket/` | `S1_SUPPLIER_BASKET_ENDPOINT` | `COMPANY STOCK` | one PURDOC per supplier basket |
 
 Every `S1_*_ENDPOINT` falls back to `S1_ENDPOINT` when unset, so a single-route
 installation keeps working.
@@ -98,8 +98,8 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
   branch.
 - `SODTYPE`, `MTRDOC.TRUCKS` and `ITELINES.PRICE` are only included when the
   caller provides actual values. No defaults are inferred for them.
-- This flow does not call `MASS_DELETE / LINK_S1`: no table action has been
-  specified for supplier baskets.
+- After SoftOne returns the PURDOC id, the submitted rows are linked and cleared
+  with `MASS_DELETE / LINK_S1` and `TABLE_ACTION COMPANY STOCK`.
 
 ## setData clientID resolution
 

@@ -1,7 +1,11 @@
 
-export type OrderSubmitType = "basket" | "endo" | "anatrof";
+export type OrderSubmitType = "basket" | "endo" | "anatrof" | "supplier-basket";
 
-export type MassDeleteTableAction = "USRCUST" | "ENDO" | "ANATROF";
+export type MassDeleteTableAction =
+    | "USRCUST"
+    | "ENDO"
+    | "ANATROF"
+    | "COMPANY STOCK";
 
 export type MassDeletePayload = {
     service: "SqlData";

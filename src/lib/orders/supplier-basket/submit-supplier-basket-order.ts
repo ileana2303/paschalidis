@@ -1,6 +1,8 @@
-import { getSoftOneSetDataClientID } from "@/lib/softone";
+import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
+import { linkBasketRowsToDocument } from "../shared/link-basket-to-document";
 import {
     normalizeOrderLines,
+    requireAppUserId,
     requireLines,
     requireRawItems,
     type RawOrderItem,
@@ -11,9 +13,11 @@ import { buildSupplierBasketPayload } from "./build-supplier-basket-payload";
 import {
     SUPPLIER_BASKET_ENDPOINT_ENV_KEY,
     SUPPLIER_BASKET_LOG_LABEL,
+    SUPPLIER_BASKET_TABLE_ACTION,
 } from "./supplier-basket-constants";
 
 export type SupplierBasketOrderRequestBody = {
+    appUserId?: string;
     branch: string | number;
     supplierTrdr: string | number;
     transactionDate?: string;
@@ -25,6 +29,13 @@ export type SupplierBasketOrderRequestBody = {
 export async function submitSupplierBasketOrder(
     body: SupplierBasketOrderRequestBody
 ) {
+    const sqlClientID = getSoftOneClientID();
+
+    if (!sqlClientID) {
+        throw new Error("Δεν έχει ρυθμιστεί ο SQL πελάτης SoftOne.");
+    }
+
+    const appUserId = requireAppUserId(body.appUserId);
     const branch = jsonSafeNumber(body.branch);
 
     if (!branch) {
@@ -74,6 +85,16 @@ export async function submitSupplierBasketOrder(
     });
 
     const basketIds = uniqueBasketIds(lines);
+
+    await linkBasketRowsToDocument({
+        sqlClientID,
+        basketIds,
+        tableAction: SUPPLIER_BASKET_TABLE_ACTION,
+        submitType: "supplier-basket",
+        documentId,
+        appUserId,
+        logLabel: SUPPLIER_BASKET_LOG_LABEL,
+    });
 
     return {
         success: true as const,
