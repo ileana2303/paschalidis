@@ -17,10 +17,12 @@ import NumberBadge from "@/components/ui/data-table/number-badge";
 import QuantityControl from "@/components/ui/quantity-control";
 import {
   useFetchCompanyStockMutation,
+  useFetchStockRequestsMutation,
   useRequestStockQuantityMutation,
+  useSubmitSupplierBasketOrderMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useSessionState } from "@/hooks/useSessionState";
-import type { ICompanyStockRow } from "@/lib/interface";
+import type { ICompanyStockRow, IStockRequestListRow } from "@/lib/interface";
 import {
   AlertCircle,
   ChartColumn,
@@ -69,6 +71,42 @@ function getSuggestedSupplier(
   };
 }
 
+function getLocalIsoDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getSupplierBasketQuantity(row: IStockRequestListRow) {
+  const requestedQuantity = Number(row.QTY_REQUESTED);
+
+  if (Number.isFinite(requestedQuantity) && requestedQuantity > 0) {
+    return requestedQuantity;
+  }
+
+  const quantity = Number(row.QTY);
+  return Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
+}
+
+function toCompanyStockBasketLines(
+  rows: IStockRequestListRow[]
+): CompanyStockBasketLine[] {
+  return rows.map((row) => ({
+    id: row.BASKETID,
+    basketId: row.BASKETID,
+    mtrl: row.MTRL,
+    code: row.ITEM_CODE,
+    name: row.ITEM_NAME,
+    quantity: getSupplierBasketQuantity(row),
+    supplierName: row.TRDR_NAME,
+    supplierTrdr: row.TRDR,
+    supplierCode: row.TRDR_CODE,
+  }));
+}
+
 function TableSkeleton() {
   return (
     <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -90,8 +128,11 @@ function TableSkeleton() {
 export default function CompanyStockClient() {
   const user = useAuthStore((state) => state.user);
   const { mutateAsync: fetchCompanyStock } = useFetchCompanyStockMutation();
+  const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
   const { mutateAsync: requestStockQuantity } =
     useRequestStockQuantityMutation();
+  const { mutateAsync: submitSupplierBasketOrder } =
+    useSubmitSupplierBasketOrderMutation();
   const currentBranchCode = useMemo(
     () => normalizeBranchCode(user?.mainBranch),
     [user?.mainBranch]
@@ -106,7 +147,14 @@ export default function CompanyStockClient() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useSessionState("company-stock-search", "");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [basketLines, setBasketLines] = useState<CompanyStockBasketLine[]>([]);
+  const [supplierBasketRows, setSupplierBasketRows] = useState<
+    IStockRequestListRow[]
+  >([]);
+  const [supplierBasketsLoading, setSupplierBasketsLoading] = useState(true);
+  const [supplierBasketsError, setSupplierBasketsError] = useState("");
+  const [submittingSupplierTrdr, setSubmittingSupplierTrdr] = useState<
+    string | null
+  >(null);
   const [selectedSupplierBasketTrdr, setSelectedSupplierBasketTrdr] = useState<
     string | null
   >(null);
@@ -121,7 +169,12 @@ export default function CompanyStockClient() {
     new Set()
   );
   const loadRequestId = useRef(0);
+  const supplierBasketLoadRequestId = useRef(0);
   const currentYear = new Date().getFullYear();
+  const basketLines = useMemo(
+    () => toCompanyStockBasketLines(supplierBasketRows),
+    [supplierBasketRows]
+  );
 
   const loadRows = useCallback(async () => {
     const requestId = ++loadRequestId.current;
@@ -157,11 +210,75 @@ export default function CompanyStockClient() {
     }
   }, [days, fetchCompanyStock]);
 
+  const loadSupplierBaskets = useCallback(async () => {
+    const requestId = ++supplierBasketLoadRequestId.current;
+
+    if (!currentBranchCode) {
+      setSupplierBasketRows([]);
+      setSelectedSupplierBasketTrdr(null);
+      setSupplierBasketsError("");
+      setSupplierBasketsLoading(false);
+      return;
+    }
+
+    setSupplierBasketsLoading(true);
+    setSupplierBasketsError("");
+
+    try {
+      const data = await fetchStockRequests({
+        branch: currentBranchCode,
+        origin: "PASCHALIDIS",
+      });
+
+      if (requestId !== supplierBasketLoadRequestId.current) {
+        return;
+      }
+
+      const nextRows = [...(data.rows ?? [])].sort((first, second) =>
+        second.INS_DATE.localeCompare(first.INS_DATE)
+      );
+      const availableSupplierTrdrs = new Set(
+        nextRows.map((row) => String(row.TRDR ?? "").trim()).filter(Boolean)
+      );
+
+      setSupplierBasketRows(nextRows);
+      setSelectedSupplierBasketTrdr((current) => {
+        if (current && availableSupplierTrdrs.has(current)) {
+          return current;
+        }
+
+        return availableSupplierTrdrs.values().next().value ?? null;
+      });
+    } catch (loadError) {
+      if (requestId !== supplierBasketLoadRequestId.current) {
+        return;
+      }
+
+      setSupplierBasketRows([]);
+      setSelectedSupplierBasketTrdr(null);
+      setSupplierBasketsError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Αποτυχία φόρτωσης καλαθιών κεντρικού εφοδιασμού."
+      );
+    } finally {
+      if (requestId === supplierBasketLoadRequestId.current) {
+        setSupplierBasketsLoading(false);
+      }
+    }
+  }, [currentBranchCode, fetchStockRequests]);
+
   useEffect(() => {
     // Remote data is synchronized after the selected period changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadRows();
   }, [loadRows]);
+
+  useEffect(() => {
+    // Remote supplier baskets are synchronized when the logged-in branch changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadSupplierBaskets();
+  }, [loadSupplierBaskets]);
 
   const refreshRows = useCallback(() => {
     setLoading(true);
@@ -288,7 +405,7 @@ export default function CompanyStockClient() {
       setAddErrors((current) => ({ ...current, [itemKey]: "" }));
 
       try {
-        const result = await requestStockQuantity({
+        await requestStockQuantity({
           mtrl: normalizedMtrl,
           qty: quantity,
           branch: currentBranchCode,
@@ -296,24 +413,10 @@ export default function CompanyStockClient() {
           trdr: selectedSupplier.trdr,
         });
 
-        const basketId = String(result.rows?.[0]?.NEW_ID ?? "").trim();
-        setBasketLines((current) => [
-          ...current,
-          {
-            id: `${basketId || itemKey}-${Date.now()}`,
-            basketId,
-            mtrl: itemKey,
-            code: row.CODE,
-            name: row.NAME,
-            quantity,
-            supplierName: selectedSupplier.name,
-            supplierTrdr: selectedSupplier.trdr,
-            supplierCode: selectedSupplier.code,
-          },
-        ]);
-        setSelectedSupplierBasketTrdr(
-          (current) => current ?? selectedSupplier.trdr
-        );
+        await loadSupplierBaskets();
+        if (selectedSupplier.trdr) {
+          setSelectedSupplierBasketTrdr(selectedSupplier.trdr);
+        }
         setQuantity(itemKey, 0);
         setSupplierOverrides((current) => {
           if (!(itemKey in current)) return current;
@@ -345,10 +448,79 @@ export default function CompanyStockClient() {
     },
     [
       currentBranchCode,
+      loadSupplierBaskets,
       quantities,
       requestStockQuantity,
       setQuantity,
       supplierOverrides,
+    ]
+  );
+
+  const handleSubmitSupplierBasket = useCallback(
+    async (supplierTrdr: string) => {
+      if (!currentBranchCode) {
+        toast.error("Δεν είναι διαθέσιμο το υποκατάστημα σύνδεσης.");
+        return;
+      }
+
+      const normalizedSupplierTrdr = supplierTrdr.trim();
+      const selectedRows = supplierBasketRows.filter(
+        (row) => String(row.TRDR ?? "").trim() === normalizedSupplierTrdr
+      );
+
+      if (!normalizedSupplierTrdr || selectedRows.length === 0) {
+        toast.error("Δεν βρέθηκε ενεργό καλάθι για τον προμηθευτή.");
+        return;
+      }
+
+      const supplierName =
+        String(selectedRows[0]?.TRDR_NAME ?? "").trim() || normalizedSupplierTrdr;
+      const totalQuantity = selectedRows.reduce(
+        (total, row) => total + getSupplierBasketQuantity(row),
+        0
+      );
+      const confirmed = window.confirm(
+        `Αποστολή PURDOC για ${supplierName};\n` +
+          `${selectedRows.length} γραμμές · ${totalQuantity} τεμ.`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setSubmittingSupplierTrdr(normalizedSupplierTrdr);
+
+      try {
+        const result = await submitSupplierBasketOrder({
+          branch: currentBranchCode,
+          supplierTrdr: normalizedSupplierTrdr,
+          transactionDate: getLocalIsoDate(),
+          items: selectedRows,
+        });
+
+        await loadSupplierBaskets();
+
+        const documentId = String(result.id ?? "").trim();
+        toast.success(
+          documentId
+            ? `Το PURDOC ${documentId} δημιουργήθηκε επιτυχώς.`
+            : "Το PURDOC δημιουργήθηκε επιτυχώς."
+        );
+      } catch (submitError) {
+        toast.error(
+          submitError instanceof Error
+            ? submitError.message
+            : "Αποτυχία αποστολής καλαθιού προμηθευτή."
+        );
+      } finally {
+        setSubmittingSupplierTrdr(null);
+      }
+    },
+    [
+      currentBranchCode,
+      loadSupplierBaskets,
+      submitSupplierBasketOrder,
+      supplierBasketRows,
     ]
   );
 
@@ -668,6 +840,12 @@ export default function CompanyStockClient() {
           lines={basketLines}
           selectedSupplierTrdr={selectedSupplierBasketTrdr}
           onSelectedSupplierTrdrChange={setSelectedSupplierBasketTrdr}
+          onSubmitSelectedSupplier={(supplierTrdr) =>
+            void handleSubmitSupplierBasket(supplierTrdr)
+          }
+          loading={supplierBasketsLoading}
+          error={supplierBasketsError}
+          isSubmitting={submittingSupplierTrdr != null}
           collapsed={!summaryVisible}
           onToggleCollapse={() => setSummaryVisible((visible) => !visible)}
         />

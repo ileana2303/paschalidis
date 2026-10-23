@@ -33,6 +33,10 @@ interface CompanyStockOrderSummaryProps {
     lines: CompanyStockBasketLine[];
     selectedSupplierTrdr: string | null;
     onSelectedSupplierTrdrChange: (trdr: string) => void;
+    onSubmitSelectedSupplier: (trdr: string) => void;
+    loading?: boolean;
+    error?: string;
+    isSubmitting?: boolean;
     collapsed?: boolean;
     onToggleCollapse?: () => void;
 }
@@ -108,6 +112,10 @@ export default function CompanyStockOrderSummary({
     lines,
     selectedSupplierTrdr,
     onSelectedSupplierTrdrChange,
+    onSubmitSelectedSupplier,
+    loading = false,
+    error = "",
+    isSubmitting = false,
     collapsed = false,
     onToggleCollapse,
 }: CompanyStockOrderSummaryProps) {
@@ -128,6 +136,8 @@ export default function CompanyStockOrderSummary({
             collapsed={collapsed}
             onToggleCollapse={onToggleCollapse}
             collapseTitle="Απόκρυψη καλαθιού"
+            loading={loading}
+            error={error}
             asideClassName={collapsed
                 ? "xl:!basis-auto xl:!min-w-0"
                 : "xl:!basis-[25%] xl:!min-w-[272px] xl:max-h-full xl:min-h-0 xl:self-stretch"}
@@ -174,26 +184,27 @@ export default function CompanyStockOrderSummary({
                         </div>
                     </div>
                     <SummaryPrimaryAction
-                        label="Αποστολή επιλεγμένου καλαθιού"
-                        disabled
+                        label="Αποστολή PURDOC"
+                        loading={isSubmitting}
+                        disabled={!selectedGroup?.trdr || loading}
+                        onClick={() => {
+                            if (selectedGroup?.trdr) {
+                                onSubmitSelectedSupplier(selectedGroup.trdr);
+                            }
+                        }}
                         icon={<Send className="h-4 w-4" />}
                     />
                 </div>
             )}
         >
-            <SummaryInfoCard
+            {/* <SummaryInfoCard
                 label="Κατάστημα"
                 title={branchLabel || "—"}
                 description="Κεντρικός εφοδιασμός εταιρείας"
                 icon={<Warehouse className="h-4 w-4" />}
-            />
+            /> */}
 
-            <SummaryPanelMessage tone="info">
-                Κάθε καλάθι TRDR θα δημιουργεί ξεχωριστό PURDOC. Επιλέξτε ποιο
-                καλάθι θα αποσταλεί στο S1.
-            </SummaryPanelMessage>
-
-            <SummaryMetricGrid
+            {/* <SummaryMetricGrid
                 metrics={[
                     {
                         id: "supplier-baskets",
@@ -207,7 +218,7 @@ export default function CompanyStockOrderSummary({
                         value: totalQuantity,
                     },
                 ]}
-            />
+            /> */}
 
             <section className="mt-5">
                 <div className="flex items-center justify-between gap-3">

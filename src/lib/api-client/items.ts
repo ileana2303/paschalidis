@@ -71,6 +71,14 @@ function getStockRequestListRequestKey(payload: StockRequestListRoutePayload) {
     });
 }
 
+function invalidateStockRequestListRequest(
+    payload: StockRequestListRoutePayload
+) {
+    stockRequestListInFlightRequests.delete(
+        getStockRequestListRequestKey(payload)
+    );
+}
+
 export async function searchItems(
     search: string
 ): Promise<ApiResponse<IItem>> {
@@ -330,6 +338,11 @@ export async function requestStockQuantity(
         throw new Error(data?.message ?? 'Αποτυχία υποβολής αιτήματος αποθέματος.');
     }
 
+    invalidateStockRequestListRequest({
+        branch: payload.branch,
+        origin: payload.origin === "STORE" ? "STORES" : "PASCHALIDIS",
+    });
+
     return data;
 }
 
@@ -361,7 +374,9 @@ export async function fetchStockRequests(
     try {
         return await requestPromise;
     } finally {
-        stockRequestListInFlightRequests.delete(requestKey);
+        if (stockRequestListInFlightRequests.get(requestKey) === requestPromise) {
+            stockRequestListInFlightRequests.delete(requestKey);
+        }
     }
 }
 
@@ -435,6 +450,11 @@ export async function submitSupplierBasketOrder(
             data?.message ?? "Αποτυχία υποβολής παραγγελίας προμηθευτή."
         );
     }
+
+    invalidateStockRequestListRequest({
+        branch: String(payload.branch),
+        origin: "PASCHALIDIS",
+    });
 
     return data;
 }
