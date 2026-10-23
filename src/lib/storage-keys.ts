@@ -27,6 +27,7 @@ const LEGACY_STORAGE_KEYS = [
     "picking-list-search",
     "stock-requests-search",
     "stock-requests-notes",
+    "company-stock-requests-search",
     "stock-feedback-search",
     "basket-pickup-point",
     "basket-notes",

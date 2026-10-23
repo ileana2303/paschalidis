@@ -19,7 +19,8 @@ type LinkBasketRowsToDocumentParams = {
 /**
  * MASS_DELETE / METHOD=LINK_S1: clears the submitted basket rows and links them
  * to the SoftOne document that was just created. Always runs after a successful
- * setData - per line for ENDO, once per customer basket or ANATROF order.
+ * setData - per line for ENDO, once per customer basket, ANATROF order, or
+ * supplier PURDOC basket.
  */
 export async function linkBasketRowsToDocument({
     sqlClientID,

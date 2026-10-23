@@ -22,6 +22,7 @@ import type {
     StockRequestListRoutePayload,
     StockRequestRoutePayload,
     StockRequestSubmitRoutePayload,
+    SupplierBasketSubmitRoutePayload,
     StockRequestUpdateRoutePayload,
 } from "@/lib/interface";
 import {
@@ -57,6 +58,7 @@ import {
     searchItemsByTrdr,
     setSimilarItem,
     submitAnatrofOrder,
+    submitSupplierBasketOrder,
     updateEditableItem,
     updateStockRequest,
 } from "@/lib/api-client/items";
@@ -156,6 +158,12 @@ export const useSubmitAnatrofOrderMutation = () =>
     useMutation({
         mutationFn: (payload: StockRequestSubmitRoutePayload) =>
             submitAnatrofOrder(payload),
+    });
+
+export const useSubmitSupplierBasketOrderMutation = () =>
+    useMutation({
+        mutationFn: (payload: SupplierBasketSubmitRoutePayload) =>
+            submitSupplierBasketOrder(payload),
     });
 
 export const useFetchBasketItemsMutation = () =>

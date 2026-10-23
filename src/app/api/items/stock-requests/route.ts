@@ -7,6 +7,7 @@ import {
 } from "@/lib/softone";
 import type {
     StockRequestListPayload,
+    StockRequestListOrigin,
     StockRequestListRoutePayload,
     StockRequestListResponse,
     StockRequestUpdateAction,
@@ -52,6 +53,10 @@ function normalizePositiveIntegerString(value: unknown) {
     return parsed == null ? null : String(parsed);
 }
 
+function normalizeListOrigin(value: unknown): StockRequestListOrigin | null {
+    return value === "STORES" || value === "PASCHALIDIS" ? value : null;
+}
+
 function unauthorizedResponse() {
     return NextResponse.json(
         {
@@ -84,6 +89,7 @@ export async function POST(req: NextRequest) {
 
         const body = (await req.json().catch(() => ({}))) as StockRequestListRoutePayload;
         const branch = typeof body.branch === "string" ? body.branch.trim() : "";
+        const origin = normalizeListOrigin(body.origin);
         const clientID = getSoftOneClientID();
 
         if (!branch) {
@@ -91,6 +97,16 @@ export async function POST(req: NextRequest) {
                 {
                     success: false,
                     message: 'Απαιτείται υποκατάστημα.',
+                },
+                { status: 400 }
+            );
+        }
+
+        if (!origin) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: 'Η προέλευση λίστας πρέπει να είναι STORES ή PASCHALIDIS.',
                 },
                 { status: 400 }
             );
@@ -106,6 +122,7 @@ export async function POST(req: NextRequest) {
             appId: S1_APP_ID,
             SqlName: "ANTROF_LIST",
             BRANCH: branch,
+            APPORIGIN: origin,
         };
 
         const response = await callSoftOne(payload, "[items/stock-requests:list]");

@@ -8,6 +8,7 @@ setData envelope, the POST helper and MASS_DELETE.
 | Ενδοδιακίνηση Ανταλλακτικών | `POST /api/orders/endo` | `endo/` | `S1_ENDO_ENDPOINT` | `ENDO` | one **per basket line** |
 | Καλάθι Πελάτη | `POST /api/orders/basket` | `customer-basket/` | `S1_BASKET_ENDPOINT` | `USRCUST` | one per basket |
 | Αιτήματα Αποθέματος | `POST /api/orders/anatrof` | `anatrof/` | `S1_ANATROF_ENDPOINT` | `ANATROF` | one per request list |
+| Καλάθια Προμηθευτών | `POST /api/orders/supplier-basket` | `supplier-basket/` | `S1_SUPPLIER_BASKET_ENDPOINT` | — | one PURDOC per supplier basket |
 
 Every `S1_*_ENDPOINT` falls back to `S1_ENDPOINT` when unset, so a single-route
 installation keeps working.
@@ -19,8 +20,9 @@ Each flow has exactly three files:
 1. `*-constants.ts` - every fixed ("σταθερό") value, S1 route env key, log label.
 2. `build-*-payload.ts` - the **complete setData JSON**. Pure function: no env
    reads, no branch lookups. What you read here is what SoftOne receives.
-3. `submit-*-order.ts` - resolves the branch-dependent values (clientID, SERIES,
-   TRDBRANCH, BRANCHSEC), posts, then runs MASS_DELETE / LINK_S1.
+3. `submit-*-order.ts` - resolves the branch-dependent values, builds the
+   document and posts it. Flows with a confirmed table action then run
+   MASS_DELETE / LINK_S1.
 
 Every request logs the outgoing payload (clientID masked) and the returned S1 id
 under the flow's log label, e.g.:
@@ -86,6 +88,18 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
 - `COMMENTS` identifies the supplying and requesting branches dynamically.
 - `REMARKS` = free-text notes entered in the replenishment summary.
 - `CCCEXTUSER` = username of the logged-in user.
+
+## Supplier basket specifics
+
+- Creates one `PURDOC` for all lines belonging to the same supplier basket.
+- `PURDOC.TRDR` = the supplier `TRDR` returned by `ANTROF_LIST`.
+- `PURDOC.SERIES 2021|ΠΑΡ`, `TAXSERIES ΠΑΡ` and `BRANCH 1000|Εδρα` are fixed.
+- `MTRDOC.BRANCHSEC` / `WHOUSESEC` and the setData clientID use the logged-in
+  branch.
+- `SODTYPE`, `MTRDOC.TRUCKS` and `ITELINES.PRICE` are only included when the
+  caller provides actual values. No defaults are inferred for them.
+- This flow does not call `MASS_DELETE / LINK_S1`: no table action has been
+  specified for supplier baskets.
 
 ## setData clientID resolution
 

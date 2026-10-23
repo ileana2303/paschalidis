@@ -112,6 +112,7 @@ export default function StockRequestsClient() {
         try {
             const data = await fetchStockRequests({
                 branch: selectedBranchCode,
+                origin: "STORES",
             });
 
             setRows(sortStockRequestRows(data.rows ?? []));
@@ -133,6 +134,7 @@ export default function StockRequestsClient() {
         try {
             const data = await fetchStockRequests({
                 branch: selectedBranchCode,
+                origin: "STORES",
             });
 
             setRows(sortStockRequestRows(data.rows ?? []));

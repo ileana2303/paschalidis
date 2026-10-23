@@ -1,10 +1,15 @@
 export const S1_APP_ID = "1305";
 
-export type SetDataEnvelope<TData> = {
+export type SetDataObject = "SALDOC" | "PURDOC";
+
+export type SetDataEnvelope<
+    TData,
+    TObject extends SetDataObject = "SALDOC",
+> = {
     service: "setData";
     clientID: string;
     appId: typeof S1_APP_ID;
-    OBJECT: "SALDOC";
+    OBJECT: TObject;
     KEY: "";
     data: TData;
 };
@@ -22,12 +27,22 @@ export type BasketSetDataIteLine = SetDataIteLine & {
 export function setDataEnvelope<TData>(
     clientID: string,
     data: TData
-): SetDataEnvelope<TData> {
+): SetDataEnvelope<TData, "SALDOC">;
+export function setDataEnvelope<TData, TObject extends SetDataObject>(
+    clientID: string,
+    data: TData,
+    object: TObject
+): SetDataEnvelope<TData, TObject>;
+export function setDataEnvelope<TData, TObject extends SetDataObject = "SALDOC">(
+    clientID: string,
+    data: TData,
+    object?: TObject
+): SetDataEnvelope<TData, TObject | "SALDOC"> {
     return {
         service: "setData",
         clientID,
         appId: S1_APP_ID,
-        OBJECT: "SALDOC",
+        OBJECT: object ?? "SALDOC",
         KEY: "",
         data,
     };

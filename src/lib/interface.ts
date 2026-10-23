@@ -620,7 +620,10 @@ export interface StockRequestInsertResponse
 
 export interface StockRequestListRoutePayload {
     branch: string;
+    origin: StockRequestListOrigin;
 }
+
+export type StockRequestListOrigin = "STORES" | "PASCHALIDIS";
 
 export interface StockRequestListPayload {
     service: "SqlData";
@@ -628,6 +631,7 @@ export interface StockRequestListPayload {
     appId: "1305";
     SqlName: "ANTROF_LIST";
     BRANCH: string;
+    APPORIGIN: StockRequestListOrigin;
 }
 
 export interface IStockRequestListRow {
@@ -648,6 +652,8 @@ export interface IStockRequestListRow {
     ORDERED: string;
     QTY_IN_BASKETS: string;
     TRDR: string;
+    TRDR_CODE: string;
+    TRDR_NAME: string;
     APPROVED_TS?: string;
 }
 
@@ -695,6 +701,15 @@ export interface StockRequestSubmitResponse {
     id?: string;
     orderIds?: string[];
     basketIds?: string[];
+}
+
+export interface SupplierBasketSubmitRoutePayload {
+    branch: string | number;
+    supplierTrdr: string | number;
+    transactionDate?: string;
+    sodType?: string | number;
+    trucks?: string | number;
+    items: IStockRequestListRow[];
 }
 
 export interface StockRequestProps {

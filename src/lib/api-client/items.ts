@@ -19,11 +19,13 @@ import {
     StockRequestRoutePayload,
     StockRequestSubmitResponse,
     StockRequestSubmitRoutePayload,
+    SupplierBasketSubmitRoutePayload,
     StockRequestUpdateResponse,
     StockRequestUpdateRoutePayload,
 } from "@/lib/interface";
 import { httpClient } from "@/lib/http/client";
 import type { AnatrofOrderRequestBody } from "@/lib/orders/anatrof/submit-anatrof-order";
+import type { SupplierBasketOrderRequestBody } from "@/lib/orders/supplier-basket/submit-supplier-basket-order";
 import axios from "axios";
 import type {
     CompetitionSalesResponse,
@@ -65,6 +67,7 @@ function getCompanyStockRequestKey(payload: CompanyStockRoutePayload) {
 function getStockRequestListRequestKey(payload: StockRequestListRoutePayload) {
     return JSON.stringify({
         branch: String(payload.branch ?? "").trim(),
+        origin: payload.origin,
     });
 }
 
@@ -401,6 +404,36 @@ export async function submitAnatrofOrder(
 
     if (!data?.success) {
         throw new Error(data?.message ?? 'Αποτυχία υποβολής παραγγελίας αποθέματος.');
+    }
+
+    return data;
+}
+
+export async function submitSupplierBasketOrder(
+    payload: SupplierBasketSubmitRoutePayload
+): Promise<StockRequestSubmitResponse> {
+    const body: SupplierBasketOrderRequestBody = {
+        branch: payload.branch,
+        supplierTrdr: payload.supplierTrdr,
+        transactionDate: payload.transactionDate,
+        sodType: payload.sodType,
+        trucks: payload.trucks,
+        items: payload.items.map((item) => ({
+            basketId: item.BASKETID,
+            mtrl: item.MTRL,
+            qty: item.QTY_REQUESTED || item.QTY,
+        })),
+    };
+
+    const { data } = await httpClient.post<StockRequestSubmitResponse>(
+        "/api/orders/supplier-basket",
+        body
+    );
+
+    if (!data?.success) {
+        throw new Error(
+            data?.message ?? "Αποτυχία υποβολής παραγγελίας προμηθευτή."
+        );
     }
 
     return data;

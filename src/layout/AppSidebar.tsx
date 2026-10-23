@@ -130,6 +130,11 @@ const navItems: NavItem[] = [
         icon: Warehouse,
       },
       {
+        name: "Καλάθια Εταιρίας",
+        path: "/company-stock-requests",
+        icon: ShoppingBasket,
+      },
+      {
         name: "Αιτήματα Ανατροφοδοσίας",
         path: "/stock-requests",
         icon: ClipboardList,

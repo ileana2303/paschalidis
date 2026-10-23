@@ -3,10 +3,10 @@ import {
     parseJsonWithEncodingFallback,
     postSoftOne,
 } from "@/lib/softone";
-import type { SetDataEnvelope } from "./setdata-envelope";
+import type { SetDataEnvelope, SetDataObject } from "./setdata-envelope";
 
 type PostSetDataDocumentParams = {
-    payload: SetDataEnvelope<unknown>;
+    payload: SetDataEnvelope<unknown, SetDataObject>;
     endpointEnvKey: string;
     logLabel: string;
     failureMessage: string;
@@ -19,7 +19,7 @@ type SetDataResult = {
     id?: string | number;
 };
 
-function forLogging(payload: SetDataEnvelope<unknown>) {
+function forLogging(payload: SetDataEnvelope<unknown, SetDataObject>) {
     return {
         ...payload,
         clientID: `***${payload.clientID.slice(-6)} (len ${payload.clientID.length})`,
