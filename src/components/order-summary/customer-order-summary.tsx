@@ -10,6 +10,7 @@ import {
     StickyNote,
 } from "@/lib/icons/lucide";
 import BasketLines from "@/components/ui/basket-lines/basket-lines";
+import CustomerInfoContainer from "@/components/customer/customer-info-container";
 import SummaryPanel, {
     SummaryPanelMessage,
 } from "@/components/ui/summary-panel/summary-panel";
@@ -56,6 +57,8 @@ export interface CustomerOrderSummaryProps {
     onToggleCollapse?: () => void;
     onChangeQuantity?: (uid: string, quantity: number) => void;
     fitContentWhenStacked?: boolean;
+    onClearCustomer?: () => void;
+    onOpenCustomerModal?: () => void;
 }
 
 const receiptOptions = [
@@ -136,6 +139,8 @@ export default function CustomerOrderSummary({
     onToggleCollapse,
     onChangeQuantity,
     fitContentWhenStacked = false,
+    onClearCustomer,
+    onOpenCustomerModal,
 }: CustomerOrderSummaryProps) {
     const pathname = usePathname();
     const router = useRouter();
@@ -218,15 +223,24 @@ export default function CustomerOrderSummary({
                 ) : undefined
             }
         >
-            <SummaryInfoCard
-                label="Επιλεγμένος Πελάτης"
-                title={customer?.NAME ?? "Δεν έχει επιλεγεί πελάτης"}
-                description={
-                    customer
-                        ? `ΑΦΜ: ${customer.AFM}`
-                        : "Επιλέξτε πελάτη για να εμφανιστούν στοιχεία καλαθιού."
-                }
-            />
+            {onClearCustomer || onOpenCustomerModal ? (
+                <CustomerInfoContainer
+                    hasMounted
+                    customer={customer}
+                    onClearCustomer={onClearCustomer}
+                    onOpenCustomerModal={onOpenCustomerModal}
+                />
+            ) : (
+                <SummaryInfoCard
+                    label="Επιλεγμένος Πελάτης"
+                    title={customer?.NAME ?? "Δεν έχει επιλεγεί πελάτης"}
+                    description={
+                        customer
+                            ? `ΑΦΜ: ${customer.AFM}`
+                            : "Επιλέξτε πελάτη για να εμφανιστούν στοιχεία καλαθιού."
+                    }
+                />
+            )}
 
             <SummaryMetricGrid
                 metrics={[
@@ -276,7 +290,7 @@ export default function CustomerOrderSummary({
                 />
             )}
 
-            {!customer && (
+            {!customer && !onOpenCustomerModal && (
                 <div className="mt-5 rounded-2xl bg-gray-50 p-4 dark:bg-gray-900/40">
                     <p className="text-sm leading-6 text-gray-500">
                         Επιλέξτε πελάτη για να εμφανιστεί η προεπισκόπηση καλαθιού.

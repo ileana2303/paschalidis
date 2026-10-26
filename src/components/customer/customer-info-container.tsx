@@ -7,8 +7,9 @@ import type { ICustomerInfo } from "@/lib/interface";
 interface CustomerInfoContainerProps {
     hasMounted: boolean;
     customer: ICustomerInfo | null;
-    onClearCustomer: () => void;
-    onOpenCustomerModal: () => void;
+    onClearCustomer?: () => void;
+    onOpenCustomerModal?: () => void;
+    className?: string;
 }
 
 export default function CustomerInfoContainer({
@@ -16,6 +17,7 @@ export default function CustomerInfoContainer({
     customer,
     onClearCustomer,
     onOpenCustomerModal,
+    className = "",
 }: CustomerInfoContainerProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const toggleExpanded = () => setIsExpanded((prev) => !prev);
@@ -26,7 +28,7 @@ export default function CustomerInfoContainer({
 
     if (customer) {
         return (
-            <div className="mb-4">
+            <div className={className}>
                 <div
                     className={`overflow-hidden border border-brand-100 bg-brand-50/70 shadow-sm transition-shadow duration-200 hover:shadow-md dark:border-brand-500/20 dark:bg-brand-500/5
                         ${isExpanded ? "rounded-2xl" : "rounded-xl"}
@@ -73,14 +75,16 @@ export default function CustomerInfoContainer({
                             </span>
                         </button>
 
-                        <button
-                            type="button"
-                            onClick={onClearCustomer}
-                            aria-label="Αφαίρεση επιλεγμένου πελάτη"
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-300 bg-white text-red-500 shadow-sm transition-colors hover:border-red-500 hover:bg-red-500 hover:text-white dark:border-red-500/40 dark:bg-gray-900"
-                        >
-                            <X className="h-4 w-4" />
-                        </button>
+                        {onClearCustomer && (
+                            <button
+                                type="button"
+                                onClick={onClearCustomer}
+                                aria-label="Αφαίρεση επιλεγμένου πελάτη"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-300 bg-white text-red-500 shadow-sm transition-colors hover:border-red-500 hover:bg-red-500 hover:text-white dark:border-red-500/40 dark:bg-gray-900"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
                     </div>
 
                     <div
@@ -89,28 +93,10 @@ export default function CustomerInfoContainer({
                             `}
                     >
                         <div className="overflow-hidden">
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-brand-100 px-4 py-3 lg:grid-cols-4 dark:border-brand-500/20">
-                                <div className="min-w-0 space-y-3">
-                                    <InfoItem label="TRDR" value={customer.TRDR} />
-                                    <InfoItem label="Κωδικός" value={customer.CODE} />
-                                </div>
-
-                                <div className="min-w-0 space-y-3">
-                                    <InfoItem label="Υποκαταστήματα" value={customer.NUMBER_OF_BRANCHES} />
-                                    <InfoItem label="ΑΦΜ" value={customer.AFM} />
-                                </div>
-
-                                <div className="min-w-0 space-y-3">
-                                    <InfoItem label="Email" value={customer.EMAIL} />
-                                </div>
-
-                                <div className="min-w-0 space-y-3">
-                                    <InfoItem
-                                        label="Διεύθυνση"
-                                        value={customer.MAIN_ADDRESS}
-                                    />
-                                    <InfoItem label="Πόλη" value={customer.MAIN_CITY} />
-                                </div>
+                            <div className="grid grid-cols-1 gap-x-4 gap-y-3 border-t border-brand-100 px-4 py-3 sm:grid-cols-2 dark:border-brand-500/20">
+                                {Object.entries(customer).map(([key, value]) => (
+                                    <InfoItem key={key} label={key} value={value} />
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -124,9 +110,13 @@ export default function CustomerInfoContainer({
         value,
     }: {
         label: string;
-        value?: string | number;
+        value?: unknown;
     }) {
-        const displayValue = value === "" || value == null ? "-" : String(value);
+        const displayValue = value === "" || value == null
+            ? "-"
+            : typeof value === "object"
+                ? JSON.stringify(value)
+                : String(value);
 
         return (
             <div className="min-w-0">
@@ -147,7 +137,8 @@ export default function CustomerInfoContainer({
         <button
             type="button"
             onClick={onOpenCustomerModal}
-            className="mb-4 w-full shrink-0 flex items-center gap-3 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-left text-sm text-gray-500 transition-colors hover:border-brand-400 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-brand-500/60 dark:hover:bg-gray-900"
+            disabled={!onOpenCustomerModal}
+            className={`flex w-full shrink-0 items-center gap-3 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-left text-sm text-gray-500 transition-colors hover:border-brand-400 hover:bg-brand-50/50 disabled:cursor-default dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-brand-500/60 dark:hover:bg-gray-900 ${className}`}
         >
             <span className="flex-1">
                 Δεν έχει επιλεγεί πελάτης — Αναζήτηση πελάτη (προαιρετικό)

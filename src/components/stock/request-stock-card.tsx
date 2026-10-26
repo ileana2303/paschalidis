@@ -61,42 +61,38 @@ export default function StockRequest({
     const isEndoOpen = endoRequest.isOpen && hasRequestableEndoStock;
 
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-xs dark:border-gray-800 dark:bg-white/[0.02]">
-            <div className="flex items-center justify-between gap-2">
-                
+        <div className="rounded-xl border border-gray-200 bg-white p-2.5 shadow-xs dark:border-gray-800 dark:bg-white/[0.02]">
+            <div className="rounded-lg border border-gray-200 bg-gray-50/70 p-2 dark:border-gray-700 dark:bg-gray-900/40">
+                <div className="flex items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-1.5 border-r border-gray-200 pr-2 dark:border-gray-700">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                            Απόθεμα
+                        </span>
+                        <span
+                            className={`text-lg font-bold tabular-nums leading-none ${stock > 0
+                                ? "text-gray-800 dark:text-white/90"
+                                : "text-amber-600 dark:text-amber-400"
+                                }`}
+                        >
+                            {stock}
+                        </span>
+                    </div>
 
-                {requestStatus && (
-                    <span
-                        className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClassName}`}
-                    >
-                        {statusLabel}
-                    </span>
-                )}
-            </div>
-
-            <div className="rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/40">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                    Απόθεμα
-                </p>
-                <p
-                    className={`mt-0.5 text-2xl font-bold tabular-nums leading-none ${stock > 0
-                        ? "text-gray-800 dark:text-white/90"
-                        : "text-amber-600 dark:text-amber-400"
-                        }`}
-                >
-                    {stock}
-                </p>
-            </div>
-
-            <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50/70 p-2.5 dark:border-gray-700 dark:bg-gray-900/40">
-                <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                         <Warehouse className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                         <span className="truncate">Ανατροφοδοσία</span>
                     </span>
+
+                    {requestStatus && (
+                        <span
+                            className={`ml-auto inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClassName}`}
+                        >
+                            {statusLabel}
+                        </span>
+                    )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="mt-1.5 flex items-center gap-2">
                     <QuantityControl
                         value={quantity}
                         onChange={onQuantityChange}
@@ -140,7 +136,7 @@ export default function StockRequest({
                             ? "Απόκρυψη καταστημάτων"
                             : "Προβολή διαθέσιμων καταστημάτων"
                     }
-                    className={`mt-2 inline-flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-[11px] font-semibold text-brand-700 shadow-xs transition hover:border-brand-300 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 dark:text-brand-300 dark:hover:bg-brand-500/15 ${isEndoOpen
+                    className={`mt-1.5 inline-flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-brand-700 shadow-xs transition hover:border-brand-300 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 dark:text-brand-300 dark:hover:bg-brand-500/15 ${isEndoOpen
                         ? "border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10"
                         : "border-dashed border-brand-200 bg-brand-50/60 dark:border-brand-500/30 dark:bg-brand-500/[0.07]"
                         }`}
@@ -168,7 +164,7 @@ export default function StockRequest({
                     />
                 </button>
             ) : (
-                <p className="mt-2 flex items-center gap-2 rounded-lg border border-gray-100 px-2.5 py-2 text-[11px] font-medium text-gray-400 dark:border-gray-800 dark:text-gray-500">
+                <p className="mt-1.5 flex items-center gap-2 rounded-lg border border-gray-100 px-2.5 py-1.5 text-[11px] font-medium text-gray-400 dark:border-gray-800 dark:text-gray-500">
                     <GitCompareArrows className="h-3.5 w-3.5 shrink-0" />
                     <span className="min-w-0 truncate">
                         Χωρίς απόθεμα σε άλλο κατάστημα

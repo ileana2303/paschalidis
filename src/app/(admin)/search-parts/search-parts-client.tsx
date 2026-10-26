@@ -4,11 +4,11 @@ import PageBreadcrumb from "@/components/template-components/common/PageBreadCru
 import { Modal } from "@/components/ui/modal";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useSearchPartsStore } from "@/stores/searchPartsStore";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useAuthStore } from "@/stores/authStore";
 import type { ICustomerInfo, IItem } from "@/lib/interface";
-import CustomerInfoContainer from "@/components/customer/customer-info-container";
 import PartsSearchModal from "@/components/search/parts-search-modal";
 import CustomerSearchModal from "@/components/search/customer-search-modal";
 import SearchBar from "@/components/search/search-bar";
@@ -30,6 +30,7 @@ import type {
     CompetitionSalesResponse,
     LastOrdersResponse,
 } from "@/lib/part-insights";
+import { ArrowRight, UserSearch } from "@/lib/icons/lucide";
 
 export default function SearchPartsClient() {
     const hasMounted = true;
@@ -473,16 +474,9 @@ export default function SearchPartsClient() {
                 </div>
             )}
 
-            <CustomerInfoContainer
-                hasMounted={hasMounted}
-                customer={customer}
-                onClearCustomer={handleClearCustomer}
-                onOpenCustomerModal={handleOpenCustomerModal}
-            />
-
             <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
                 <div
-                    className={`min-h-0 w-full xl:min-w-0 ${customer != null && resultsController.sidebarVisible ? "xl:basis-2/3" : ""} flex flex-1 flex-col transition-all duration-300`}
+                    className={`order-2 flex min-h-0 w-full flex-1 flex-col transition-all duration-300 xl:order-1 xl:min-w-0 ${customer != null && resultsController.sidebarVisible ? "xl:basis-2/3" : ""}`}
                 >
                      <div className="min-h-0 flex flex-1 flex-col overflow-hidden bg-white transition-all duration-300 dark:bg-[#0f172a]/95">
                         <div className="shrink-0 px-5 py-6 dark:border-gray-800 xl:px-10">
@@ -508,6 +502,26 @@ export default function SearchPartsClient() {
                                     containerClassName={resultsController.hasScrolledResults ? "mt-0" : "mt-6"}
                                     searchButtonClassName="font-medium shadow-sm transition-all duration-200 hover:bg-brand-600 hover:shadow-md"
                                 />
+
+                                {!customer && (
+                                    <Link
+                                        href="/search-customer"
+                                        className="group mt-3 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-gray-200 bg-white px-3.5 py-2.5 text-left transition hover:border-gray-300 hover:bg-gray-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 dark:border-gray-800 dark:bg-white/[0.02] dark:hover:border-gray-700 dark:hover:bg-white/[0.04]"
+                                    >
+                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-gray-400 ring-1 ring-gray-200 transition group-hover:text-brand-500 dark:bg-gray-900 dark:ring-gray-800 dark:group-hover:text-brand-400">
+                                            <UserSearch className="h-4 w-4" />
+                                        </span>
+
+                                        <span className="min-w-0 flex-1 text-sm text-gray-600 dark:text-gray-300">
+                                            Δεν έχει επιλεγεί πελάτης. {" "}
+                                            <span className="font-semibold text-brand-600 group-hover:text-brand-700 dark:text-brand-400 dark:group-hover:text-brand-300">
+                                                Αναζήτηση πελάτη
+                                            </span>
+                                        </span>
+
+                                        <ArrowRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-500 dark:text-gray-600 dark:group-hover:text-brand-400" />
+                                    </Link>
+                                )}
                             </div>
                         </div>
 
@@ -575,54 +589,58 @@ export default function SearchPartsClient() {
                 </div>
 
                 {customer && (
-                    <CustomerOrderSummary
-                        customer={customer}
-                        basket={basketController.basket}
-                        loading={basketController.basketLoading}
-                        error={basketController.basketError}
-                        successMessage={
-                            basketController.orderSubmittedSuccess ? (
-                                <div className="space-y-3">
-                                    <p className="font-semibold">
-                                        Η παραγγελία καταχωρήθηκε επιτυχώς.
-                                    </p>
-                                    <p className="text-xs opacity-90">
-                                        Μπορείτε να επιστρέψετε στην αρχική σελίδα ή να συνεχίσετε με νέα παραγγελία.
-                                    </p>
-                                    <button
-                                        type="button"
-                                        onClick={() => router.push("/")}
-                                        className="inline-flex items-center rounded-lg bg-green-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-green-700"
-                                    >
-                                        Επιστροφή στην αρχική
-                                    </button>
-                                </div>
-                            ) : undefined
-                        }
-                        onRefresh={basketController.handleRefreshBasket}
-                        selectedItems={basketController.selectedItems}
-                        selectedCount={basketController.selectedItemsList.length}
-                        selectedTotal={basketController.selectedTotal}
-                        receiptType={basketController.receiptType}
-                        onReceiptTypeChange={basketController.setReceiptType}
-                        notes={basketController.notes}
-                        onNotesChange={basketController.setNotes}
-                        onSendOrder={handleSendOrder}
-                        sendingOrder={basketController.sendingOrder}
-                        onToggleItem={basketController.handleToggleSelectedItem}
-                        onRemoveItem={basketController.handleRemoveItem}
-                        removingItems={basketController.removingBasketItems}
-                        onRemoveSelectedItems={basketController.handleRemoveSelectedItems}
-                        removingSelectedItems={basketController.removingSelectedBasketItems}
-                        onChangeQuantity={handleUpdateQty}
-                        requestedPriceValues={basketController.basketLineRequestedPrices}
-                        onRequestedPriceValueChange={basketController.setBasketLineRequestedPriceValue}
-                        onRequestPrice={basketController.handleRequestBasketLinePrice}
-                        submittingRequestedPrices={basketController.submittingBasketLineRequestedPrices}
-                        collapsible
-                        collapsed={!resultsController.sidebarVisible}
-                        onToggleCollapse={resultsController.handleToggleSidebarVisibility}
-                    />
+                    <div className={`order-3 min-h-0 xl:order-2 [&>aside]:h-full ${resultsController.sidebarVisible ? "xl:basis-1/3 xl:min-w-[320px]" : "xl:w-8 xl:shrink-0"}`}>
+                        <CustomerOrderSummary
+                                customer={customer}
+                                basket={basketController.basket}
+                                loading={basketController.basketLoading}
+                                error={basketController.basketError}
+                                successMessage={
+                                    basketController.orderSubmittedSuccess ? (
+                                        <div className="space-y-3">
+                                            <p className="font-semibold">
+                                                Η παραγγελία καταχωρήθηκε επιτυχώς.
+                                            </p>
+                                            <p className="text-xs opacity-90">
+                                                Μπορείτε να επιστρέψετε στην αρχική σελίδα ή να συνεχίσετε με νέα παραγγελία.
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => router.push("/")}
+                                                className="inline-flex items-center rounded-lg bg-green-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-green-700"
+                                            >
+                                                Επιστροφή στην αρχική
+                                            </button>
+                                        </div>
+                                    ) : undefined
+                                }
+                                onRefresh={basketController.handleRefreshBasket}
+                                selectedItems={basketController.selectedItems}
+                                selectedCount={basketController.selectedItemsList.length}
+                                selectedTotal={basketController.selectedTotal}
+                                receiptType={basketController.receiptType}
+                                onReceiptTypeChange={basketController.setReceiptType}
+                                notes={basketController.notes}
+                                onNotesChange={basketController.setNotes}
+                                onSendOrder={handleSendOrder}
+                                sendingOrder={basketController.sendingOrder}
+                                onToggleItem={basketController.handleToggleSelectedItem}
+                                onRemoveItem={basketController.handleRemoveItem}
+                                removingItems={basketController.removingBasketItems}
+                                onRemoveSelectedItems={basketController.handleRemoveSelectedItems}
+                                removingSelectedItems={basketController.removingSelectedBasketItems}
+                                onChangeQuantity={handleUpdateQty}
+                                requestedPriceValues={basketController.basketLineRequestedPrices}
+                                onRequestedPriceValueChange={basketController.setBasketLineRequestedPriceValue}
+                                onRequestPrice={basketController.handleRequestBasketLinePrice}
+                                submittingRequestedPrices={basketController.submittingBasketLineRequestedPrices}
+                                collapsible
+                                collapsed={!resultsController.sidebarVisible}
+                                onToggleCollapse={resultsController.handleToggleSidebarVisibility}
+                                onClearCustomer={handleClearCustomer}
+                                onOpenCustomerModal={handleOpenCustomerModal}
+                        />
+                    </div>
                 )}
             </div>
 
