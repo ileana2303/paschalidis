@@ -40,6 +40,16 @@ function asPositiveNumber(value: unknown): number | undefined {
     return parsed;
 }
 
+function asNonNegativeNumber(value: unknown): number | undefined {
+    const parsed = Number(value);
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+        return undefined;
+    }
+
+    return parsed;
+}
+
 function getBasketSubmitQty(item: BasketSubmitRoutePayload["items"][number]) {
     return asPositiveNumber(
         firstDefined(item.QTY, item.TOTAL_QTY, item.BASKET_QTY)
@@ -203,6 +213,7 @@ export async function submitBasketOrder(
         notes: params.NOTES,
         receiptType: params.RECEIPT_TYPE,
         trdr: asPositiveNumber(params.TRDR),
+        trdBranch: asNonNegativeNumber(firstItem?.TRD_BRANCH) ?? 0,
         branch: asPositiveNumber(firstItem?.BRANCH),
         items: params.items.map((item) => ({
             basketId: item.BASKETID,
@@ -210,6 +221,7 @@ export async function submitBasketOrder(
             qty: getBasketSubmitQty(item),
             price: getBasketItemEffectivePrice(item as IBasketItem),
             branch: item.BRANCH,
+            trdBranch: item.TRD_BRANCH,
         })),
     };
 

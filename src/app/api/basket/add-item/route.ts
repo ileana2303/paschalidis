@@ -32,6 +32,11 @@ export async function POST(req: NextRequest) {
         const normalizedPriceReq =
             body.PRICE_REQ != null ? Number(body.PRICE_REQ) : 0;
         const normalizedBranch = Number(body.BRANCH);
+        const parsedTrdBranch = Number(body.TRD_BRANCH);
+        const normalizedTrdBranch =
+            Number.isFinite(parsedTrdBranch) && parsedTrdBranch > 0
+                ? parsedTrdBranch
+                : 0;
         const normalizedCompany =
             body.COMPANY != null ? Number(body.COMPANY) : DEFAULT_COMPANY;
         const normalizedAppUserId = String(body.APPUSER_ID ?? "").trim() || ZERO_GUID;
@@ -97,6 +102,7 @@ export async function POST(req: NextRequest) {
             PRICE_ERP: normalizedPriceErp,
             PRICE_REQ: normalizedPriceReq,
             BRANCH: normalizedBranch,
+            TRD_BRANCH: normalizedTrdBranch,
             APPUSER_ID: normalizedAppUserId,
             COMPANY: normalizedCompany,
         };

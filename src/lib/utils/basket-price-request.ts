@@ -89,6 +89,10 @@ export async function recreateBasketLineForLowerPriceRequest({
         PRICE_ERP: catalogUnitPrice,
         PRICE_REQ: requestedPrice,
         BRANCH: branchCode,
+        TRD_BRANCH:
+            Number(customer.TRDBRANCH) > 0
+                ? Number(customer.TRDBRANCH)
+                : 0,
         APPUSER_ID: userId,
     });
 

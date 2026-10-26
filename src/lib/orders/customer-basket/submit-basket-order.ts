@@ -27,6 +27,8 @@ import {
 export type RawBasketItem = RawOrderItem & {
     branch?: unknown;
     BRANCH?: unknown;
+    trdBranch?: unknown;
+    TRD_BRANCH?: unknown;
 };
 
 export type BasketOrderRequestBody = {
@@ -37,7 +39,7 @@ export type BasketOrderRequestBody = {
     notes?: string;
     receiptType?: BasketReceiptType;
     trdr?: number;
-    /** Sending branch, drives both SERIES and the setData clientID. */
+    trdBranch?: number;
     branch?: number;
     items: RawBasketItem[];
 };
@@ -46,6 +48,26 @@ function firstItemNumber(items: RawBasketItem[], keys: string[]) {
     for (const item of items) {
         for (const key of keys) {
             const parsed = jsonSafeNumber(item[key]);
+
+            if (parsed != null) {
+                return parsed;
+            }
+        }
+    }
+
+    return undefined;
+}
+
+function nonNegativeNumber(value: unknown) {
+    const parsed = Number(value);
+
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function firstItemNonNegativeNumber(items: RawBasketItem[], keys: string[]) {
+    for (const item of items) {
+        for (const key of keys) {
+            const parsed = nonNegativeNumber(item[key]);
 
             if (parsed != null) {
                 return parsed;
@@ -107,6 +129,11 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         throw new Error('Λείπει ο πελάτης (TRDR) της παραγγελίας.');
     }
 
+    const trdBranch =
+        nonNegativeNumber(body.trdBranch) ??
+        firstItemNonNegativeNumber(rawItems, ["trdBranch", "TRD_BRANCH"]) ??
+        0;
+
     const receiptType: BasketReceiptType =
         body.receiptType === "receipt" ? "receipt" : "invoice";
 
@@ -115,6 +142,7 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         series: getSaldocSeriesByBranchCode(branch) ?? BASKET_DEFAULT_SERIES,
         customerTrdr,
         receiptType,
+        trdBranch,
         payment: BASKET_PAYMENT,
         trucks: BASKET_TRUCKS,
         deliveryDate: resolveIsoDate(body.deliveryDate),

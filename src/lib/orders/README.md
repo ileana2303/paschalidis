@@ -53,8 +53,8 @@ ENDO ignores the SERIES column: it always sends the fixed `7004|πΔ` + `TAXSERI
 | Flow | TRDR | TRDBRANCH |
 |---|---|---|
 | ENDO | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | **requesting** branch (the branch that asked for the items) |
-| Customer basket invoice | the customer | not sent |
-| Customer basket receipt | `11643`, fixed | not sent |
+| Customer basket invoice | the customer | the customer's basket `TRD_BRANCH` (`0` when unavailable) |
+| Customer basket receipt | `11643`, fixed | the customer's basket `TRD_BRANCH` (`0` when unavailable) |
 | ANATROF | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | **requesting** branch |
 
 For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚΗΣ B2B`. Receipt comments are

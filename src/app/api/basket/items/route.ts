@@ -115,6 +115,7 @@ function mapRowToBasketItem(
         PRICE_ERP: priceErp,
         PRICE_REQ: priceReq,
         BRANCH: asString(firstDefined(row.BRANCH), ""),
+        TRD_BRANCH: asString(firstDefined(row.TRD_BRANCH), "0"),
         IS_APROVED: asString(firstDefined(row.IS_APROVED), ""),
         BargainStatus: asString(firstDefined(row.BargainStatus), ""),
         APPUSER_ID: appUserId,

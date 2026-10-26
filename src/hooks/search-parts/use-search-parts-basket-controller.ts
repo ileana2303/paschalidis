@@ -264,6 +264,10 @@ export function useSearchPartsBasketController({
                     PRICE_ERP: basketUnitPrice,
                     PRICE_REQ: 0,
                     BRANCH: normalizedBranch,
+                    TRD_BRANCH:
+                        Number(customer.TRDBRANCH) > 0
+                            ? Number(customer.TRDBRANCH)
+                            : 0,
                     APPUSER_ID: userId,
                 });
             }
