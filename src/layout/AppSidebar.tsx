@@ -57,11 +57,6 @@ const navItems: NavItem[] = [
     path: "/search-parts",
   },
   {
-    icon: Upload,
-    name: "Ανέβασμα Τιμοκαταλόγου",
-    path: "/supplier-price-catalog-upload",
-  },
-  {
     icon: LayoutDashboard,
     name: "Επεξεργασία Αποθήκης",
     subItems: [
@@ -100,8 +95,12 @@ const navItems: NavItem[] = [
   {
     icon: Warehouse,
     name: "Ανατροφοδοσία",
-    path: "/stock-feedback",
     subItems: [
+      {
+        icon: Truck,
+        name: "Ανατροφοδοσία Καταστήματος",
+        path: "/stock-feedback",
+      },
       {
         icon: ClipboardList,
         name: "Λίστα Ανατροφοδοσίας",
@@ -112,8 +111,12 @@ const navItems: NavItem[] = [
   {
     icon: GitCompareArrows,
     name: "Ενδοδιακίνηση",
-    path: "/endo/endo-parts",
     subItems: [
+      {
+        icon: GitCompareArrows,
+        name: "Ενδοδιακίνηση Ανταλλακτικών",
+        path: "/endo/endo-parts",
+      },
       {
         icon: Send,
         name: "Εισερχόμενα Αιτήματα",
@@ -130,6 +133,11 @@ const navItems: NavItem[] = [
     icon: ShoppingBasket,
     name: "Καλάθια Πελατών",
     path: "/all-baskets",
+  },
+  {
+    icon: Upload,
+    name: "Ανέβασμα Τιμοκαταλόγου",
+    path: "/supplier-price-catalog-upload",
   },
   {
     icon: ListTodo,
@@ -166,8 +174,8 @@ const navItems: NavItem[] = [
         icon: Receipt,
       },
       {
-        name: "Διαχείριση Χρηστών",
-        path: "/users",
+        name: "Λίστα Χρηστών",
+        path: "/users-list",
         icon: Users,
         superAdminOnly: true,
       },
@@ -294,7 +302,7 @@ const AppSidebar: React.FC = () => {
                           >
                             <SubItemIcon className="h-3.5 w-3.5 shrink-0" />
 
-                            <span className="font-normal">{subItem.name}</span>
+                            <span className="whitespace-nowrap font-normal">{subItem.name}</span>
                           </Link>
                         );
                       })}
@@ -369,7 +377,7 @@ const AppSidebar: React.FC = () => {
                       <Icon className="h-4 w-4" />
                     </span>
 
-                    {isSidebarExpanded && <span>{nav.name}</span>}
+                    {isSidebarExpanded && <span className="whitespace-nowrap">{nav.name}</span>}
                   </Link>
                   {isSidebarExpanded && (
                     <button
@@ -387,36 +395,52 @@ const AppSidebar: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(nav.name)}
-                  aria-expanded={isGroupExpanded}
-                  aria-controls={`sidebar-group-${nav.name}`}
-                  className={`group flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm
-                    ${isGroupActive
-                      ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/[0.05]"}
-                    ${!isSidebarExpanded ? "lg:justify-center" : "lg:justify-start"}`}
-                >
-                  <span
-                    className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all
-                    ${isGroupActive
-                        ? "bg-white/20 text-white"
-                        : "text-gray-500"}
-                    `}
+                isSidebarExpanded ? (
+                  <div
+                    className={`flex w-full items-center gap-2 px-1.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${isGroupActive
+                      ? "text-brand-700 dark:text-brand-300"
+                      : "text-gray-500 dark:text-gray-400"}`}
                   >
-                    <Icon className="h-4 w-4" />
-                  </span>
-
-                  {isSidebarExpanded && (
-                    <>
-                      <span className="flex-1 text-left">{nav.name}</span>
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${isGroupActive
+                        ? "bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300"
+                        : "bg-white/60 text-gray-500 dark:bg-white/[0.04] dark:text-gray-400"}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="flex-1 whitespace-nowrap text-left">{nav.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(nav.name)}
+                      aria-expanded={isGroupExpanded}
+                      aria-controls={`sidebar-group-${nav.name}`}
+                      aria-label={`${isGroupExpanded ? "Σύμπτυξη" : "Ανάπτυξη"} ${nav.name}`}
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-white/70 hover:text-brand-700 dark:hover:bg-white/[0.07] dark:hover:text-brand-300"
+                    >
                       <ChevronDown
                         className={`h-4 w-4 transition-transform duration-200 ${isGroupExpanded ? "rotate-180" : ""}`}
                       />
-                    </>
-                  )}
-                </button>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(nav.name)}
+                    aria-expanded={isGroupExpanded}
+                    aria-controls={`sidebar-group-${nav.name}`}
+                    aria-label={`${isGroupExpanded ? "Σύμπτυξη" : "Ανάπτυξη"} ${nav.name}`}
+                    title={nav.name}
+                    className="group flex w-full justify-center py-1.5"
+                  >
+                    <span
+                      className={`flex h-10 w-10 items-center justify-center rounded-md transition-colors ${isGroupActive
+                        ? "bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300"
+                        : "bg-white/60 text-gray-500 group-hover:bg-white dark:bg-white/[0.04] dark:text-gray-400 dark:group-hover:bg-white/[0.07]"}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </span>
+                  </button>
+                )
               )
             ) : (
               nav.path && (
@@ -437,7 +461,7 @@ const AppSidebar: React.FC = () => {
                   </span>
 
                   {isSidebarExpanded && (
-                    <span>{nav.name}</span>
+                    <span className="whitespace-nowrap">{nav.name}</span>
                   )}
                 </Link>
               )
@@ -447,7 +471,7 @@ const AppSidebar: React.FC = () => {
               <ul
                 id={`sidebar-group-${nav.name}`}
                 className={isSidebarExpanded
-                  ? "mt-2 ml-10 pl-3 border-l border-brand-200/70 dark:border-brand-800/60 space-y-1"
+                  ? "mt-1 ml-3 space-y-1 border-l-2 border-gray-200 pl-2 dark:border-gray-800"
                   : "mt-2 flex flex-col items-center gap-1"}
               >
                 {visibleSubItems?.map((subItem) => {
@@ -461,7 +485,7 @@ const AppSidebar: React.FC = () => {
                         aria-label={subItem.name}
                         title={subItem.name}
                         className={`group flex items-center rounded-lg text-[13px] transition-all duration-200 ${isSidebarExpanded
-                          ? "gap-2 px-2.5 py-2"
+                          ? "gap-1.5 whitespace-nowrap px-1.5 py-2"
                           : "h-10 w-10 justify-center"
                           }
                             ${isActive(subItem.path)
@@ -473,7 +497,7 @@ const AppSidebar: React.FC = () => {
                       >
                         <SubItemIcon className={`${isSidebarExpanded ? "h-3.5 w-3.5" : "h-4 w-4"} shrink-0`} />
                         {isSidebarExpanded && (
-                          <span className="font-normal">{subItem.name}</span>
+                          <span className="whitespace-nowrap font-normal">{subItem.name}</span>
                         )}
                       </Link>
                     </li>

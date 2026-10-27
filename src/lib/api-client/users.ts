@@ -23,9 +23,12 @@ function getUsersError(error: unknown, fallbackMessage: string) {
 
 export async function fetchUsers(username?: string): Promise<GetUserResponse> {
     try {
-        const { data } = await httpClient.post<GetUserResponse>("/api/users", {
-            ...(username?.trim() ? { username: username.trim() } : {}),
-        });
+        const normalizedUsername = username?.trim();
+        const { data } = normalizedUsername
+            ? await httpClient.post<GetUserResponse>("/api/users", {
+                  username: normalizedUsername,
+              })
+            : await httpClient.get<GetUserResponse>("/api/users");
 
         return data;
     } catch (error) {

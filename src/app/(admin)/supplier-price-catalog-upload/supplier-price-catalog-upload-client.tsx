@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import Label from "@/components/template-components/form/Label";
 import Input from "@/components/template-components/form/input/InputField";
+import CatalogPrefixSuffixPicker from "@/components/supplier-price-catalog/catalog-prefix-suffix-picker";
 import DataTable from "@/components/ui/data-table/data-table";
 import { FileSpreadsheet, Loader2, Upload } from "@/lib/icons/lucide";
 import { useUploadSupplierPriceCatalogMutation } from "@/hooks/queries/useSupplierPriceCatalogMutations";
@@ -19,6 +20,12 @@ import {
   parseSupplierPriceFile,
   SupplierPriceSheetHeaderError,
 } from "@/lib/supplier-price-catalog/parse-workbook";
+import {
+  catalogSelectionToPrefixes,
+  INITIAL_CATALOG_PREFIX_SELECTION,
+  isCatalogPrefixSelectionValid,
+  type CatalogPrefixSelection,
+} from "@/lib/supplier-price-catalog/prefix-selection";
 import type {
   SupplierPriceRow,
   SupplierPriceUploadProgress,
@@ -43,7 +50,8 @@ export default function SupplierPriceCatalogUploadClient() {
   useWarnBeforeLeaveWhileBusy(isPending);
 
   const [descr, setDescr] = useState("");
-  const [prefixes, setPrefixes] = useState("");
+  const [prefixSelection, setPrefixSelection] =
+    useState<CatalogPrefixSelection>(INITIAL_CATALOG_PREFIX_SELECTION);
   const [fileName, setFileName] = useState("");
   const [sheetName, setSheetName] = useState("");
   const [availableSheets, setAvailableSheets] = useState<string[]>([]);
@@ -56,6 +64,10 @@ export default function SupplierPriceCatalogUploadClient() {
   const selectedFileRef = useRef<File | null>(null);
 
   const previewRows = useMemo(() => rows.slice(0, 8), [rows]);
+  const prefixes = useMemo(
+    () => catalogSelectionToPrefixes(prefixSelection),
+    [prefixSelection]
+  );
 
   const parseFile = useCallback(
     async (file: File, preferredSheet?: string) => {
@@ -160,7 +172,7 @@ export default function SupplierPriceCatalogUploadClient() {
   const resetForm = useCallback(() => {
     selectedFileRef.current = null;
     setDescr("");
-    setPrefixes("");
+    setPrefixSelection(INITIAL_CATALOG_PREFIX_SELECTION);
     setFileName("");
     setSheetName("");
     setAvailableSheets([]);
@@ -187,6 +199,11 @@ export default function SupplierPriceCatalogUploadClient() {
       return;
     }
 
+    if (!isCatalogPrefixSelectionValid(prefixSelection)) {
+      toast.error("Επιλέξτε τουλάχιστον ένα suffix (λειτουργία «Άλλα»).");
+      return;
+    }
+
     let supplier;
     try {
       supplier = getSupplierFromSheetName(sheetName);
@@ -205,7 +222,7 @@ export default function SupplierPriceCatalogUploadClient() {
           supplier,
           descr: descr.trim(),
           filePath: fileName || "price-catalog.xlsx",
-          prefixes: prefixes.trim(),
+          prefixes,
           rows,
         },
         onProgress: setUploadProgress,
@@ -293,13 +310,11 @@ export default function SupplierPriceCatalogUploadClient() {
               />
             </div>
 
-            <div className="md:col-span-2">
-              <Label>Prefixes</Label>
-              <Input
-                value={prefixes}
-                onChange={(event) => setPrefixes(event.target.value)}
-              />
-            </div>
+            <CatalogPrefixSuffixPicker
+              value={prefixSelection}
+              onChange={setPrefixSelection}
+              disabled={parsing || isPending}
+            />
           </div>
 
           {previewRows.length > 0 ? (
@@ -376,7 +391,8 @@ export default function SupplierPriceCatalogUploadClient() {
                 parsing ||
                 rows.length === 0 ||
                 Boolean(headerError) ||
-                !inferSupplierFromSheetName(sheetName)
+                !inferSupplierFromSheetName(sheetName) ||
+                !isCatalogPrefixSelectionValid(prefixSelection)
               }
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-3.5 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-brand-300"
             >
