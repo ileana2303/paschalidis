@@ -13,6 +13,7 @@ import Checkbox from "@/components/template-components/form/input/Checkbox";
 import ResultsFilterInput from "@/components/search/results-filter-input";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { useMemo, useState, type RefObject, type UIEvent } from "react";
+import { useCanFeature } from "@/hooks/usePermissionChecks";
 
 interface PartsResultsLayoutProps {
     hasCustomer: boolean;
@@ -96,6 +97,8 @@ export default function PartsResultsContainer({
     endo,
     basket,
 }: PartsResultsContainerProps) {
+    const { allowed: canShowEndoStockCards } = useCanFeature("endo-stock-cards");
+
     const {
         hasCustomer,
         customer,
@@ -337,6 +340,7 @@ export default function PartsResultsContainer({
                                     >
                                         <div role="menu" aria-label="Επιλογές προβολής αποτελεσμάτων">
                                             
+                                            {canShowEndoStockCards && (
                                             <button
                                                 type="button"
                                                 role="menuitem"
@@ -357,6 +361,7 @@ export default function PartsResultsContainer({
                                                     </span>
                                                 </span>
                                             </button>
+                                            )}
                                             <button
                                                 type="button"
                                                 role="menuitem"

@@ -1,5 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import {
+    PERMISSIONS_COOKIE_NAME,
+    SESSION_COOKIE_NAME,
+} from "@/lib/auth/constants";
+import { canAccessModuleWithSnapshot } from "@/lib/auth/permissions";
+import { verifyPermissionsToken } from "@/lib/auth/permissions-cookie";
+import { getModuleCodeForPath } from "@/lib/auth/route-modules";
 import { verifySessionToken } from "@/lib/auth/session-token";
 
 const PUBLIC_PATHS = ["/auth/signin", "/auth/signup", "/error-404"];
@@ -42,6 +48,40 @@ export async function proxy(request: NextRequest) {
 
         if (session.isSuperAdmin !== 1) {
             return NextResponse.redirect(new URL("/", request.url));
+        }
+    }
+
+    const moduleCode = getModuleCodeForPath(pathname);
+
+    if (moduleCode && isLoggedIn) {
+        const session = await verifySessionToken(sessionCookie);
+
+        if (!session) {
+            const response = NextResponse.redirect(
+                new URL("/auth/signin?reauth=1", request.url)
+            );
+            response.cookies.delete(SESSION_COOKIE_NAME);
+            response.cookies.delete(PERMISSIONS_COOKIE_NAME);
+            return response;
+        }
+
+        if (session.isSuperAdmin !== 1) {
+            const permissionsCookie = request.cookies.get(
+                PERMISSIONS_COOKIE_NAME
+            )?.value;
+            const permissions = await verifyPermissionsToken(permissionsCookie);
+
+            const allowed =
+                permissions &&
+                canAccessModuleWithSnapshot({
+                    isSuperAdmin: 0,
+                    modules: permissions.modules,
+                    moduleCode,
+                });
+
+            if (!allowed) {
+                return NextResponse.redirect(new URL("/", request.url));
+            }
         }
     }
 

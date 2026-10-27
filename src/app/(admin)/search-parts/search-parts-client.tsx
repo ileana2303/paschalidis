@@ -26,6 +26,7 @@ import {
 import { useSearchPartsBasketController } from "@/hooks/search-parts/use-search-parts-basket-controller";
 import { useSearchPartsResultsController } from "@/hooks/search-parts/use-search-parts-results-controller";
 import { useSearchPartsPageController } from "@/hooks/search-parts/use-search-parts-page-controller";
+import { usePermissionChecks } from "@/hooks/usePermissionChecks";
 import type {
     CompetitionSalesResponse,
     LastOrdersResponse,
@@ -48,6 +49,9 @@ export default function SearchPartsClient() {
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const clearCustomer = useCustomerStore((state) => state.clearCustomer);
     const user = useAuthStore((state) => state.user);
+    const { canAccessFeature } = usePermissionChecks();
+    const canShowPartResults = canAccessFeature("part-results");
+    const canRequestPrice = canAccessFeature("request-price");
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -511,6 +515,7 @@ export default function SearchPartsClient() {
                             </div>
                         </div>
 
+                        {canShowPartResults ? (
                         <PartsResultsContainer
                             layout={{
                                 hasCustomer: customer != null,
@@ -571,6 +576,11 @@ export default function SearchPartsClient() {
                                 formatPrice: basketController.formatPrice,
                             }}
                         />
+                        ) : hasSearched && !loading && items.length > 0 ? (
+                            <p className="px-5 pb-6 text-center text-sm text-gray-500 dark:text-gray-400 xl:px-10">
+                                Δεν έχετε δικαίωμα προβολής αποτελεσμάτων αναζήτησης.
+                            </p>
+                        ) : null}
                     </div>
                 </div>
 
@@ -617,7 +627,11 @@ export default function SearchPartsClient() {
                         onChangeQuantity={handleUpdateQty}
                         requestedPriceValues={basketController.basketLineRequestedPrices}
                         onRequestedPriceValueChange={basketController.setBasketLineRequestedPriceValue}
-                        onRequestPrice={basketController.handleRequestBasketLinePrice}
+                        onRequestPrice={
+                            canRequestPrice
+                                ? basketController.handleRequestBasketLinePrice
+                                : undefined
+                        }
                         submittingRequestedPrices={basketController.submittingBasketLineRequestedPrices}
                         collapsible
                         collapsed={!resultsController.sidebarVisible}

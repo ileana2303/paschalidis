@@ -1,4 +1,10 @@
 import type { AuthPermissions, AuthUser } from "@/lib/auth/types";
+import {
+    getActiveCatalogBranchEntries,
+    getBranchCatalogLabel,
+    getPermittedBranchCodes,
+    type PermissionCatalog,
+} from "@/lib/auth/permissions";
 
 const BRANCH_NAME_BY_CODE = {
   "1000": "Κασομούλη",
@@ -85,29 +91,34 @@ export function getKnownBranchOptions(): BranchOption[] {
 /** Branch choices for the header toggle and other branch selectors. */
 export function getUserBranchOptions(
   user: AuthUser | null | undefined,
-  permissions: AuthPermissions | null | undefined
+  permissions: AuthPermissions | null | undefined,
+  catalog?: PermissionCatalog | null
 ): BranchOption[] {
   if (!user) return [];
 
-  const activeBranchCode = normalizeBranchCode(user.mainBranch);
-  const permittedCodes = (permissions?.branches ?? [])
-    .map(normalizeBranchCode)
-    .filter(Boolean);
-  const uniqueCodes = Array.from(
-    new Set(
-      user.isSuperAdmin === 1
-        ? [
-          ...getKnownBranchOptions().map((branch) => branch.code),
-          ...permittedCodes,
-          ...(activeBranchCode ? [activeBranchCode] : []),
-        ]
-        : permittedCodes
-    )
-  );
+  const permittedCodes = getPermittedBranchCodes({
+    user,
+    permissions,
+    catalog,
+  });
 
-  return uniqueCodes.map((code) => ({
-    code,
-    label: formatBranchLabel(code),
+  const uniqueCodes = Array.from(new Set(permittedCodes));
+
+  return uniqueCodes.map((code) => {
+    const catalogLabel = getBranchCatalogLabel(code, catalog);
+    return {
+      code,
+      label: formatBranchLabel(code, catalogLabel),
+    };
+  });
+}
+
+export function getCatalogBranchOptions(
+  catalog?: PermissionCatalog | null
+): BranchOption[] {
+  return getActiveCatalogBranchEntries(catalog).map((branch) => ({
+    code: normalizeBranchCode(branch.code),
+    label: formatBranchLabel(branch.code, branch.descr),
   }));
 }
 

@@ -27,6 +27,7 @@ interface StockRequestProps {
     isSubmittingRequest: boolean;
     requestError: string;
     endoRequest: EndoRequestCardProps;
+    showEndoStockCards?: boolean;
 }
 
 export default function StockRequest({
@@ -38,6 +39,7 @@ export default function StockRequest({
     isSubmittingRequest,
     requestError,
     endoRequest,
+    showEndoStockCards = true,
 }: StockRequestProps) {
     const statusClassName =
         requestStatus === "approved"
@@ -130,7 +132,7 @@ export default function StockRequest({
                 )}
             </div>
 
-            {hasRequestableEndoStock && endoRequest.canStart ? (
+            {showEndoStockCards && hasRequestableEndoStock && endoRequest.canStart ? (
                 <button
                     type="button"
                     onClick={endoRequest.onToggle}
@@ -167,16 +169,16 @@ export default function StockRequest({
                         className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${isEndoOpen ? "rotate-180" : ""}`}
                     />
                 </button>
-            ) : (
+            ) : showEndoStockCards ? (
                 <p className="mt-2 flex items-center gap-2 rounded-lg border border-gray-100 px-2.5 py-2 text-[11px] font-medium text-gray-400 dark:border-gray-800 dark:text-gray-500">
                     <GitCompareArrows className="h-3.5 w-3.5 shrink-0" />
                     <span className="min-w-0 truncate">
                         Χωρίς απόθεμα σε άλλο κατάστημα
                     </span>
                 </p>
-            )}
+            ) : null}
 
-            {isEndoOpen && (
+            {showEndoStockCards && isEndoOpen && (
                 <div className="mt-2">
                     <RequestEndoCard
                         branches={endoRequest.branches}

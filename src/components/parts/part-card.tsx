@@ -19,6 +19,7 @@ import QuantityControl from "@/components/ui/quantity-control";
 import RequestPriceBox from "@/components/ui/request-price-box";
 import PartCardDetails from "./part-card-details";
 import PartStockQuantityContainer from "../stock/request-stock-card";
+import { useCanFeature } from "@/hooks/usePermissionChecks";
 
 type StockBranchCode = "1000" | "1006" | "1007";
 type StockKey = "YP1000" | "YP1006" | "YP1007";
@@ -120,6 +121,10 @@ export default function PartResults({
     formatPrice,
     endoRequest,
 }: PartResultsProps) {
+    const { allowed: canRequestPrice } = useCanFeature("request-price");
+    const { allowed: canShowStockBranchMeta } = useCanFeature("stock-branch-meta");
+    const { allowed: canShowEndoStockCards } = useCanFeature("endo-stock-cards");
+
     const requestStatus =
         basketItem != null
             ? getBasketItemApprovalStatus(basketItem)
@@ -297,7 +302,7 @@ export default function PartResults({
                             </button>
 
                             <div className="h-9 w-full">
-                                {basketItem && (
+                                {basketItem && canRequestPrice && (
                                     <RequestPriceBox
                                         status={requestStatus}
                                         hasPriceRequest={hasPriceRequest}
@@ -360,6 +365,7 @@ export default function PartResults({
                         )}
                     </div>
 
+                    {canShowStockBranchMeta && (
                     <div className="mt-2.5 flex w-full flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-lg border border-gray-100 bg-gray-50/70 px-2.5 py-1.5 text-left dark:border-gray-800 dark:bg-white/[0.02]">
                         {myStockBranchCode && (
                             <span className="flex min-w-0 items-baseline gap-1.5">
@@ -418,6 +424,7 @@ export default function PartResults({
                             })}
                         </span>
                     </div>
+                    )}
                 </div>
 
                 <PartCardDetails
@@ -440,6 +447,7 @@ export default function PartResults({
                     isSubmittingRequest={isSubmittingStockRequest}
                     requestError={stockRequestError}
                     endoRequest={endoRequest}
+                    showEndoStockCards={canShowEndoStockCards}
                 />
             )}
         </div>

@@ -1,15 +1,31 @@
 import { cookies } from "next/headers";
-import { SESSION_COOKIE_NAME } from "./constants";
-import type { AuthUser } from "./types";
+import { PERMISSIONS_COOKIE_NAME, SESSION_COOKIE_NAME } from "./constants";
+import type { AuthPermissions, AuthUser } from "./types";
+import { createPermissionsToken } from "./permissions-cookie";
 import { createSessionToken } from "./session-token";
 const REMEMBER_ME_EXPIRATION_DAYS = 7;
+
+const SESSION_MAX_AGE_SECONDS = REMEMBER_ME_EXPIRATION_DAYS * 24 * 60 * 60;
+
+function cookieBaseOptions() {
+    return {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax" as const,
+        path: "/",
+    };
+}
 
 /**
  * Set the auth session cookie.
  * The signed token carries the minimum server-side identity needed by protected
  * routes; the complete user and permission state remains in the auth store.
  */
-export async function setSessionCookie(user: AuthUser, rememberMe = false) {
+export async function setSessionCookie(
+    user: AuthUser,
+    rememberMe = false,
+    permissions?: AuthPermissions | null
+) {
     const cookieStore = await cookies();
     const token = await createSessionToken(
         {
@@ -20,14 +36,24 @@ export async function setSessionCookie(user: AuthUser, rememberMe = false) {
     );
 
     cookieStore.set(SESSION_COOKIE_NAME, token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        ...(rememberMe
-            ? { maxAge: REMEMBER_ME_EXPIRATION_DAYS * 24 * 60 * 60 }
-            : {}),
-        path: "/",
+        ...cookieBaseOptions(),
+        ...(rememberMe ? { maxAge: SESSION_MAX_AGE_SECONDS } : {}),
     });
+
+    if (permissions) {
+        const permissionsToken = await createPermissionsToken(
+            {
+                modules: permissions.modules,
+                features: permissions.features,
+            },
+            rememberMe
+        );
+
+        cookieStore.set(PERMISSIONS_COOKIE_NAME, permissionsToken, {
+            ...cookieBaseOptions(),
+            ...(rememberMe ? { maxAge: SESSION_MAX_AGE_SECONDS } : {}),
+        });
+    }
 }
 
 /**
@@ -35,12 +61,12 @@ export async function setSessionCookie(user: AuthUser, rememberMe = false) {
  */
 export async function deleteSessionCookie() {
     const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, "", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+    const cleared = {
+        ...cookieBaseOptions(),
         maxAge: 0,
         expires: new Date(0),
-        path: "/",
-    });
+    };
+
+    cookieStore.set(SESSION_COOKIE_NAME, "", cleared);
+    cookieStore.set(PERMISSIONS_COOKIE_NAME, "", cleared);
 }

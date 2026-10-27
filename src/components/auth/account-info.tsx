@@ -3,6 +3,8 @@
 import { MapPin, UserRound } from "@/lib/icons/lucide";
 import { formatBranchLabel, normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { getAuthUserFullName } from "@/lib/auth/types";
+import { getPermittedBranchCodes, getBranchCatalogLabel } from "@/lib/auth/permissions";
+import { usePermissionsCatalogQuery } from "@/hooks/queries/usePermissionsCatalogQuery";
 import { useAuthStore } from "@/stores/authStore";
 import { type ReactNode, useMemo } from "react";
 
@@ -44,6 +46,7 @@ function DetailItem({ label, value, icon }: DetailItemProps) {
 export default function AccountInfo() {
   const user = useAuthStore((state) => state.user);
   const permissions = useAuthStore((state) => state.permissions);
+  const { data: catalog } = usePermissionsCatalogQuery();
 
   const profileData = useMemo(() => {
     const username = normalize(user?.username);
@@ -53,11 +56,12 @@ export default function AccountInfo() {
 
     const branchMap = new Map<string, { code: string; name: string }>();
 
-    (permissions?.branches ?? []).forEach((branch) => {
+    getPermittedBranchCodes({ user, permissions, catalog: catalog ?? null }).forEach((branch) => {
       const code = normalizeBranchCode(branch);
       if (!code) return;
 
-      const resolvedName = resolveBranchName(code);
+      const catalogLabel = getBranchCatalogLabel(code, catalog ?? null);
+      const resolvedName = resolveBranchName(code, catalogLabel);
       const existing = branchMap.get(code);
 
       if (!existing || (existing.name === code && resolvedName !== code)) {
@@ -97,7 +101,7 @@ export default function AccountInfo() {
       initials: buildInitials(fullName, username),
       usernameLabel: username === "—" ? "—" : `@${username}`,
     };
-  }, [permissions, user]);
+  }, [catalog, permissions, user]);
 
   const showBranches = profileData.branches.length >= 2;
 

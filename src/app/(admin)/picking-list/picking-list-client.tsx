@@ -32,10 +32,10 @@ import {
   useUpdatePickingListOrderMutation,
 } from "@/hooks/queries/usePickingListQueries";
 import { useSessionState } from "@/hooks/useSessionState";
+import { usePermissionChecks } from "@/hooks/usePermissionChecks";
 import { useAuthStore } from "@/stores/authStore";
 import {
   formatBranchLabel,
-  getUserBranchOptions,
   normalizeBranchCode,
 } from "@/lib/auth/branches";
 import { formatDateTimeEl, formatMinutesAgoEl } from "@/lib/utils/date";
@@ -834,6 +834,7 @@ export default function PickingListClient() {
   const user = useAuthStore((state) => state.user);
   const permissions = useAuthStore((state) => state.permissions);
   const setAuth = useAuthStore((state) => state.setAuth);
+  const { branchOptions } = usePermissionChecks();
   const [selectedBranch, setSelectedBranch] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<PickingStatusFilter>("ALL");
@@ -894,10 +895,6 @@ export default function PickingListClient() {
     );
   }, [error, isError]);
 
-  const branchOptions = useMemo(
-    () => getUserBranchOptions(user, permissions),
-    [permissions, user]
-  );
   const activeBranch = useMemo(() => {
     const validCodes = new Set(branchOptions.map((branch) => branch.code));
 

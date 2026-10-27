@@ -2,11 +2,12 @@
 
 import { MapPin } from "@/lib/icons/lucide";
 import {
-  getUserBranchOptions,
   normalizeBranchCode,
   resolveBranchName,
 } from "@/lib/auth/branches";
+import { getBranchCatalogLabel } from "@/lib/auth/permissions";
 import { getBranchColor } from "@/lib/branch-colors";
+import { usePermissionChecks } from "@/hooks/usePermissionChecks";
 import { useAuthStore } from "@/stores/authStore";
 import { useMemo } from "react";
 
@@ -15,24 +16,22 @@ export default function BranchToggle() {
   const permissions = useAuthStore((state) => state.permissions);
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  const branchOptions = useMemo(
-    () => getUserBranchOptions(user, permissions),
-    [permissions, user]
-  );
+  const { branchOptions, catalog, permittedBranchCodes } = usePermissionChecks();
 
   const branchName = useMemo(() => {
     if (!user) return "—";
     const branchCode = normalizeBranchCode(user.mainBranch);
     if (!branchCode) return "—";
 
-    return resolveBranchName(branchCode);
-  }, [user]);
+    const catalogLabel = getBranchCatalogLabel(branchCode, catalog);
+    return resolveBranchName(branchCode, catalogLabel);
+  }, [catalog, user]);
 
   if (!user) return null;
 
   const branchCode = normalizeBranchCode(user.mainBranch);
   const canSwitchBranch =
-    user.isSuperAdmin === 1 || (permissions?.branches.length ?? 0) > 1;
+    user.isSuperAdmin === 1 || permittedBranchCodes.length > 1;
   const selectedBranchCode = branchOptions.some(
     (branch) => branch.code === branchCode
   )

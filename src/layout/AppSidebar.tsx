@@ -26,18 +26,21 @@ import {
 import { useSidebar } from "../context/SidebarContext";
 import { ListTodo, ShoppingBasket, Warehouse } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
+import { usePermissionChecks } from "@/hooks/usePermissionChecks";
 
 type NavSubItem = {
   name: string;
   path: string;
   icon: LucideIcon;
   superAdminOnly?: boolean;
+  moduleCode?: string;
 };
 
 type NavItem = {
   name: string;
   icon: LucideIcon;
   path?: string;
+  moduleCode?: string;
   subItems?: NavSubItem[];
 };
 
@@ -46,11 +49,13 @@ const navItems: NavItem[] = [
     icon: UserSearch,
     name: "Αναζήτηση Πελατών",
     path: "/search-customer",
+    moduleCode: "search-customer",
   },
   {
     icon: PackageSearch,
     name: "Αναζήτηση Ανταλλακτικών",
     path: "/search-parts",
+    moduleCode: "search-parts",
   },
   {
     icon: LayoutDashboard,
@@ -60,11 +65,13 @@ const navItems: NavItem[] = [
         icon: Layers2,
         name: "Ορισμός Ομοίων",
         path: "/search-set-similar",
+        moduleCode: "search-set-similar",
       },
       {
         icon: Pencil,
         name: "Επεξεργασία Ειδών",
         path: "/edit-items",
+        moduleCode: "edit-items",
       },
       {
         icon: SlidersHorizontal,
@@ -92,11 +99,13 @@ const navItems: NavItem[] = [
     icon: Warehouse,
     name: "Ανατροφοδοσία",
     path: "/stock-feedback",
+    moduleCode: "stock-feedback",
     subItems: [
       {
         icon: ClipboardList,
         name: "Λίστα Ανατροφοδοσίας",
         path: "/stock-list",
+        moduleCode: "stock-feedback",
       },
     ],
   },
@@ -104,16 +113,19 @@ const navItems: NavItem[] = [
     icon: GitCompareArrows,
     name: "Ενδοδιακίνηση",
     path: "/endo/endo-parts",
+    moduleCode: "endo-parts-lists",
     subItems: [
       {
         icon: Send,
         name: "Εισερχόμενα Αιτήματα",
         path: "/endo/endo-lists-received",
+        moduleCode: "endo-parts-lists",
       },
       {
         icon: ClipboardList,
         name: "Εξερχόμενα Αιτήματα",
         path: "/endo/endo-lists-requested",
+        moduleCode: "endo-parts-lists",
       },
     ],
   },
@@ -121,6 +133,7 @@ const navItems: NavItem[] = [
     icon: ShoppingBasket,
     name: "Καλάθια Πελατών",
     path: "/all-baskets",
+    moduleCode: "all-baskets",
   },
   {
     icon: ListTodo,
@@ -145,11 +158,13 @@ const navItems: NavItem[] = [
         name: "Αιτήματα Ανατροφοδοσίας",
         path: "/stock-requests",
         icon: ClipboardList,
+        moduleCode: "stock-requests",
       },
       {
         name: "Αιτήματα τιμών",
         path: "/price-requests",
         icon: BadgePercent,
+        moduleCode: "price-requests",
       },
       {
         name: "Διαχείριση Χρηστών",
@@ -171,8 +186,62 @@ const mobileNavItems: NavItem[] = [
     icon: BadgePercent,
     name: "Αιτήματα τιμών",
     path: "/price-requests",
+    moduleCode: "price-requests",
   },
 ];
+
+function isNavSubItemVisible(
+  subItem: NavSubItem,
+  isSuperAdmin: boolean,
+  canAccessModule: (code: string) => boolean
+) {
+  if (subItem.superAdminOnly && !isSuperAdmin) {
+    return false;
+  }
+
+  if (subItem.moduleCode && !canAccessModule(subItem.moduleCode)) {
+    return false;
+  }
+
+  return true;
+}
+
+function filterNavItems(
+  items: NavItem[],
+  isSuperAdmin: boolean,
+  canAccessModule: (code: string) => boolean
+): NavItem[] {
+  return items.flatMap((nav) => {
+    const visibleSubItems = nav.subItems?.filter((subItem) =>
+      isNavSubItemVisible(subItem, isSuperAdmin, canAccessModule)
+    );
+
+    if (nav.moduleCode && !canAccessModule(nav.moduleCode)) {
+      if (!visibleSubItems?.length) {
+        return [];
+      }
+
+      return [{ ...nav, path: undefined, subItems: visibleSubItems }];
+    }
+
+    if (nav.subItems) {
+      if (!visibleSubItems?.length) {
+        if (nav.path && (!nav.moduleCode || canAccessModule(nav.moduleCode))) {
+          return [{ ...nav, subItems: undefined }];
+        }
+        return [];
+      }
+
+      return [{ ...nav, subItems: visibleSubItems }];
+    }
+
+    if (nav.moduleCode && !canAccessModule(nav.moduleCode)) {
+      return [];
+    }
+
+    return [nav];
+  });
+}
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobile, isMobileOpen, isHovered, setIsHovered } =
@@ -181,16 +250,24 @@ const AppSidebar: React.FC = () => {
   const isSuperAdmin = useAuthStore(
     (state) => state.user?.isSuperAdmin === 1
   );
+  const { canAccessModule } = usePermissionChecks();
   const isActive = (path: string) => path === pathname;
   const isSidebarExpanded = isExpanded || isHovered || isMobileOpen;
+
+  const visibleNavItems = filterNavItems(navItems, isSuperAdmin, canAccessModule);
+  const visibleMobileNavItems = filterNavItems(
+    mobileNavItems,
+    isSuperAdmin,
+    canAccessModule
+  );
 
   const renderMenuItems = (navItems: NavItem[]) => (
     <ul className="flex flex-col gap-4">
       {navItems.map((nav) => {
         const Icon = nav.icon;
         const isManagement = nav.name === "Διαχείριση Καταστημάτων";
-        const visibleSubItems = nav.subItems?.filter(
-          (subItem) => !subItem.superAdminOnly || isSuperAdmin
+        const visibleSubItems = nav.subItems?.filter((subItem) =>
+          isNavSubItemVisible(subItem, isSuperAdmin, canAccessModule)
         );
         const hasActiveSubItem =
           visibleSubItems?.some((subItem) => isActive(subItem.path)) ?? false;
@@ -457,7 +534,7 @@ const AppSidebar: React.FC = () => {
                   <MoreHorizontal className="h-5 w-5" />
                 )}
               </h2>
-              {renderMenuItems(isMobile ? mobileNavItems : navItems)}
+              {renderMenuItems(isMobile ? visibleMobileNavItems : visibleNavItems)}
             </div>
           </div>
         </nav>

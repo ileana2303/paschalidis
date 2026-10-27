@@ -12,7 +12,8 @@ import {
     Shield,
     Trash2,
 } from "@/lib/icons/lucide";
-import { formatBranchLabel, getKnownBranchOptions } from "@/lib/auth/branches";
+import { formatBranchLabel, getCatalogBranchOptions } from "@/lib/auth/branches";
+import { usePermissionsCatalogQuery } from "@/hooks/queries/usePermissionsCatalogQuery";
 import {
     useFetchUsersMutation,
     useSaveUserMutation,
@@ -245,24 +246,25 @@ export default function UserFormModal({
     const { mutateAsync: lookupUser, isPending: checkingUsername } =
         useFetchUsersMutation();
     const { mutateAsync: submitUser, isPending: saving } = useSaveUserMutation();
+    const { data: permissionsCatalog } = usePermissionsCatalogQuery();
     const isEditing = record !== null;
 
     const branchOptions = useMemo(() => {
-        const knownOptions = getKnownBranchOptions();
-        const knownCodes = new Set(knownOptions.map((branch) => branch.code));
+        const catalogOptions = getCatalogBranchOptions(permissionsCatalog ?? null);
+        const catalogCodes = new Set(catalogOptions.map((branch) => branch.code));
         const additionalCodes = [
             ...form.permissions.branches,
             ...(form.mainBranch ? [form.mainBranch] : []),
-        ].filter((code) => code && !knownCodes.has(code));
+        ].filter((code) => code && !catalogCodes.has(code));
 
         return [
-            ...knownOptions,
+            ...catalogOptions,
             ...Array.from(new Set(additionalCodes)).map((code) => ({
                 code,
-                label: code,
+                label: formatBranchLabel(code),
             })),
         ];
-    }, [form.mainBranch, form.permissions.branches]);
+    }, [form.mainBranch, form.permissions.branches, permissionsCatalog]);
 
     const updateText = (
         field:
