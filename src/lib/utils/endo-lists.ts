@@ -8,13 +8,14 @@ export const REQUESTED_QTY_COLUMN_KEY = "__REQUESTED_QTY";
 export const QTY_ACTIONS_COLUMN_KEY = "__QTY_ACTIONS";
 
 export function formatColumnLabel(key: string) {
-    if (key === REQUESTED_QTY_COLUMN_KEY) {
-        return "Requested QTY";
-    }
-
-    if (key === QTY_ACTIONS_COLUMN_KEY) {
-        return "Update / SALDOC";
-    }
+    if (key === "ITEM_CODE") return "Κωδικός";
+    if (key === "ITEM_NAME" || key === "ITEM_DESCR") return "Είδος";
+    if (key === "TOTAL_AVAIL") return "Διαθέσιμα";
+    if (key === "YP1000") return "Κασομούλη";
+    if (key === "YP1006") return "Λ.Αθηνών";
+    if (key === "YP1007") return "Λ.Μεσογείων";
+    if (key === "QTY" || key === "QTY_REQUESTED" || key === REQUESTED_QTY_COLUMN_KEY) return "Ποσότητα";
+    if (key === QTY_ACTIONS_COLUMN_KEY) return "Ενέργειες";
 
     return key.replace(/_/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -29,14 +30,19 @@ export function buildColumns(rows: IEndoListRow[]) {
     });
 
     const preferredOrder = [
+        "ITEM_CODE",
+        "ITEM_NAME",
+        "ITEM_DESCR",
+        "TOTAL_AVAIL",
+        "YP1000",
+        "YP1006",
+        "YP1007",
         "BASKETID",
         "ID",
         "INS_DATE",
         "BRANCH",
         "TO_BRANCH",
         "MTRL",
-        "ITEM_CODE",
-        "ITEM_DESCR",
         "QTY",
         "QTY_REQUESTED",
         "STATUS",
