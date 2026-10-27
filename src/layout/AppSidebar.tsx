@@ -27,7 +27,7 @@ import {
   UsersRound,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
-import { ListTodo, ShoppingBasket, Warehouse } from "lucide-react";
+import { ListTodo, Receipt, ShoppingBasket, Warehouse } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 
 type NavSubItem = {
@@ -150,9 +150,14 @@ const navItems: NavItem[] = [
         icon: ClipboardList,
       },
       {
-        name: "Αιτήματα τιμών",
+        name: "Αιτήματα Τιμών",
         path: "/price-requests",
         icon: BadgePercent,
+      },
+      {
+        name: "Διαμόρφωση Τιμών",
+        path: "/base-price-pur",
+        icon: Receipt,
       },
       {
         name: "Διαχείριση Χρηστών",
@@ -172,7 +177,7 @@ const mobileNavItems: NavItem[] = [
   },
   {
     icon: BadgePercent,
-    name: "Αιτήματα τιμών",
+    name: "Αιτήματα Τιμών",
     path: "/price-requests",
   },
 ];
