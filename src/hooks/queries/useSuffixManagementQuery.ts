@@ -20,11 +20,19 @@ export const suffixListQueryRoot = ["suffix-management", "getlist"] as const;
 export const suffixListQueryKey = (filters: SuffixListFilters) =>
   [...suffixListQueryRoot, filters] as const;
 
-export function useSuffixListQuery(filters: SuffixListFilters) {
+type SuffixListQueryOptions = {
+  enabled?: boolean;
+};
+
+export function useSuffixListQuery(
+  filters: SuffixListFilters,
+  options?: SuffixListQueryOptions
+) {
   return useQuery({
     queryKey: suffixListQueryKey(filters),
     queryFn: () => fetchSuffixList(filters),
     placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
   });
 }
 
