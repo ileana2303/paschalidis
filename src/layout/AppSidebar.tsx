@@ -23,6 +23,7 @@ import {
   type LucideIcon,
   Send,
   Truck,
+  Upload,
   UserSearch,
   UsersRound,
 } from "@/lib/icons/lucide";
@@ -54,6 +55,11 @@ const navItems: NavItem[] = [
     icon: PackageSearch,
     name: "Αναζήτηση Ανταλλακτικών",
     path: "/search-parts",
+  },
+  {
+    icon: Upload,
+    name: "Ανέβασμα Τιμοκαταλόγου",
+    path: "/supplier-price-catalog-upload",
   },
   {
     icon: LayoutDashboard,
