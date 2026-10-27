@@ -112,12 +112,12 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                 ? {
                     pageTitle: "Εξερχόμενα Αιτήματα Ενδοδιακίνησης",
                     title: "Λίστα εκκρεμών αιτημάτων ενδοδιακίνησης καταστήματος",
-                    subtitle: "ENDO_LIST_ESO :: Τι έχω ζητήσει",
+                    subtitle: "Αιτήματα προς άλλα καταστήματα για άμεση ενδοδιακίνηση ανταλλακτικών.",
                 }
                 : {
                     pageTitle: "Εισερχόμενα Αιτήματα Ενδοδιακίνησης",
                     title: "Διαχείριση αιτημάτων ενδοδιακίνησης προς άλλα καταστήματα",
-                    subtitle: "ENDO_LIST_EXO :: Τι μου ζητάνε",
+                    subtitle: "Αιτήματα από άλλα καταστήματα για έλεγχο, ενημέρωση ποσότητας και εκτέλεση ενδοδιακίνησης.",
                 },
         [scope]
     );
@@ -193,6 +193,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                 column !== "BRANCH" &&
                 column !== "QTY" &&
                 column !== "QTY_REQUESTED" &&
+                !isStatusColumnKey(column) &&
                 !/^YP\d+$/i.test(column) &&
                 !/^THESI\d+$/i.test(column) &&
                 column !== "NET_QTY_AVAILABLE" &&
