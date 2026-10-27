@@ -29,7 +29,12 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL("/auth/signin", request.url));
     }
 
-    if (pathname === "/users" || pathname.startsWith("/users/")) {
+    if (
+        pathname === "/users" ||
+        pathname.startsWith("/users/") ||
+        pathname === "/users-list" ||
+        pathname.startsWith("/users-list/")
+    ) {
         const session = await verifySessionToken(sessionCookie);
 
         if (!session) {

@@ -149,31 +149,54 @@ async function callUserService<T extends GetUserResponse>(
     return data;
 }
 
+async function getUsers(req: NextRequest, username = "") {
+    if (!(await requireSuperAdmin(req))) {
+        return jsonError("Δεν έχετε δικαίωμα διαχείρισης χρηστών.", 403);
+    }
+
+    const clientID = getSoftOneClientID();
+    if (!clientID) {
+        return jsonError("Δεν έχει ρυθμιστεί ο SoftOne client ID.", 500);
+    }
+
+    const payload: GetUserPayload = {
+        clientID,
+        ...(username ? { username } : {}),
+    };
+    const data = await callUserService<GetUserResponse>(payload, "getUser");
+
+    return NextResponse.json(data);
+}
+
+/** List all users and permissions using an upstream payload of only { clientID }. */
+export async function GET(req: NextRequest) {
+    try {
+        return await getUsers(req);
+    } catch (error) {
+        console.error("[users:getUser:list] Server error", error);
+        return jsonError(
+            error instanceof Error ? error.message : "Σφάλμα διακομιστή.",
+            500
+        );
+    }
+}
+
+/** Look up a single username, used while validating a new user. */
 export async function POST(req: NextRequest) {
     try {
-        if (!(await requireSuperAdmin(req))) {
-            return jsonError("Δεν έχετε δικαίωμα διαχείρισης χρηστών.", 403);
-        }
-
-        const clientID = getSoftOneClientID();
-        if (!clientID) {
-            return jsonError("Δεν έχει ρυθμιστεί ο SoftOne client ID.", 500);
-        }
-
         const body = (await req.json().catch(() => ({}))) as {
             username?: unknown;
         };
         const username =
             typeof body.username === "string" ? body.username.trim() : "";
-        const payload: GetUserPayload = {
-            clientID,
-            ...(username ? { username } : {}),
-        };
-        const data = await callUserService<GetUserResponse>(payload, "getUser");
 
-        return NextResponse.json(data);
+        if (!username) {
+            return jsonError("Το username είναι υποχρεωτικό.", 400);
+        }
+
+        return await getUsers(req, username);
     } catch (error) {
-        console.error("[users:getUser] Server error", error);
+        console.error("[users:getUser:lookup] Server error", error);
         return jsonError(
             error instanceof Error ? error.message : "Σφάλμα διακομιστή.",
             500

@@ -266,7 +266,7 @@ export default function UsersClient() {
 
     return (
         <div className="mx-auto w-full">
-            <PageBreadcrumb pageTitle="Διαχείριση Χρηστών" />
+            <PageBreadcrumb pageTitle="Λίστα Χρηστών" />
 
             <DataTable>
                 <DataTableHeader

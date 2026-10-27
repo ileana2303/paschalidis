@@ -166,8 +166,8 @@ const navItems: NavItem[] = [
         icon: Receipt,
       },
       {
-        name: "Διαχείριση Χρηστών",
-        path: "/users",
+        name: "Λίστα Χρηστών",
+        path: "/users-list",
         icon: Users,
         superAdminOnly: true,
       },
