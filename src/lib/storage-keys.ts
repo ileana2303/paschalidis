@@ -34,6 +34,7 @@ const LEGACY_STORAGE_KEYS = [
     "all-baskets-search-input",
     "all-baskets-applied-search",
     "price-requests-search",
+    "base-price-pur-search",
 ] as const;
 
 function isNamespacedAppKey(key: string): boolean {
