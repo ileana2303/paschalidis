@@ -530,7 +530,7 @@ export default function StockRequestsClient({
                                                 </button>
                                             </th>
                                             <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
-                                                ID
+                                                Κωδικός
                                             </th>
 
                                             <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:px-4">
@@ -605,7 +605,7 @@ export default function StockRequestsClient({
 
                                                     <td className="whitespace-nowrap px-3 py-4 align-top xl:px-4">
                                                         <span className="inline-flex rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                                                            #{row.BASKETID}
+                                                            {row.ITEM_CODE}
                                                         </span>
                                                     </td>
 
@@ -757,8 +757,14 @@ export default function StockRequestsClient({
                                                         <td colSpan={9} className="px-5 py-2">
                                                             <div className="ml-12 grid grid-cols-2 gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:grid-cols-3 lg:grid-cols-6">
                                                                 <div>
-                                                                    <div className="text-[10px] text-gray-400">Κωδικός</div>
-                                                                    <div className="mt-0.5 text-gray-800 dark:text-gray-200">{row.ITEM_CODE}</div>
+                                                                    <div className="text-[10px] text-gray-400">ID Αιτήματος</div>
+                                                                    <div className="mt-0.5 text-gray-800 dark:text-gray-200">#{row.BASKETID}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-[10px] text-gray-400">Ημ/νία Αιτήματος</div>
+                                                                    <div className="mt-0.5 whitespace-nowrap text-gray-800 dark:text-gray-200">
+                                                                        {insDate}{insTime ? ` ${insTime}` : ""}
+                                                                    </div>
                                                                 </div>
                                                                 <div>
                                                                     <div className="text-[10px] text-gray-400">MTRL</div>
@@ -775,12 +781,6 @@ export default function StockRequestsClient({
                                                                 <div>
                                                                     <div className="text-[10px] text-gray-400">Σε καλάθι</div>
                                                                     <div className="mt-0.5 tabular-nums text-gray-800 dark:text-gray-200">{row.QTY_IN_BASKETS}</div>
-                                                                </div>
-                                                                <div>
-                                                                    <div className="text-[10px] text-gray-400">Ημ/νία Αιτήματος</div>
-                                                                    <div className="mt-0.5 whitespace-nowrap text-gray-800 dark:text-gray-200">
-                                                                        {insDate}{insTime ? ` ${insTime}` : ""}
-                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </td>
