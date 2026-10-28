@@ -5,13 +5,15 @@ import { DropdownItem } from "@/components/ui/dropdown/dropdown-item";
 import { useAuthStore } from "@/stores/authStore";
 import { useLogoutMutation } from "@/hooks/queries/useAuthQueries";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
-import { BookOpenText, ExternalLink } from "@/lib/icons/lucide";
+import { BookOpenText, ExternalLink, Shield, Users } from "@/lib/icons/lucide";
 import { getAuthUserFullName } from "@/lib/auth/types";
 import { clearAppStorage } from "@/lib/storage-keys";
+import { canAccessPath, hasPermission } from "@/lib/auth/permissions";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
+  const permissions = useAuthStore((state) => state.permissions);
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const fullName = getAuthUserFullName(user) || user?.username || "User";
   const logoutMutation = useLogoutMutation();
@@ -90,7 +92,39 @@ export default function UserDropdown() {
               Λογαριασμός
             </DropdownItem>
           </li>
-          <li>
+          {canAccessPath(permissions, "/users-list") && (
+            <li>
+              <DropdownItem
+                onItemClick={closeDropdown}
+                tag="a"
+                href="/users-list"
+                className="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+              >
+                <Users
+                  strokeWidth={1.5}
+                  className="h-6 w-6 shrink-0 text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300"
+                />
+                Λίστα Χρηστών
+              </DropdownItem>
+            </li>
+          )}
+          {hasPermission(permissions, "manage-perms") && (
+            <li>
+              <DropdownItem
+                onItemClick={closeDropdown}
+                tag="a"
+                href="/users-list/permissions"
+                className="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+              >
+                <Shield
+                  strokeWidth={1.5}
+                  className="h-6 w-6 shrink-0 text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300"
+                />
+                Κατάλογος Δικαιωμάτων
+              </DropdownItem>
+            </li>
+          )}
+          <li className="mt-2 border-t border-gray-200 pt-2 dark:border-gray-800">
             <a
               href="https://oval-guide.vercel.app/"
               target="_blank"
