@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import ItemForensicsDrawer from "@/components/stock/item-forensics-drawer";
@@ -21,10 +21,12 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
-import type { IStockFeedbackRow } from "@/lib/interface";
+import ItemCodeBadge from "@/components/ui/item-code-badge";
+import type { IItem, IStockFeedbackRow } from "@/lib/interface";
 import {
   useFetchStockFeedbackMutation,
   useRequestStockQuantityMutation,
+  useSearchItemsMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
 import toast from "react-hot-toast";
@@ -39,6 +41,33 @@ import {
 } from "@/lib/utils/stock-feedback";
 
 const DAY_OPTIONS = [0, 1, 2, 3, 4, 5] as const;
+
+function itemSearchResultToStockFeedbackRow(item: IItem): IStockFeedbackRow {
+  return {
+    MTRL: item.MTRL,
+    CODE: item.ITEM_CODE,
+    NAME: item.ITEM_DESCR,
+    CODE1: item.CODE1_0,
+    CODE2: item.ITEM_CODE2,
+    QTY_SOLD: "0",
+    ONGOING: item.ONGOING,
+    YP1000: item.YP1000,
+    YP1006: item.YP1006,
+    YP1007: item.YP1007,
+    TOTAL_AVAIL: item.TOTAL_AVAIL,
+    RES1000: item.RES1000,
+    RES1006: item.RES1006,
+    RES1007: item.RES1007,
+    RES_TOTAL: item.RES_TOTAL,
+    END1000: item.END1000,
+    END1006: item.END1006,
+    END1007: item.END1007,
+    END_TOTAL: item.END_TOTAL,
+    FREE_AVAIL: item.NET_QTY_AVAILABLE,
+    RES_BRANCH: "0",
+    YP_BRANCH: "0",
+  };
+}
 
 function KpiCard({
   title,
@@ -97,6 +126,8 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
   const user = useAuthStore((state) => state.user);
   const { mutateAsync: fetchStockFeedback } = useFetchStockFeedbackMutation();
   const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
+  const { mutateAsync: searchItems, isPending: searchingItems } =
+    useSearchItemsMutation();
 
   const currentBranchCode = useMemo(
     () => normalizeBranchCode(user?.mainBranch),
@@ -112,6 +143,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
 
   const [days, setDays] = useState<number>(0);
   const [rows, setRows] = useState<IStockFeedbackRow[]>([]);
+  const [itemSearchRows, setItemSearchRows] = useState<IStockFeedbackRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useSessionState(
@@ -127,6 +159,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
   );
   const [selectedForensicsItem, setSelectedForensicsItem] =
     useState<IStockFeedbackRow | null>(null);
+  const itemSearchRequestId = useRef(0);
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -164,17 +197,78 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
 
   useLoadOnChange(loadRows);
 
+  const availableRows = useMemo(() => {
+    const salesMtrls = new Set(rows.map((row) => String(row.MTRL)));
+    return [
+      ...rows,
+      ...itemSearchRows.filter((row) => !salesMtrls.has(String(row.MTRL))),
+    ];
+  }, [itemSearchRows, rows]);
+  const itemSearchMtrls = useMemo(
+    () => new Set(itemSearchRows.map((row) => String(row.MTRL))),
+    [itemSearchRows]
+  );
+  const salesMtrls = useMemo(
+    () => new Set(rows.map((row) => String(row.MTRL))),
+    [rows]
+  );
+
   const filteredRows = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     return !query
-      ? rows
-      : rows.filter((row) => {
+      ? availableRows
+      : availableRows.filter((row) => {
+        if (itemSearchMtrls.has(String(row.MTRL))) return true;
+
         return [row.CODE, row.NAME]
           .join(" ")
           .toLowerCase()
           .includes(query);
       });
-  }, [rows, searchTerm]);
+  }, [availableRows, itemSearchMtrls, searchTerm]);
+
+  const handleSearchTermChange = useCallback(
+    (nextSearchTerm: string) => {
+      itemSearchRequestId.current += 1;
+      setSearchTerm(nextSearchTerm);
+      setItemSearchRows([]);
+    },
+    [setSearchTerm]
+  );
+
+  const handleItemSearch = useCallback(async () => {
+    const query = searchTerm.trim();
+
+    if (!query) return;
+
+    const requestId = ++itemSearchRequestId.current;
+
+    try {
+      const result = await searchItems(query);
+
+      if (requestId !== itemSearchRequestId.current) return;
+
+      if (!result.success) {
+        throw new Error(result.message || "Η αναζήτηση ειδών δεν ολοκληρώθηκε.");
+      }
+
+      const nextRows = (result.rows ?? []).map(itemSearchResultToStockFeedbackRow);
+      setItemSearchRows(nextRows);
+
+      if (nextRows.length === 0) {
+        toast.error("Δεν βρέθηκαν είδη στο ERP για αυτόν τον όρο.");
+      }
+    } catch (searchError) {
+      if (requestId !== itemSearchRequestId.current) return;
+
+      const message =
+        searchError instanceof Error
+          ? searchError.message
+          : "Αποτυχία αναζήτησης ειδών στο ERP.";
+      setItemSearchRows([]);
+      toast.error(message);
+    }
+  }, [searchItems, searchTerm]);
 
   const getRequestQuantity = useCallback(
     (mtrl: string) => requestQuantities[mtrl] ?? 0,
@@ -357,7 +451,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
               <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
             </Link>
           ) : "Έλεγχος Αποθέματος - Πίνακας Τελευταίων Πωλήσεων"}
-          description={`${filteredRows.length} από ${rows.length} είδη · ${formatDaysLabel(days)}`}
+          description={`${filteredRows.length} από ${availableRows.length} είδη · ${formatDaysLabel(days)}`}
           action={(
             <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
               <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
@@ -378,11 +472,15 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
 
               <DataTableSearchBar
                 value={searchTerm}
-                onChange={setSearchTerm}
+                onChange={handleSearchTermChange}
+                onSubmit={() => void handleItemSearch()}
+                onClear={() => handleSearchTermChange("")}
                 onRefresh={loadRows}
                 isRefreshing={loading}
+                isSubmitting={searchingItems}
                 refreshDisabled={loading}
-                placeholder="Αναζήτηση με κωδικό ή περιγραφή..."
+                submitDisabled={loading}
+                placeholder="Κωδικός ή περιγραφή · Enter για ERP..."
               />
             </div>
           )}
@@ -394,17 +492,18 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
           <DataTableEmptyState
             icon={<Package className="h-7 w-7" />}
             title="Δεν βρέθηκαν ανταλλακτικά"
-            description="Δεν υπάρχουν δεδομένα για τα επιλεγμένα φίλτρα ή η αναζήτηση δεν επέστρεψε αποτελέσματα."
+            description="Δεν υπάρχουν δεδομένα για τα επιλεγμένα φίλτρα. Πατήστε «Αναζήτηση ERP» για είδη εκτός της λίστας πωλήσεων."
           />
         ) : (
           <div className="min-h-0 w-full flex-1 overflow-auto">
             <table className="w-full min-w-[1380px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
               <colgroup>
-                <col className="w-[26%]" />
+                <col className="w-[12%]" />
+                <col className="w-[18%]" />
+                <col className="w-[7%]" />
+                <col className="w-[7%]" />
                 <col className="w-[8%]" />
                 <col className="w-[8%]" />
-                <col className="w-[8%]" />
-                <col className="w-[10%]" />
                 <col className="w-[8%]" />
                 <col className="w-[8%]" />
                 <col className="w-[24%]" />
@@ -412,6 +511,9 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
 
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
                 <tr>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Κωδικός
+                  </th>
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Είδος
                   </th>
@@ -451,6 +553,8 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                   const requestQty = getRequestQuantity(mtrlKey);
                   const requestError = requestErrors[mtrlKey] ?? "";
                   const isSubmittingRequest = submittingRequests.has(mtrlKey);
+                  const isItemSearchResult =
+                    itemSearchMtrls.has(mtrlKey) && !salesMtrls.has(mtrlKey);
 
                   return (
                     <tr
@@ -461,24 +565,29 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                         <button
                           type="button"
                           onClick={() => setSelectedForensicsItem(row)}
-                          className="group/item w-full rounded-xl px-2 py-2 text-left transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:hover:bg-brand-500/10"
-                          aria-label={`Προβολή ιστορικού πωλήσεων για ${row.NAME || row.CODE}`}
+                          className="group/item inline-flex max-w-full flex-col items-start gap-1.5 rounded-xl px-2 py-2 text-left transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:hover:bg-brand-500/10"
+                          aria-label={`Προβολή ιστορικού πωλήσεων για τον κωδικό ${row.CODE || "—"}`}
+                          title="Προβολή ιστορικού πωλήσεων"
                         >
-                          <span className="flex items-start justify-between gap-3">
-                            <span className="min-w-0 pr-4">
-                              <span className="block break-words font-medium leading-5 text-gray-900 group-hover/item:text-brand-600 dark:text-white dark:group-hover/item:text-brand-300">
-                                {row.NAME || "—"}
-                              </span>
-                              <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                                Κωδικός:{" "}
-                                <span className="font-medium text-gray-700 dark:text-gray-300">
-                                  {row.CODE || "—"}
-                                </span>
-                              </span>
-                            </span>
-                            <ChartColumn className="mt-0.5 h-4 w-4 shrink-0 text-gray-300 transition group-hover/item:text-brand-500 dark:text-gray-600" />
+                          <span className="inline-flex max-w-full items-center gap-2">
+                            <ItemCodeBadge
+                              code={row.CODE}
+                              className="transition group-hover/item:border-brand-300 group-hover/item:bg-white dark:group-hover/item:border-brand-400 dark:group-hover/item:bg-gray-900"
+                            />
+                            <ChartColumn className="h-4 w-4 shrink-0 text-gray-300 transition group-hover/item:text-brand-500 dark:text-gray-600" />
                           </span>
+                          {isItemSearchResult ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-[10px] font-medium leading-tight text-gray-500 shadow-xs transition group-hover/item:border-gray-300 group-hover/item:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:group-hover/item:border-gray-600 dark:group-hover/item:bg-gray-800">
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" aria-hidden="true" />
+                              Αποτέλεσμα αναζήτησης ERP
+                            </span>
+                          ) : null}
                         </button>
+                      </td>
+                      <td className="px-5 py-4 align-top">
+                        <p className="break-words font-medium leading-5 text-gray-900 dark:text-white">
+                          {row.NAME || "—"}
+                        </p>
                       </td>
 
                       <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums font-semibold text-gray-900 dark:text-white">

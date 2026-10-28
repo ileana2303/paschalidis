@@ -6,6 +6,7 @@ import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
+import ItemCodeBadge from "@/components/ui/item-code-badge";
 import {
     ChevronDown,
     ListChevronsDownUp,
@@ -352,7 +353,7 @@ export default function CompanyStockRequestsClient() {
             }
 
             const confirmed = window.confirm(
-                `Αποστολή PURDOC για ${group.name} (${group.code});\n` +
+                `Αποστολή SoftOne για ${group.name} (${group.code});\n` +
                     `${group.rows.length} γραμμές · ${group.requestedQty} τεμ.`
             );
 
@@ -490,7 +491,7 @@ export default function CompanyStockRequestsClient() {
                             className="flex-1"
                         />
                     ) : (
-                        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-gray-50/60 p-4 dark:bg-gray-950/30 sm:p-5">
+                        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-gray-50/60 px-4 pb-4 dark:bg-gray-950/30 sm:px-5 sm:pb-5">
                             {supplierGroups.map((group) => {
                                 const isSupplierExpanded = expandedSupplierKeys.has(
                                     group.key
@@ -502,88 +503,89 @@ export default function CompanyStockRequestsClient() {
                                 return (
                                 <section
                                     key={group.key}
-                                    className="grid grid-cols-[48px_minmax(0,1fr)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900/60"
+                                    className="first:mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900/60 sm:first:mt-5"
                                 >
-                                    <div className="flex items-start justify-center border-r border-brand-100 bg-brand-50 pt-3 dark:border-brand-500/15 dark:bg-brand-500/10">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                toggleSupplierBasket(group.key)
-                                            }
-                                            aria-expanded={isSupplierExpanded}
-                                            aria-controls={`supplier-basket-${group.key}`}
-                                            aria-label={
-                                                isSupplierExpanded
-                                                    ? `Απόκρυψη γραμμών ${group.name}`
-                                                    : `Προβολή γραμμών ${group.name}`
-                                            }
-                                            title={
-                                                isSupplierExpanded
-                                                    ? "Απόκρυψη γραμμών"
-                                                    : "Προβολή γραμμών"
-                                            }
-                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition hover:bg-white hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                                        >
-                                            <ChevronDown
-                                                strokeWidth={2.25}
-                                                className={`h-4 w-4 transition-transform ${isSupplierExpanded ? "rotate-180" : ""}`}
-                                            />
-                                        </button>
-                                    </div>
-
-                                    <div className="min-w-0">
                                     <header
-                                        className={`flex flex-col gap-3 bg-brand-50 px-4 py-3 dark:bg-brand-500/10 sm:flex-row sm:items-center sm:justify-between ${isSupplierExpanded ? "border-b border-gray-100 dark:border-gray-800" : ""}`}
+                                        className={`sticky top-0 z-30 grid grid-cols-[48px_minmax(0,1fr)] overflow-hidden bg-brand-50 shadow-sm dark:bg-gray-900 ${isSupplierExpanded ? "rounded-t-2xl border-b border-gray-100 dark:border-gray-800" : "rounded-2xl"}`}
                                     >
-                                        <div className="min-w-0">
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-600 dark:text-brand-300">
-                                                Προμηθευτής
-                                            </p>
-                                            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2">
-                                                <h2 className="truncate text-base font-semibold text-gray-900 dark:text-white">
-                                                    {group.name}
-                                                </h2>
-                                                <span className="rounded-full border border-brand-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-200">
-                                                    Κωδικός: {group.code}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex shrink-0 flex-wrap items-center gap-2">
-                                            <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2.5 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                                                Γραμμές
-                                                <strong className="font-semibold tabular-nums text-gray-950 dark:text-white">
-                                                    {group.rows.length}
-                                                </strong>
-                                            </span>
-                                            <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2.5 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                                                Ποσότητα
-                                                <strong className="font-semibold tabular-nums text-gray-950 dark:text-white">
-                                                    {group.requestedQty}
-                                                </strong>
-                                            </span>
+                                        <div className="flex items-start justify-center border-r border-brand-100 bg-brand-50 pt-3 dark:border-gray-800 dark:bg-gray-900">
                                             <button
                                                 type="button"
                                                 onClick={() =>
-                                                    void handleSubmitSupplierBasket(group)
+                                                    toggleSupplierBasket(group.key)
                                                 }
-                                                disabled={isSupplierSending || !group.trdr}
+                                                aria-expanded={isSupplierExpanded}
+                                                aria-controls={`supplier-basket-${group.key}`}
+                                                aria-label={
+                                                    isSupplierExpanded
+                                                        ? `Απόκρυψη γραμμών ${group.name}`
+                                                        : `Προβολή γραμμών ${group.name}`
+                                                }
                                                 title={
-                                                    group.trdr
-                                                        ? "Αποστολή καλαθιού προμηθευτή στο SoftOne"
-                                                        : "Λείπει το TRDR του προμηθευτή"
+                                                    isSupplierExpanded
+                                                        ? "Απόκρυψη γραμμών"
+                                                        : "Προβολή γραμμών"
                                                 }
-                                                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-brand-600 bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:border-brand-700 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500/25 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none dark:border-brand-500 dark:bg-brand-600 dark:hover:border-brand-400 dark:hover:bg-brand-500 dark:disabled:border-gray-700 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
+                                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition hover:bg-white hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                                             >
-                                                {isSupplierSending ? (
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                ) : (
-                                                    <Send className="h-3.5 w-3.5" />
-                                                )}
-                                                {isSupplierSending
-                                                    ? "Αποστολή..."
-                                                    : "Αποστολή PURDOC"}
+                                                <ChevronDown
+                                                    strokeWidth={2.25}
+                                                    className={`h-4 w-4 transition-transform ${isSupplierExpanded ? "rotate-180" : ""}`}
+                                                />
                                             </button>
+                                        </div>
+
+                                        <div className="flex min-w-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-600 dark:text-brand-300">
+                                                    Προμηθευτής
+                                                </p>
+                                                <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2">
+                                                    <h2 className="truncate text-base font-semibold text-gray-900 dark:text-white">
+                                                        {group.name}
+                                                    </h2>
+                                                    <span className="rounded-full border border-brand-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-200">
+                                                        Κωδικός: {group.code}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                                <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 text-xs text-gray-600 shadow-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                                                    Γραμμές
+                                                    <strong className="font-semibold tabular-nums text-gray-950 dark:text-white">
+                                                        {group.rows.length}
+                                                    </strong>
+                                                </span>
+                                                <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 text-xs text-gray-600 shadow-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                                                    Ποσότητα
+                                                    <strong className="font-semibold tabular-nums text-gray-950 dark:text-white">
+                                                        {group.requestedQty}
+                                                    </strong>
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        void handleSubmitSupplierBasket(group)
+                                                    }
+                                                    disabled={isSupplierSending || !group.trdr}
+                                                    title={
+                                                        group.trdr
+                                                            ? "Αποστολή καλαθιού προμηθευτή στο SoftOne"
+                                                            : "Λείπει το TRDR του προμηθευτή"
+                                                    }
+                                                    className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-brand-600 bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:border-brand-700 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500/25 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none dark:border-brand-500 dark:bg-brand-600 dark:hover:border-brand-400 dark:hover:bg-brand-500 dark:disabled:border-gray-700 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
+                                                >
+                                                    {isSupplierSending ? (
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    ) : (
+                                                        <Send className="h-3.5 w-3.5" />
+                                                    )}
+                                                    {isSupplierSending
+                                                        ? "Αποστολή..."
+                                                        : "Αποστολή SoftOne"}
+                                                </button>
+                                            </div>
                                         </div>
                                     </header>
 
@@ -595,16 +597,16 @@ export default function CompanyStockRequestsClient() {
                                         <table className="w-full min-w-[760px] table-fixed text-xs xl:text-sm">
                                             <colgroup>
                                                 <col className="w-[7%]" />
-                                                <col className="w-[13%]" />
-                                                <col className="w-[45%]" />
-                                                <col className="w-[15%]" />
                                                 <col className="w-[20%]" />
+                                                <col className="w-[35%]" />
+                                                <col className="w-[15%]" />
+                                                <col className="w-[23%]" />
                                             </colgroup>
                                             <thead className="bg-gray-50 text-gray-500 dark:bg-gray-950/50">
                                                 <tr>
                                                     <th className="px-3 py-3" />
                                                     <th className="px-3 py-3 text-left font-semibold">
-                                                        ID
+                                                        Κωδικός
                                                     </th>
                                                     <th className="px-3 py-3 text-left font-semibold">
                                                         Είδος
@@ -658,15 +660,14 @@ export default function CompanyStockRequestsClient() {
                                                                         />
                                                                     </button>
                                                                 </td>
-                                                                <td className="px-3 py-4 font-semibold text-gray-700 dark:text-gray-200">
-                                                                    #{row.BASKETID}
+                                                                <td className="px-3 py-4">
+                                                                    <ItemCodeBadge
+                                                                        code={row.ITEM_CODE || row.MTRL}
+                                                                    />
                                                                 </td>
                                                                 <td className="px-3 py-4">
                                                                     <div className="font-medium text-gray-800 dark:text-gray-100">
                                                                         {row.ITEM_NAME || "—"}
-                                                                    </div>
-                                                                    <div className="mt-1 text-xs text-gray-400">
-                                                                        {row.ITEM_CODE || row.MTRL}
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-3 py-4 text-center">
@@ -687,7 +688,7 @@ export default function CompanyStockRequestsClient() {
                                                                                 isSupplierSending
                                                                             }
                                                                             aria-label={`Προτιμώμενη ποσότητα για ${row.ITEM_CODE || row.MTRL}`}
-                                                                            className="h-9 w-20 rounded-lg border border-brand-200 bg-brand-50 px-2 text-center text-sm font-semibold tabular-nums text-brand-700 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-wait disabled:opacity-60 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-200"
+                                                                            className="h-9 w-20 rounded-lg border border-gray-300 bg-white px-2 text-center text-sm font-semibold tabular-nums text-gray-900 shadow-xs outline-none transition hover:border-gray-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-wait disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:hover:border-gray-600 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
                                                                         >
                                                                             {getQuantityOptions(
                                                                                 requestedQuantity
@@ -716,7 +717,15 @@ export default function CompanyStockRequestsClient() {
                                                                     className="bg-gray-50/70 dark:bg-gray-950/40"
                                                                 >
                                                                     <td colSpan={5} className="px-5 py-3">
-                                                                        <div className="ml-10 grid grid-cols-2 gap-3 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:grid-cols-4">
+                                                                        <div className="ml-10 grid grid-cols-2 gap-3 rounded-xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:grid-cols-5">
+                                                                            <div>
+                                                                                <div className="text-[10px] text-gray-400">
+                                                                                    ID αιτήματος
+                                                                                </div>
+                                                                                <div className="mt-0.5 text-gray-800 dark:text-gray-200">
+                                                                                    #{row.BASKETID}
+                                                                                </div>
+                                                                            </div>
                                                                             <div>
                                                                                 <div className="text-[10px] text-gray-400">
                                                                                     MTRL
@@ -760,7 +769,6 @@ export default function CompanyStockRequestsClient() {
                                         </table>
                                     </div>
                                     ) : null}
-                                    </div>
                                 </section>
                                 );
                             })}
