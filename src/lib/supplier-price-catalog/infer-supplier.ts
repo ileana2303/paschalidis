@@ -5,16 +5,7 @@ export function inferSupplierFromSheetName(
 ): SupplierPriceCatalogCode | null {
   const normalized = sheetName.trim().toUpperCase();
   if (normalized === "FEBI") return "FEBI";
-  if (normalized === "PRICES" || normalized === "TRISCAN") return "TRISCAN";
+  if (normalized === "PRICES") return "PRICES";
+  if (normalized === "TRISCAN") return "TRISCAN";
   return null;
-}
-
-export function getSupplierFromSheetName(sheetName: string) {
-  const supplier = inferSupplierFromSheetName(sheetName);
-  if (!supplier) {
-    throw new Error(
-      `Το φύλλο «${sheetName}» δεν αντιστοιχεί σε γνωστό προμηθευτή (FEBI, PRICES, TRISCAN).`
-    );
-  }
-  return supplier;
 }

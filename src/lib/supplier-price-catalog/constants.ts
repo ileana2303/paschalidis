@@ -4,8 +4,9 @@ export const SUPPLIER_PRICE_CATALOG_OPTIONS: Array<{
   value: SupplierPriceCatalogCode;
   label: string;
 }> = [
-  { value: "TRISCAN", label: "TRISCAN" },
   { value: "FEBI", label: "FEBI" },
+  { value: "PRICES", label: "PRICES" },
+  { value: "TRISCAN", label: "TRISCAN" },
 ];
 
 /** Rows per SoftOne `savePrices` request. */
