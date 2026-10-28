@@ -23,11 +23,13 @@ import BasketTable from "@/components/ui/basket-lines/basket-table";
 import CustomerOrderSummary from "@/components/order-summary/customer-order-summary";
 import toast from "react-hot-toast";
 import { useSessionState } from "@/hooks/useSessionState";
+import { useCan } from "@/hooks/usePermissions";
 import { parseSoftOneNumber } from "@/lib/utils/number";
 
 type ReceiptType = "receipt" | "invoice";
 
 export default function BasketClient() {
+    const canRequestPrice = useCan()("request-price");
     const router = useRouter();
     const searchParams = useSearchParams();
     const urlTrdr = String(searchParams.get("trdr") ?? "").trim();
@@ -476,7 +478,7 @@ export default function BasketClient() {
                     onAddMore={handleAddMoreProducts}
                     requestedPriceValues={requestedPrices}
                     onRequestedPriceValueChange={setRequestedPriceValue}
-                    onRequestPrice={handleRequestPrice}
+                    onRequestPrice={canRequestPrice ? handleRequestPrice : undefined}
                     submittingRequestedPrices={submittingRequestedPrices}
                     loading={loading}
                     updatingQtyItems={updatingQtyItems}

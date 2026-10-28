@@ -12,6 +12,7 @@ import PartResults from "@/components/parts/part-card";
 import Checkbox from "@/components/template-components/form/input/Checkbox";
 import ResultsFilterInput from "@/components/search/results-filter-input";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
+import { useCan } from "@/hooks/usePermissions";
 import { useMemo, useState, type RefObject, type UIEvent } from "react";
 
 interface PartsResultsLayoutProps {
@@ -96,6 +97,7 @@ export default function PartsResultsContainer({
     endo,
     basket,
 }: PartsResultsContainerProps) {
+    const can = useCan();
     const {
         hasCustomer,
         customer,
@@ -257,6 +259,7 @@ export default function PartsResultsContainer({
                                             : `Βρέθηκαν ${items.length} αποτελέσματα`}
                                     </p>
 
+                                    {can("expand-details") && (
                                     <button
                                         type="button"
                                         onClick={onToggleAllExpanded}
@@ -270,6 +273,7 @@ export default function PartsResultsContainer({
                                             <ListChevronsUpDown className="h-4 w-4" />
                                         )}
                                     </button>
+                                    )}
 
                                     <ResultsFilterInput
                                         value={textFilter}
@@ -294,6 +298,7 @@ export default function PartsResultsContainer({
                                     )}
                                 </div>
 
+                                {can("anatrof-card") && (
                                 <div className="relative flex shrink-0 items-center">
                                     <button
                                         type="button"
@@ -378,6 +383,7 @@ export default function PartsResultsContainer({
                                         </div>
                                     </Dropdown>
                                 </div>
+                                )}
                             </div>
                         )}
 

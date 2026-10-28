@@ -5,32 +5,38 @@ import toast from "react-hot-toast";
 import { Modal } from "@/components/ui/modal";
 import Checkbox from "@/components/template-components/form/input/Checkbox";
 import Label from "@/components/template-components/form/Label";
-import {
-    Check,
-    Loader2,
-    Plus,
-    Shield,
-    Trash2,
-} from "@/lib/icons/lucide";
-import { formatBranchLabel, getKnownBranchOptions } from "@/lib/auth/branches";
+import { Check, Crown, Loader2, MapPin, Shield } from "@/lib/icons/lucide";
+import { formatBranchLabel } from "@/lib/auth/branches";
+import { MODULE_GROUP_LABELS } from "@/lib/auth/permissions";
 import {
     useFetchUsersMutation,
     useSaveUserMutation,
 } from "@/hooks/queries/useUserQueries";
 import type {
     NumericFlag,
+    PermissionCatalog,
+    PermissionCatalogEntry,
     SaveUserRoutePayload,
     UserPermission,
-    UserPermissions,
     UserWithPermissions,
 } from "@/lib/users/types";
 
 type UserFormModalProps = {
     isOpen: boolean;
     record: UserWithPermissions | null;
+    catalog: PermissionCatalog;
     onClose: () => void;
     onSaved: (record: UserWithPermissions) => void;
 };
+
+/** Active permission codes selected in the form. */
+type SelectedPermissions = {
+    modules: string[];
+    features: string[];
+    branches: string[];
+};
+
+type PermissionKind = keyof SelectedPermissions;
 
 type UserFormState = {
     username: string;
@@ -45,35 +51,69 @@ type UserFormState = {
     isSuperAdmin: NumericFlag;
     isCustomer: NumericFlag;
     trdr: string;
-    permissions: UserPermissions;
+    permissions: SelectedPermissions;
+};
+
+type PermissionGroup = {
+    code: string;
+    label: string;
+    modules: Array<{
+        module: PermissionCatalogEntry;
+        features: PermissionCatalogEntry[];
+    }>;
 };
 
 const INPUT_CLASS_NAME =
     "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-sm text-gray-800 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:disabled:bg-gray-800";
 
-function emptyPermissions(): UserPermissions {
-    return { modules: [], features: [], branches: [] };
+function activeCodes(entries: UserPermission[] | undefined): string[] {
+    return (entries ?? [])
+        .filter((entry) => entry.isActive === 1)
+        .map((entry) => String(entry.code ?? "").trim())
+        .filter(Boolean);
 }
 
-function normalizePermissions(
-    permissions: UserPermissions | null | undefined
-): UserPermissions {
+/** Store-management pages are reserved for admins: last in the form, off for plain users. */
+const ADMIN_GROUP_CODE = "company-management";
+
+/**
+ * Default selection: every active permission for a SuperAdmin; for a regular
+ * user everything except the store-management (company-management) pages.
+ */
+function defaultPermissions(
+    catalog: PermissionCatalog,
+    isSuperAdmin: boolean
+): SelectedPermissions {
+    const modules = catalog.modules
+        .filter(
+            (module) =>
+                module.isActive === 1 &&
+                (isSuperAdmin || module.parent !== ADMIN_GROUP_CODE)
+        )
+        .map((module) => module.code);
+
     return {
-        modules: (permissions?.modules ?? []).map((entry) => ({
-            code: String(entry.code ?? "").trim(),
-            rights: Number(entry.rights),
-        })),
-        features: (permissions?.features ?? []).map((entry) => ({
-            code: String(entry.code ?? "").trim(),
-            rights: Number(entry.rights),
-        })),
-        branches: (permissions?.branches ?? [])
-            .map((branch) => String(branch).trim())
-            .filter(Boolean),
+        modules,
+        features: catalog.features
+            .filter(
+                (feature) => feature.isActive === 1 && modules.includes(feature.parent)
+            )
+            .map((feature) => feature.code),
+        branches: catalog.branches
+            .filter((branch) => branch.isActive === 1)
+            .map((branch) => branch.code),
     };
 }
 
-function createFormState(record: UserWithPermissions | null): UserFormState {
+/** Keeps the main branch when still allowed, otherwise falls back to the first allowed one. */
+function resolveMainBranch(mainBranch: string, branches: string[]) {
+    return branches.includes(mainBranch) ? mainBranch : branches[0] ?? "";
+}
+
+function createFormState(
+    record: UserWithPermissions | null,
+    catalog: PermissionCatalog
+): UserFormState {
     if (!record) {
         return {
             username: "",
@@ -83,16 +123,16 @@ function createFormState(record: UserWithPermissions | null): UserFormState {
             email: "",
             mobile: "",
             role: "User",
-            mainBranch: "",
+            mainBranch: defaultPermissions(catalog, false).branches[0] ?? "",
             isActive: 1,
             isSuperAdmin: 0,
             isCustomer: 0,
             trdr: "",
-            permissions: emptyPermissions(),
+            permissions: defaultPermissions(catalog, false),
         };
     }
 
-    const { user } = record;
+    const { user, permissions } = record;
     return {
         username: user.username,
         password: "",
@@ -106,14 +146,23 @@ function createFormState(record: UserWithPermissions | null): UserFormState {
         isSuperAdmin: user.isSuperAdmin === 1 ? 1 : 0,
         isCustomer: user.isCustomer === 1 ? 1 : 0,
         trdr: user.trdr > 0 ? String(user.trdr) : "",
-        permissions: normalizePermissions(record.permissions),
+        permissions: {
+            modules: activeCodes(permissions.modules),
+            features: activeCodes(permissions.features),
+            branches: activeCodes(permissions.branches),
+        },
     };
 }
 
-function permissionsEqual(left: UserPermissions, right: UserPermissions) {
+function sameCodes(left: string[], right: string[]) {
+    return JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
+}
+
+function permissionsEqual(left: SelectedPermissions, right: SelectedPermissions) {
     return (
-        JSON.stringify(normalizePermissions(left)) ===
-        JSON.stringify(normalizePermissions(right))
+        sameCodes(left.modules, right.modules) &&
+        sameCodes(left.features, right.features) &&
+        sameCodes(left.branches, right.branches)
     );
 }
 
@@ -122,147 +171,196 @@ function isNotFoundResponse(error: string | undefined) {
     return message.includes("δεν βρέθηκε") || message.includes("not found");
 }
 
-function validatePermissionEntries(
-    entries: UserPermission[],
-    label: string
-): string | null {
-    const codes = new Set<string>();
+/** Catalog modules grouped by menu group, each with its features. */
+function buildPermissionGroups(catalog: PermissionCatalog): PermissionGroup[] {
+    const groupCodes = Array.from(
+        new Set(["menu", ...catalog.modules.map((module) => module.parent)])
+    );
 
-    for (const entry of entries) {
-        const code = entry.code.trim();
-        if (!code) return `Συμπληρώστε τον κωδικό σε όλα τα ${label}.`;
-        if (!Number.isInteger(entry.rights) || entry.rights < 0) {
-            return `Τα δικαιώματα στα ${label} πρέπει να είναι μη αρνητικοί ακέραιοι.`;
-        }
+    // The admin group always goes last.
+    groupCodes.sort(
+        (left, right) =>
+            Number(left === ADMIN_GROUP_CODE) - Number(right === ADMIN_GROUP_CODE)
+    );
 
-        const normalizedCode = code.toLocaleLowerCase();
-        if (codes.has(normalizedCode)) {
-            return `Ο κωδικός ${code} υπάρχει περισσότερες από μία φορές στα ${label}.`;
-        }
-        codes.add(normalizedCode);
-    }
+    return groupCodes.flatMap((code) => {
+        const modules = catalog.modules
+            .filter((module) => module.parent === code)
+            .map((module) => ({
+                module,
+                features: catalog.features.filter(
+                    (feature) => feature.parent === module.code
+                ),
+            }));
 
-    return null;
+        return modules.length > 0
+            ? [{ code, label: MODULE_GROUP_LABELS[code] ?? code, modules }]
+            : [];
+    });
 }
 
-function PermissionRows({
-    title,
-    entries,
+function PermissionCheckbox({
+    entry,
+    checked,
+    disabled = false,
     onChange,
 }: {
-    title: string;
-    entries: UserPermission[];
-    onChange: (entries: UserPermission[]) => void;
+    entry: PermissionCatalogEntry;
+    checked: boolean;
+    disabled?: boolean;
+    onChange: (checked: boolean) => void;
+}) {
+    const inactive = entry.isActive !== 1;
+
+    return (
+        <div
+            title={inactive ? `${entry.code}: απενεργοποιημένο για όλους` : entry.code}
+            className={inactive ? "line-through" : undefined}
+        >
+            <Checkbox
+                label={entry.descr || entry.code}
+                checked={checked}
+                disabled={disabled || inactive}
+                onChange={onChange}
+            />
+        </div>
+    );
+}
+
+function PermissionTree({
+    groups,
+    selected,
+    onToggle,
+    onToggleGroup,
+}: {
+    groups: PermissionGroup[];
+    selected: SelectedPermissions;
+    onToggle: (kind: PermissionKind, code: string, checked: boolean) => void;
+    onToggleGroup: (group: PermissionGroup, checked: boolean) => void;
 }) {
     return (
-        <section className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-            <div className="flex items-center justify-between gap-3">
-                <div>
-                    <h5 className="text-sm font-semibold text-gray-800 dark:text-white">
-                        {title}
-                    </h5>
-                    <p className="mt-0.5 text-xs text-gray-500">
-                        Κωδικός δικαιώματος και αριθμητικό rights.
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => onChange([...entries, { code: "", rights: 1 }])}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                >
-                    <Plus className="h-3.5 w-3.5" />
-                    Προσθήκη
-                </button>
-            </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+            {groups.map((group) => {
+                const activeModules = group.modules.filter(
+                    ({ module }) => module.isActive === 1
+                );
+                const allChecked =
+                    activeModules.length > 0 &&
+                    activeModules.every(({ module }) =>
+                        selected.modules.includes(module.code)
+                    );
 
-            {entries.length === 0 ? (
-                <p className="mt-4 rounded-lg bg-gray-50 px-3 py-4 text-center text-sm text-gray-500 dark:bg-gray-800/50">
-                    Δεν υπάρχουν καταχωρήσεις.
-                </p>
-            ) : (
-                <div className="mt-4 space-y-2">
-                    {entries.map((entry, index) => (
-                        <div
-                            key={`${title}-${index}`}
-                            className="grid grid-cols-[minmax(0,1fr)_7rem_2.5rem] gap-2"
+                const isAdminGroup = group.code === ADMIN_GROUP_CODE;
+
+                return (
+                    <section
+                        key={group.code}
+                        className={isAdminGroup
+                            ? "rounded-xl border border-amber-200/80 bg-amber-50/30 p-4 dark:border-amber-500/20 dark:bg-amber-500/[0.03]"
+                            : "rounded-xl border border-gray-200 p-4 dark:border-gray-800"}
+                    >
+                        <div className={`flex items-center justify-between gap-3 border-b pb-3 ${isAdminGroup
+                            ? "border-amber-100 dark:border-amber-500/10"
+                            : "border-gray-100 dark:border-gray-800"}`}
                         >
-                            <input
-                                value={entry.code}
-                                onChange={(event) => {
-                                    const next = [...entries];
-                                    next[index] = { ...entry, code: event.target.value };
-                                    onChange(next);
-                                }}
-                                placeholder="π.χ. search-parts"
-                                aria-label={`${title} κωδικός ${index + 1}`}
-                                className={INPUT_CLASS_NAME}
-                            />
-                            <input
-                                type="number"
-                                min="0"
-                                step="1"
-                                value={entry.rights}
-                                onChange={(event) => {
-                                    const next = [...entries];
-                                    next[index] = {
-                                        ...entry,
-                                        rights: Number(event.target.value),
-                                    };
-                                    onChange(next);
-                                }}
-                                aria-label={`${title} rights ${index + 1}`}
-                                className={INPUT_CLASS_NAME}
-                            />
+                            {isAdminGroup ? (
+                                <h5 className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-white">
+                                    <Crown className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+                                    {group.label}
+                                    <span className="rounded-full border border-amber-200 px-1.5 py-px text-[10px] font-medium text-amber-700 dark:border-amber-500/30 dark:text-amber-300">
+                                        Admin
+                                    </span>
+                                </h5>
+                            ) : (
+                                <h5 className="text-sm font-semibold text-gray-800 dark:text-white">
+                                    {group.label}
+                                </h5>
+                            )}
                             <button
                                 type="button"
-                                onClick={() =>
-                                    onChange(
-                                        entries.filter(
-                                            (_, itemIndex) => itemIndex !== index
-                                        )
-                                    )
-                                }
-                                aria-label={`Αφαίρεση από ${title}`}
-                                className="flex h-11 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
+                                onClick={() => onToggleGroup(group, !allChecked)}
+                                disabled={activeModules.length === 0}
+                                className="text-xs font-semibold text-brand-600 hover:text-brand-700 disabled:opacity-40 dark:text-brand-400"
                             >
-                                <Trash2 className="h-4 w-4" />
+                                {allChecked ? "Κανένα" : "Όλα"}
                             </button>
                         </div>
-                    ))}
-                </div>
-            )}
-        </section>
+
+                        <ul className="mt-3 space-y-3">
+                            {group.modules.map(({ module, features }) => {
+                                const moduleChecked = selected.modules.includes(module.code);
+
+                                return (
+                                    <li key={module.code}>
+                                        <PermissionCheckbox
+                                            entry={module}
+                                            checked={moduleChecked}
+                                            onChange={(checked) =>
+                                                onToggle("modules", module.code, checked)
+                                            }
+                                        />
+                                        {features.length > 0 && (
+                                            <ul className="mt-2 ml-6 space-y-2 border-l-2 border-gray-100 pl-3 dark:border-gray-800">
+                                                {features.map((feature) => (
+                                                    <li key={feature.code}>
+                                                        <PermissionCheckbox
+                                                            entry={feature}
+                                                            checked={selected.features.includes(feature.code)}
+                                                            disabled={!moduleChecked}
+                                                            onChange={(checked) =>
+                                                                onToggle("features", feature.code, checked)
+                                                            }
+                                                        />
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </section>
+                );
+            })}
+        </div>
     );
 }
 
 export default function UserFormModal({
     isOpen,
     record,
+    catalog,
     onClose,
     onSaved,
 }: UserFormModalProps) {
-    const [form, setForm] = useState<UserFormState>(() => createFormState(record));
+    const [form, setForm] = useState<UserFormState>(() =>
+        createFormState(record, catalog)
+    );
     const { mutateAsync: lookupUser, isPending: checkingUsername } =
         useFetchUsersMutation();
     const { mutateAsync: submitUser, isPending: saving } = useSaveUserMutation();
     const isEditing = record !== null;
 
+    const permissionGroups = useMemo(() => buildPermissionGroups(catalog), [catalog]);
     const branchOptions = useMemo(() => {
-        const knownOptions = getKnownBranchOptions();
-        const knownCodes = new Set(knownOptions.map((branch) => branch.code));
+        const catalogCodes = new Set(catalog.branches.map((branch) => branch.code));
         const additionalCodes = [
             ...form.permissions.branches,
             ...(form.mainBranch ? [form.mainBranch] : []),
-        ].filter((code) => code && !knownCodes.has(code));
+        ].filter((code) => code && !catalogCodes.has(code));
 
         return [
-            ...knownOptions,
-            ...Array.from(new Set(additionalCodes)).map((code) => ({
-                code,
-                label: code,
-            })),
+            ...catalog.branches,
+            ...Array.from(new Set(additionalCodes)).map(
+                (code): PermissionCatalogEntry => ({
+                    code,
+                    parent: "branches",
+                    descr: "",
+                    isActive: 1,
+                })
+            ),
         ];
-    }, [form.mainBranch, form.permissions.branches]);
+    }, [catalog.branches, form.mainBranch, form.permissions.branches]);
 
     const updateText = (
         field:
@@ -282,17 +380,63 @@ export default function UserFormModal({
         field: "isActive" | "isSuperAdmin" | "isCustomer",
         checked: boolean
     ) =>
-        setForm((current) => ({
-            ...current,
-            [field]: checked ? 1 : 0,
-            ...(field === "isCustomer" && !checked ? { trdr: "" } : {}),
-        }));
+        setForm((current) => {
+            const next = {
+                ...current,
+                [field]: checked ? 1 : 0,
+                ...(field === "isCustomer" && !checked ? { trdr: "" } : {}),
+            };
 
-    const updatePermissions = (permissions: Partial<UserPermissions>) =>
-        setForm((current) => ({
-            ...current,
-            permissions: { ...current.permissions, ...permissions },
-        }));
+            if (field !== "isSuperAdmin" || (!checked && isEditing)) return next;
+
+            const permissions = defaultPermissions(catalog, checked);
+            return {
+                ...next,
+                permissions,
+                mainBranch: resolveMainBranch(current.mainBranch, permissions.branches),
+            };
+        });
+
+    const togglePermission = (kind: PermissionKind, code: string, checked: boolean) =>
+        setForm((current) => {
+            const codes = current.permissions[kind];
+            return {
+                ...current,
+                permissions: {
+                    ...current.permissions,
+                    [kind]: checked
+                        ? Array.from(new Set([...codes, code]))
+                        : codes.filter((entry) => entry !== code),
+                },
+            };
+        });
+
+    const toggleGroup = (group: PermissionGroup, checked: boolean) =>
+        setForm((current) => {
+            const moduleCodes = group.modules
+                .filter(({ module }) => module.isActive === 1)
+                .map(({ module }) => module.code);
+            const featureCodes = group.modules.flatMap(({ module, features }) =>
+                module.isActive === 1
+                    ? features
+                        .filter((feature) => feature.isActive === 1)
+                        .map((feature) => feature.code)
+                    : []
+            );
+            const apply = (codes: string[], groupCodes: string[]) =>
+                checked
+                    ? Array.from(new Set([...codes, ...groupCodes]))
+                    : codes.filter((code) => !groupCodes.includes(code));
+
+            return {
+                ...current,
+                permissions: {
+                    ...current.permissions,
+                    modules: apply(current.permissions.modules, moduleCodes),
+                    features: apply(current.permissions.features, featureCodes),
+                },
+            };
+        });
 
     const toggleBranch = (branchCode: string, checked: boolean) => {
         setForm((current) => {
@@ -302,10 +446,7 @@ export default function UserFormModal({
 
             return {
                 ...current,
-                mainBranch:
-                    !checked && current.mainBranch === branchCode
-                        ? ""
-                        : current.mainBranch,
+                mainBranch: resolveMainBranch(current.mainBranch, branches),
                 permissions: { ...current.permissions, branches },
             };
         });
@@ -313,15 +454,7 @@ export default function UserFormModal({
 
     const buildPayload = (): SaveUserRoutePayload | null => {
         const username = form.username.trim();
-        const currentBranches = normalizePermissions(form.permissions).branches;
-        const originalBranches = record
-            ? normalizePermissions(record.permissions).branches
-            : [];
-        const branchConfigurationChanged =
-            !isEditing ||
-            form.mainBranch.trim() !==
-                String(record.user.mainBranch ?? "").trim() ||
-            JSON.stringify(currentBranches) !== JSON.stringify(originalBranches);
+        const { branches } = form.permissions;
 
         if (!username) {
             toast.error("Το username είναι υποχρεωτικό.");
@@ -344,20 +477,8 @@ export default function UserFormModal({
         }
 
         if (
-            branchConfigurationChanged &&
-            form.mainBranch &&
-            !form.permissions.branches.includes(form.mainBranch)
-        ) {
-            toast.error(
-                "Το κύριο κατάστημα πρέπει να ανήκει στα επιτρεπόμενα καταστήματα."
-            );
-            return null;
-        }
-
-        if (
-            branchConfigurationChanged &&
-            form.permissions.branches.length > 0 &&
-            !form.mainBranch
+            branches.length > 0 &&
+            (!form.mainBranch || !branches.includes(form.mainBranch))
         ) {
             toast.error(
                 "Επιλέξτε κύριο κατάστημα από τα επιτρεπόμενα καταστήματα."
@@ -365,26 +486,12 @@ export default function UserFormModal({
             return null;
         }
 
-        if (
-            isEditing &&
-            branchConfigurationChanged &&
-            record.user.mainBranch &&
-            form.permissions.branches.length === 0
-        ) {
-            toast.error(
-                "Δεν μπορείτε να αφαιρέσετε όλα τα καταστήματα όσο υπάρχει κύριο κατάστημα."
-            );
-            return null;
-        }
-
-        const permissionError =
-            validatePermissionEntries(form.permissions.modules, "modules") ??
-            validatePermissionEntries(form.permissions.features, "features");
-        if (permissionError) {
-            toast.error(permissionError);
-            return null;
-        }
-
+        // saveUser replaces all permissions, so the full selection is always sent.
+        const permissions = {
+            modules: form.permissions.modules,
+            features: form.permissions.features,
+            branches,
+        };
         const user: SaveUserRoutePayload["user"] = { username };
         const textFields = [
             "fname",
@@ -405,10 +512,7 @@ export default function UserFormModal({
             user.isCustomer = form.isCustomer;
             user.trdr = form.isCustomer === 1 ? Number(form.trdr) : 0;
 
-            return {
-                user,
-                permissions: normalizePermissions(form.permissions),
-            };
+            return { user, permissions };
         }
 
         const original = record.user;
@@ -433,12 +537,7 @@ export default function UserFormModal({
             user.trdr = Number(form.trdr);
         }
 
-        return {
-            user,
-            ...(!permissionsEqual(form.permissions, record.permissions)
-                ? { permissions: normalizePermissions(form.permissions) }
-                : {}),
-        };
+        return { user, permissions };
     };
 
     const handleSave = async () => {
@@ -449,7 +548,7 @@ export default function UserFormModal({
         if (
             isEditing &&
             Object.keys(payload.user).length === 1 &&
-            !payload.permissions
+            permissionsEqual(form.permissions, createFormState(record, catalog).permissions)
         ) {
             toast("Δεν υπάρχουν αλλαγές για αποθήκευση.");
             return;
@@ -565,23 +664,18 @@ export default function UserFormModal({
                         <input id="user-role" value={form.role} onChange={(event) => updateText("role", event.target.value)} placeholder="π.χ. User, admin" className={INPUT_CLASS_NAME} />
                     </div>
                     <div>
-                        <Label htmlFor="user-main-branch">Κύριο κατάστημα</Label>
-                        <select
-                            id="user-main-branch"
-                            value={form.mainBranch}
-                            onChange={(event) => updateText("mainBranch", event.target.value)}
-                            disabled={form.permissions.branches.length === 0}
+                        <Label htmlFor="user-trdr">TRDR{form.isCustomer === 1 ? " *" : ""}</Label>
+                        <input
+                            id="user-trdr"
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={form.trdr}
+                            onChange={(event) => updateText("trdr", event.target.value)}
+                            disabled={form.isCustomer !== 1}
+                            placeholder={form.isCustomer === 1 ? "Κωδικός πελάτη" : "Μόνο για χρήστες πελάτες"}
                             className={INPUT_CLASS_NAME}
-                        >
-                            <option value="">Επιλέξτε κατάστημα</option>
-                            {branchOptions
-                                .filter((branch) => form.permissions.branches.includes(branch.code))
-                                .map((branch) => (
-                                    <option key={branch.code} value={branch.code}>
-                                        {formatBranchLabel(branch.code, branch.label)}
-                                    </option>
-                                ))}
-                        </select>
+                        />
                     </div>
                 </div>
 
@@ -591,22 +685,59 @@ export default function UserFormModal({
                     <Checkbox label="Πελάτης" checked={form.isCustomer === 1} onChange={(checked) => updateFlag("isCustomer", checked)} />
                 </div>
 
-                {form.isCustomer === 1 && (
-                    <div className="mt-4 max-w-sm">
-                        <Label htmlFor="user-trdr">TRDR *</Label>
-                        <input
-                            id="user-trdr"
-                            type="number"
-                            min="1"
-                            step="1"
-                            value={form.trdr}
-                            onChange={(event) => updateText("trdr", event.target.value)}
-                            className={INPUT_CLASS_NAME}
-                        />
-                        <p className="mt-1.5 text-xs text-gray-500">
-                            Το 0 δεν αντιστοιχεί σε έγκυρο πελάτη.
-                        </p>
-                    </div>
+
+                <div className="mt-7 flex items-center gap-2 border-b border-gray-100 pb-3 dark:border-gray-800">
+                    <MapPin className="h-4 w-4 text-brand-600" />
+                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                        Καταστήματα
+                    </h4>
+                    <span className="text-xs text-gray-500">
+                        Επιλέξτε πού μπορεί να εργαστεί ο χρήστης και ορίστε ένα ως κύριο.
+                    </span>
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {branchOptions.map((branch) => {
+                        const allowed = form.permissions.branches.includes(branch.code);
+                        const isMain = allowed && form.mainBranch === branch.code;
+
+                        return (
+                            <div
+                                key={branch.code}
+                                className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 transition ${isMain
+                                    ? "border-brand-300 bg-brand-50/60 dark:border-brand-500/40 dark:bg-brand-500/10"
+                                    : "border-gray-200 dark:border-gray-800"}`}
+                            >
+                                <PermissionCheckbox
+                                    entry={{
+                                        ...branch,
+                                        descr: formatBranchLabel(branch.code, branch.descr),
+                                    }}
+                                    checked={allowed}
+                                    onChange={(checked) => toggleBranch(branch.code, checked)}
+                                />
+                                {allowed && (
+                                    <button
+                                        type="button"
+                                        onClick={() => updateText("mainBranch", branch.code)}
+                                        aria-pressed={isMain}
+                                        title={isMain ? "Κύριο κατάστημα" : "Ορισμός ως κύριο"}
+                                        className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] font-semibold transition ${isMain
+                                            ? "bg-brand-500 text-white"
+                                            : "border border-gray-200 text-gray-500 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-400"}`}
+                                    >
+                                        {isMain && <Check className="h-3 w-3" />}
+                                        {isMain ? "Κύριο" : "Ορισμός κύριου"}
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+                {form.permissions.branches.length === 0 && (
+                    <p className="mt-3 text-xs font-medium text-amber-600 dark:text-amber-400">
+                        Δεν έχει επιλεγεί κατάστημα.
+                    </p>
                 )}
 
                 <div className="mt-7 flex items-center gap-2 border-b border-gray-100 pb-3 dark:border-gray-800">
@@ -615,38 +746,18 @@ export default function UserFormModal({
                         Δικαιώματα
                     </h4>
                     <span className="text-xs text-gray-500">
-                        Αποστέλλονται πάντα ως πλήρες σύνολο όταν αλλάξουν.
+                        Οι λειτουργίες ισχύουν μόνο όταν είναι επιλεγμένη η σελίδα τους.
                     </span>
                 </div>
 
-                <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                    <PermissionRows title="Modules" entries={form.permissions.modules} onChange={(modules) => updatePermissions({ modules })} />
-                    <PermissionRows title="Features" entries={form.permissions.features} onChange={(features) => updatePermissions({ features })} />
+                <div className="mt-4">
+                    <PermissionTree
+                        groups={permissionGroups}
+                        selected={form.permissions}
+                        onToggle={togglePermission}
+                        onToggleGroup={toggleGroup}
+                    />
                 </div>
-
-                <section className="mt-4 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-                    <h5 className="text-sm font-semibold text-gray-800 dark:text-white">
-                        Επιτρεπόμενα καταστήματα
-                    </h5>
-                    <p className="mt-0.5 text-xs text-gray-500">
-                        Ορίζουν πού μπορεί να αλλάξει ο χρήστης, όχι την προβολή αποθεμάτων άλλων καταστημάτων.
-                    </p>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {branchOptions.map((branch) => (
-                            <Checkbox
-                                key={branch.code}
-                                label={formatBranchLabel(branch.code, branch.label)}
-                                checked={form.permissions.branches.includes(branch.code)}
-                                onChange={(checked) => toggleBranch(branch.code, checked)}
-                            />
-                        ))}
-                    </div>
-                    {form.permissions.branches.length === 0 && (
-                        <p className="mt-3 text-xs font-medium text-amber-600 dark:text-amber-400">
-                            Δεν έχει επιλεγεί κατάστημα.
-                        </p>
-                    )}
-                </section>
 
                 <div className="mt-7 flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 dark:border-gray-800 sm:flex-row sm:justify-end">
                     <button

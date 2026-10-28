@@ -11,6 +11,7 @@ import {
   useSaveSuffixMutation,
   useSuffixListQuery,
 } from "@/hooks/queries/useSuffixManagementQuery";
+import { useCan } from "@/hooks/usePermissions";
 import {
   AlertCircle,
   Loader2,
@@ -94,6 +95,7 @@ function TableSkeleton() {
 }
 
 export default function SuffixManagementClient() {
+  const canEdit = useCan()("edit-suffix");
   const [searchInput, setSearchInput] = useState("");
   const [groupCode, setGroupCode] = useState("");
   const [b2bCode, setB2bCode] = useState("");
@@ -499,9 +501,11 @@ export default function SuffixManagementClient() {
                     EXTRA_<wbr />ACTIVE
                   </th>
                   <th className="w-[96px] font-semibold">NEEDS_EXTRA</th>
+                  {canEdit && (
                   <th className="!sticky !right-0 !z-30 w-[86px] border-l border-gray-200 bg-gray-50 !px-1.5 text-right font-semibold shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] dark:border-gray-700 dark:bg-gray-900">
                     ΕΝΕΡΓΕΙΕΣ
                   </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
@@ -661,6 +665,7 @@ export default function SuffixManagementClient() {
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
+                      {canEdit && (
                       <td className="sticky right-0 z-10 whitespace-nowrap border-l border-gray-200 bg-white !px-1.5 text-right shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] transition group-hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:group-hover:bg-gray-900">
                         <div className="inline-flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
                           <button
@@ -694,6 +699,7 @@ export default function SuffixManagementClient() {
                           </button>
                         </div>
                       </td>
+                      )}
                     </tr>
                 ))}
               </tbody>

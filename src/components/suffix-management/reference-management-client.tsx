@@ -13,6 +13,7 @@ import {
   useSaveSuffixMutation,
   useSuffixListQuery,
 } from "@/hooks/queries/useSuffixManagementQuery";
+import { useCan } from "@/hooks/usePermissions";
 import {
   AlertCircle,
   Loader2,
@@ -59,6 +60,7 @@ export default function ReferenceManagementClient({
   const query = useSuffixListQuery({});
   const { mutateAsync: saveRows } = useSaveSuffixMutation();
   const isGroup = kind === "groups";
+  const canEdit = useCan()(isGroup ? "edit-group" : "edit-b2b");
   const title = isGroup ? "Διαχείριση Group" : "Διαχείριση B2B";
   const idLabel = isGroup ? "ZGROUP_ID" : "ZB2B_ID";
   const codeLabel = isGroup ? "ZGROUP_CODE" : "ZB2B_CODE";
@@ -183,6 +185,7 @@ export default function ReferenceManagementClient({
             ) : undefined
           }
           action={
+            canEdit && (
             <button
               type="button"
               onClick={() => setCreating(true)}
@@ -191,6 +194,7 @@ export default function ReferenceManagementClient({
               <Plus className="h-4 w-4" />
               Νέο {isGroup ? "Group" : "B2B"}
             </button>
+            )
           }
         />
 
@@ -287,9 +291,11 @@ export default function ReferenceManagementClient({
                     SORT_ORDER
                   </th>
                   <th className="w-24 px-3 py-2.5 font-semibold">IS_ACTIVE</th>
-                  <th className="w-24 px-3 py-2.5 text-right font-semibold">
-                    ΕΝΕΡΓΕΙΕΣ
-                  </th>
+                  {canEdit && (
+                    <th className="w-24 px-3 py-2.5 text-right font-semibold">
+                      ΕΝΕΡΓΕΙΕΣ
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
@@ -336,6 +342,7 @@ export default function ReferenceManagementClient({
                         {entry.isActive === 1 ? "Ενεργό" : "Ανενεργό"}
                       </span>
                     </td>
+                    {canEdit && (
                     <td className="whitespace-nowrap px-2 py-2 text-right">
                       <div className="inline-flex items-center overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
                         <button
@@ -369,6 +376,7 @@ export default function ReferenceManagementClient({
                         </button>
                       </div>
                     </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

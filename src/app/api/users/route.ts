@@ -1,101 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
-import { verifySessionToken } from "@/lib/auth/session-token";
-import {
-    getEnvString,
-    getSoftOneClientID,
-    getSoftOneEndpoint,
-    parseJsonWithEncodingFallback,
-    postSoftOne,
-} from "@/lib/softone";
+import { getSoftOneClientID } from "@/lib/softone";
 import type {
     AppUser,
     GetUserPayload,
     GetUserResponse,
     SaveUserPayload,
+    SaveUserPermissionItem,
+    SaveUserPermissions,
     SaveUserResponse,
     SaveUserRoutePayload,
-    UserPermissions,
 } from "@/lib/users/types";
+import { callUserService, getSession, jsonError, sessionCan } from "./_lib/shared";
 
-const USER_SERVICE_PATH = "/JS/SiteData.Items";
-
-function getUserServiceEndpoint(action: "getUser" | "saveUser") {
-    const configuredEndpoint = getEnvString(
-        action === "getUser" ? "S1_GET_USER_ENDPOINT" : "S1_SAVE_USER_ENDPOINT"
+function normalizePermissionItems(items: SaveUserPermissionItem[]): SaveUserPermissionItem[] {
+    return items.map((item) =>
+        typeof item === "string"
+            ? item.trim()
+            : { code: item.code.trim(), isActive: 0 as const }
     );
-
-    if (configuredEndpoint) {
-        return configuredEndpoint;
-    }
-
-    const baseEndpoint = getSoftOneEndpoint().replace(/\/+$/, "");
-
-    if (baseEndpoint.endsWith(USER_SERVICE_PATH)) {
-        return `${baseEndpoint}/${action}`;
-    }
-
-    return `${baseEndpoint}${USER_SERVICE_PATH}/${action}`;
 }
 
-function jsonError(error: string, status: number) {
-    return NextResponse.json({ success: false, error }, { status });
-}
-
-async function requireSuperAdmin(req: NextRequest) {
-    const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-    const session = await verifySessionToken(token);
-
-    return session?.isSuperAdmin === 1 ? session : null;
-}
-
-function normalizePermissions(value: UserPermissions): UserPermissions {
+function normalizePermissions(value: SaveUserPermissions): SaveUserPermissions {
     return {
-        modules: value.modules.map((permission) => ({
-            code: String(permission.code ?? "").trim(),
-            rights: Number(permission.rights),
-        })),
-        features: value.features.map((permission) => ({
-            code: String(permission.code ?? "").trim(),
-            rights: Number(permission.rights),
-        })),
-        branches: value.branches.map((branch) => String(branch).trim()),
+        modules: normalizePermissionItems(value.modules),
+        features: normalizePermissionItems(value.features),
+        branches: normalizePermissionItems(value.branches),
     };
 }
 
-function isCompletePermissions(value: unknown): value is UserPermissions {
+function isPermissionItem(entry: unknown) {
+    if (typeof entry === "string") return entry.trim().length > 0;
+    if (!entry || typeof entry !== "object") return false;
+
+    const permission = entry as { code?: unknown; isActive?: unknown };
+    return (
+        typeof permission.code === "string" &&
+        permission.code.trim().length > 0 &&
+        permission.isActive === 0
+    );
+}
+
+function isCompletePermissions(value: unknown): value is SaveUserPermissions {
     if (!value || typeof value !== "object") {
         return false;
     }
 
-    const permissions = value as Partial<UserPermissions>;
-    const { modules, features, branches } = permissions;
-    const hasArrays =
-        Array.isArray(modules) &&
-        Array.isArray(features) &&
-        Array.isArray(branches);
+    const { modules, features, branches } = value as Partial<SaveUserPermissions>;
 
-    if (!hasArrays) {
-        return false;
-    }
-
-    const isPermissionEntry = (entry: unknown) => {
-        if (!entry || typeof entry !== "object") return false;
-        const permission = entry as { code?: unknown; rights?: unknown };
-        return (
-            typeof permission.code === "string" &&
-            permission.code.trim().length > 0 &&
-            Number.isInteger(permission.rights) &&
-            Number(permission.rights) >= 0
-        );
-    };
-
-    return (
-        modules.every(isPermissionEntry) &&
-        features.every(isPermissionEntry) &&
-        branches.every(
-            (branch) => typeof branch === "string" && branch.trim().length > 0
-        )
+    return [modules, features, branches].every(
+        (items) => Array.isArray(items) && items.every(isPermissionItem)
     );
 }
 
@@ -133,24 +86,26 @@ function sanitizeUser(value: SaveUserRoutePayload["user"]) {
     return user as SaveUserPayload["user"];
 }
 
-async function callUserService<T extends GetUserResponse>(
-    payload: GetUserPayload | SaveUserPayload,
-    action: "getUser" | "saveUser"
-) {
-    const response = await postSoftOne(payload, {
-        endpoint: getUserServiceEndpoint(action),
-    });
-    const data = await parseJsonWithEncodingFallback<T>(response);
+async function lookupUsers(clientID: string, username = "") {
+    const payload: GetUserPayload = {
+        clientID,
+        ...(username ? { username } : {}),
+    };
 
-    if (!response.ok && data.success !== false) {
-        throw new Error(`Αποτυχία επικοινωνίας με το ERP (HTTP ${response.status}).`);
-    }
+    return callUserService<GetUserResponse>(payload, "getUser");
+}
 
-    return data;
+async function userExists(clientID: string, username: string) {
+    const data = await lookupUsers(clientID, username);
+    const normalized = username.toLocaleLowerCase();
+
+    return (data.users ?? []).some(
+        (entry) => entry.user.username.toLocaleLowerCase() === normalized
+    );
 }
 
 async function getUsers(req: NextRequest, username = "") {
-    if (!(await requireSuperAdmin(req))) {
+    if (!sessionCan(await getSession(req), "users-list")) {
         return jsonError("Δεν έχετε δικαίωμα διαχείρισης χρηστών.", 403);
     }
 
@@ -159,13 +114,7 @@ async function getUsers(req: NextRequest, username = "") {
         return jsonError("Δεν έχει ρυθμιστεί ο SoftOne client ID.", 500);
     }
 
-    const payload: GetUserPayload = {
-        clientID,
-        ...(username ? { username } : {}),
-    };
-    const data = await callUserService<GetUserResponse>(payload, "getUser");
-
-    return NextResponse.json(data);
+    return NextResponse.json(await lookupUsers(clientID, username));
 }
 
 /** List all users and permissions using an upstream payload of only { clientID }. */
@@ -204,10 +153,17 @@ export async function POST(req: NextRequest) {
     }
 }
 
+/**
+ * Create or update a user. Updating needs `edit-user`; a caller with only
+ * `create-user` may save usernames that do not exist yet.
+ */
 export async function PATCH(req: NextRequest) {
     try {
-        const session = await requireSuperAdmin(req);
-        if (!session) {
+        const session = await getSession(req);
+        const canEdit = sessionCan(session, "edit-user");
+        const canCreate = sessionCan(session, "create-user");
+
+        if (!session || (!canEdit && !canCreate)) {
             return jsonError("Δεν έχετε δικαίωμα διαχείρισης χρηστών.", 403);
         }
 
@@ -236,6 +192,10 @@ export async function PATCH(req: NextRequest) {
 
         if (body.permissions !== undefined && !isCompletePermissions(body.permissions)) {
             return jsonError("Το σύνολο δικαιωμάτων δεν είναι έγκυρο.", 400);
+        }
+
+        if (!canEdit && (await userExists(clientID, username))) {
+            return jsonError("Δεν έχετε δικαίωμα επεξεργασίας χρηστών.", 403);
         }
 
         const payload: SaveUserPayload = {

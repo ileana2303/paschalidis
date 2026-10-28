@@ -31,8 +31,7 @@ export default function BranchToggle() {
   if (!user) return null;
 
   const branchCode = normalizeBranchCode(user.mainBranch);
-  const canSwitchBranch =
-    user.isSuperAdmin === 1 || (permissions?.branches.length ?? 0) > 1;
+  const canSwitchBranch = branchOptions.length > 1;
   const selectedBranchCode = branchOptions.some(
     (branch) => branch.code === branchCode
   )

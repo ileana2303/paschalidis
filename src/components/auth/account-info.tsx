@@ -77,8 +77,8 @@ export default function AccountInfo() {
     );
 
     const accessEntries = [
-      ...(permissions?.modules ?? []).map((entry) => ({ ...entry, kind: "Module" })),
-      ...(permissions?.features ?? []).map((entry) => ({ ...entry, kind: "Feature" })),
+      ...(permissions?.modules ?? []).map((code) => ({ code, kind: "Module" })),
+      ...(permissions?.features ?? []).map((code) => ({ code, kind: "Feature" })),
     ];
 
     const activeBranch = branches.find((branch) => branch.code === activeBranchCode);
@@ -195,7 +195,7 @@ export default function AccountInfo() {
           {profileData.accessEntries.length > 0 ? (
             <ul className="flex flex-wrap gap-2">
               {profileData.accessEntries.map((entry) => {
-                const label = `${entry.kind}: ${entry.code} (${entry.rights})`;
+                const label = `${entry.kind}: ${entry.code}`;
                 return (
                   <li
                   key={`${entry.kind}-${entry.code}`}

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import toast from "react-hot-toast";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import DataTable from "@/components/ui/data-table/data-table";
@@ -10,7 +10,12 @@ import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import StatusBadge from "@/components/ui/data-table/status-badge";
 import UserFormModal from "@/components/users/user-form-modal";
-import { useFetchUsersMutation, useSaveUserMutation } from "@/hooks/queries/useUserQueries";
+import {
+    useFetchUsersMutation,
+    usePermissionCatalogQuery,
+    useSaveUserMutation,
+} from "@/hooks/queries/useUserQueries";
+import { useCan } from "@/hooks/usePermissions";
 import { formatBranchLabel } from "@/lib/auth/branches";
 import {
     ChevronDown,
@@ -23,10 +28,18 @@ import {
     Users,
 } from "@/lib/icons/lucide";
 import type {
+    PermissionCatalog,
+    PermissionCatalogEntry,
     UserPermission,
     UserWithPermissions,
 } from "@/lib/users/types";
-import { useAuthStore } from "@/stores/authStore";
+
+function normalizeEntries(entries: UserPermission[] | undefined): UserPermission[] {
+    return (entries ?? []).map((entry) => ({
+        code: String(entry.code ?? "").trim(),
+        isActive: Number(entry.isActive) === 0 ? 0 : 1,
+    }));
+}
 
 function normalizeRecord(record: UserWithPermissions): UserWithPermissions {
     return {
@@ -39,19 +52,27 @@ function normalizeRecord(record: UserWithPermissions): UserWithPermissions {
             trdr: Number(record.user.trdr) || 0,
         },
         permissions: {
-            modules: record.permissions?.modules ?? [],
-            features: record.permissions?.features ?? [],
-            branches: record.permissions?.branches ?? [],
+            modules: normalizeEntries(record.permissions?.modules),
+            features: normalizeEntries(record.permissions?.features),
+            branches: normalizeEntries(record.permissions?.branches),
         },
     };
 }
 
+function countActive(entries: UserPermission[]) {
+    return entries.filter((entry) => entry.isActive === 1).length;
+}
+
 function PermissionList({
     entries,
+    catalog,
     emptyLabel,
+    mainBranch,
 }: {
     entries: UserPermission[];
+    catalog: PermissionCatalogEntry[];
     emptyLabel: string;
+    mainBranch?: string;
 }) {
     if (entries.length === 0) {
         return <p className="text-sm text-gray-500">{emptyLabel}</p>;
@@ -59,66 +80,72 @@ function PermissionList({
 
     return (
         <ul className="flex flex-wrap gap-2">
-            {entries.map((entry, index) => (
-                <li
-                    key={`${entry.code}-${index}`}
-                    className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                >
-                    {entry.code} — {entry.rights}
-                </li>
-            ))}
+            {entries.map((entry, index) => {
+                const label =
+                    catalog.find((item) => item.code === entry.code)?.descr || entry.code;
+
+                return (
+                    <li
+                        key={`${entry.code}-${index}`}
+                        title={entry.isActive === 1 ? entry.code : `${entry.code} (ανενεργό)`}
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium ${entry.isActive === 1
+                            ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                            : "bg-gray-50 text-gray-400 line-through dark:bg-gray-900 dark:text-gray-600"}`}
+                    >
+                        {label}
+                        {entry.code === mainBranch && (
+                            <span className="ml-1.5 font-semibold text-brand-600 dark:text-brand-300">
+                                Κύριο
+                            </span>
+                        )}
+                    </li>
+                );
+            })}
         </ul>
     );
 }
 
-function PermissionsDetails({ record }: { record: UserWithPermissions }) {
+function PermissionsDetails({
+    record,
+    catalog,
+}: {
+    record: UserWithPermissions;
+    catalog: PermissionCatalog | undefined;
+}) {
     const { permissions } = record;
+    const sections = [
+        { title: "Σελίδες", entries: permissions.modules, catalog: catalog?.modules ?? [], empty: "Δεν υπάρχουν σελίδες." },
+        { title: "Λειτουργίες", entries: permissions.features, catalog: catalog?.features ?? [], empty: "Δεν υπάρχουν λειτουργίες." },
+        { title: "Καταστήματα", entries: permissions.branches, catalog: catalog?.branches ?? [], empty: "Δεν υπάρχουν επιτρεπόμενα καταστήματα." },
+    ];
 
     return (
         <div className="grid gap-4 p-5 lg:grid-cols-3">
-            <section className="rounded-xl border border-gray-100 bg-gray-50/60 p-4 dark:border-gray-800 dark:bg-gray-900/40">
-                <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                    Modules ({permissions.modules.length})
-                </h4>
-                <PermissionList entries={permissions.modules} emptyLabel="Δεν υπάρχουν modules." />
-            </section>
-            <section className="rounded-xl border border-gray-100 bg-gray-50/60 p-4 dark:border-gray-800 dark:bg-gray-900/40">
-                <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                    Features ({permissions.features.length})
-                </h4>
-                <PermissionList entries={permissions.features} emptyLabel="Δεν υπάρχουν features." />
-            </section>
-            <section className="rounded-xl border border-gray-100 bg-gray-50/60 p-4 dark:border-gray-800 dark:bg-gray-900/40">
-                <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                    Καταστήματα ({permissions.branches.length})
-                </h4>
-                {permissions.branches.length === 0 ? (
-                    <p className="text-sm text-gray-500">Δεν υπάρχουν επιτρεπόμενα καταστήματα.</p>
-                ) : (
-                    <ul className="space-y-2">
-                        {permissions.branches.map((branch) => (
-                            <li
-                                key={branch}
-                                className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200"
-                            >
-                                {formatBranchLabel(branch)}
-                                {branch === record.user.mainBranch && (
-                                    <span className="ml-2 text-xs font-semibold text-brand-600 dark:text-brand-300">
-                                        Κύριο
-                                    </span>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </section>
+            {sections.map((section) => (
+                <section
+                    key={section.title}
+                    className="rounded-xl border border-gray-100 bg-gray-50/60 p-4 dark:border-gray-800 dark:bg-gray-900/40"
+                >
+                    <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+                        {section.title} ({countActive(section.entries)})
+                    </h4>
+                    <PermissionList
+                        entries={section.entries}
+                        catalog={section.catalog}
+                        emptyLabel={section.empty}
+                        mainBranch={section.title === "Καταστήματα" ? record.user.mainBranch : undefined}
+                    />
+                </section>
+            ))}
         </div>
     );
 }
 
 export default function UsersClient() {
-    const router = useRouter();
-    const currentUser = useAuthStore((state) => state.user);
+    const can = useCan();
+    const canCreate = can("create-user");
+    const canEdit = can("edit-user");
+    const canManagePerms = can("manage-perms");
     const [records, setRecords] = useState<UserWithPermissions[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [loadError, setLoadError] = useState("");
@@ -129,12 +156,19 @@ export default function UsersClient() {
     const initialLoadStarted = useRef(false);
     const { mutateAsync: fetchUsers, isPending: loadingUsers } = useFetchUsersMutation();
     const { mutateAsync: saveUser } = useSaveUserMutation();
+    const catalogQuery = usePermissionCatalogQuery();
+    const catalogTotals = useMemo(() => {
+        const catalog = catalogQuery.data;
+        if (!catalog) return null;
 
-    useEffect(() => {
-        if (currentUser?.isSuperAdmin !== 1) {
-            router.replace("/");
-        }
-    }, [currentUser?.isSuperAdmin, router]);
+        const activeCount = (entries: PermissionCatalogEntry[]) =>
+            entries.filter((entry) => entry.isActive === 1).length;
+
+        return {
+            permissions: activeCount(catalog.modules) + activeCount(catalog.features),
+            branches: activeCount(catalog.branches),
+        };
+    }, [catalogQuery.data]);
 
     const loadUsers = useCallback(async () => {
         setLoadError("");
@@ -155,16 +189,21 @@ export default function UsersClient() {
     }, [fetchUsers]);
 
     useEffect(() => {
-        if (
-            currentUser?.isSuperAdmin !== 1 ||
-            initialLoadStarted.current
-        ) {
-            return;
-        }
+        if (initialLoadStarted.current) return;
 
         initialLoadStarted.current = true;
         void loadUsers();
-    }, [currentUser?.isSuperAdmin, loadUsers]);
+    }, [loadUsers]);
+
+    useEffect(() => {
+        if (catalogQuery.error) {
+            toast.error(
+                catalogQuery.error instanceof Error
+                    ? catalogQuery.error.message
+                    : "Αποτυχία φόρτωσης δικαιωμάτων."
+            );
+        }
+    }, [catalogQuery.error]);
 
     const upsertRecord = useCallback((savedRecord: UserWithPermissions) => {
         const normalized = normalizeRecord(savedRecord);
@@ -256,14 +295,6 @@ export default function UsersClient() {
         }
     };
 
-    if (currentUser?.isSuperAdmin !== 1) {
-        return (
-            <div className="flex min-h-[50vh] items-center justify-center">
-                <Loader2 className="h-7 w-7 animate-spin text-brand-500" />
-            </div>
-        );
-    }
-
     return (
         <div className="mx-auto w-full">
             <PageBreadcrumb pageTitle="Λίστα Χρηστών" />
@@ -283,14 +314,28 @@ export default function UsersClient() {
                                 refreshDisabled={loadingUsers}
                                 placeholder="Username, όνομα, email, ρόλος..."
                             />
-                            <button
-                                type="button"
-                                onClick={openCreateForm}
-                                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600"
-                            >
-                                <Plus className="h-4 w-4" />
-                                Νέος χρήστης
-                            </button>
+                            {canManagePerms && (
+                                <Link
+                                    href="/users-list/permissions"
+                                    prefetch={false}
+                                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                                >
+                                    <Shield className="h-4 w-4" />
+                                    Κατάλογος δικαιωμάτων
+                                </Link>
+                            )}
+                            {canCreate && (
+                                <button
+                                    type="button"
+                                    onClick={openCreateForm}
+                                    disabled={!catalogQuery.data}
+                                    title={catalogQuery.data ? undefined : "Φόρτωση δικαιωμάτων…"}
+                                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Νέος χρήστης
+                                </button>
+                            )}
                         </div>
                     }
                 />
@@ -335,7 +380,7 @@ export default function UsersClient() {
                                     <th className="px-4 py-3">Κατάσταση</th>
                                     <th className="px-4 py-3">Τύπος</th>
                                     <th className="px-4 py-3">Δικαιώματα</th>
-                                    <th className="px-4 py-3 text-right">Ενέργειες</th>
+                                    {canEdit && <th className="px-4 py-3 text-right">Ενέργειες</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -398,44 +443,50 @@ export default function UsersClient() {
                                                         aria-expanded={expanded}
                                                     >
                                                         <Eye className="h-3.5 w-3.5" />
-                                                        {permissions.modules.length + permissions.features.length} δικαιώματα · {permissions.branches.length} καταστήματα
+                                                        {countActive(permissions.modules) + countActive(permissions.features)} δικαιώματα
+                                                        {catalogTotals && ` από τα ${catalogTotals.permissions}`}
+                                                        {" · "}
+                                                        {countActive(permissions.branches)} καταστήματα
+                                                        {catalogTotals && ` από τα ${catalogTotals.branches}`}
                                                         <ChevronDown className={`h-3.5 w-3.5 transition ${expanded ? "rotate-180" : ""}`} />
                                                     </button>
                                                 </td>
-                                                <td className="px-4 py-4 text-right">
-                                                    <div className="inline-flex items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openEditForm(record)}
-                                                            disabled={Boolean(updatingUsername)}
-                                                            title="Επεξεργασία"
-                                                            aria-label={`Επεξεργασία ${user.username}`}
-                                                            className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-brand-600 disabled:opacity-40 dark:hover:bg-gray-800"
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </button>
-                                                        <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => void toggleActive(record)}
-                                                            disabled={Boolean(updatingUsername)}
-                                                            className={`flex h-9 items-center justify-center px-3 text-xs font-semibold disabled:opacity-40 ${user.isActive === 1 ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10" : "text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"}`}
-                                                        >
-                                                            {updating ? (
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                            ) : user.isActive === 1 ? (
-                                                                "Απενεργοποίηση"
-                                                            ) : (
-                                                                "Ενεργοποίηση"
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                </td>
+                                                {canEdit && (
+                                                    <td className="px-4 py-4 text-right">
+                                                        <div className="inline-flex items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openEditForm(record)}
+                                                                disabled={Boolean(updatingUsername) || !catalogQuery.data}
+                                                                title="Επεξεργασία"
+                                                                aria-label={`Επεξεργασία ${user.username}`}
+                                                                className="flex h-9 w-9 items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-brand-600 disabled:opacity-40 dark:hover:bg-gray-800"
+                                                            >
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                            </button>
+                                                            <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => void toggleActive(record)}
+                                                                disabled={Boolean(updatingUsername)}
+                                                                className={`flex h-9 items-center justify-center px-3 text-xs font-semibold disabled:opacity-40 ${user.isActive === 1 ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10" : "text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"}`}
+                                                            >
+                                                                {updating ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : user.isActive === 1 ? (
+                                                                    "Απενεργοποίηση"
+                                                                ) : (
+                                                                    "Ενεργοποίηση"
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                )}
                                             </tr>
                                             {expanded && (
                                                 <tr className="bg-gray-50/50 dark:bg-gray-950/30">
-                                                    <td colSpan={9}>
-                                                        <PermissionsDetails record={record} />
+                                                    <td colSpan={canEdit ? 9 : 8}>
+                                                        <PermissionsDetails record={record} catalog={catalogQuery.data} />
                                                     </td>
                                                 </tr>
                                             )}
@@ -448,11 +499,12 @@ export default function UsersClient() {
                 )}
             </DataTable>
 
-            {isFormOpen && (
+            {isFormOpen && catalogQuery.data && (
                 <UserFormModal
                     key={editingRecord?.user.username ?? "new-user"}
                     isOpen
                     record={editingRecord}
+                    catalog={catalogQuery.data}
                     onClose={() => setIsFormOpen(false)}
                     onSaved={upsertRecord}
                 />
