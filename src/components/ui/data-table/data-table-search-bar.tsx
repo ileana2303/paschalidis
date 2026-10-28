@@ -7,7 +7,10 @@ interface DataTableSearchBarProps {
   onSubmit?: () => void;
   onClear?: () => void;
   isRefreshing?: boolean;
+  isSubmitting?: boolean;
   refreshDisabled?: boolean;
+  submitDisabled?: boolean;
+  submitLabel?: string;
   placeholder?: string;
   clearAriaLabel?: string;
   className?: string;
@@ -20,7 +23,10 @@ export default function DataTableSearchBar({
   onSubmit,
   onClear,
   isRefreshing = false,
+  isSubmitting = false,
   refreshDisabled = false,
+  submitDisabled = false,
+  submitLabel = "Αναζήτηση ERP",
   placeholder = "Αναζήτηση...",
   clearAriaLabel = "Καθαρισμός αναζήτησης",
   className = "",
@@ -68,6 +74,22 @@ export default function DataTableSearchBar({
           </button>
         ) : null}
       </div>
+
+      {onSubmit ? (
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={submitDisabled || isSubmitting || !hasValue}
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-brand-500 px-3 text-xs font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
+        >
+          {isSubmitting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Search className="h-3.5 w-3.5" />
+          )}
+          {submitLabel}
+        </button>
+      ) : null}
 
       <button
         type="button"

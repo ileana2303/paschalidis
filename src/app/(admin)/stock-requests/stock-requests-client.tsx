@@ -18,6 +18,7 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
+import ItemCodeBadge from "@/components/ui/item-code-badge";
 import type {
     IStockRequestListRow,
     StockRequestUpdateAction,
@@ -498,12 +499,12 @@ export default function StockRequestsClient({
                                 className="flex-1"
                             />
                         ) : (
-                            <div className="min-h-0 flex-1 overflow-y-auto">
-                                <table className="w-full table-fixed divide-y divide-gray-100 text-xs dark:divide-gray-800 xl:text-sm">
+                            <div className="min-h-0 flex-1 overflow-auto">
+                                <table className="w-full min-w-[1300px] table-fixed divide-y divide-gray-100 text-xs dark:divide-gray-800 xl:text-sm">
                                     <colgroup>
                                         <col className="w-[5%]" />
-                                        <col className="w-[10%]" />
-                                        <col className="w-[22%]" />
+                                        <col className="w-[13%]" />
+                                        <col className="w-[19%]" />
                                         <col className="w-[9%]" />
                                         <col className="w-[9%]" />
                                         <col className="w-[9%]" />
@@ -604,9 +605,7 @@ export default function StockRequestsClient({
                                                     </td>
 
                                                     <td className="whitespace-nowrap px-3 py-4 align-top xl:px-4">
-                                                        <span className="inline-flex rounded-lg bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                                                            {row.ITEM_CODE}
-                                                        </span>
+                                                        <ItemCodeBadge code={row.ITEM_CODE} />
                                                     </td>
 
                                                     <td className="break-words px-3 py-4 align-top xl:px-4">

@@ -8,6 +8,7 @@ import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import NumberBadge from "@/components/ui/data-table/number-badge";
+import ItemCodeBadge from "@/components/ui/item-code-badge";
 import QuantityControl from "@/components/ui/quantity-control";
 import StatusBadge from "@/components/ui/data-table/status-badge";
 import {
@@ -819,6 +820,19 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                 ) : (
                                                                     "—"
                                                                 )}
+                                                            </td>
+                                                        );
+                                                    }
+
+                                                    if (column === "ITEM_CODE") {
+                                                        return (
+                                                            <td
+                                                                key={`${rowKey}-${column}`}
+                                                                className="whitespace-nowrap px-4 py-3 align-middle"
+                                                            >
+                                                                <ItemCodeBadge
+                                                                    code={row[column]}
+                                                                />
                                                             </td>
                                                         );
                                                     }

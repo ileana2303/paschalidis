@@ -184,7 +184,7 @@ export default function CompanyStockOrderSummary({
                         </div>
                     </div>
                     <SummaryPrimaryAction
-                        label="Αποστολή PURDOC"
+                        label="Αποστολή SoftOne"
                         loading={isSubmitting}
                         disabled={!selectedGroup?.trdr || loading}
                         onClick={() => {
@@ -325,11 +325,14 @@ export default function CompanyStockOrderSummary({
                                                 <div key={line.id} className="px-3 py-3">
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="min-w-0 flex-1">
-                                                            <p className="line-clamp-2 text-xs font-medium text-gray-700 dark:text-white/90">
-                                                                {line.name || "—"}
-                                                            </p>
-                                                            <p className="mt-1 text-[11px] text-gray-500">
+                                                            <p
+                                                                className="truncate font-mono text-sm font-bold tracking-wide text-gray-900 dark:text-white"
+                                                                title={line.code || line.mtrl}
+                                                            >
                                                                 {line.code || line.mtrl}
+                                                            </p>
+                                                            <p className="mt-1 line-clamp-2 text-[11px] font-medium leading-4 text-gray-500 dark:text-gray-400">
+                                                                {line.name || "—"}
                                                             </p>
                                                         </div>
                                                         <span className="shrink-0 rounded-full bg-brand-50 px-2 py-1 text-[10px] font-semibold tabular-nums text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
