@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import { canAccessPath, getFirstAllowedPath } from "@/lib/auth/permissions";
 import { verifySessionToken } from "@/lib/auth/session-token";
 
 const PUBLIC_PATHS = ["/auth/signin", "/auth/signup", "/error-404"];
@@ -29,12 +30,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL("/auth/signin", request.url));
     }
 
-    if (
-        pathname === "/users" ||
-        pathname.startsWith("/users/") ||
-        pathname === "/users-list" ||
-        pathname.startsWith("/users-list/")
-    ) {
+    if (isLoggedIn && !isPublicPath(pathname)) {
         const session = await verifySessionToken(sessionCookie);
 
         if (!session) {
@@ -45,8 +41,10 @@ export async function proxy(request: NextRequest) {
             return response;
         }
 
-        if (session.isSuperAdmin !== 1) {
-            return NextResponse.redirect(new URL("/", request.url));
+        if (!canAccessPath(session, pathname)) {
+            return NextResponse.redirect(
+                new URL(getFirstAllowedPath(session), request.url)
+            );
         }
     }
 

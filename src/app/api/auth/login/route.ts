@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getFirstAllowedPath, normalizeAuthPermissions } from "@/lib/auth/permissions";
 import { setSessionCookie } from "@/lib/auth/session";
 import type {
     LoginRequest,
@@ -88,15 +89,17 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        await setSessionCookie(upstreamData.user, body.rememberMe === true);
+        const permissions = normalizeAuthPermissions(upstreamData.permissions);
+
+        await setSessionCookie(upstreamData.user, permissions, body.rememberMe === true);
 
         const response: LoginResponse = {
             result: true,
             message: "Επιτυχής σύνδεση",
             type: "success",
-            redirectlink: "/",
+            redirectlink: getFirstAllowedPath(permissions),
             user: upstreamData.user,
-            permissions: upstreamData.permissions,
+            permissions,
         };
 
         return NextResponse.json(response);

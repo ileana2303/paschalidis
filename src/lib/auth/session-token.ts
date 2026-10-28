@@ -1,9 +1,17 @@
 import { SignJWT, jwtVerify } from "jose";
 
+/** Server-side identity and active permission codes, signed into the cookie. */
 export type SessionUser = {
     username: string;
-    isSuperAdmin: 0 | 1;
+    modules: string[];
+    features: string[];
 };
+
+function toCodeList(value: unknown): string[] | null {
+    return Array.isArray(value) && value.every((code) => typeof code === "string")
+        ? value
+        : null;
+}
 
 const SESSION_ISSUER = "paschalidis-erp";
 const SESSION_AUDIENCE = "paschalidis-web";
@@ -26,7 +34,8 @@ export async function createSessionToken(
 
     return new SignJWT({
         username: user.username,
-        isSuperAdmin: user.isSuperAdmin,
+        modules: user.modules,
+        features: user.features,
     })
         .setProtectedHeader({ alg: "HS256" })
         .setIssuer(SESSION_ISSUER)
@@ -50,15 +59,15 @@ export async function verifySessionToken(
         });
         const username =
             typeof payload.username === "string" ? payload.username.trim() : "";
+        const modules = toCodeList(payload.modules);
+        const features = toCodeList(payload.features);
 
-        if (!username) {
+        // Tokens issued before permissions were signed in are treated as expired.
+        if (!username || !modules || !features) {
             return null;
         }
 
-        return {
-            username,
-            isSuperAdmin: payload.isSuperAdmin === 1 ? 1 : 0,
-        };
+        return { username, modules, features };
     } catch {
         return null;
     }

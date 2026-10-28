@@ -15,14 +15,10 @@ export interface AuthUser {
     trdr: number;
 }
 
-export interface AuthPermissionEntry {
-    code: string;
-    rights: number;
-}
-
+/** Active permission codes returned by login. Absent code = not allowed. */
 export interface AuthPermissions {
-    modules: AuthPermissionEntry[];
-    features: AuthPermissionEntry[];
+    modules: string[];
+    features: string[];
     branches: string[];
 }
 
@@ -30,7 +26,7 @@ export interface AuthPermissions {
 export interface SoftOneLoginResponse {
     success: boolean;
     user?: AuthUser;
-    permissions?: AuthPermissions;
+    permissions?: unknown;
     error?: string;
 }
 

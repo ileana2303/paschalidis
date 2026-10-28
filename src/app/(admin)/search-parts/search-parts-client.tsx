@@ -26,6 +26,7 @@ import {
 import { useSearchPartsBasketController } from "@/hooks/search-parts/use-search-parts-basket-controller";
 import { useSearchPartsResultsController } from "@/hooks/search-parts/use-search-parts-results-controller";
 import { useSearchPartsPageController } from "@/hooks/search-parts/use-search-parts-page-controller";
+import { useCan } from "@/hooks/usePermissions";
 import type {
     CompetitionSalesResponse,
     LastOrdersResponse,
@@ -33,6 +34,7 @@ import type {
 import { ArrowRight, UserSearch } from "@/lib/icons/lucide";
 
 export default function SearchPartsClient() {
+    const canRequestPrice = useCan()("request-price");
     const hasMounted = true;
 
     const search = useSearchPartsStore((state) => state.searchTerm);
@@ -632,7 +634,7 @@ export default function SearchPartsClient() {
                                 onChangeQuantity={handleUpdateQty}
                                 requestedPriceValues={basketController.basketLineRequestedPrices}
                                 onRequestedPriceValueChange={basketController.setBasketLineRequestedPriceValue}
-                                onRequestPrice={basketController.handleRequestBasketLinePrice}
+                                onRequestPrice={canRequestPrice ? basketController.handleRequestBasketLinePrice : undefined}
                                 submittingRequestedPrices={basketController.submittingBasketLineRequestedPrices}
                                 collapsible
                                 collapsed={!resultsController.sidebarVisible}

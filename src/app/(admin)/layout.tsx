@@ -4,7 +4,10 @@ import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
-import React from "react";
+import { canAccessPath, getFirstAllowedPath } from "@/lib/auth/permissions";
+import { useAuthStore } from "@/stores/authStore";
+import { usePathname, useRouter } from "next/navigation";
+import React, { useEffect } from "react";
 
 export default function AdminLayout({
   children,
@@ -12,6 +15,16 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+  const pathname = usePathname();
+  const router = useRouter();
+  const permissions = useAuthStore((state) => state.permissions);
+
+  useEffect(() => {
+    if (permissions && !canAccessPath(permissions, pathname)) {
+      router.replace(getFirstAllowedPath(permissions));
+    }
+  }, [pathname, permissions, router]);
+
   const sidebarOffsetClass = isExpanded || isHovered ? "lg:ml-[306px]" : "lg:ml-[106px]";
 
   const mainContentMargin = isMobileOpen

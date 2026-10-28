@@ -7,6 +7,7 @@ interface PartCardDetailsProps {
     isExpanded: boolean;
     formatPrice: (price: number | string | null | undefined) => string;
     customer?: ICustomerInfo | null;
+    showPrices?: boolean;
 }
 
 export default function PartCardDetails({
@@ -14,6 +15,7 @@ export default function PartCardDetails({
     isExpanded,
     formatPrice,
     customer = null,
+    showPrices = true,
 }: PartCardDetailsProps) {
     const activePriceLabel = getCustomerActivePriceLadderLabel(customer);
     const isWholesaleActive = activePriceLabel === "Χονδρική";
@@ -153,6 +155,8 @@ export default function PartCardDetails({
                                 </span>
                             </div>
 
+                            {showPrices && (
+                            <>
                             <div className="flex justify-between">
                                 <span className="text-gray-400">Req. Τιμή</span>
                                 <span className="font-medium text-gray-800 dark:text-white">
@@ -166,9 +170,12 @@ export default function PartCardDetails({
                                     {formatPrice(item.BASKET_ERP_PRICE)}
                                 </span>
                             </div>
+                            </>
+                            )}
                         </div>
                     </div>
 
+                    {showPrices && (
                     <div className="border-t border-gray-100 pt-3 dark:border-gray-800">
                             <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                                 Τιμές
@@ -213,6 +220,7 @@ export default function PartCardDetails({
                                 activeLabel={activePriceLabel}
                             />
                         </div>
+                    )}
                 </div>
             </div>
         </div>

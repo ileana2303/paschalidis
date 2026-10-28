@@ -75,33 +75,16 @@ export function getKnownBranchName(
   return BRANCH_NAME_BY_CODE[code];
 }
 
-export function getKnownBranchOptions(): BranchOption[] {
-  return Object.entries(BRANCH_NAME_BY_CODE).map(([code, label]) => ({
-    code,
-    label,
-  }));
-}
-
-/** Branch choices for the header toggle and other branch selectors. */
+/** Branch choices for the header toggle: only the user's permitted branches. */
 export function getUserBranchOptions(
   user: AuthUser | null | undefined,
   permissions: AuthPermissions | null | undefined
 ): BranchOption[] {
   if (!user) return [];
 
-  const activeBranchCode = normalizeBranchCode(user.mainBranch);
-  const permittedCodes = (permissions?.branches ?? [])
-    .map(normalizeBranchCode)
-    .filter(Boolean);
   const uniqueCodes = Array.from(
     new Set(
-      user.isSuperAdmin === 1
-        ? [
-          ...getKnownBranchOptions().map((branch) => branch.code),
-          ...permittedCodes,
-          ...(activeBranchCode ? [activeBranchCode] : []),
-        ]
-        : permittedCodes
+      (permissions?.branches ?? []).map(normalizeBranchCode).filter(Boolean)
     )
   );
 

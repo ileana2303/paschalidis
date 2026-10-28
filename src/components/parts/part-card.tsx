@@ -17,6 +17,7 @@ import {
 import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import QuantityControl from "@/components/ui/quantity-control";
 import RequestPriceBox from "@/components/ui/request-price-box";
+import { useCan } from "@/hooks/usePermissions";
 import PartCardDetails from "./part-card-details";
 import PartStockQuantityContainer from "../stock/request-stock-card";
 
@@ -120,6 +121,13 @@ export default function PartResults({
     formatPrice,
     endoRequest,
 }: PartResultsProps) {
+    const can = useCan();
+    const canSeePrices = can("prices");
+    const canRequestPrice = can("request-price");
+    const canSeeStatistics = can("statistics");
+    const canExpandDetails = can("expand-details");
+    const canSeeBranchStock = can("stock-branch-meta");
+    const showAnatrofCard = showStockRequestCard && can("anatrof-card");
     const requestStatus =
         basketItem != null
             ? getBasketItemApprovalStatus(basketItem)
@@ -274,13 +282,14 @@ export default function PartResults({
     );
 
     return (
-        <div className={`grid gap-2 ${showStockRequestCard ? "xl:grid-cols-[minmax(0,1fr)_228px]" : ""}`}>
+        <div className={`grid gap-2 ${showAnatrofCard ? "xl:grid-cols-[minmax(0,1fr)_228px]" : ""}`}>
 
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition dark:border-gray-800 dark:bg-white/[0.03]">
                 <button
                     type="button"
-                    onClick={onToggleExpanded}
-                    aria-expanded={isExpanded}
+                    onClick={canExpandDetails ? onToggleExpanded : undefined}
+                    disabled={!canExpandDetails}
+                    aria-expanded={canExpandDetails ? isExpanded : undefined}
                     aria-label={isExpanded ? "Απόκρυψη λεπτομερειών" : "Προβολή λεπτομερειών"}
                     className={`group flex w-full items-center gap-3 border-b px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/40 ${isInBasket
                         ? "border-gray-100 bg-green-50/80 hover:bg-green-100/70 dark:border-gray-800 dark:bg-green-500/10 dark:hover:bg-green-500/15"
@@ -320,7 +329,7 @@ export default function PartResults({
                                 </span>
                             )}
 
-                            {basketItem && hasPriceRequest && (
+                            {basketItem && hasPriceRequest && canSeePrices && (
                                 <span
                                     title={`Κατάσταση αιτήματος: ${requestStatusLabel}`}
                                     aria-label={`Αίτημα ${formatPrice(requestedPrice)}, κατάσταση ${requestStatusLabel}`}
@@ -333,16 +342,19 @@ export default function PartResults({
                         </div>
                     </div>
 
+                    {canExpandDetails && (
                     <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition group-hover:border-brand-300 group-hover:text-brand-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:group-hover:border-brand-500 dark:group-hover:text-brand-400">
                         <ChevronDown
                             className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
                         />
                     </span>
+                    )}
                 </button>
 
                 <div className="p-3">
                     <div className="flex min-w-0 flex-col gap-2.5 md:flex-row md:items-start md:justify-between">
                         <div className="w-full min-w-0 max-w-[300px] md:w-[clamp(9.5rem,24%,18.75rem)] md:max-w-none md:shrink-0">
+                            {canSeeStatistics && (
                             <button
                                 type="button"
                                 onClick={onOpenInsights}
@@ -356,11 +368,14 @@ export default function PartResults({
                                 </span>
                                 <span className="min-w-0 truncate">Στατιστικά</span>
                             </button>
+                            )}
 
                         </div>
 
                         {hasCustomer && (
                             <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-x-2 sm:gap-x-3 lg:gap-x-4 lg:justify-end">
+                                {canSeePrices && (
+                                <>
                                 <div className="flex shrink-0 items-baseline gap-2">
                                     <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                         {unitPriceLabel}
@@ -382,6 +397,8 @@ export default function PartResults({
                                 </div>
 
                                 <div className="hidden h-6 w-px bg-gray-200 dark:bg-gray-700 sm:block" />
+                                </>
+                                )}
 
                                 <div className="flex shrink-0 items-center gap-2.5">
                                     <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -416,10 +433,11 @@ export default function PartResults({
                         )}
                     </div>
 
+                    {(canSeeBranchStock || (basketItem && canRequestPrice)) && (
                     <div className="mt-2 flex min-w-0 flex-col gap-2 border-t border-gray-100 pt-2 dark:border-gray-800 lg:flex-row lg:items-center">
-                        {renderStockSummary("flex min-w-0 flex-1")}
+                        {canSeeBranchStock && renderStockSummary("flex min-w-0 flex-1")}
 
-                        {basketItem && (
+                        {basketItem && canRequestPrice && (
                             <RequestPriceBox
                                 status={requestStatus}
                                 hasPriceRequest={hasPriceRequest}
@@ -434,18 +452,20 @@ export default function PartResults({
                             />
                         )}
                     </div>
+                    )}
                 </div>
 
                 <PartCardDetails
                     item={item}
-                    isExpanded={isExpanded}
+                    isExpanded={canExpandDetails && isExpanded}
                     formatPrice={formatPrice}
                     customer={customer}
+                    showPrices={canSeePrices}
                 />
 
             </div>
 
-            {showStockRequestCard && (
+            {showAnatrofCard && (
                 <PartStockQuantityContainer
                     mtrl={item.MTRL}
                     stock={storeStock}

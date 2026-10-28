@@ -1,20 +1,25 @@
 import { cookies } from "next/headers";
 import { SESSION_COOKIE_NAME } from "./constants";
-import type { AuthUser } from "./types";
+import type { AuthPermissions, AuthUser } from "./types";
 import { createSessionToken } from "./session-token";
 const REMEMBER_ME_EXPIRATION_DAYS = 7;
 
 /**
  * Set the auth session cookie.
- * The signed token carries the minimum server-side identity needed by protected
- * routes; the complete user and permission state remains in the auth store.
+ * The signed token carries the username and permission codes that the proxy
+ * and API routes check; the complete user state remains in the auth store.
  */
-export async function setSessionCookie(user: AuthUser, rememberMe = false) {
+export async function setSessionCookie(
+    user: AuthUser,
+    permissions: AuthPermissions,
+    rememberMe = false
+) {
     const cookieStore = await cookies();
     const token = await createSessionToken(
         {
             username: user.username,
-            isSuperAdmin: user.isSuperAdmin === 1 ? 1 : 0,
+            modules: permissions.modules,
+            features: permissions.features,
         },
         rememberMe
     );

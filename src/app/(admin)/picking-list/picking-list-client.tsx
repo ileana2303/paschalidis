@@ -32,6 +32,7 @@ import {
   useUpdatePickingListOrderMutation,
 } from "@/hooks/queries/usePickingListQueries";
 import { useSessionState } from "@/hooks/useSessionState";
+import { useCan } from "@/hooks/usePermissions";
 import { useAuthStore } from "@/stores/authStore";
 import {
   formatBranchLabel,
@@ -82,9 +83,19 @@ function PickingCompletionButton({
   updating,
   onComplete,
 }: PickingCompletionButtonProps) {
+  const can = useCan();
   const completed = order.status === "PICKED_IT_UP";
   const canComplete = getNextPickingStatus(order.status) === "PICKED_IT_UP";
   const orderLabel = order.parastatiko || order.fincode || order.findoc;
+
+  if (!can("picked-it-up")) {
+    return completed ? (
+      <span className="inline-flex h-9 w-full min-w-[150px] items-center justify-center gap-1.5 rounded-lg bg-success-50 px-3 text-xs font-semibold text-success-700 ring-1 ring-inset ring-success-200 dark:bg-success-500/10 dark:text-success-400 dark:ring-success-500/30">
+        <Check aria-hidden="true" className="size-4" />
+        PICKED IT UP
+      </span>
+    ) : null;
+  }
 
   return (
     <button
@@ -832,6 +843,7 @@ function PickingOrderRow({
 
 export default function PickingListClient() {
   const user = useAuthStore((state) => state.user);
+  const can = useCan();
   const permissions = useAuthStore((state) => state.permissions);
   const setAuth = useAuthStore((state) => state.setAuth);
   const [selectedBranch, setSelectedBranch] = useState("");
@@ -1219,6 +1231,7 @@ export default function PickingListClient() {
           action={
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
               <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+                {can("picked-it-up") && (
                 <button
                   type="button"
                   onClick={() => void handleCompleteSelectedOrders()}
@@ -1240,6 +1253,7 @@ export default function PickingListClient() {
                   PICKED IT UP
                   {selectedVisibleCount > 0 ? ` (${selectedVisibleCount})` : ""}
                 </button>
+                )}
 
                 <label className="flex h-10 min-w-0 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                   Status

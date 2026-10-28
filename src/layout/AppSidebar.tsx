@@ -30,12 +30,13 @@ import {
 import { useSidebar } from "../context/SidebarContext";
 import { ListTodo, Receipt, ShoppingBasket, Warehouse } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
+import { canAccessPath } from "@/lib/auth/permissions";
+import type { AuthPermissions } from "@/lib/auth/types";
 
 type NavSubItem = {
   name: string;
   path: string;
   icon: LucideIcon;
-  superAdminOnly?: boolean;
 };
 
 type NavItem = {
@@ -177,7 +178,6 @@ const navItems: NavItem[] = [
         name: "Λίστα Χρηστών",
         path: "/users-list",
         icon: Users,
-        superAdminOnly: true,
       },
     ],
   },
@@ -196,6 +196,23 @@ const mobileNavItems: NavItem[] = [
   },
 ];
 
+/** Keeps the pages the user may open and drops groups left without any. */
+function filterNavItems(
+  items: NavItem[],
+  permissions: AuthPermissions | null
+): NavItem[] {
+  return items.flatMap((item) => {
+    if (!item.subItems) {
+      return item.path && canAccessPath(permissions, item.path) ? [item] : [];
+    }
+
+    const subItems = item.subItems.filter((subItem) =>
+      canAccessPath(permissions, subItem.path)
+    );
+    return subItems.length > 0 ? [{ ...item, subItems }] : [];
+  });
+}
+
 const collapsibleGroupNames = navItems
   .filter((item) => item.subItems)
   .map((item) => item.name);
@@ -204,8 +221,10 @@ const AppSidebar: React.FC = () => {
   const { isExpanded, isMobile, isMobileOpen, isHovered, setIsHovered } =
     useSidebar();
   const pathname = usePathname();
-  const isSuperAdmin = useAuthStore(
-    (state) => state.user?.isSuperAdmin === 1
+  const permissions = useAuthStore((state) => state.permissions);
+  const visibleNavItems = React.useMemo(
+    () => filterNavItems(isMobile ? mobileNavItems : navItems, permissions),
+    [isMobile, permissions]
   );
   const isActive = (path: string) => path === pathname;
   const isSidebarExpanded = isExpanded || isHovered || isMobileOpen;
@@ -242,9 +261,7 @@ const AppSidebar: React.FC = () => {
       {navItems.map((nav) => {
         const Icon = nav.icon;
         const isManagement = nav.name === "Διαχείριση Καταστημάτων";
-        const visibleSubItems = nav.subItems?.filter(
-          (subItem) => !subItem.superAdminOnly || isSuperAdmin
-        );
+        const visibleSubItems = nav.subItems;
         const hasActiveSubItem =
           visibleSubItems?.some((subItem) => isActive(subItem.path)) ?? false;
         const hasActivePath = nav.path ? isActive(nav.path) : false;
@@ -597,7 +614,7 @@ const AppSidebar: React.FC = () => {
                   </button>
                 )}
               </div>
-              {renderMenuItems(isMobile ? mobileNavItems : navItems)}
+              {renderMenuItems(visibleNavItems)}
             </div>
           </div>
         </nav>

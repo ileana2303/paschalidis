@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { AuthPermissions, AuthUser } from "@/lib/auth/types";
+import { normalizeAuthPermissions } from "@/lib/auth/permissions";
 import { storageKey } from "@/lib/storage-keys";
 
 type AuthStore = {
@@ -35,7 +36,9 @@ function migrateAuthState(persistedState: unknown): PersistedAuthState {
     if ("mainBranch" in storedUser) {
         return {
             user: storedUser,
-            permissions: state.permissions ?? null,
+            permissions: state.permissions
+                ? normalizeAuthPermissions(state.permissions)
+                : null,
         };
     }
 
@@ -57,7 +60,7 @@ function migrateAuthState(persistedState: unknown): PersistedAuthState {
         permissions: {
             modules: (storedUser.listAccess ?? []).flatMap((entry) => {
                 const code = String(entry.code ?? "").trim();
-                return code ? [{ code, rights: 0 }] : [];
+                return code ? [code] : [];
             }),
             features: [],
             branches: (storedUser.listBranches ?? []).flatMap((branch) => {
@@ -78,7 +81,7 @@ export const useAuthStore = create<AuthStore>()(
         }),
         {
             name: storageKey("auth-user-account"),
-            version: 1,
+            version: 2,
             migrate: migrateAuthState,
             partialize: (state) => ({
                 user: state.user,
