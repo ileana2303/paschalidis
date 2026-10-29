@@ -11,10 +11,7 @@ import {
   ExternalLink,
   Loader2,
   Package,
-  RefreshCw,
   Send,
-  ShoppingCart,
-  Warehouse,
 } from "@/lib/icons/lucide";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
@@ -30,7 +27,7 @@ import {
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
 import toast from "react-hot-toast";
-import { getStockBranchOrder, normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
+import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { getBranchColor } from "@/lib/branch-colors";
 import { useSessionState } from "@/hooks/useSessionState";
 import { useLoadOnChange } from "@/hooks/useLoadOnChange";
@@ -40,7 +37,19 @@ import {
   toNumber,
 } from "@/lib/utils/stock-feedback";
 
-const DAY_OPTIONS = [0, 1, 2, 3, 4, 5] as const;
+const DAY_OPTIONS = [1, 3, 7, 10] as const;
+const SALES_HISTORY_FIELDS = [
+  { sales: "Y0", monthlyRate: "M0" },
+  { sales: "Y1", monthlyRate: "M1" },
+  { sales: "Y2", monthlyRate: "M2" },
+  { sales: "Y3", monthlyRate: "M3" },
+  { sales: "Y4", monthlyRate: "M4" },
+] as const;
+const AVAILABILITY_FIELDS = [
+  { key: "YP1000", branch: "1000" },
+  { key: "YP1006", branch: "1006" },
+  { key: "YP1007", branch: "1007" },
+] as const;
 
 function itemSearchResultToStockFeedbackRow(item: IItem): IStockFeedbackRow {
   return {
@@ -49,7 +58,30 @@ function itemSearchResultToStockFeedbackRow(item: IItem): IStockFeedbackRow {
     NAME: item.ITEM_DESCR,
     CODE1: item.CODE1_0,
     CODE2: item.ITEM_CODE2,
-    QTY_SOLD: "0",
+    CCCSUFIX: item.SUFIX,
+    ZGROUP_CODE: item.ZGROUP_CODE,
+    ZB2B_CODE: item.ZB2B_CODE,
+    SUGGESTED_TRDR: item.SUGGESTED_TRDR,
+    SUGGESTED_TRDR_CODE: item.SUGGESTED_TRDR_CODE,
+    SUGGESTED_TRDR_NAME: item.SUGGESTED_TRDR_NAME,
+    DAYS: "1",
+    BRANCH: "",
+    MINES: "0",
+    QTY_WIN: "0",
+    RYTHMOS_MINA: "0",
+    Y0: "0",
+    Y1: "0",
+    Y2: "0",
+    Y3: "0",
+    Y4: "0",
+    M0: "0",
+    M1: "0",
+    M2: "0",
+    M3: "0",
+    M4: "0",
+    R1: "0",
+    PCT_VS_M1: "0",
+    TASI_WIN: "",
     ONGOING: item.ONGOING,
     YP1000: item.YP1000,
     YP1006: item.YP1006,
@@ -66,41 +98,14 @@ function itemSearchResultToStockFeedbackRow(item: IItem): IStockFeedbackRow {
     FREE_AVAIL: item.NET_QTY_AVAILABLE,
     RES_BRANCH: "0",
     YP_BRANCH: "0",
+    END_BRANCH: "0",
+    SIM_ITEMS: "0",
+    SIM_AVAIL: "0",
+    GRP_ITEMS: "0",
+    GRP_AVAIL: "0",
+    B2B_ITEMS: "0",
+    B2B_AVAIL: "0",
   };
-}
-
-function KpiCard({
-  title,
-  value,
-  description,
-  icon: Icon,
-}: {
-  title: string;
-  value: string | number;
-  description: string;
-  icon: React.ElementType;
-}) {
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-white/[0.03]">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            {title}
-          </p>
-          <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
-            {value}
-          </p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {description}
-          </p>
-        </div>
-
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function TableSkeleton() {
@@ -108,14 +113,13 @@ function TableSkeleton() {
     <div className="divide-y divide-gray-100 dark:divide-gray-800">
       {Array.from({ length: 8 }).map((_, index) => (
         <div key={index} className="grid grid-cols-12 gap-4 px-5 py-4">
-          <div className="col-span-4 h-4 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="col-span-1 h-4 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="col-span-1 h-4 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="col-span-1 h-4 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="col-span-1 h-4 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="col-span-1 h-4 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="col-span-1 h-4 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="col-span-2 h-4 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="col-span-2 h-12 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="col-span-2 h-12 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="col-span-1 h-12 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="col-span-3 h-12 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="col-span-1 h-12 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="col-span-2 h-12 rounded bg-gray-100 dark:bg-gray-800" />
+          <div className="col-span-1 h-12 rounded bg-gray-100 dark:bg-gray-800" />
         </div>
       ))}
     </div>
@@ -133,15 +137,18 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
     () => normalizeBranchCode(user?.mainBranch),
     [user?.mainBranch]
   );
-  const stockBranchColumns = useMemo(() => {
-    const branches = getStockBranchOrder(currentBranchCode);
-    return [
-      ...branches.filter((branch) => branch !== currentBranchCode),
-      ...branches.filter((branch) => branch === currentBranchCode),
-    ];
-  }, [currentBranchCode]);
-
-  const [days, setDays] = useState<number>(0);
+  const availabilityFields = useMemo(
+    () => [
+      ...AVAILABILITY_FIELDS.filter(
+        ({ branch }) => branch !== currentBranchCode
+      ),
+      ...AVAILABILITY_FIELDS.filter(
+        ({ branch }) => branch === currentBranchCode
+      ),
+    ],
+    [currentBranchCode]
+  );
+  const [days, setDays] = useState<number>(1);
   const [rows, setRows] = useState<IStockFeedbackRow[]>([]);
   const [itemSearchRows, setItemSearchRows] = useState<IStockFeedbackRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -160,6 +167,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
   const [selectedForensicsItem, setSelectedForensicsItem] =
     useState<IStockFeedbackRow | null>(null);
   const itemSearchRequestId = useRef(0);
+  const currentYear = new Date().getFullYear();
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -179,7 +187,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
       });
 
       const nextRows = [...(data.rows ?? [])].sort(
-        (a, b) => toNumber(b.QTY_SOLD) - toNumber(a.QTY_SOLD)
+        (a, b) => toNumber(b.QTY_WIN) - toNumber(a.QTY_WIN)
       );
 
       setRows(nextRows);
@@ -360,47 +368,9 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
     [currentBranchCode, getRequestQuantity, requestStockQuantity, setRequestQuantity]
   );
 
-  const totals = useMemo(() => {
-    return rows.reduce(
-      (acc, row) => {
-        acc.qtySold += toNumber(row.QTY_SOLD);
-        acc.ongoing += toNumber(row.ONGOING);
-        acc.totalAvail += toNumber(row.TOTAL_AVAIL);
-        return acc;
-      },
-      {
-        qtySold: 0,
-        ongoing: 0,
-        totalAvail: 0,
-      }
-    );
-  }, [rows]);
-
   return (
-    <div className="w-full max-w-none space-y-6">
+    <div className="w-full max-w-none space-y-4">
       {!embedded && <PageBreadcrumb pageTitle="Ανατροφοδοσία Καταστήματος" />}
-
-      {!embedded && <div className="w-full rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">
-                <Warehouse className="h-5 w-5" />
-              </div>
-
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Ανατροφοδοσία Καταστήματος
-                </h1>
-                <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                  Έλεγχος αποθέματος και διαθέσιμων ποσοτήτων ανά κατάστημα και χρονική περίοδο.
-                </p>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>}
 
       {error && (
         <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
@@ -411,36 +381,6 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
           </div>
         </div>
       )}
-
-      {!embedded && <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          title="ΠΡΟΪΌΝΤΑ"
-          value={formatNumber(rows.length)}
-          description="Σύνολο γραμμών αποτελεσμάτων"
-          icon={Package}
-        />
-
-        <KpiCard
-          title="Πωληθείσα ποσότητα"
-          value={formatNumber(totals.qtySold)}
-          description={formatDaysLabel(days)}
-          icon={ShoppingCart}
-        />
-
-        <KpiCard
-          title="Σε εξέλιξη"
-          value={formatNumber(totals.ongoing)}
-          description="Ποσότητες σε ανοικτές κινήσεις"
-          icon={RefreshCw}
-        />
-
-        <KpiCard
-          title="Συνολική διαθεσιμότητα"
-          value={formatNumber(totals.totalAvail)}
-          description="Άθροισμα TOTAL_AVAIL"
-          icon={Warehouse}
-        />
-      </div>}
 
       <DataTable className={embedded ? "flex h-[36rem] min-h-[20rem] flex-col" : "flex h-[calc(100dvh-8rem)] min-h-[20rem] flex-col"}>
         <DataTableHeader
@@ -496,17 +436,15 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
           />
         ) : (
           <div className="min-h-0 w-full flex-1 overflow-auto">
-            <table className="w-full min-w-[1380px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
+            <table className="w-full min-w-[1500px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
               <colgroup>
                 <col className="w-[12%]" />
-                <col className="w-[18%]" />
-                <col className="w-[7%]" />
-                <col className="w-[7%]" />
-                <col className="w-[8%]" />
-                <col className="w-[8%]" />
-                <col className="w-[8%]" />
-                <col className="w-[8%]" />
+                <col className="w-[16%]" />
+                <col className="w-[6%]" />
                 <col className="w-[24%]" />
+                <col className="w-[5%]" />
+                <col className="w-[20%]" />
+                <col className="w-[17%]" />
               </colgroup>
 
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
@@ -517,27 +455,17 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                   <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Είδος
                   </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Πωλήσεις
                   </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Σε εξέλιξη
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Ιστορικό πωλήσεων
                   </th>
-                  {stockBranchColumns.map((branch) => (
-                    <th
-                      key={branch}
-                      className={[
-                        "px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide",
-                        branch === currentBranchCode
-                          ? getBranchColor(branch)
-                          : "text-gray-500 dark:text-gray-400",
-                      ].join(" ")}
-                    >
-                      {resolveBranchName(branch)}
-                    </th>
-                  ))}
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Διαθέσιμο
+                  <th className="px-1 py-3 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Σε Εξέλιξη
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Διαθεσιμότητα
                   </th>
                   <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                     Αίτημα
@@ -548,7 +476,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filteredRows.map((row, index) => {
                   const totalAvail = toNumber(row.TOTAL_AVAIL);
-                  const qtySold = toNumber(row.QTY_SOLD);
+                  const qtySold = toNumber(row.QTY_WIN);
                   const mtrlKey = String(row.MTRL);
                   const requestQty = getRequestQuantity(mtrlKey);
                   const requestError = requestErrors[mtrlKey] ?? "";
@@ -561,7 +489,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                       key={`${row.MTRL}-${row.CODE}-${index}`}
                       className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
                     >
-                      <td className="px-3 py-2 align-top">
+                      <td className="px-3 py-2 align-middle">
                         <button
                           type="button"
                           onClick={() => setSelectedForensicsItem(row)}
@@ -584,81 +512,149 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                           ) : null}
                         </button>
                       </td>
-                      <td className="px-5 py-4 align-top">
+                      <td className="px-5 py-4 align-middle">
                         <p className="break-words font-medium leading-5 text-gray-900 dark:text-white">
                           {row.NAME || "—"}
                         </p>
+                        <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400">
+                          <span>CODE1: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.CODE1 || "—"}</strong></span>
+                          <span>SUFFIX: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.CCCSUFIX || "—"}</strong></span>
+                          <span>GROUP: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.ZGROUP_CODE || "—"}</strong></span>
+                          <span>B2B: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.ZB2B_CODE || "—"}</strong></span>
+                        </span>
                       </td>
 
-                      <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums font-semibold text-gray-900 dark:text-white">
+                      <td className="whitespace-nowrap px-4 py-4 text-center align-middle tabular-nums font-semibold text-gray-900 dark:text-white">
                         {formatNumber(qtySold)}
                       </td>
 
-                      <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums text-gray-700 dark:text-gray-200">
+                      <td className="px-4 py-4 align-middle">
+                        {isItemSearchResult ? (
+                          <p className="text-center text-xs text-gray-400 dark:text-gray-500">
+                            Δεν παρέχεται από την αναζήτηση ERP
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {SALES_HISTORY_FIELDS.map(({ sales, monthlyRate }, historyIndex) => {
+                              const year = currentYear - historyIndex;
+
+                              return (
+                                <div
+                                  key={sales}
+                                  className="min-w-0 rounded-lg bg-gray-50 px-1.5 py-1.5 text-center dark:bg-gray-800/70"
+                                  title={`${sales}-${year} · ${monthlyRate}`}
+                                >
+                                  <p className="whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500">
+                                    {year}
+                                  </p>
+                                  <p className="mt-0.5 text-sm font-semibold tabular-nums leading-tight text-gray-800 dark:text-gray-100">
+                                    {formatNumber(row[sales])}
+                                  </p>
+                                  <p className="mt-1 whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500">
+                                    Ρυθμός/μήνα
+                                  </p>
+                                  <p className="mt-0.5 text-xs font-medium tabular-nums leading-tight text-gray-600 dark:text-gray-300">
+                                    {formatNumber(row[monthlyRate])}
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="whitespace-nowrap px-1 py-4 text-center align-middle text-xs tabular-nums text-gray-700 dark:text-gray-200">
                         {formatNumber(row.ONGOING)}
                       </td>
 
-                      {stockBranchColumns.map((branch) => (
-                        <td
-                          key={branch}
-                          className={[
-                            "whitespace-nowrap px-5 py-4 text-right align-top tabular-nums",
-                            branch === currentBranchCode
-                              ? `font-semibold ${getBranchColor(branch)}`
-                              : "text-gray-700 dark:text-gray-200",
-                          ].join(" ")}
-                        >
-                          {formatNumber(row[`YP${branch}`])}
-                        </td>
-                      ))}
+                      <td className="px-4 py-4 align-middle">
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {availabilityFields.map(({ key, branch }) => {
+                            const isLoggedInBranch = branch === currentBranchCode;
 
-                      <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums">
-                        <NumberBadge
-                          value={formatNumber(totalAvail)}
-                          variant={totalAvail > 0 ? "success" : "danger"}
-                          className="min-w-[72px]"
-                        />
+                            return (
+                              <div
+                                key={key}
+                                className={[
+                                  "min-w-0 rounded-lg px-1.5 py-1.5 text-center",
+                                  isLoggedInBranch
+                                    ? getBranchColor(branch)
+                                    : "bg-gray-50 dark:bg-gray-800/70",
+                                ].join(" ")}
+                                title={`${key} · ${resolveBranchName(branch)}`}
+                              >
+                                <p
+                                  className={[
+                                    "truncate text-[10px] font-medium",
+                                    isLoggedInBranch
+                                      ? "opacity-75"
+                                      : "text-gray-400 dark:text-gray-500",
+                                  ].join(" ")}
+                                >
+                                  {key}
+                                </p>
+                                <p
+                                  className={[
+                                    "mt-0.5 font-semibold tabular-nums",
+                                    isLoggedInBranch
+                                      ? ""
+                                      : "text-gray-800 dark:text-gray-100",
+                                  ].join(" ")}
+                                >
+                                  {formatNumber(row[key])}
+                                </p>
+                              </div>
+                            );
+                          })}
+                          <div className="flex min-w-0 flex-col items-center rounded-lg bg-brand-50 px-1.5 py-1.5 text-center dark:bg-brand-500/10">
+                            <p className="text-[10px] font-medium text-brand-500 dark:text-brand-300">
+                              TOTAL
+                            </p>
+                            <NumberBadge
+                              value={formatNumber(totalAvail)}
+                              variant={totalAvail > 0 ? "success" : "danger"}
+                              className="mt-0.5 min-w-0 px-2 py-0.5"
+                            />
+                          </div>
+                        </div>
                       </td>
 
-                      <td className="px-5 py-4 align-top">
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="flex w-full items-center justify-end gap-2">
-                            <div className="inline-flex items-center gap-2">
-                              <QuantityControl
-                                value={requestQty}
-                                onChange={(nextQty) => {
-                                  setRequestQuantity(mtrlKey, nextQty);
-                                  setRequestErrors((prev) => ({
-                                    ...prev,
-                                    [mtrlKey]: "",
-                                  }));
-                                }}
-                                min={0}
-                                size="sm"
-                                disabled={isSubmittingRequest}
-                                displayZeroAsEmpty
-                                placeholder="0"
-                                decrementLabel="Μείωση ποσότητας ανατροφοδοσίας"
-                                incrementLabel="Αύξηση ποσότητας ανατροφοδοσίας"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => void handleSubmitStockRequest(row)}
-                                disabled={isSubmittingRequest || requestQty <= 0 || !currentBranchCode}
-                                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
-                              >
-                                {isSubmittingRequest ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Send className="h-3.5 w-3.5" />
-                                )}
-                                <span>Αίτημα</span>
-                              </button>
-                            </div>
-                          </div>
+                      <td className="px-2 py-3 align-middle">
+                        <div className="flex min-w-0 flex-col items-stretch justify-center gap-2">
+                          <QuantityControl
+                            value={requestQty}
+                            onChange={(nextQty) => {
+                              setRequestQuantity(mtrlKey, nextQty);
+                              setRequestErrors((prev) => ({
+                                ...prev,
+                                [mtrlKey]: "",
+                              }));
+                            }}
+                            min={0}
+                            size="sm"
+                            fullWidth
+                            disabled={isSubmittingRequest}
+                            displayZeroAsEmpty
+                            placeholder="0"
+                            decrementLabel="Μείωση ποσότητας ανατροφοδοσίας"
+                            incrementLabel="Αύξηση ποσότητας ανατροφοδοσίας"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void handleSubmitStockRequest(row)}
+                            disabled={isSubmittingRequest || requestQty <= 0 || !currentBranchCode}
+                            className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-2 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
+                          >
+                            {isSubmittingRequest ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Send className="h-3.5 w-3.5" />
+                            )}
+                            <span>Αίτημα</span>
+                          </button>
 
                           {requestError && (
-                            <p className="max-w-[220px] text-right text-[11px] font-medium leading-4 text-red-500">
+                            <p className="text-left text-[11px] font-medium leading-4 text-red-500">
                               {requestError}
                             </p>
                           )}

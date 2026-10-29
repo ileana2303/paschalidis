@@ -417,18 +417,41 @@ export interface StockFeedbackPayload {
     service: "SqlData";
     clientID: string;
     appId: "1305";
-    SqlName: "SALES_PER_BRANCH";
+    SqlName: "SALES_PASCHA";
     BRANCH: string;
-    DAYS: number;
+    DAYS: string;
 }
 
-export interface IStockFeedbackRow {
+export interface ISalesPaschaRow {
     MTRL: string;
     CODE: string;
     NAME: string;
     CODE1: string;
     CODE2: string;
-    QTY_SOLD: string;
+    CCCSUFIX: string;
+    ZGROUP_CODE: string;
+    ZB2B_CODE: string;
+    SUGGESTED_TRDR: string;
+    SUGGESTED_TRDR_CODE: string;
+    SUGGESTED_TRDR_NAME: string;
+    DAYS: string;
+    BRANCH: string;
+    MINES: string;
+    QTY_WIN: string;
+    RYTHMOS_MINA: string;
+    Y0: string;
+    Y1: string;
+    Y2: string;
+    Y3: string;
+    Y4: string;
+    M0: string;
+    M1: string;
+    M2: string;
+    M3: string;
+    M4: string;
+    R1: string;
+    PCT_VS_M1: string;
+    TASI_WIN: string;
     ONGOING: string;
     YP1000: string;
     YP1006: string;
@@ -443,9 +466,18 @@ export interface IStockFeedbackRow {
     END1007: string;
     END_TOTAL: string;
     FREE_AVAIL: string;
-    RES_BRANCH: string;
     YP_BRANCH: string;
+    RES_BRANCH: string;
+    END_BRANCH: string;
+    SIM_ITEMS: string;
+    SIM_AVAIL: string;
+    GRP_ITEMS: string;
+    GRP_AVAIL: string;
+    B2B_ITEMS: string;
+    B2B_AVAIL: string;
 }
+
+export type IStockFeedbackRow = ISalesPaschaRow;
 
 export interface StockFeedbackResponse
     extends ApiResponse<IStockFeedbackRow> { }
@@ -459,63 +491,11 @@ export interface CompanyStockPayload {
     clientID: string;
     appId: "1305";
     SqlName: "SALES_PASCHA";
+    BRANCH: "ALL";
     DAYS: string;
 }
 
-export interface ICompanyStockRow {
-    MTRL: string;
-    CODE: string;
-    NAME: string;
-    CODE1: string;
-    CODE2: string;
-    CCCSUFIX: string;
-    ZGROUP_CODE: string;
-    ZB2B_CODE: string;
-    SUGGESTED_TRDR: string;
-    SUGGESTED_TRDR_CODE: string;
-    SUGGESTED_TRDR_NAME: string;
-    QTY_SOLD: string;
-    CY: string;
-    CY_1: string;
-    CY_2: string;
-    CY_3: string;
-    CY_4: string;
-    ONGOING: string;
-    YP1000: string;
-    YP1006: string;
-    YP1007: string;
-    TOTAL_AVAIL: string;
-    SIM_ITEMS: string;
-    SIM_QTY_SOLD: string;
-    SIM_CY: string;
-    SIM_CY_1: string;
-    SIM_CY_2: string;
-    SIM_CY_3: string;
-    SIM_CY_4: string;
-    SIM_AVAIL: string;
-    SIM_GROUP_ITEMS_SOLD: string;
-    SHARE_SIM_CY: string;
-    G_ITEMS: string;
-    G_ITEMS_SOLD: string;
-    G_QTY_SOLD: string;
-    G_CY: string;
-    G_CY_1: string;
-    G_CY_2: string;
-    G_CY_3: string;
-    G_CY_4: string;
-    G_AVAIL: string;
-    SHARE_GROUP_IN_SIM: string;
-    B_ITEMS: string;
-    B_ITEMS_SOLD: string;
-    B_QTY_SOLD: string;
-    B_CY: string;
-    B_CY_1: string;
-    B_CY_2: string;
-    B_CY_3: string;
-    B_CY_4: string;
-    B_AVAIL: string;
-    SHARE_B2B_IN_SIM: string;
-}
+export type ICompanyStockRow = ISalesPaschaRow;
 
 export interface CompanyStockResponse
     extends ApiResponse<ICompanyStockRow> { }

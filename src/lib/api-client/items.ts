@@ -206,16 +206,32 @@ export async function fetchStockFeedback(
     }
 
     const requestPromise = (async () => {
-        const { data } = await httpClient.post<StockFeedbackResponse>(
-            "/api/items/stock-feedback",
-            payload
-        );
+        try {
+            const { data } = await httpClient.post<StockFeedbackResponse>(
+                "/api/items/stock-feedback",
+                payload
+            );
 
-        if (!data?.success) {
-            throw new Error(data?.message ?? 'Αποτυχία φόρτωσης αποθεμάτων.');
+            if (!data?.success) {
+                throw new Error(
+                    data?.message ?? "Αποτυχία φόρτωσης αποθεμάτων."
+                );
+            }
+
+            return data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                const message = (
+                    error.response?.data as Partial<StockFeedbackResponse> | undefined
+                )?.message;
+
+                throw new Error(
+                    message?.trim() || "Αποτυχία φόρτωσης αποθεμάτων."
+                );
+            }
+
+            throw error;
         }
-
-        return data;
     })();
 
     stockFeedbackInFlightRequests.set(requestKey, requestPromise);

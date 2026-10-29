@@ -50,13 +50,13 @@ import { useAuthStore } from "@/stores/authStore";
 import toast from "react-hot-toast";
 
 const DAY_OPTIONS = [1, 3, 7, 10] as const;
-const SALES_HISTORY_FIELDS = ["CY", "CY_1", "CY_2", "CY_3", "CY_4"] as const;
-
-function salesHistorySimField(
-  field: (typeof SALES_HISTORY_FIELDS)[number]
-): keyof ICompanyStockRow {
-  return field === "CY" ? "SIM_CY" : (`SIM_${field}` as keyof ICompanyStockRow);
-}
+const SALES_HISTORY_FIELDS = [
+  { sales: "Y0", monthlyRate: "M0" },
+  { sales: "Y1", monthlyRate: "M1" },
+  { sales: "Y2", monthlyRate: "M2" },
+  { sales: "Y3", monthlyRate: "M3" },
+  { sales: "Y4", monthlyRate: "M4" },
+] as const;
 const AVAILABILITY_FIELDS = [
   { key: "YP1000", branch: "1000" },
   { key: "YP1006", branch: "1006" },
@@ -76,47 +76,47 @@ function itemSearchResultToCompanyStockRow(item: IItem): ICompanyStockRow {
     SUGGESTED_TRDR: item.SUGGESTED_TRDR,
     SUGGESTED_TRDR_CODE: item.SUGGESTED_TRDR_CODE,
     SUGGESTED_TRDR_NAME: item.SUGGESTED_TRDR_NAME,
-    QTY_SOLD: "0",
-    CY: "0",
-    CY_1: "0",
-    CY_2: "0",
-    CY_3: "0",
-    CY_4: "0",
+    DAYS: "0",
+    BRANCH: "ALL",
+    MINES: "0",
+    QTY_WIN: "0",
+    RYTHMOS_MINA: "0",
+    Y0: "0",
+    Y1: "0",
+    Y2: "0",
+    Y3: "0",
+    Y4: "0",
+    M0: "0",
+    M1: "0",
+    M2: "0",
+    M3: "0",
+    M4: "0",
+    R1: "0",
+    PCT_VS_M1: "0",
+    TASI_WIN: "",
     ONGOING: item.ONGOING,
     YP1000: item.YP1000,
     YP1006: item.YP1006,
     YP1007: item.YP1007,
     TOTAL_AVAIL: item.TOTAL_AVAIL,
-    SIM_ITEMS: "",
-    SIM_QTY_SOLD: "0",
-    SIM_CY: "0",
-    SIM_CY_1: "0",
-    SIM_CY_2: "0",
-    SIM_CY_3: "0",
-    SIM_CY_4: "0",
+    RES1000: item.RES1000,
+    RES1006: item.RES1006,
+    RES1007: item.RES1007,
+    RES_TOTAL: item.RES_TOTAL,
+    END1000: item.END1000,
+    END1006: item.END1006,
+    END1007: item.END1007,
+    END_TOTAL: item.END_TOTAL,
+    FREE_AVAIL: item.NET_QTY_AVAILABLE,
+    YP_BRANCH: "0",
+    RES_BRANCH: "0",
+    END_BRANCH: "0",
+    SIM_ITEMS: "0",
     SIM_AVAIL: "0",
-    SIM_GROUP_ITEMS_SOLD: "0",
-    SHARE_SIM_CY: "0",
-    G_ITEMS: "",
-    G_ITEMS_SOLD: "0",
-    G_QTY_SOLD: "0",
-    G_CY: "0",
-    G_CY_1: "0",
-    G_CY_2: "0",
-    G_CY_3: "0",
-    G_CY_4: "0",
-    G_AVAIL: "0",
-    SHARE_GROUP_IN_SIM: "0",
-    B_ITEMS: "",
-    B_ITEMS_SOLD: "0",
-    B_QTY_SOLD: "0",
-    B_CY: "0",
-    B_CY_1: "0",
-    B_CY_2: "0",
-    B_CY_3: "0",
-    B_CY_4: "0",
-    B_AVAIL: "0",
-    SHARE_B2B_IN_SIM: "0",
+    GRP_ITEMS: "0",
+    GRP_AVAIL: "0",
+    B2B_ITEMS: "0",
+    B2B_AVAIL: "0",
   };
 }
 
@@ -255,7 +255,7 @@ export default function CompanyStockClient() {
 
       setRows(
         [...(data.rows ?? [])].sort(
-          (first, second) => toNumber(second.QTY_SOLD) - toNumber(first.QTY_SOLD)
+          (first, second) => toNumber(second.QTY_WIN) - toNumber(first.QTY_WIN)
         )
       );
       setSupplierOverrides({});
@@ -849,7 +849,7 @@ export default function CompanyStockClient() {
                       </td>
 
                       <td className="whitespace-nowrap px-4 py-4 text-center align-middle tabular-nums font-semibold text-gray-900 dark:text-white">
-                        {formatNumber(row.QTY_SOLD)}
+                        {formatNumber(row.QTY_WIN)}
                       </td>
 
                       <td className="px-4 py-4 align-middle">
@@ -859,31 +859,30 @@ export default function CompanyStockClient() {
                           </p>
                         ) : (
                           <div className="grid grid-cols-5 gap-1.5">
-                          {SALES_HISTORY_FIELDS.map((field, historyIndex) => {
+                          {SALES_HISTORY_FIELDS.map(({ sales, monthlyRate }, historyIndex) => {
                             const year = currentYear - historyIndex;
-                            const simField = salesHistorySimField(field);
 
                             return (
                               <div
-                                key={field}
+                                key={sales}
                                 className="min-w-0 rounded-lg bg-gray-50 px-1.5 py-1.5 text-center dark:bg-gray-800/70"
-                                title={`${field}-${year} · ${simField}`}
+                                title={`${sales}-${year} · ${monthlyRate}`}
                               >
                                 <p
                                   className="whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500"
                                 >
-                                  {field}-{year}
+                                  {year}
                                 </p>
                                 <p className="mt-0.5 text-sm font-semibold tabular-nums leading-tight text-gray-800 dark:text-gray-100">
-                                  {formatNumber(row[field])}
+                                  {formatNumber(row[sales])}
                                 </p>
                                 <p
                                   className="mt-1 whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500"
                                 >
-                                  {simField}
+                                  Ρυθμός/μήνα
                                 </p>
                                 <p className="mt-0.5 text-xs font-medium tabular-nums leading-tight text-gray-600 dark:text-gray-300">
-                                  {formatNumber(row[simField])}
+                                  {formatNumber(row[monthlyRate])}
                                 </p>
                               </div>
                             );
