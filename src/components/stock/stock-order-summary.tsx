@@ -21,9 +21,11 @@ export interface StockOrderSummaryProps {
     requestedQtyTotal: number;
     branchLabel: string;
     title?: string;
+    basketTitle?: string;
     emptyMessage?: string;
     error?: string;
     lineLayout?: "request" | "basket";
+    showRequestDetails?: boolean;
     onChangeQuantity?: (row: IStockRequestListRow, quantity: number) => void;
     updatingBasketIds?: Set<string>;
     selectedBasketIds?: Set<string>;
@@ -32,7 +34,6 @@ export interface StockOrderSummaryProps {
     onToggleLineSelection?: (basketId: string) => void;
     onRemoveLine?: (row: IStockRequestListRow) => void;
     onRemoveSelectedLines?: () => void;
-    getStatusStyle: (status: string) => string;
     getRequestedQty: (row: IStockRequestListRow) => string;
     formatDateTime: (value?: string) => string;
     loading: boolean;
@@ -51,9 +52,11 @@ export default function StockOrderSummary({
     requestedQtyTotal,
     branchLabel,
     title = "Αποστολή Ανατροφοδοσίας S1",
+    basketTitle = "Καλάθι Ανατροφοδοσίας",
     emptyMessage = "Δεν υπάρχουν ολοκληρωμένα αιτήματα.",
     error = "",
     lineLayout = "request",
+    showRequestDetails = false,
     onChangeQuantity,
     updatingBasketIds,
     selectedBasketIds,
@@ -62,7 +65,6 @@ export default function StockOrderSummary({
     onToggleLineSelection,
     onRemoveLine,
     onRemoveSelectedLines,
-    getStatusStyle,
     getRequestedQty,
     formatDateTime,
     loading,
@@ -75,7 +77,6 @@ export default function StockOrderSummary({
     collapsed = false,
     onToggleCollapse,
 }: StockOrderSummaryProps) {
-    const sendDisabled = sendingOrder || rows.length === 0;
     const allLinesSelected =
         rows.length > 0 &&
         selectedBasketIds != null &&
@@ -85,6 +86,9 @@ export default function StockOrderSummary({
         : rows.length;
     const hasPartialSelection =
         selectedBasketIds != null && selectedLineCount !== rows.length;
+    const sendDisabled =
+        sendingOrder ||
+        (selectedBasketIds ? selectedLineCount === 0 : rows.length === 0);
 
     const handleToggleAllLines = () => {
         if (!selectedBasketIds || !onToggleLineSelection) return;
@@ -161,7 +165,7 @@ export default function StockOrderSummary({
             <section className="mt-5">
                 <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                        Αιτήματα Ανατροφοδοσίας προς Έγκριση
+                        {basketTitle}
                     </p>
                     <div className="flex max-w-full flex-wrap items-center gap-2">
                         {lineLayout === "basket" &&
@@ -236,6 +240,24 @@ export default function StockOrderSummary({
                                     selectedBasketIds?.has(row.BASKETID) ?? true
                                 }
                                 removing={removingBasketIds?.has(row.BASKETID)}
+                                details={
+                                    showRequestDetails ? (
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                            <span className="whitespace-nowrap">
+                                                Ημ/νία Αιτήματος:{" "}
+                                                <strong className="font-semibold tabular-nums text-gray-700 dark:text-gray-200">
+                                                    {formatDateTime(row.INS_DATE)}
+                                                </strong>
+                                            </span>
+                                            <span className="whitespace-nowrap">
+                                                Ημ/νία Έγκρισης:{" "}
+                                                <strong className="font-semibold tabular-nums text-gray-700 dark:text-gray-200">
+                                                    {formatDateTime(row.APPROVED_TS)}
+                                                </strong>
+                                            </span>
+                                        </div>
+                                    ) : undefined
+                                }
                                 onQuantityChange={
                                     onChangeQuantity
                                         ? (quantity) => onChangeQuantity(row, quantity)
@@ -271,13 +293,6 @@ export default function StockOrderSummary({
                                         </p>
                                     </div>
 
-                                    <span
-                                        className={`shrink-0 rounded-full px-2 py-1 text-[10px] ${getStatusStyle(
-                                            row.STATUS
-                                        )}`}
-                                    >
-                                        {row.STATUS}
-                                    </span>
                                 </div>
 
                                 <div className="mt-3">

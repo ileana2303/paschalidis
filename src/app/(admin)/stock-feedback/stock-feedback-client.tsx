@@ -50,7 +50,6 @@ import { getAthensMonthName } from "@/lib/utils/athens-date";
 import {
   formatDateTime,
   getRequestedQty,
-  getStatusStyle,
   sortStockRequestRows,
 } from "@/lib/utils/stock-requests";
 import { itemSearchResultToSalesPaschaRow } from "@/lib/utils/sales-pascha";
@@ -874,6 +873,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
             requestedQtyTotal={summaryRequestedQty}
             branchLabel={currentBranchLabel}
             title="Καλάθι Ανατροφοδοσίας Καταστήματος"
+            basketTitle="Αιτήματα Ανατροφοδοσίας"
             emptyMessage="Δεν υπάρχουν αιτήματα στο καλάθι."
             error={summaryError}
             lineLayout="basket"
@@ -894,7 +894,6 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                 true
               )
             }
-            getStatusStyle={getStatusStyle}
             getRequestedQty={getRequestedQty}
             formatDateTime={formatDateTime}
             loading={summaryLoading}

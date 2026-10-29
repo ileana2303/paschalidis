@@ -43,7 +43,6 @@ import {
     formatDateTime,
     getActionQty,
     getRequestedQty,
-    getStatusStyle,
     getValidatedQty,
     isStockRequestBranchCode,
     sortStockRequestRows,
@@ -92,6 +91,14 @@ export default function StockRequestsClient({
     const [editingId, setEditingId] = useState("");
     const [editedQty, setEditedQty] = useState("");
     const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
+    const [selectedSummaryBasketIds, setSelectedSummaryBasketIds] = useState<
+        Set<string>
+    >(new Set());
+    const [removingSummaryBasketIds, setRemovingSummaryBasketIds] = useState<
+        Set<string>
+    >(new Set());
+    const [removingSelectedSummaryLines, setRemovingSelectedSummaryLines] =
+        useState(false);
     const [searchTerm, setSearchTerm] = useSessionState(
         isStockList ? "stock-list-search" : "stock-requests-search",
         ""
@@ -139,11 +146,20 @@ export default function StockRequestsClient({
                 origin: "STORE",
             });
 
-            setRows(sortStockRequestRows(data.rows ?? []));
+            const nextRows = sortStockRequestRows(data.rows ?? []);
+            setRows(nextRows);
+            setSelectedSummaryBasketIds(
+                new Set(
+                    nextRows
+                        .filter((row) => canSubmitAnatrofRow(row.STATUS))
+                        .map((row) => row.BASKETID)
+                )
+            );
             setEditingId("");
             setEditedQty("");
         } catch (err) {
             setRows([]);
+            setSelectedSummaryBasketIds(new Set());
             toast.error(
                 err instanceof Error
                     ? err.message
@@ -161,7 +177,21 @@ export default function StockRequestsClient({
                 origin: "STORE",
             });
 
-            setRows(sortStockRequestRows(data.rows ?? []));
+            const nextRows = sortStockRequestRows(data.rows ?? []);
+            const approvedBasketIds = new Set(
+                nextRows
+                    .filter((row) => canSubmitAnatrofRow(row.STATUS))
+                    .map((row) => row.BASKETID)
+            );
+
+            setRows(nextRows);
+            setSelectedSummaryBasketIds((current) =>
+                new Set(
+                    Array.from(current).filter((basketId) =>
+                        approvedBasketIds.has(basketId)
+                    )
+                )
+            );
         } catch (err) {
             toast.error(
                 err instanceof Error
@@ -295,6 +325,9 @@ export default function StockRequestsClient({
                 );
                 setEditingId("");
                 setEditedQty("");
+                setSelectedSummaryBasketIds((current) =>
+                    new Set(current).add(row.BASKETID)
+                );
                 toast.success("Το αίτημα εγκρίθηκε");
                 return;
             }
@@ -349,18 +382,107 @@ export default function StockRequestsClient({
         [rows]
     );
 
-    const approvedRequestedQty = useMemo(
+    const selectedApprovedRows = useMemo(
         () =>
-            approvedRows.reduce((sum, row) => {
+            approvedRows.filter((row) =>
+                selectedSummaryBasketIds.has(row.BASKETID)
+            ),
+        [approvedRows, selectedSummaryBasketIds]
+    );
+
+    const selectedApprovedRequestedQty = useMemo(
+        () =>
+            selectedApprovedRows.reduce((sum, row) => {
                 const qty = Number(row.QTY_REQUESTED);
 
                 return sum + (Number.isFinite(qty) ? qty : 0);
             }, 0),
-        [approvedRows]
+        [selectedApprovedRows]
     );
 
+    const handleToggleSummaryLine = (basketId: string) => {
+        setSelectedSummaryBasketIds((current) => {
+            const next = new Set(current);
+            if (next.has(basketId)) {
+                next.delete(basketId);
+            } else {
+                next.add(basketId);
+            }
+            return next;
+        });
+    };
+
+    const handleSummaryQuantityChange = async (
+        row: IStockRequestListRow,
+        quantity: number
+    ) => {
+        const normalizedQty = getValidatedQty(String(quantity));
+
+        if (!normalizedQty) {
+            toast.error("Η αιτούμενη ποσότητα πρέπει να είναι θετικός ακέραιος αριθμός.");
+            return;
+        }
+
+        await handleUpdateAction(row, "UPDATE", normalizedQty);
+    };
+
+    const handleRemoveSummaryLines = async (
+        lines: IStockRequestListRow[],
+        bulk = false
+    ) => {
+        if (lines.length === 0) return;
+
+        const basketIds = new Set(lines.map((row) => row.BASKETID));
+        setRemovingSummaryBasketIds((current) => {
+            const next = new Set(current);
+            basketIds.forEach((basketId) => next.add(basketId));
+            return next;
+        });
+        if (bulk) {
+            setRemovingSelectedSummaryLines(true);
+        }
+
+        try {
+            const results = await Promise.allSettled(
+                lines.map((row) =>
+                    updateStockRequest({
+                        action: "DELETE",
+                        basketId: Number(row.BASKETID),
+                        qty: getActionQty(row) ?? "1",
+                    })
+                )
+            );
+            const failedCount = results.filter(
+                (result) => result.status === "rejected"
+            ).length;
+
+            await loadRows();
+
+            if (failedCount > 0) {
+                toast.error(
+                    `${failedCount} ${failedCount === 1 ? "γραμμή δεν διαγράφηκε" : "γραμμές δεν διαγράφηκαν"}.`
+                );
+            } else {
+                toast.success(
+                    lines.length === 1
+                        ? "Η γραμμή αφαιρέθηκε από τη σύνοψη."
+                        : "Οι επιλεγμένες γραμμές αφαιρέθηκαν από τη σύνοψη."
+                );
+            }
+        } finally {
+            setRemovingSummaryBasketIds((current) => {
+                const next = new Set(current);
+                basketIds.forEach((basketId) => next.delete(basketId));
+                return next;
+            });
+            if (bulk) {
+                setRemovingSelectedSummaryLines(false);
+            }
+        }
+    };
+
     const handleSubmitAnatrofOrder = useCallback(async () => {
-        if (approvedRows.length === 0) {
+        if (selectedApprovedRows.length === 0) {
             toast.error("Δεν υπάρχουν εγκεκριμένες γραμμές για αποστολή.");
             return;
         }
@@ -373,7 +495,7 @@ export default function StockRequestsClient({
                 requestingBranch: selectedBranchCode,
                 supplyingBranch: currentBranchCode,
                 notes,
-                items: approvedRows,
+                items: selectedApprovedRows,
             });
 
             setNotes("");
@@ -392,11 +514,11 @@ export default function StockRequestsClient({
             setSubmittingAnatrof(false);
         }
     }, [
-        approvedRows,
         currentBranchCode,
         loadRows,
         notes,
         selectedBranchCode,
+        selectedApprovedRows,
         setNotes,
         submitAnatrofOrder,
         user,
@@ -797,9 +919,30 @@ export default function StockRequestsClient({
                     {!isStockList && (
                         <StockOrderSummary
                             rows={approvedRows}
-                            requestedQtyTotal={approvedRequestedQty}
+                            requestedQtyTotal={selectedApprovedRequestedQty}
                             branchLabel={selectedBranchLabel}
-                            getStatusStyle={getStatusStyle}
+                            basketTitle="Εγκεκριμένα Αιτήματα Ανατροφοδοσίας"
+                            lineLayout="basket"
+                            showRequestDetails
+                            onChangeQuantity={(row, quantity) =>
+                                void handleSummaryQuantityChange(row, quantity)
+                            }
+                            updatingBasketIds={
+                                updatingId ? new Set([updatingId]) : new Set()
+                            }
+                            selectedBasketIds={selectedSummaryBasketIds}
+                            removingBasketIds={removingSummaryBasketIds}
+                            removingSelectedLines={removingSelectedSummaryLines}
+                            onToggleLineSelection={handleToggleSummaryLine}
+                            onRemoveLine={(row) =>
+                                void handleRemoveSummaryLines([row])
+                            }
+                            onRemoveSelectedLines={() =>
+                                void handleRemoveSummaryLines(
+                                    selectedApprovedRows,
+                                    true
+                                )
+                            }
                             getRequestedQty={getRequestedQty}
                             formatDateTime={formatDateTime}
                             loading={loading}

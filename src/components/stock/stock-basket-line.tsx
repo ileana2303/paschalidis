@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import { Loader2, Trash2 } from "@/lib/icons/lucide";
 
@@ -11,6 +12,7 @@ interface StockBasketLineProps {
     updating?: boolean;
     selected?: boolean;
     removing?: boolean;
+    details?: ReactNode;
     onQuantityChange?: (quantity: number) => void;
     onToggleSelection?: () => void;
     onRemove?: () => void;
@@ -26,6 +28,7 @@ export default function StockBasketLine({
     updating = false,
     selected = true,
     removing = false,
+    details,
     onQuantityChange,
     onToggleSelection,
     onRemove,
@@ -113,6 +116,11 @@ export default function StockBasketLine({
                 <span>MTRL {mtrl}</span>
                 {basketId ? <span>ID {basketId}</span> : null}
             </div> */}
+            {details ? (
+                <div className="mt-3 border-t border-gray-200 pt-3 text-[11px] text-gray-500 dark:border-gray-800">
+                    {details}
+                </div>
+            ) : null}
         </div>
     );
 }
