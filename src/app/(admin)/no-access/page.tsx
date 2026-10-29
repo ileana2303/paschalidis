@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ShieldAlert } from "@/lib/icons/lucide";
 
 export const metadata: Metadata = {
-  title: "Χωρίς πρόσβαση | Paschalidis ERP",
+  title: "Χωρίς πρόσβαση | Oval",
 };
 
 export default function NoAccessPage() {

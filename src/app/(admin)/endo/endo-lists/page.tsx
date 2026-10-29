@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 const title = "Λίστες Ενδοδιακίνησης";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function EndoListsPage() {

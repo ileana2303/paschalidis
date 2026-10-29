@@ -4,7 +4,7 @@ import EndoListPageClient from "@/app/(admin)/endo/endo-lists/endo-list-page-cli
 const title = "Εκκρεμή Αιτήματα Ενδοδιακίνησης";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function EndoListsRequestedPage() {

@@ -4,7 +4,7 @@ import EditItemsClient from "./edit-items-client";
 const title = "Επεξεργασία Ειδών";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function EditItemsPage() {

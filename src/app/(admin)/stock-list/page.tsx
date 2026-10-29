@@ -4,7 +4,7 @@ import StockRequestsClient from "@/app/(admin)/stock-requests/stock-requests-cli
 const title = "Λίστα Ανατροφοδοσίας";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function StockListPage() {

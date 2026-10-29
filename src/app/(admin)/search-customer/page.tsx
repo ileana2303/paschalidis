@@ -4,7 +4,7 @@ import SearchCustomerClient from "./search-customer-client";
 const title = "Αναζήτηση Πελατών";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function SearchCustomerPage() {

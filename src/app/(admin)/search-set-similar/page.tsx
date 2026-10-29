@@ -4,7 +4,7 @@ import SearchSetSimilarClient from "./search-set-similar-client";
 const title = "Ορισμός Ομοίων Ανταλλακτικών";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function SearchSetSimilarPage() {

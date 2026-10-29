@@ -5,7 +5,7 @@ import EndoPartsClient from "./endo-parts-client";
 const title = "Ενδοδιακίνηση Ανταλλακτικών";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function EndoPartsPage() {
