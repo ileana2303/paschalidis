@@ -1,4 +1,4 @@
-export type SupplierPriceCatalogCode = "FEBI" | "PRICES" | "TRISCAN";
+export type SupplierPriceCatalogCode = string;
 
 export type SupplierPriceRow = {
   code: string;
