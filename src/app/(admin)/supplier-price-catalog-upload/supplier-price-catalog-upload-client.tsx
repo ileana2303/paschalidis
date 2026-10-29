@@ -319,7 +319,7 @@ export default function SupplierPriceCatalogUploadClient() {
 
             {usesCustomSupplierCode ? (
               <div>
-                <Label className="invisible" aria-hidden="true">
+                <Label>
                   Προμηθευτής
                 </Label>
                 <Input
