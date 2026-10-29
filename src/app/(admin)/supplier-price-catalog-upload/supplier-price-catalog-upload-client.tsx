@@ -320,7 +320,7 @@ export default function SupplierPriceCatalogUploadClient() {
             {usesCustomSupplierCode ? (
               <div>
                 <Label>
-                  Προμηθευτής
+                  Προμηθευτής (προαιρετικό)
                 </Label>
                 <Input
                   value={customSupplierCode}
