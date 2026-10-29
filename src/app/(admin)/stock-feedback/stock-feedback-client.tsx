@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import ItemForensicsDrawer from "@/components/stock/item-forensics-drawer";
+import StockOrderSummary from "@/components/stock/stock-order-summary";
 import QuantityControl from "@/components/ui/quantity-control";
 import {
   AlertCircle,
@@ -19,15 +20,24 @@ import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import ItemCodeBadge from "@/components/ui/item-code-badge";
-import type { IItem, IStockFeedbackRow } from "@/lib/interface";
+import type {
+  IStockFeedbackRow,
+  IStockRequestListRow,
+} from "@/lib/interface";
 import {
   useFetchStockFeedbackMutation,
+  useFetchStockRequestsMutation,
   useRequestStockQuantityMutation,
   useSearchItemsMutation,
+  useUpdateStockRequestMutation,
 } from "@/hooks/queries/useApiMutations";
 import { useAuthStore } from "@/stores/authStore";
 import toast from "react-hot-toast";
-import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
+import {
+  formatBranchLabel,
+  normalizeBranchCode,
+  resolveBranchName,
+} from "@/lib/auth/branches";
 import { getBranchColor } from "@/lib/branch-colors";
 import { useSessionState } from "@/hooks/useSessionState";
 import { useLoadOnChange } from "@/hooks/useLoadOnChange";
@@ -37,6 +47,13 @@ import {
   toNumber,
 } from "@/lib/utils/stock-feedback";
 import { getAthensMonthName } from "@/lib/utils/athens-date";
+import {
+  formatDateTime,
+  getRequestedQty,
+  getStatusStyle,
+  sortStockRequestRows,
+} from "@/lib/utils/stock-requests";
+import { itemSearchResultToSalesPaschaRow } from "@/lib/utils/sales-pascha";
 
 const DAY_OPTIONS = [1, 3, 7, 10] as const;
 const SALES_HISTORY_FIELDS = [
@@ -51,63 +68,6 @@ const AVAILABILITY_FIELDS = [
   { key: "YP1006", branch: "1006" },
   { key: "YP1007", branch: "1007" },
 ] as const;
-
-function itemSearchResultToStockFeedbackRow(item: IItem): IStockFeedbackRow {
-  return {
-    MTRL: item.MTRL,
-    CODE: item.ITEM_CODE,
-    NAME: item.ITEM_DESCR,
-    CODE1: item.CODE1_0,
-    CODE2: item.ITEM_CODE2,
-    CCCSUFIX: item.SUFIX,
-    ZGROUP_CODE: item.ZGROUP_CODE,
-    ZB2B_CODE: item.ZB2B_CODE,
-    SUGGESTED_TRDR: item.SUGGESTED_TRDR,
-    SUGGESTED_TRDR_CODE: item.SUGGESTED_TRDR_CODE,
-    SUGGESTED_TRDR_NAME: item.SUGGESTED_TRDR_NAME,
-    DAYS: "1",
-    BRANCH: "",
-    MINES: "0",
-    QTY_WIN: "0",
-    RYTHMOS_MINA: "0",
-    Y0: "0",
-    Y1: "0",
-    Y2: "0",
-    Y3: "0",
-    Y4: "0",
-    M0: "0",
-    M1: "0",
-    M2: "0",
-    M3: "0",
-    M4: "0",
-    R1: "0",
-    PCT_VS_M1: "0",
-    TASI_WIN: "",
-    ONGOING: item.ONGOING,
-    YP1000: item.YP1000,
-    YP1006: item.YP1006,
-    YP1007: item.YP1007,
-    TOTAL_AVAIL: item.TOTAL_AVAIL,
-    RES1000: item.RES1000,
-    RES1006: item.RES1006,
-    RES1007: item.RES1007,
-    RES_TOTAL: item.RES_TOTAL,
-    END1000: item.END1000,
-    END1006: item.END1006,
-    END1007: item.END1007,
-    END_TOTAL: item.END_TOTAL,
-    FREE_AVAIL: item.NET_QTY_AVAILABLE,
-    RES_BRANCH: "0",
-    YP_BRANCH: "0",
-    END_BRANCH: "0",
-    SIM_ITEMS: "0",
-    SIM_AVAIL: "0",
-    GRP_ITEMS: "0",
-    GRP_AVAIL: "0",
-    B2B_ITEMS: "0",
-    B2B_AVAIL: "0",
-  };
-}
 
 function TableSkeleton() {
   return (
@@ -130,7 +90,9 @@ function TableSkeleton() {
 export default function StockFeedbackClient({ embedded = false }: { embedded?: boolean }) {
   const user = useAuthStore((state) => state.user);
   const { mutateAsync: fetchStockFeedback } = useFetchStockFeedbackMutation();
+  const { mutateAsync: fetchStockRequests } = useFetchStockRequestsMutation();
   const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
+  const { mutateAsync: updateStockRequest } = useUpdateStockRequestMutation();
   const { mutateAsync: searchItems, isPending: searchingItems } =
     useSearchItemsMutation();
 
@@ -154,6 +116,13 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
   const [itemSearchRows, setItemSearchRows] = useState<IStockFeedbackRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [summaryRows, setSummaryRows] = useState<IStockRequestListRow[]>([]);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState("");
+  const [summaryVisible, setSummaryVisible] = useState(true);
+  const [updatingSummaryBasketIds, setUpdatingSummaryBasketIds] = useState<
+    Set<string>
+  >(new Set());
   const [searchTerm, setSearchTerm] = useSessionState(
     "stock-feedback-search",
     ""
@@ -168,8 +137,21 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
   const [selectedForensicsItem, setSelectedForensicsItem] =
     useState<IStockFeedbackRow | null>(null);
   const itemSearchRequestId = useRef(0);
+  const summaryLoadRequestId = useRef(0);
   const currentYear = new Date().getFullYear();
   const currentMonth = getAthensMonthName();
+  const currentBranchLabel = useMemo(
+    () => formatBranchLabel(currentBranchCode),
+    [currentBranchCode]
+  );
+  const summaryRequestedQty = useMemo(
+    () =>
+      summaryRows.reduce((total, row) => {
+        const quantity = Number(row.QTY_REQUESTED);
+        return total + (Number.isFinite(quantity) ? quantity : 0);
+      }, 0),
+    [summaryRows]
+  );
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -206,6 +188,107 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
   }, [currentBranchCode, days, fetchStockFeedback]);
 
   useLoadOnChange(loadRows);
+
+  const loadSummaryRows = useCallback(async () => {
+    const requestId = ++summaryLoadRequestId.current;
+
+    if (embedded || !currentBranchCode) {
+      setSummaryRows([]);
+      setSummaryError("");
+      setSummaryLoading(false);
+      return;
+    }
+
+    setSummaryLoading(true);
+    setSummaryError("");
+
+    try {
+      const data = await fetchStockRequests({
+        branch: currentBranchCode,
+        origin: "STORE",
+      });
+
+      if (requestId !== summaryLoadRequestId.current) return;
+
+      setSummaryRows(sortStockRequestRows(data.rows ?? []));
+    } catch (summaryLoadError) {
+      if (requestId !== summaryLoadRequestId.current) return;
+
+      setSummaryRows([]);
+      setSummaryError(
+        summaryLoadError instanceof Error
+          ? summaryLoadError.message
+          : "Αποτυχία φόρτωσης καλαθιού ανατροφοδοσίας."
+      );
+    } finally {
+      if (requestId === summaryLoadRequestId.current) {
+        setSummaryLoading(false);
+      }
+    }
+  }, [currentBranchCode, embedded, fetchStockRequests]);
+
+  useLoadOnChange(loadSummaryRows);
+
+  const handleSummaryQuantityChange = useCallback(
+    async (row: IStockRequestListRow, nextQuantity: number) => {
+      const basketId = Number(row.BASKETID);
+
+      if (!Number.isInteger(basketId) || basketId <= 0) {
+        toast.error("Μη έγκυρο αναγνωριστικό καλαθιού.");
+        return;
+      }
+
+      if (!Number.isInteger(nextQuantity) || nextQuantity <= 0) {
+        toast.error("Η ποσότητα πρέπει να είναι θετικός ακέραιος αριθμός.");
+        return;
+      }
+
+      const nextQuantityValue = String(nextQuantity);
+      const previousQuantityValue = row.QTY_REQUESTED;
+
+      if (nextQuantityValue === previousQuantityValue) return;
+
+      setUpdatingSummaryBasketIds((current) =>
+        new Set(current).add(row.BASKETID)
+      );
+      setSummaryRows((current) =>
+        current.map((currentRow) =>
+          currentRow.BASKETID === row.BASKETID
+            ? { ...currentRow, QTY_REQUESTED: nextQuantityValue }
+            : currentRow
+        )
+      );
+
+      try {
+        await updateStockRequest({
+          action: "UPDATE",
+          basketId,
+          qty: nextQuantityValue,
+        });
+        toast.success("Η ποσότητα ενημερώθηκε.");
+      } catch (updateError) {
+        setSummaryRows((current) =>
+          current.map((currentRow) =>
+            currentRow.BASKETID === row.BASKETID
+              ? { ...currentRow, QTY_REQUESTED: previousQuantityValue }
+              : currentRow
+          )
+        );
+        toast.error(
+          updateError instanceof Error
+            ? updateError.message
+            : "Αποτυχία ενημέρωσης ποσότητας."
+        );
+      } finally {
+        setUpdatingSummaryBasketIds((current) => {
+          const next = new Set(current);
+          next.delete(row.BASKETID);
+          return next;
+        });
+      }
+    },
+    [updateStockRequest]
+  );
 
   const availableRows = useMemo(() => {
     const salesMtrls = new Set(rows.map((row) => String(row.MTRL)));
@@ -262,7 +345,12 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
         throw new Error(result.message || "Η αναζήτηση ειδών δεν ολοκληρώθηκε.");
       }
 
-      const nextRows = (result.rows ?? []).map(itemSearchResultToStockFeedbackRow);
+      const nextRows = (result.rows ?? []).map((item) =>
+        itemSearchResultToSalesPaschaRow(item, {
+          days: "1",
+          branch: "",
+        })
+      );
       setItemSearchRows(nextRows);
 
       if (nextRows.length === 0) {
@@ -345,6 +433,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
         });
 
         setRequestQuantity(mtrlKey, 0);
+        void loadSummaryRows();
         const requestId = String(result.rows?.[0]?.NEW_ID ?? "").trim();
         toast.success(
           `ID: ${requestId || "—"} έχει καταχωρηθεί στα Αιτήματα Ανατροφοδοσίας επιτυχώς`
@@ -367,24 +456,51 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
         });
       }
     },
-    [currentBranchCode, getRequestQuantity, requestStockQuantity, setRequestQuantity]
+    [
+      currentBranchCode,
+      getRequestQuantity,
+      loadSummaryRows,
+      requestStockQuantity,
+      setRequestQuantity,
+    ]
   );
 
   return (
-    <div className="w-full max-w-none space-y-4">
-      {!embedded && <PageBreadcrumb pageTitle="Ανατροφοδοσία Καταστήματος" />}
+    <div
+      className={
+        embedded
+          ? "w-full max-w-none space-y-4"
+          : "flex min-h-[calc(100dvh-8rem)] min-w-0 max-w-full flex-col md:min-h-[calc(100dvh-9rem)] xl:h-[calc(100dvh-9rem)] xl:min-h-0 xl:overflow-hidden"
+      }
+    >
+      <div className={embedded ? "space-y-4" : "shrink-0 space-y-4"}>
+        {!embedded && <PageBreadcrumb pageTitle="Ανατροφοδοσία Καταστήματος" />}
 
-      {error && (
-        <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-          <div>
-            <p className="font-semibold">Δεν ήταν δυνατή η φόρτωση δεδομένων</p>
-            <p className="mt-1">{error}</p>
+        {error && (
+          <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">Δεν ήταν δυνατή η φόρτωση δεδομένων</p>
+              <p className="mt-1">{error}</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <DataTable className={embedded ? "flex h-[36rem] min-h-[20rem] flex-col" : "flex h-[calc(100dvh-8rem)] min-h-[20rem] flex-col"}>
+      <div
+        className={
+          embedded
+            ? ""
+            : "mt-4 flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-5 xl:min-h-0 xl:flex-row"
+        }
+      >
+        <DataTable
+          className={
+            embedded
+              ? "flex h-[36rem] min-h-[20rem] flex-col"
+              : "flex h-[60dvh] min-h-[20rem] min-w-0 max-w-full shrink-0 flex-col overflow-hidden xl:h-auto xl:min-h-0 xl:max-h-full xl:flex-1 xl:basis-3/4 xl:shrink"
+          }
+        >
         <DataTableHeader
           className="shrink-0"
           title={embedded ? (
@@ -669,7 +785,31 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
             </table>
           </div>
         )}
-      </DataTable>
+        </DataTable>
+        {!embedded ? (
+          <StockOrderSummary
+            rows={summaryRows}
+            requestedQtyTotal={summaryRequestedQty}
+            branchLabel={currentBranchLabel}
+            title="Καλάθι Ανατροφοδοσίας Καταστήματος"
+            emptyMessage="Δεν υπάρχουν αιτήματα στο καλάθι."
+            error={summaryError}
+            lineLayout="basket"
+            onChangeQuantity={(row, quantity) =>
+              void handleSummaryQuantityChange(row, quantity)
+            }
+            updatingBasketIds={updatingSummaryBasketIds}
+            getStatusStyle={getStatusStyle}
+            getRequestedQty={getRequestedQty}
+            formatDateTime={formatDateTime}
+            loading={summaryLoading}
+            onRefresh={loadSummaryRows}
+            collapsible
+            collapsed={!summaryVisible}
+            onToggleCollapse={() => setSummaryVisible((visible) => !visible)}
+          />
+        ) : null}
+      </div>
       {selectedForensicsItem ? (
         <ItemForensicsDrawer
           key={`${selectedForensicsItem.MTRL}-${days}-${currentBranchCode}`}

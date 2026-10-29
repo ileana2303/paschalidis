@@ -1,0 +1,74 @@
+interface StockBasketLineProps {
+    idPrefix: string;
+    code: string;
+    name: string;
+    quantity: number;
+    mtrl: string;
+    basketId: string;
+    updating?: boolean;
+    onQuantityChange?: (quantity: number) => void;
+}
+
+export default function StockBasketLine({
+    idPrefix,
+    code,
+    name,
+    quantity,
+    mtrl,
+    basketId,
+    updating = false,
+    onQuantityChange,
+}: StockBasketLineProps) {
+    const normalizedQuantity =
+        Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
+    const quantityOptions = Array.from(
+        { length: Math.max(100, normalizedQuantity) },
+        (_, index) => index + 1
+    );
+    const quantitySelectId = `${idPrefix}-qty-${basketId}`;
+
+    return (
+        <div className="px-3 py-3">
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                    <p
+                        className="truncate font-mono text-sm font-bold tracking-wide text-gray-900 dark:text-white"
+                        title={code || mtrl}
+                    >
+                        {code || mtrl}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-[11px] font-medium leading-4 text-gray-500 dark:text-gray-400">
+                        {name || "—"}
+                    </p>
+                </div>
+                <div className="w-20 shrink-0">
+                    <label
+                        htmlFor={quantitySelectId}
+                        className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400"
+                    >
+                        Ποσότητα
+                    </label>
+                    <select
+                        id={quantitySelectId}
+                        value={normalizedQuantity}
+                        onChange={(event) =>
+                            onQuantityChange?.(Number(event.target.value))
+                        }
+                        disabled={!onQuantityChange || updating}
+                        className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
+                    >
+                        {quantityOptions.map((option) => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-gray-400">
+                <span>MTRL {mtrl}</span>
+                {basketId ? <span>ID {basketId}</span> : null}
+            </div>
+        </div>
+    );
+}

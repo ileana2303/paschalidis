@@ -6,12 +6,19 @@ import SummaryInfoCard from "@/components/ui/summary-panel/summary-info-card";
 import SummaryMetricGrid from "@/components/ui/summary-panel/summary-metric-grid";
 import SummaryPrimaryAction from "@/components/ui/summary-panel/summary-primary-action";
 import SummaryTextareaField from "@/components/ui/summary-panel/summary-textarea-field";
+import StockBasketLine from "@/components/stock/stock-basket-line";
 import type { IStockRequestListRow } from "@/lib/interface";
 
 export interface StockOrderSummaryProps {
     rows: IStockRequestListRow[];
     requestedQtyTotal: number;
     branchLabel: string;
+    title?: string;
+    emptyMessage?: string;
+    error?: string;
+    lineLayout?: "request" | "basket";
+    onChangeQuantity?: (row: IStockRequestListRow, quantity: number) => void;
+    updatingBasketIds?: Set<string>;
     getStatusStyle: (status: string) => string;
     getRequestedQty: (row: IStockRequestListRow) => string;
     formatDateTime: (value?: string) => string;
@@ -30,6 +37,12 @@ export default function StockOrderSummary({
     rows,
     requestedQtyTotal,
     branchLabel,
+    title = "Αποστολή Ανατροφοδοσίας S1",
+    emptyMessage = "Δεν υπάρχουν ολοκληρωμένα αιτήματα.",
+    error = "",
+    lineLayout = "request",
+    onChangeQuantity,
+    updatingBasketIds,
     getStatusStyle,
     getRequestedQty,
     formatDateTime,
@@ -48,13 +61,16 @@ export default function StockOrderSummary({
     return (
         <SummaryPanel
             label="Σύνοψη Ανατροφοδοσίας"
-            title="Αποστολή Ανατροφοδοσίας S1"
-            asideClassName="xl:!basis-[25%] xl:!min-w-[272px]"
+            title={title}
+            asideClassName={collapsed
+                ? "xl:!basis-auto xl:!min-w-0"
+                : "xl:!basis-[25%] xl:!min-w-[272px] xl:max-h-full xl:min-h-0 xl:self-stretch"}
             fitContentWhenStacked
             collapsible={collapsible}
             collapsed={collapsed}
             onToggleCollapse={onToggleCollapse}
             collapseTitle="Απόκρυψη καλαθιού"
+            error={error}
             actions={
                 <button
                     type="button"
@@ -118,8 +134,28 @@ export default function StockOrderSummary({
                             <Check className="h-8 w-8" />
                         </div>
                         <p className="mt-3 text-sm text-gray-400">
-                            Δεν υπάρχουν ολοκληρωμένα αιτήματα.
+                            {emptyMessage}
                         </p>
+                    </div>
+                ) : lineLayout === "basket" ? (
+                    <div className="mt-4 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white/70 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-950/30">
+                        {rows.map((row) => (
+                            <StockBasketLine
+                                key={row.BASKETID}
+                                idPrefix="stock-order"
+                                code={row.ITEM_CODE}
+                                name={row.ITEM_NAME}
+                                quantity={Number(getRequestedQty(row))}
+                                mtrl={row.MTRL}
+                                basketId={row.BASKETID}
+                                updating={updatingBasketIds?.has(row.BASKETID)}
+                                onQuantityChange={
+                                    onChangeQuantity
+                                        ? (quantity) => onChangeQuantity(row, quantity)
+                                        : undefined
+                                }
+                            />
+                        ))}
                     </div>
                 ) : (
                     <div className="mt-4 space-y-3">
@@ -189,16 +225,18 @@ export default function StockOrderSummary({
                 )}
             </section>
 
-            <SummaryTextareaField
-                id="anatrof-notes"
-                label="Παρατηρήσεις"
-                icon={<StickyNote className="h-4 w-4" />}
-                value={notes}
-                onChange={(value) => onNotesChange?.(value)}
-                rows={3}
-                placeholder="Προσθέστε παρατηρήσεις για την ανατροφοδοσία..."
-                fieldClassName="mt-5"
-            />
+            {onNotesChange ? (
+                <SummaryTextareaField
+                    id="anatrof-notes"
+                    label="Παρατηρήσεις"
+                    icon={<StickyNote className="h-4 w-4" />}
+                    value={notes}
+                    onChange={onNotesChange}
+                    rows={3}
+                    placeholder="Προσθέστε παρατηρήσεις για την ανατροφοδοσία..."
+                    fieldClassName="mt-5"
+                />
+            ) : null}
         </SummaryPanel>
     );
 }
