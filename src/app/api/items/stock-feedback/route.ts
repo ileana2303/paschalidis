@@ -17,7 +17,7 @@ function hasSession(req: NextRequest) {
 
 function normalizeDays(value: unknown) {
     const parsed = Number(value);
-    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 31) {
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 10) {
         return null;
     }
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: 'Οι ημέρες πρέπει να είναι ακέραιος από 0 έως 31.',
+                    message: 'Οι ημέρες πρέπει να είναι ακέραιος από 1 έως 10.',
                     totalcount: 0,
                     rows: [],
                 },
@@ -69,9 +69,9 @@ export async function POST(req: NextRequest) {
             service: "SqlData",
             clientID,
             appId: "1305",
-            SqlName: "SALES_PER_BRANCH",
+            SqlName: "SALES_PASCHA",
             BRANCH: branch,
-            DAYS: days,
+            DAYS: String(days),
         };
 
         const response = await postSoftOne(payload);

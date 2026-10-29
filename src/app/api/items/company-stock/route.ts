@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
             clientID,
             appId: "1305",
             SqlName: "SALES_PASCHA",
+            BRANCH: "ALL",
             DAYS: String(days),
         };
 
