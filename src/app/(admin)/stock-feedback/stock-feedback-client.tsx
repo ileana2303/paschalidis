@@ -582,290 +582,290 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
               : "flex h-[60dvh] min-h-[20rem] min-w-0 max-w-full shrink-0 flex-col overflow-hidden xl:h-auto xl:min-h-0 xl:max-h-full xl:flex-1 xl:basis-3/4 xl:shrink"
           }
         >
-        <DataTableHeader
-          className="shrink-0"
-          title={embedded ? (
-            <Link href="/stock-feedback" className="inline-flex items-center gap-2 hover:text-brand-600 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-brand-500 dark:hover:text-brand-300">
-              Έλεγχος Αποθέματος - Πίνακας Τελευταίων Πωλήσεων
-              <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
-            </Link>
-          ) : "Έλεγχος Αποθέματος - Πίνακας Τελευταίων Πωλήσεων"}
-          description={`${filteredRows.length} από ${availableRows.length} είδη · ${formatDaysLabel(days)}`}
-          action={(
-            <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
-              <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                Περίοδος:
-                <select
-                  value={days}
-                  onChange={(event) => setDays(Number(event.target.value))}
-                  disabled={loading}
-                  className="min-w-[140px] border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
-                >
-                  {DAY_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {formatDaysLabel(option)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+          <DataTableHeader
+            className="shrink-0"
+            title={embedded ? (
+              <Link href="/stock-feedback" className="inline-flex items-center gap-2 hover:text-brand-600 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-brand-500 dark:hover:text-brand-300">
+                Έλεγχος Αποθέματος - Πίνακας Τελευταίων Πωλήσεων
+                <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
+              </Link>
+            ) : "Έλεγχος Αποθέματος - Πίνακας Τελευταίων Πωλήσεων"}
+            description={`${filteredRows.length} από ${availableRows.length} είδη · ${formatDaysLabel(days)}`}
+            action={(
+              <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
+                <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                  Περίοδος:
+                  <select
+                    value={days}
+                    onChange={(event) => setDays(Number(event.target.value))}
+                    disabled={loading}
+                    className="min-w-[140px] border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
+                  >
+                    {DAY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {formatDaysLabel(option)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              <DataTableSearchBar
-                value={searchTerm}
-                onChange={handleSearchTermChange}
-                onSubmit={() => void handleItemSearch()}
-                onClear={() => handleSearchTermChange("")}
-                onRefresh={loadRows}
-                isRefreshing={loading}
-                isSubmitting={searchingItems}
-                refreshDisabled={loading}
-                submitDisabled={loading}
-                placeholder="Κωδικός ή περιγραφή · Enter για ERP..."
-              />
-            </div>
-          )}
-        />
-
-        {loading ? (
-          <TableSkeleton />
-        ) : filteredRows.length === 0 ? (
-          <DataTableEmptyState
-            icon={<Package className="h-7 w-7" />}
-            title="Δεν βρέθηκαν ανταλλακτικά"
-            description="Δεν υπάρχουν δεδομένα για τα επιλεγμένα φίλτρα. Πατήστε «Αναζήτηση ERP» για είδη εκτός της λίστας πωλήσεων."
+                <DataTableSearchBar
+                  value={searchTerm}
+                  onChange={handleSearchTermChange}
+                  onSubmit={() => void handleItemSearch()}
+                  onClear={() => handleSearchTermChange("")}
+                  onRefresh={loadRows}
+                  isRefreshing={loading}
+                  isSubmitting={searchingItems}
+                  refreshDisabled={loading}
+                  submitDisabled={loading}
+                  placeholder="Κωδικός ή περιγραφή · Enter για ERP..."
+                />
+              </div>
+            )}
           />
-        ) : (
-          <div className="min-h-0 w-full flex-1 overflow-auto">
-            <table className="w-full min-w-[1500px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
-              <colgroup>
-                <col className="w-[12%]" />
-                <col className="w-[16%]" />
-                <col className="w-[6%]" />
-                <col className="w-[24%]" />
-                <col className="w-[5%]" />
-                <col className="w-[20%]" />
-                <col className="w-[17%]" />
-              </colgroup>
 
-              <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
-                <tr>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Κωδικός
-                  </th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Είδος
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Πωλήσεις
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Ιστορικό πωλήσεων
-                  </th>
-                  <th className="px-1 py-3 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Σε Εξέλιξη
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Διαθεσιμότητα
-                  </th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Αίτημα
-                  </th>
-                </tr>
-              </thead>
+          {loading ? (
+            <TableSkeleton />
+          ) : filteredRows.length === 0 ? (
+            <DataTableEmptyState
+              icon={<Package className="h-7 w-7" />}
+              title="Δεν βρέθηκαν ανταλλακτικά"
+              description="Δεν υπάρχουν δεδομένα για τα επιλεγμένα φίλτρα. Πατήστε «Αναζήτηση ERP» για είδη εκτός της λίστας πωλήσεων."
+            />
+          ) : (
+            <div className="min-h-0 w-full flex-1 overflow-auto">
+              <table className="w-full min-w-[1500px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
+                <colgroup>
+                  <col className="w-[12%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[24%]" />
+                  <col className="w-[5%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[17%]" />
+                </colgroup>
 
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {filteredRows.map((row, index) => {
-                  const totalAvail = toNumber(row.TOTAL_AVAIL);
-                  const qtySold = toNumber(row.QTY_WIN);
-                  const mtrlKey = String(row.MTRL);
-                  const requestQty = getRequestQuantity(mtrlKey);
-                  const requestError = requestErrors[mtrlKey] ?? "";
-                  const isSubmittingRequest = submittingRequests.has(mtrlKey);
-                  const isItemSearchResult =
-                    itemSearchMtrls.has(mtrlKey) && !salesMtrls.has(mtrlKey);
+                <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
+                  <tr>
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Κωδικός
+                    </th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Είδος
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Πωλήσεις
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Ιστορικό πωλήσεων
+                    </th>
+                    <th className="px-1 py-3 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Σε Εξέλιξη
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Διαθεσιμότητα
+                    </th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Αίτημα
+                    </th>
+                  </tr>
+                </thead>
 
-                  return (
-                    <tr
-                      key={`${row.MTRL}-${row.CODE}-${index}`}
-                      className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
-                    >
-                      <td className="px-3 py-2 align-middle">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedForensicsItem(row)}
-                          className="group/item inline-flex max-w-full flex-col items-start gap-1.5 rounded-xl px-2 py-2 text-left transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:hover:bg-brand-500/10"
-                          aria-label={`Προβολή ιστορικού πωλήσεων για τον κωδικό ${row.CODE || "—"}`}
-                          title="Προβολή ιστορικού πωλήσεων"
-                        >
-                          <span className="inline-flex max-w-full items-center gap-2">
-                            <ItemCodeBadge
-                              code={row.CODE}
-                              className="transition group-hover/item:border-brand-300 group-hover/item:bg-white dark:group-hover/item:border-brand-400 dark:group-hover/item:bg-gray-900"
-                            />
-                            <ChartColumn className="h-4 w-4 shrink-0 text-gray-300 transition group-hover/item:text-brand-500 dark:text-gray-600" />
-                          </span>
-                          {isItemSearchResult ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-[10px] font-medium leading-tight text-gray-500 shadow-xs transition group-hover/item:border-gray-300 group-hover/item:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:group-hover/item:border-gray-600 dark:group-hover/item:bg-gray-800">
-                              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" aria-hidden="true" />
-                              Αποτέλεσμα αναζήτησης ERP
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {filteredRows.map((row, index) => {
+                    const totalAvail = toNumber(row.TOTAL_AVAIL);
+                    const qtySold = toNumber(row.QTY_WIN);
+                    const mtrlKey = String(row.MTRL);
+                    const requestQty = getRequestQuantity(mtrlKey);
+                    const requestError = requestErrors[mtrlKey] ?? "";
+                    const isSubmittingRequest = submittingRequests.has(mtrlKey);
+                    const isItemSearchResult =
+                      itemSearchMtrls.has(mtrlKey) && !salesMtrls.has(mtrlKey);
+
+                    return (
+                      <tr
+                        key={`${row.MTRL}-${row.CODE}-${index}`}
+                        className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                      >
+                        <td className="px-3 py-2 align-middle">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedForensicsItem(row)}
+                            className="group/item inline-flex max-w-full flex-col items-start gap-1.5 rounded-xl px-2 py-2 text-left transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:hover:bg-brand-500/10"
+                            aria-label={`Προβολή ιστορικού πωλήσεων για τον κωδικό ${row.CODE || "—"}`}
+                            title="Προβολή ιστορικού πωλήσεων"
+                          >
+                            <span className="inline-flex max-w-full items-center gap-2">
+                              <ItemCodeBadge
+                                code={row.CODE}
+                                className="transition group-hover/item:border-brand-300 group-hover/item:bg-white dark:group-hover/item:border-brand-400 dark:group-hover/item:bg-gray-900"
+                              />
+                              <ChartColumn className="h-4 w-4 shrink-0 text-gray-300 transition group-hover/item:text-brand-500 dark:text-gray-600" />
                             </span>
-                          ) : null}
-                        </button>
-                      </td>
-                      <td className="px-5 py-4 align-middle">
-                        <p className="break-words font-medium leading-5 text-gray-900 dark:text-white">
-                          {row.NAME || "—"}
-                        </p>
-                        <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400">
-                          <span>CODE1: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.CODE1 || "—"}</strong></span>
-                          <span>SUFFIX: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.CCCSUFIX || "—"}</strong></span>
-                          <span>GROUP: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.ZGROUP_CODE || "—"}</strong></span>
-                          <span>B2B: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.ZB2B_CODE || "—"}</strong></span>
-                        </span>
-                      </td>
-
-                      <td className="whitespace-nowrap px-4 py-4 text-center align-middle tabular-nums font-semibold text-gray-900 dark:text-white">
-                        {formatNumber(qtySold)}
-                      </td>
-
-                      <td className="px-4 py-4 align-middle">
-                        {isItemSearchResult ? (
-                          <p className="text-center text-xs text-gray-400 dark:text-gray-500">
-                            Δεν παρέχεται από την αναζήτηση ERP
+                            {isItemSearchResult ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-[10px] font-medium leading-tight text-gray-500 shadow-xs transition group-hover/item:border-gray-300 group-hover/item:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:group-hover/item:border-gray-600 dark:group-hover/item:bg-gray-800">
+                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" aria-hidden="true" />
+                                Αποτέλεσμα αναζήτησης ERP
+                              </span>
+                            ) : null}
+                          </button>
+                        </td>
+                        <td className="px-5 py-4 align-middle">
+                          <p className="break-words font-medium leading-5 text-gray-900 dark:text-white">
+                            {row.NAME || "—"}
                           </p>
-                        ) : (
-                          <div className="grid grid-cols-5 gap-1.5">
-                            {SALES_HISTORY_FIELDS.map(({ sales, monthlyRate }, historyIndex) => {
-                              const year = currentYear - historyIndex;
+                          <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400">
+                            <span>CODE1: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.CODE1 || "—"}</strong></span>
+                            <span>SUFFIX: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.CCCSUFIX || "—"}</strong></span>
+                            <span>GROUP: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.ZGROUP_CODE || "—"}</strong></span>
+                            <span>B2B: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.ZB2B_CODE || "—"}</strong></span>
+                          </span>
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-4 text-center align-middle tabular-nums font-semibold text-gray-900 dark:text-white">
+                          {formatNumber(qtySold)}
+                        </td>
+
+                        <td className="px-4 py-4 align-middle">
+                          {isItemSearchResult ? (
+                            <p className="text-center text-xs text-gray-400 dark:text-gray-500">
+                              Δεν παρέχεται από την αναζήτηση ERP
+                            </p>
+                          ) : (
+                            <div className="grid grid-cols-5 gap-1.5">
+                              {SALES_HISTORY_FIELDS.map(({ sales, monthlyRate }, historyIndex) => {
+                                const year = currentYear - historyIndex;
+
+                                return (
+                                  <div
+                                    key={sales}
+                                    className="min-w-0 rounded-lg bg-gray-50 px-1.5 py-1.5 text-center dark:bg-gray-800/70"
+                                    title={`${sales}-${year} · ${monthlyRate}-${currentMonth}`}
+                                  >
+                                    <p className="whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500">
+                                      {year}
+                                    </p>
+                                    <p className="mt-0.5 text-sm font-semibold tabular-nums leading-tight text-gray-800 dark:text-gray-100">
+                                      {formatNumber(row[sales])}
+                                    </p>
+                                    <p className="mt-1 whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500">
+                                      {currentMonth}
+                                    </p>
+                                    <p className="mt-0.5 text-xs font-medium tabular-nums leading-tight text-gray-600 dark:text-gray-300">
+                                      {formatNumber(row[monthlyRate])}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="whitespace-nowrap px-1 py-4 text-center align-middle text-xs tabular-nums text-gray-700 dark:text-gray-200">
+                          {formatNumber(row.ONGOING)}
+                        </td>
+
+                        <td className="px-4 py-4 align-middle">
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {availabilityFields.map(({ key, branch }) => {
+                              const isLoggedInBranch = branch === currentBranchCode;
 
                               return (
                                 <div
-                                  key={sales}
-                                  className="min-w-0 rounded-lg bg-gray-50 px-1.5 py-1.5 text-center dark:bg-gray-800/70"
-                                  title={`${sales}-${year} · ${monthlyRate}-${currentMonth}`}
+                                  key={key}
+                                  className={[
+                                    "min-w-0 rounded-lg px-1.5 py-1.5 text-center",
+                                    isLoggedInBranch
+                                      ? getBranchColor(branch)
+                                      : "bg-gray-50 dark:bg-gray-800/70",
+                                  ].join(" ")}
+                                  title={`${key} · ${resolveBranchName(branch)}`}
                                 >
-                                  <p className="whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500">
-                                    {year}
+                                  <p
+                                    className={[
+                                      "truncate text-[10px] font-medium",
+                                      isLoggedInBranch
+                                        ? "opacity-75"
+                                        : "text-gray-400 dark:text-gray-500",
+                                    ].join(" ")}
+                                  >
+                                    {key}
                                   </p>
-                                  <p className="mt-0.5 text-sm font-semibold tabular-nums leading-tight text-gray-800 dark:text-gray-100">
-                                    {formatNumber(row[sales])}
-                                  </p>
-                                  <p className="mt-1 whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500">
-                                    {currentMonth}
-                                  </p>
-                                  <p className="mt-0.5 text-xs font-medium tabular-nums leading-tight text-gray-600 dark:text-gray-300">
-                                    {formatNumber(row[monthlyRate])}
+                                  <p
+                                    className={[
+                                      "mt-0.5 font-semibold tabular-nums",
+                                      isLoggedInBranch
+                                        ? ""
+                                        : "text-gray-800 dark:text-gray-100",
+                                    ].join(" ")}
+                                  >
+                                    {formatNumber(row[key])}
                                   </p>
                                 </div>
                               );
                             })}
+                            <div className="flex min-w-0 flex-col items-center rounded-lg bg-brand-50 px-1.5 py-1.5 text-center dark:bg-brand-500/10">
+                              <p className="text-[10px] font-medium text-brand-500 dark:text-brand-300">
+                                TOTAL
+                              </p>
+                              <NumberBadge
+                                value={formatNumber(totalAvail)}
+                                variant={totalAvail > 0 ? "success" : "danger"}
+                                className="mt-0.5 min-w-0 px-2 py-0.5"
+                              />
+                            </div>
                           </div>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="whitespace-nowrap px-1 py-4 text-center align-middle text-xs tabular-nums text-gray-700 dark:text-gray-200">
-                        {formatNumber(row.ONGOING)}
-                      </td>
-
-                      <td className="px-4 py-4 align-middle">
-                        <div className="grid grid-cols-4 gap-1.5">
-                          {availabilityFields.map(({ key, branch }) => {
-                            const isLoggedInBranch = branch === currentBranchCode;
-
-                            return (
-                              <div
-                                key={key}
-                                className={[
-                                  "min-w-0 rounded-lg px-1.5 py-1.5 text-center",
-                                  isLoggedInBranch
-                                    ? getBranchColor(branch)
-                                    : "bg-gray-50 dark:bg-gray-800/70",
-                                ].join(" ")}
-                                title={`${key} · ${resolveBranchName(branch)}`}
-                              >
-                                <p
-                                  className={[
-                                    "truncate text-[10px] font-medium",
-                                    isLoggedInBranch
-                                      ? "opacity-75"
-                                      : "text-gray-400 dark:text-gray-500",
-                                  ].join(" ")}
-                                >
-                                  {key}
-                                </p>
-                                <p
-                                  className={[
-                                    "mt-0.5 font-semibold tabular-nums",
-                                    isLoggedInBranch
-                                      ? ""
-                                      : "text-gray-800 dark:text-gray-100",
-                                  ].join(" ")}
-                                >
-                                  {formatNumber(row[key])}
-                                </p>
-                              </div>
-                            );
-                          })}
-                          <div className="flex min-w-0 flex-col items-center rounded-lg bg-brand-50 px-1.5 py-1.5 text-center dark:bg-brand-500/10">
-                            <p className="text-[10px] font-medium text-brand-500 dark:text-brand-300">
-                              TOTAL
-                            </p>
-                            <NumberBadge
-                              value={formatNumber(totalAvail)}
-                              variant={totalAvail > 0 ? "success" : "danger"}
-                              className="mt-0.5 min-w-0 px-2 py-0.5"
+                        <td className="px-2 py-3 align-middle">
+                          <div className="flex min-w-0 flex-col items-stretch justify-center gap-2">
+                            <QuantityControl
+                              value={requestQty}
+                              onChange={(nextQty) => {
+                                setRequestQuantity(mtrlKey, nextQty);
+                                setRequestErrors((prev) => ({
+                                  ...prev,
+                                  [mtrlKey]: "",
+                                }));
+                              }}
+                              min={0}
+                              size="sm"
+                              fullWidth
+                              disabled={isSubmittingRequest}
+                              displayZeroAsEmpty
+                              placeholder="0"
+                              decrementLabel="Μείωση ποσότητας ανατροφοδοσίας"
+                              incrementLabel="Αύξηση ποσότητας ανατροφοδοσίας"
                             />
-                          </div>
-                        </div>
-                      </td>
+                            <button
+                              type="button"
+                              onClick={() => void handleSubmitStockRequest(row)}
+                              disabled={isSubmittingRequest || requestQty <= 0 || !currentBranchCode}
+                              className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-2 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
+                            >
+                              {isSubmittingRequest ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Send className="h-3.5 w-3.5" />
+                              )}
+                              <span>Αίτημα</span>
+                            </button>
 
-                      <td className="px-2 py-3 align-middle">
-                        <div className="flex min-w-0 flex-col items-stretch justify-center gap-2">
-                          <QuantityControl
-                            value={requestQty}
-                            onChange={(nextQty) => {
-                              setRequestQuantity(mtrlKey, nextQty);
-                              setRequestErrors((prev) => ({
-                                ...prev,
-                                [mtrlKey]: "",
-                              }));
-                            }}
-                            min={0}
-                            size="sm"
-                            fullWidth
-                            disabled={isSubmittingRequest}
-                            displayZeroAsEmpty
-                            placeholder="0"
-                            decrementLabel="Μείωση ποσότητας ανατροφοδοσίας"
-                            incrementLabel="Αύξηση ποσότητας ανατροφοδοσίας"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => void handleSubmitStockRequest(row)}
-                            disabled={isSubmittingRequest || requestQty <= 0 || !currentBranchCode}
-                            className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-500 px-2 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-gray-800/70 dark:disabled:text-gray-500"
-                          >
-                            {isSubmittingRequest ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Send className="h-3.5 w-3.5" />
+                            {requestError && (
+                              <p className="text-left text-[11px] font-medium leading-4 text-red-500">
+                                {requestError}
+                              </p>
                             )}
-                            <span>Αίτημα</span>
-                          </button>
-
-                          {requestError && (
-                            <p className="text-left text-[11px] font-medium leading-4 text-red-500">
-                              {requestError}
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </DataTable>
         {!embedded ? (
           <StockOrderSummary
@@ -874,7 +874,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
             branchLabel={currentBranchLabel}
             title="Καλάθι Ανατροφοδοσίας Καταστήματος"
             basketTitle="Αιτήματα Ανατροφοδοσίας"
-            emptyMessage="Δεν υπάρχουν αιτήματα στο καλάθι."
+            emptyMessage="Δεν υπάρχουν αιτήματα στο καλάθι. Προσθέστε είδη από τον πίνακα πωλήσεων ή αναζητήστε στο ERP."
             error={summaryError}
             onChangeQuantity={(row, quantity) =>
               void handleSummaryQuantityChange(row, quantity)
