@@ -123,6 +123,14 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
   const [updatingSummaryBasketIds, setUpdatingSummaryBasketIds] = useState<
     Set<string>
   >(new Set());
+  const [selectedSummaryBasketIds, setSelectedSummaryBasketIds] = useState<
+    Set<string>
+  >(new Set());
+  const [removingSummaryBasketIds, setRemovingSummaryBasketIds] = useState<
+    Set<string>
+  >(new Set());
+  const [removingSelectedSummaryLines, setRemovingSelectedSummaryLines] =
+    useState(false);
   const [searchTerm, setSearchTerm] = useSessionState(
     "stock-feedback-search",
     ""
@@ -194,6 +202,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
 
     if (embedded || !currentBranchCode) {
       setSummaryRows([]);
+      setSelectedSummaryBasketIds(new Set());
       setSummaryError("");
       setSummaryLoading(false);
       return;
@@ -210,11 +219,16 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
 
       if (requestId !== summaryLoadRequestId.current) return;
 
-      setSummaryRows(sortStockRequestRows(data.rows ?? []));
+      const nextRows = sortStockRequestRows(data.rows ?? []);
+      setSummaryRows(nextRows);
+      setSelectedSummaryBasketIds(
+        new Set(nextRows.map((row) => row.BASKETID))
+      );
     } catch (summaryLoadError) {
       if (requestId !== summaryLoadRequestId.current) return;
 
       setSummaryRows([]);
+      setSelectedSummaryBasketIds(new Set());
       setSummaryError(
         summaryLoadError instanceof Error
           ? summaryLoadError.message
@@ -228,6 +242,74 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
   }, [currentBranchCode, embedded, fetchStockRequests]);
 
   useLoadOnChange(loadSummaryRows);
+
+  const handleToggleSummaryLine = useCallback((basketId: string) => {
+    setSelectedSummaryBasketIds((current) => {
+      const next = new Set(current);
+      if (next.has(basketId)) {
+        next.delete(basketId);
+      } else {
+        next.add(basketId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleRemoveSummaryLines = useCallback(
+    async (lines: IStockRequestListRow[], bulk = false) => {
+      if (lines.length === 0) return;
+
+      const basketIds = new Set(lines.map((row) => row.BASKETID));
+
+      setRemovingSummaryBasketIds((current) => {
+        const next = new Set(current);
+        basketIds.forEach((basketId) => next.add(basketId));
+        return next;
+      });
+      if (bulk) {
+        setRemovingSelectedSummaryLines(true);
+      }
+
+      try {
+        const results = await Promise.allSettled(
+          lines.map((row) =>
+            updateStockRequest({
+              action: "DELETE",
+              basketId: Number(row.BASKETID),
+              qty: row.QTY_REQUESTED || row.QTY || "1",
+            })
+          )
+        );
+        const failedCount = results.filter(
+          (result) => result.status === "rejected"
+        ).length;
+
+        await loadSummaryRows();
+
+        if (failedCount > 0) {
+          toast.error(
+            `${failedCount} ${failedCount === 1 ? "γραμμή δεν διαγράφηκε" : "γραμμές δεν διαγράφηκαν"}.`
+          );
+        } else {
+          toast.success(
+            lines.length === 1
+              ? "Η γραμμή αφαιρέθηκε από το καλάθι."
+              : "Οι επιλεγμένες γραμμές αφαιρέθηκαν από το καλάθι."
+          );
+        }
+      } finally {
+        setRemovingSummaryBasketIds((current) => {
+          const next = new Set(current);
+          basketIds.forEach((basketId) => next.delete(basketId));
+          return next;
+        });
+        if (bulk) {
+          setRemovingSelectedSummaryLines(false);
+        }
+      }
+    },
+    [loadSummaryRows, updateStockRequest]
+  );
 
   const handleSummaryQuantityChange = useCallback(
     async (row: IStockRequestListRow, nextQuantity: number) => {
@@ -799,6 +881,19 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
               void handleSummaryQuantityChange(row, quantity)
             }
             updatingBasketIds={updatingSummaryBasketIds}
+            selectedBasketIds={selectedSummaryBasketIds}
+            removingBasketIds={removingSummaryBasketIds}
+            removingSelectedLines={removingSelectedSummaryLines}
+            onToggleLineSelection={handleToggleSummaryLine}
+            onRemoveLine={(row) => void handleRemoveSummaryLines([row])}
+            onRemoveSelectedLines={() =>
+              void handleRemoveSummaryLines(
+                summaryRows.filter((row) =>
+                  selectedSummaryBasketIds.has(row.BASKETID)
+                ),
+                true
+              )
+            }
             getStatusStyle={getStatusStyle}
             getRequestedQty={getRequestedQty}
             formatDateTime={formatDateTime}

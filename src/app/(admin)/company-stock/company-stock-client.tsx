@@ -169,6 +169,9 @@ export default function CompanyStockClient() {
   const [updatingBasketIds, setUpdatingBasketIds] = useState<Set<string>>(
     new Set()
   );
+  const [removingSupplierBasketKeys, setRemovingSupplierBasketKeys] = useState<
+    Set<string>
+  >(new Set());
   const [selectedSupplierBasketTrdr, setSelectedSupplierBasketTrdr] = useState<
     string | null
   >(null);
@@ -685,6 +688,53 @@ export default function CompanyStockClient() {
     [supplierBasketRows, updateStockRequest]
   );
 
+  const handleRemoveSupplierBasket = useCallback(
+    async (basketKey: string, lines: CompanyStockBasketLine[]) => {
+      if (lines.length === 0) return;
+
+      const supplierName = lines[0]?.supplierName || lines[0]?.supplierTrdr || "—";
+      if (!window.confirm(`Διαγραφή καλαθιού προμηθευτή ${supplierName};`)) {
+        return;
+      }
+
+      setRemovingSupplierBasketKeys((current) =>
+        new Set(current).add(basketKey)
+      );
+
+      try {
+        const results = await Promise.allSettled(
+          lines.map((line) =>
+            updateStockRequest({
+              action: "DELETE",
+              basketId: Number(line.basketId),
+              qty: String(line.quantity || 1),
+            })
+          )
+        );
+        const failedCount = results.filter(
+          (result) => result.status === "rejected"
+        ).length;
+
+        await loadSupplierBaskets();
+
+        if (failedCount > 0) {
+          toast.error(
+            `${failedCount} ${failedCount === 1 ? "γραμμή δεν διαγράφηκε" : "γραμμές δεν διαγράφηκαν"}.`
+          );
+        } else {
+          toast.success("Το καλάθι προμηθευτή διαγράφηκε.");
+        }
+      } finally {
+        setRemovingSupplierBasketKeys((current) => {
+          const next = new Set(current);
+          next.delete(basketKey);
+          return next;
+        });
+      }
+    },
+    [loadSupplierBaskets, updateStockRequest]
+  );
+
   return (
     <div className="flex min-h-[calc(100dvh-8rem)] min-w-0 max-w-full flex-col md:min-h-[calc(100dvh-9rem)] xl:h-[calc(100dvh-9rem)] xl:min-h-0 xl:overflow-hidden">
       <div className="shrink-0 space-y-4">
@@ -1032,6 +1082,10 @@ export default function CompanyStockClient() {
             void handleBasketQuantityChange(line, quantity)
           }
           updatingBasketIds={updatingBasketIds}
+          onRemoveSupplierBasket={(basketKey, lines) =>
+            void handleRemoveSupplierBasket(basketKey, lines)
+          }
+          removingSupplierBasketKeys={removingSupplierBasketKeys}
           loading={supplierBasketsLoading}
           error={supplierBasketsError}
           isSubmitting={submittingSupplierTrdr != null}

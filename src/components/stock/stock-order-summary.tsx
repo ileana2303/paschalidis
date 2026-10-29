@@ -1,6 +1,13 @@
 "use client";
 
-import { Check, RefreshCw, Send, StickyNote } from "@/lib/icons/lucide";
+import {
+    Check,
+    Loader2,
+    RefreshCw,
+    Send,
+    StickyNote,
+    Trash2,
+} from "@/lib/icons/lucide";
 import SummaryPanel from "@/components/ui/summary-panel/summary-panel";
 import SummaryInfoCard from "@/components/ui/summary-panel/summary-info-card";
 import SummaryMetricGrid from "@/components/ui/summary-panel/summary-metric-grid";
@@ -19,6 +26,12 @@ export interface StockOrderSummaryProps {
     lineLayout?: "request" | "basket";
     onChangeQuantity?: (row: IStockRequestListRow, quantity: number) => void;
     updatingBasketIds?: Set<string>;
+    selectedBasketIds?: Set<string>;
+    removingBasketIds?: Set<string>;
+    removingSelectedLines?: boolean;
+    onToggleLineSelection?: (basketId: string) => void;
+    onRemoveLine?: (row: IStockRequestListRow) => void;
+    onRemoveSelectedLines?: () => void;
     getStatusStyle: (status: string) => string;
     getRequestedQty: (row: IStockRequestListRow) => string;
     formatDateTime: (value?: string) => string;
@@ -43,6 +56,12 @@ export default function StockOrderSummary({
     lineLayout = "request",
     onChangeQuantity,
     updatingBasketIds,
+    selectedBasketIds,
+    removingBasketIds,
+    removingSelectedLines = false,
+    onToggleLineSelection,
+    onRemoveLine,
+    onRemoveSelectedLines,
     getStatusStyle,
     getRequestedQty,
     formatDateTime,
@@ -57,10 +76,30 @@ export default function StockOrderSummary({
     onToggleCollapse,
 }: StockOrderSummaryProps) {
     const sendDisabled = sendingOrder || rows.length === 0;
+    const allLinesSelected =
+        rows.length > 0 &&
+        selectedBasketIds != null &&
+        rows.every((row) => selectedBasketIds.has(row.BASKETID));
+    const selectedLineCount = selectedBasketIds
+        ? rows.filter((row) => selectedBasketIds.has(row.BASKETID)).length
+        : rows.length;
+    const hasPartialSelection =
+        selectedBasketIds != null && selectedLineCount !== rows.length;
+
+    const handleToggleAllLines = () => {
+        if (!selectedBasketIds || !onToggleLineSelection) return;
+
+        rows.forEach((row) => {
+            const selected = selectedBasketIds.has(row.BASKETID);
+            if (allLinesSelected ? selected : !selected) {
+                onToggleLineSelection(row.BASKETID);
+            }
+        });
+    };
 
     return (
         <SummaryPanel
-            label="Σύνοψη Ανατροφοδοσίας"
+            label="Σύνοψη Αιτημάτων Ανατροφοδοσίας"
             title={title}
             asideClassName={collapsed
                 ? "xl:!basis-auto xl:!min-w-0"
@@ -105,7 +144,10 @@ export default function StockOrderSummary({
                     {
                         id: "lines",
                         label: "Γραμμές",
-                        value: rows.length,
+                        value: selectedLineCount,
+                        trailingValue: hasPartialSelection
+                            ? `/ ${rows.length}`
+                            : undefined,
                     },
                     {
                         id: "qty",
@@ -119,13 +161,54 @@ export default function StockOrderSummary({
             <section className="mt-5">
                 <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                        Καλάθι Ανατροφοδοσίας
+                        Αιτήματα Ανατροφοδοσίας προς Έγκριση
                     </p>
-                    {rows.length > 0 && (
-                        <span className="text-xs text-gray-400">
-                            {rows.length} {rows.length === 1 ? "γραμμή" : "γραμμές"}
-                        </span>
-                    )}
+                    <div className="flex max-w-full flex-wrap items-center gap-2">
+                        {lineLayout === "basket" &&
+                            selectedBasketIds &&
+                            onToggleLineSelection &&
+                            rows.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={handleToggleAllLines}
+                                    className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-500/30 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
+                                >
+                                    {allLinesSelected
+                                        ? "Αποεπιλογή όλων"
+                                        : "Επιλογή όλων"}
+                                </button>
+                            )}
+
+                        {lineLayout === "basket" &&
+                            onRemoveSelectedLines &&
+                            rows.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={onRemoveSelectedLines}
+                                    disabled={
+                                        !selectedBasketIds?.size ||
+                                        removingSelectedLines
+                                    }
+                                    title="Διαγραφή επιλεγμένων"
+                                    aria-label="Διαγραφή επιλεγμένων γραμμών"
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-200 bg-white text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 dark:border-red-500/30 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
+                                >
+                                    {removingSelectedLines ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    )}
+                                </button>
+                            )}
+
+                        {rows.length > 0 && (
+                            <span className="text-xs text-gray-400">
+                                {hasPartialSelection
+                                    ? `${selectedLineCount} / ${rows.length} γραμμές`
+                                    : `${rows.length} ${rows.length === 1 ? "γραμμή" : "γραμμές"}`}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {rows.length === 0 ? (
@@ -149,9 +232,23 @@ export default function StockOrderSummary({
                                 mtrl={row.MTRL}
                                 basketId={row.BASKETID}
                                 updating={updatingBasketIds?.has(row.BASKETID)}
+                                selected={
+                                    selectedBasketIds?.has(row.BASKETID) ?? true
+                                }
+                                removing={removingBasketIds?.has(row.BASKETID)}
                                 onQuantityChange={
                                     onChangeQuantity
                                         ? (quantity) => onChangeQuantity(row, quantity)
+                                        : undefined
+                                }
+                                onToggleSelection={
+                                    onToggleLineSelection
+                                        ? () => onToggleLineSelection(row.BASKETID)
+                                        : undefined
+                                }
+                                onRemove={
+                                    onRemoveLine
+                                        ? () => onRemoveLine(row)
                                         : undefined
                                 }
                             />

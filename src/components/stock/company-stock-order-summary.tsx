@@ -11,8 +11,10 @@ import StockBasketLine from "@/components/stock/stock-basket-line";
 import {
     Check,
     ChevronDown,
+    Loader2,
     Package,
     Send,
+    Trash2,
     Truck,
     Warehouse,
 } from "@/lib/icons/lucide";
@@ -37,6 +39,11 @@ interface CompanyStockOrderSummaryProps {
     onSubmitSelectedSupplier: (trdr: string) => void;
     onChangeLineQuantity?: (line: CompanyStockBasketLine, quantity: number) => void;
     updatingBasketIds?: Set<string>;
+    onRemoveSupplierBasket?: (
+        basketKey: string,
+        lines: CompanyStockBasketLine[]
+    ) => void;
+    removingSupplierBasketKeys?: Set<string>;
     loading?: boolean;
     error?: string;
     isSubmitting?: boolean;
@@ -118,6 +125,8 @@ export default function CompanyStockOrderSummary({
     onSubmitSelectedSupplier,
     onChangeLineQuantity,
     updatingBasketIds,
+    onRemoveSupplierBasket,
+    removingSupplierBasketKeys,
     loading = false,
     error = "",
     isSubmitting = false,
@@ -266,15 +275,16 @@ export default function CompanyStockOrderSummary({
                                             : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/40",
                                     ].join(" ")}
                                 >
-                                    <button
-                                        type="button"
-                                        role="radio"
-                                        aria-checked={selected}
-                                        onClick={() =>
-                                            onSelectedSupplierTrdrChange(group.trdr)
-                                        }
-                                        className="flex w-full items-start gap-3 p-3 text-left"
-                                    >
+                                    <div className="flex items-start">
+                                        <button
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={selected}
+                                            onClick={() =>
+                                                onSelectedSupplierTrdrChange(group.trdr)
+                                            }
+                                            className="flex min-w-0 flex-1 items-start gap-3 p-3 text-left"
+                                        >
                                         <span
                                             className={[
                                                 "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition",
@@ -322,7 +332,33 @@ export default function CompanyStockOrderSummary({
                                                 selected ? "rotate-180" : "",
                                             ].join(" ")}
                                         />
-                                    </button>
+                                        </button>
+                                        {onRemoveSupplierBasket && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    onRemoveSupplierBasket(
+                                                        group.key,
+                                                        group.lines
+                                                    )
+                                                }
+                                                disabled={removingSupplierBasketKeys?.has(
+                                                    group.key
+                                                )}
+                                                title="Διαγραφή καλαθιού προμηθευτή"
+                                                aria-label={`Διαγραφή καλαθιού ${group.supplierName || group.trdr}`}
+                                                className="mr-3 mt-3 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                            >
+                                                {removingSupplierBasketKeys?.has(
+                                                    group.key
+                                                ) ? (
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                )}
+                                            </button>
+                                        )}
+                                    </div>
 
                                     {selected && (
                                         <div className="divide-y divide-gray-100 border-t border-brand-100 bg-white/70 dark:divide-gray-800 dark:border-brand-500/20 dark:bg-gray-950/30">
