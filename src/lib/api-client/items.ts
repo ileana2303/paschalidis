@@ -297,6 +297,7 @@ export async function fetchItemForensics(
     const requestKey = JSON.stringify({
         mtrl: String(payload.mtrl ?? "").trim(),
         days: String(payload.days ?? "").trim(),
+        branch: String(payload.branch ?? "").trim().toUpperCase(),
     });
     const inFlightRequest = itemForensicsInFlightRequests.get(requestKey);
 

@@ -1016,9 +1016,10 @@ export default function CompanyStockClient() {
       </div>
       {selectedForensicsItem ? (
         <ItemForensicsDrawer
-          key={`${selectedForensicsItem.MTRL}-${days}`}
+          key={`${selectedForensicsItem.MTRL}-${days}-ALL`}
           item={selectedForensicsItem}
           days={days}
+          branch="ALL"
           onClose={closeForensicsDrawer}
         />
       ) : null}

@@ -29,16 +29,21 @@ export async function POST(req: NextRequest) {
         const body = (await req.json().catch(() => ({}))) as Partial<ItemForensicsRoutePayload>;
         const mtrl = String(body.mtrl ?? "").trim();
         const days = Number(body.days);
+        const branch = String(body.branch ?? "").trim().toUpperCase();
 
         if (!/^\d+$/.test(mtrl) || Number(mtrl) <= 0) {
             return errorResponse("Απαιτείται έγκυρο αναγνωριστικό είδους (MTRL).", 400);
         }
 
-        if (!Number.isInteger(days) || days < 0 || days > 10) {
-            return errorResponse("Οι ημέρες πρέπει να είναι ακέραιος από 0 έως 10.", 400);
+        if (!Number.isInteger(days) || days < 1 || days > 10) {
+            return errorResponse("Οι ημέρες πρέπει να είναι ακέραιος από 1 έως 10.", 400);
         }
 
-        const clientID = getSoftOneClientID();
+        if (branch !== "ALL" && !/^\d+$/.test(branch)) {
+            return errorResponse("Απαιτείται έγκυρο υποκατάστημα.", 400);
+        }
+
+        const clientID = getSoftOneClientID(branch === "ALL" ? undefined : branch);
 
         if (!clientID) {
             console.error("[items/forensics] Missing S1_CLIENT_ID");
@@ -49,9 +54,10 @@ export async function POST(req: NextRequest) {
             service: "SqlData",
             clientID,
             appId: "1305",
-            SqlName: "ITEM_FORENSICS_QTY",
+            SqlName: "SALES_PASCHA_ITEM",
             MTRL: mtrl,
             DAYS: String(days),
+            BRANCH: branch,
         };
         const response = await postSoftOne(payload);
 
