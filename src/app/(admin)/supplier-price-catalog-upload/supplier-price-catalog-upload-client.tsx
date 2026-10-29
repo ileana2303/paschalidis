@@ -12,10 +12,8 @@ import { FileSpreadsheet, Loader2, Upload } from "@/lib/icons/lucide";
 import { useUploadSupplierPriceCatalogMutation } from "@/hooks/queries/useSupplierPriceCatalogMutations";
 import { useWarnBeforeLeaveWhileBusy } from "@/hooks/useWarnBeforeLeaveWhileBusy";
 import { inferSupplierFromSheetName } from "@/lib/supplier-price-catalog/infer-supplier";
-import {
-  SUPPLIER_PRICE_CATALOG_OPTIONS,
-  SUPPLIER_PRICE_INVALID_HEADERS_MESSAGE,
-} from "@/lib/supplier-price-catalog/constants";
+import { SUPPLIER_PRICE_INVALID_HEADERS_MESSAGE } from "@/lib/supplier-price-catalog/constants";
+import { normalizeSupplierPriceCatalogCode } from "@/lib/supplier-price-catalog/normalize-supplier";
 import {
   parseSupplierPriceFile,
   SupplierPriceSheetHeaderError,
@@ -27,7 +25,6 @@ import {
   type CatalogPrefixSelection,
 } from "@/lib/supplier-price-catalog/prefix-selection";
 import type {
-  SupplierPriceCatalogCode,
   SupplierPriceRow,
   SupplierPriceUploadProgress,
 } from "@/lib/supplier-price-catalog/types";
@@ -49,7 +46,7 @@ const formSelectClassName =
 
 function buildDefaultCatalogDescr(
   uploadedFileName: string,
-  supplierCode?: SupplierPriceCatalogCode | null
+  supplierCode?: string | null
 ) {
   if (supplierCode) {
     return `Τιμοκατάλογος ${supplierCode} — ${uploadedFileName}`;
@@ -63,7 +60,7 @@ export default function SupplierPriceCatalogUploadClient() {
 
   useWarnBeforeLeaveWhileBusy(isPending);
 
-  const [supplier, setSupplier] = useState<SupplierPriceCatalogCode | "">("");
+  const [customSupplierCode, setCustomSupplierCode] = useState("");
   const [descr, setDescr] = useState("");
   const [prefixSelection, setPrefixSelection] =
     useState<CatalogPrefixSelection>(INITIAL_CATALOG_PREFIX_SELECTION);
@@ -87,8 +84,8 @@ export default function SupplierPriceCatalogUploadClient() {
     () => inferSupplierFromSheetName(sheetName),
     [sheetName]
   );
-  const effectiveSupplier = supplierFromSheet ?? supplier;
-  const needsSupplierSelection = rows.length > 0 && !supplierFromSheet;
+
+  const usesCustomSupplierCode = rows.length > 0 && !supplierFromSheet;
 
   const parseFile = useCallback(
     async (file: File, preferredSheet?: string) => {
@@ -126,14 +123,14 @@ export default function SupplierPriceCatalogUploadClient() {
         );
 
         if (!preferredSheet) {
-          setSupplier("");
+          setCustomSupplierCode("");
           if (!descr.trim()) {
             setDescr(
               buildDefaultCatalogDescr(file.name, inferredFromSheet)
             );
           }
         } else if (!inferredFromSheet) {
-          setSupplier("");
+          setCustomSupplierCode("");
         }
 
         if (!preferredSheet) {
@@ -194,7 +191,7 @@ export default function SupplierPriceCatalogUploadClient() {
 
   const resetForm = useCallback(() => {
     selectedFileRef.current = null;
-    setSupplier("");
+    setCustomSupplierCode("");
     setDescr("");
     setPrefixSelection(INITIAL_CATALOG_PREFIX_SELECTION);
     setFileName("");
@@ -223,22 +220,21 @@ export default function SupplierPriceCatalogUploadClient() {
       return;
     }
 
-    if (!effectiveSupplier) {
-      toast.error("Επιλέξτε προμηθευτή (FEBI, PRICES ή TRISCAN).");
-      return;
-    }
-
     if (!isCatalogPrefixSelectionValid(prefixSelection)) {
       toast.error("Επιλέξτε τουλάχιστον ένα suffix (λειτουργία «Άλλα»).");
       return;
     }
+
+    const supplierToSend = supplierFromSheet
+      ? supplierFromSheet
+      : normalizeSupplierPriceCatalogCode(customSupplierCode);
 
     setUploadProgress({ percent: 0, label: "Έναρξη ανέβασματος..." });
 
     try {
       const response = await uploadCatalog({
         payload: {
-          supplier: effectiveSupplier,
+          supplier: supplierToSend,
           descr: descr.trim(),
           filePath: fileName || "price-catalog.xlsx",
           prefixes,
@@ -321,30 +317,18 @@ export default function SupplierPriceCatalogUploadClient() {
               </div>
             ) : null}
 
-            {needsSupplierSelection ? (
+            {usesCustomSupplierCode ? (
               <div>
-                <Label>Προμηθευτής</Label>
-                <select
-                  value={supplier}
-                  onChange={(event) => {
-                    const next = event.target.value as
-                      | SupplierPriceCatalogCode
-                      | "";
-                    setSupplier(next);
-                    if (next && fileName) {
-                      setDescr(buildDefaultCatalogDescr(fileName, next));
-                    }
-                  }}
+                <Label>
+                  Προμηθευτής (προαιρετικό)
+                </Label>
+                <Input
+                  value={customSupplierCode}
+                  onChange={(event) => setCustomSupplierCode(event.target.value)}
                   disabled={parsing || isPending}
-                  className={formSelectClassName}
-                >
-                  <option value="">— Επιλέξτε —</option>
-                  {SUPPLIER_PRICE_CATALOG_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="πχ. FEBI, PRICES, TRISCAN..."
+                  className="mt-2 rounded-xl border-gray-300 px-3 dark:border-gray-700"
+                />
               </div>
             ) : null}
 
@@ -438,7 +422,6 @@ export default function SupplierPriceCatalogUploadClient() {
                 parsing ||
                 rows.length === 0 ||
                 Boolean(headerError) ||
-                !effectiveSupplier ||
                 !isCatalogPrefixSelectionValid(prefixSelection)
               }
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-3.5 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-brand-300"
