@@ -438,6 +438,11 @@ export async function submitAnatrofOrder(
         throw new Error(data?.message ?? 'Αποτυχία υποβολής παραγγελίας αποθέματος.');
     }
 
+    invalidateStockRequestListRequest({
+        branch: String(payload.requestingBranch),
+        origin: "STORE",
+    });
+
     return data;
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import StockOrderSummary from "@/components/stock/stock-order-summary";
 import {
@@ -104,6 +104,7 @@ export default function StockRequestsClient({
         ""
     );
     const [notes, setNotes] = useSessionState("stock-requests-notes", "");
+    const rowsLoadRequestId = useRef(0);
     const [selectedBranchCode, setSelectedBranchCode] = useState<StockBranchCode>(() => {
         return isStockRequestBranchCode(currentBranchCode)
             ? currentBranchCode
@@ -138,6 +139,7 @@ export default function StockRequestsClient({
     }, [selectedBranchCode]);
 
     const loadRows = useCallback(async () => {
+        const requestId = ++rowsLoadRequestId.current;
         setLoading(true);
 
         try {
@@ -145,6 +147,8 @@ export default function StockRequestsClient({
                 branch: selectedBranchCode,
                 origin: "STORE",
             });
+
+            if (requestId !== rowsLoadRequestId.current) return;
 
             const nextRows = sortStockRequestRows(data.rows ?? []);
             setRows(nextRows);
@@ -158,6 +162,8 @@ export default function StockRequestsClient({
             setEditingId("");
             setEditedQty("");
         } catch (err) {
+            if (requestId !== rowsLoadRequestId.current) return;
+
             setRows([]);
             setSelectedSummaryBasketIds(new Set());
             toast.error(
@@ -166,16 +172,22 @@ export default function StockRequestsClient({
                     : "Αποτυχία φόρτωσης αιτημάτων ανατροφοδοσίας"
             );
         } finally {
-            setLoading(false);
+            if (requestId === rowsLoadRequestId.current) {
+                setLoading(false);
+            }
         }
     }, [fetchStockRequests, selectedBranchCode]);
 
     const refreshRows = async () => {
+        const requestId = ++rowsLoadRequestId.current;
+
         try {
             const data = await fetchStockRequests({
                 branch: selectedBranchCode,
                 origin: "STORE",
             });
+
+            if (requestId !== rowsLoadRequestId.current) return;
 
             const nextRows = sortStockRequestRows(data.rows ?? []);
             const approvedBasketIds = new Set(
@@ -193,6 +205,8 @@ export default function StockRequestsClient({
                 )
             );
         } catch (err) {
+            if (requestId !== rowsLoadRequestId.current) return;
+
             toast.error(
                 err instanceof Error
                     ? err.message
@@ -390,14 +404,14 @@ export default function StockRequestsClient({
         [approvedRows, selectedSummaryBasketIds]
     );
 
-    const selectedApprovedRequestedQty = useMemo(
+    const approvedRequestedQty = useMemo(
         () =>
-            selectedApprovedRows.reduce((sum, row) => {
+            approvedRows.reduce((sum, row) => {
                 const qty = Number(row.QTY_REQUESTED);
 
                 return sum + (Number.isFinite(qty) ? qty : 0);
             }, 0),
-        [selectedApprovedRows]
+        [approvedRows]
     );
 
     const handleToggleSummaryLine = (basketId: string) => {
@@ -482,7 +496,7 @@ export default function StockRequestsClient({
     };
 
     const handleSubmitAnatrofOrder = useCallback(async () => {
-        if (selectedApprovedRows.length === 0) {
+        if (approvedRows.length === 0) {
             toast.error("Δεν υπάρχουν εγκεκριμένες γραμμές για αποστολή.");
             return;
         }
@@ -495,11 +509,29 @@ export default function StockRequestsClient({
                 requestingBranch: selectedBranchCode,
                 supplyingBranch: currentBranchCode,
                 notes,
-                items: selectedApprovedRows,
+                items: approvedRows,
             });
 
+            const submittedBasketIds = new Set(
+                (data.basketIds?.length
+                    ? data.basketIds
+                    : approvedRows.map((row) => row.BASKETID)
+                ).map((basketId) => String(basketId))
+            );
+
+            rowsLoadRequestId.current += 1;
+            setLoading(false);
+            setRows((current) =>
+                current.filter(
+                    (row) => !submittedBasketIds.has(String(row.BASKETID))
+                )
+            );
+            setSelectedSummaryBasketIds((current) => {
+                const next = new Set(current);
+                submittedBasketIds.forEach((basketId) => next.delete(basketId));
+                return next;
+            });
             setNotes("");
-            await loadRows();
             const message =
                 String(data.message ?? "").trim() ||
                 "Η ανατροφοδοσία καταχωρήθηκε επιτυχώς.";
@@ -514,11 +546,10 @@ export default function StockRequestsClient({
             setSubmittingAnatrof(false);
         }
     }, [
+        approvedRows,
         currentBranchCode,
-        loadRows,
         notes,
         selectedBranchCode,
-        selectedApprovedRows,
         setNotes,
         submitAnatrofOrder,
         user,
@@ -919,10 +950,9 @@ export default function StockRequestsClient({
                     {!isStockList && (
                         <StockOrderSummary
                             rows={approvedRows}
-                            requestedQtyTotal={selectedApprovedRequestedQty}
+                            requestedQtyTotal={approvedRequestedQty}
                             branchLabel={selectedBranchLabel}
                             basketTitle="Εγκεκριμένα Αιτήματα Ανατροφοδοσίας"
-                            lineLayout="basket"
                             showRequestDetails
                             onChangeQuantity={(row, quantity) =>
                                 void handleSummaryQuantityChange(row, quantity)

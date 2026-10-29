@@ -24,7 +24,6 @@ export interface StockOrderSummaryProps {
     basketTitle?: string;
     emptyMessage?: string;
     error?: string;
-    lineLayout?: "request" | "basket";
     showRequestDetails?: boolean;
     onChangeQuantity?: (row: IStockRequestListRow, quantity: number) => void;
     updatingBasketIds?: Set<string>;
@@ -53,9 +52,8 @@ export default function StockOrderSummary({
     branchLabel,
     title = "Αποστολή Ανατροφοδοσίας S1",
     basketTitle = "Καλάθι Ανατροφοδοσίας",
-    emptyMessage = "Δεν υπάρχουν ολοκληρωμένα αιτήματα.",
+    emptyMessage = "Εδώ θα εμφανιστούν τα αιτήματα ανατροφοδοσίας που αποδέχεστε και μπορείτε να στείλετε στο SoftOne.",
     error = "",
-    lineLayout = "request",
     showRequestDetails = false,
     onChangeQuantity,
     updatingBasketIds,
@@ -86,9 +84,7 @@ export default function StockOrderSummary({
         : rows.length;
     const hasPartialSelection =
         selectedBasketIds != null && selectedLineCount !== rows.length;
-    const sendDisabled =
-        sendingOrder ||
-        (selectedBasketIds ? selectedLineCount === 0 : rows.length === 0);
+    const sendDisabled = sendingOrder || rows.length === 0;
 
     const handleToggleAllLines = () => {
         if (!selectedBasketIds || !onToggleLineSelection) return;
@@ -168,8 +164,7 @@ export default function StockOrderSummary({
                         {basketTitle}
                     </p>
                     <div className="flex max-w-full flex-wrap items-center gap-2">
-                        {lineLayout === "basket" &&
-                            selectedBasketIds &&
+                        {selectedBasketIds &&
                             onToggleLineSelection &&
                             rows.length > 0 && (
                                 <button
@@ -183,8 +178,7 @@ export default function StockOrderSummary({
                                 </button>
                             )}
 
-                        {lineLayout === "basket" &&
-                            onRemoveSelectedLines &&
+                        {onRemoveSelectedLines &&
                             rows.length > 0 && (
                                 <button
                                     type="button"
@@ -224,7 +218,7 @@ export default function StockOrderSummary({
                             {emptyMessage}
                         </p>
                     </div>
-                ) : lineLayout === "basket" ? (
+                ) : (
                     <div className="mt-4 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white/70 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-950/30">
                         {rows.map((row) => (
                             <StockBasketLine
@@ -274,64 +268,6 @@ export default function StockOrderSummary({
                                         : undefined
                                 }
                             />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="mt-4 space-y-3">
-                        {rows.map((row) => (
-                            <article
-                                key={row.BASKETID}
-                                className="group rounded-xl border border-gray-200 bg-gray-50 p-3 transition-all dark:border-gray-800 dark:bg-gray-900/40"
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-medium text-gray-700 dark:text-white/90">
-                                            {row.ITEM_NAME || "—"}
-                                        </p>
-                                        <p className="mt-1 line-clamp-2 text-xs text-gray-500">
-                                            {row.ITEM_CODE || row.MTRL}
-                                        </p>
-                                    </div>
-
-                                </div>
-
-                                <div className="mt-3">
-                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-xs font-semibold tabular-nums text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
-                                        <span className="text-[10px] uppercase tracking-[0.14em] opacity-75">
-                                            ΠΟΣΟΤΗΤΑ:
-                                        </span>
-                                        <span>{getRequestedQty(row)}</span>
-                                    </span>
-                                </div>
-
-                                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-500">
-                                    <span className="min-w-0">
-                                        ID:{" "}
-                                        <span className="font-medium text-gray-700 dark:text-white/90">
-                                            {row.BASKETID}
-                                        </span>
-                                    </span>
-                                    <span className="min-w-0">
-                                        MTRL:{" "}
-                                        <span className="font-medium text-gray-700 dark:text-white/90">
-                                            {row.MTRL}
-                                        </span>
-                                    </span>
-                                    <span className="min-w-0">
-                                        ΚΑΤ/ΜΑ:{" "}
-                                        <span className="font-medium text-gray-700 dark:text-white/90">
-                                            {row.BRANCH}
-                                        </span>
-                                    </span>
-                                </div>
-
-                                <div className="mt-3 border-t border-gray-200 pt-3 text-[11px] text-gray-500 dark:border-gray-800">
-                                    <p>Ημ/νία Αιτήματος: {formatDateTime(row.INS_DATE)}</p>
-                                    <p className="mt-1">
-                                        Ημ/νία Έγκρισης: {formatDateTime(row.APPROVED_TS)}
-                                    </p>
-                                </div>
-                            </article>
                         ))}
                     </div>
                 )}

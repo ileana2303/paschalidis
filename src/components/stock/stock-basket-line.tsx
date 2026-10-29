@@ -112,10 +112,6 @@ export default function StockBasketLine({
                     </div>
                 </div>
             </div>
-            {/* <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-gray-400">
-                <span>MTRL {mtrl}</span>
-                {basketId ? <span>ID {basketId}</span> : null}
-            </div> */}
             {details ? (
                 <div className="mt-3 border-t border-gray-200 pt-3 text-[11px] text-gray-500 dark:border-gray-800">
                     {details}

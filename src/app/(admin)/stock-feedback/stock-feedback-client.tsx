@@ -876,7 +876,6 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
             basketTitle="Αιτήματα Ανατροφοδοσίας"
             emptyMessage="Δεν υπάρχουν αιτήματα στο καλάθι."
             error={summaryError}
-            lineLayout="basket"
             onChangeQuantity={(row, quantity) =>
               void handleSummaryQuantityChange(row, quantity)
             }

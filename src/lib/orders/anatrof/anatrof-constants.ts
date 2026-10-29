@@ -8,5 +8,5 @@ export const ANATROF_TAXSERIES = "πΔ";
 
 export const ANATROF_TRDR = 8674;
 
-export const ANATROF_TABLE_ACTION = "ΑΝΑΤΡΟΦΟΔΟΣΙΑ ΚΑΤΑΣΤΗΜΑΤΟΣ" as const;
+export const ANATROF_TABLE_ACTION = "ANATROF" as const;
 export const ANATROF_LOG_LABEL = "[orders/anatrof]";

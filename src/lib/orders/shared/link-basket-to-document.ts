@@ -35,7 +35,7 @@ export async function linkBasketRowsToDocument({
         `${logLabel} MASS_DELETE LINK_S1 ${tableAction} basketIds=${basketIds.join(",")} S1_KEY=${documentId}`
     );
 
-    return callMassDelete({
+    const result = await callMassDelete({
         clientID: sqlClientID,
         basketIds,
         tableAction,
@@ -45,4 +45,10 @@ export async function linkBasketRowsToDocument({
         logLabel,
         submitType,
     });
+
+    console.info(
+        `${logLabel} MASS_DELETE LINK_S1 ok basketIds=${basketIds.join(",")} S1_KEY=${documentId}`
+    );
+
+    return result;
 }
