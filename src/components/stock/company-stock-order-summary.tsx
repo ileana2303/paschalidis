@@ -7,11 +7,14 @@ import SummaryPanel, {
     SummaryPanelMessage,
 } from "@/components/ui/summary-panel/summary-panel";
 import SummaryPrimaryAction from "@/components/ui/summary-panel/summary-primary-action";
+import StockBasketLine from "@/components/stock/stock-basket-line";
 import {
     Check,
     ChevronDown,
+    Loader2,
     Package,
     Send,
+    Trash2,
     Truck,
     Warehouse,
 } from "@/lib/icons/lucide";
@@ -34,6 +37,13 @@ interface CompanyStockOrderSummaryProps {
     selectedSupplierTrdr: string | null;
     onSelectedSupplierTrdrChange: (trdr: string) => void;
     onSubmitSelectedSupplier: (trdr: string) => void;
+    onChangeLineQuantity?: (line: CompanyStockBasketLine, quantity: number) => void;
+    updatingBasketIds?: Set<string>;
+    onRemoveSupplierBasket?: (
+        basketKey: string,
+        lines: CompanyStockBasketLine[]
+    ) => void;
+    removingSupplierBasketKeys?: Set<string>;
     loading?: boolean;
     error?: string;
     isSubmitting?: boolean;
@@ -113,6 +123,10 @@ export default function CompanyStockOrderSummary({
     selectedSupplierTrdr,
     onSelectedSupplierTrdrChange,
     onSubmitSelectedSupplier,
+    onChangeLineQuantity,
+    updatingBasketIds,
+    onRemoveSupplierBasket,
+    removingSupplierBasketKeys,
     loading = false,
     error = "",
     isSubmitting = false,
@@ -261,15 +275,16 @@ export default function CompanyStockOrderSummary({
                                             : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/40",
                                     ].join(" ")}
                                 >
-                                    <button
-                                        type="button"
-                                        role="radio"
-                                        aria-checked={selected}
-                                        onClick={() =>
-                                            onSelectedSupplierTrdrChange(group.trdr)
-                                        }
-                                        className="flex w-full items-start gap-3 p-3 text-left"
-                                    >
+                                    <div className="flex items-start">
+                                        <button
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={selected}
+                                            onClick={() =>
+                                                onSelectedSupplierTrdrChange(group.trdr)
+                                            }
+                                            className="flex min-w-0 flex-1 items-start gap-3 p-3 text-left"
+                                        >
                                         <span
                                             className={[
                                                 "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition",
@@ -317,35 +332,53 @@ export default function CompanyStockOrderSummary({
                                                 selected ? "rotate-180" : "",
                                             ].join(" ")}
                                         />
-                                    </button>
+                                        </button>
+                                        {onRemoveSupplierBasket && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    onRemoveSupplierBasket(
+                                                        group.key,
+                                                        group.lines
+                                                    )
+                                                }
+                                                disabled={removingSupplierBasketKeys?.has(
+                                                    group.key
+                                                )}
+                                                title="Διαγραφή καλαθιού προμηθευτή"
+                                                aria-label={`Διαγραφή καλαθιού ${group.supplierName || group.trdr}`}
+                                                className="mr-3 mt-3 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                            >
+                                                {removingSupplierBasketKeys?.has(
+                                                    group.key
+                                                ) ? (
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                )}
+                                            </button>
+                                        )}
+                                    </div>
 
                                     {selected && (
                                         <div className="divide-y divide-gray-100 border-t border-brand-100 bg-white/70 dark:divide-gray-800 dark:border-brand-500/20 dark:bg-gray-950/30">
                                             {group.lines.map((line) => (
-                                                <div key={line.id} className="px-3 py-3">
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div className="min-w-0 flex-1">
-                                                            <p
-                                                                className="truncate font-mono text-sm font-bold tracking-wide text-gray-900 dark:text-white"
-                                                                title={line.code || line.mtrl}
-                                                            >
-                                                                {line.code || line.mtrl}
-                                                            </p>
-                                                            <p className="mt-1 line-clamp-2 text-[11px] font-medium leading-4 text-gray-500 dark:text-gray-400">
-                                                                {line.name || "—"}
-                                                            </p>
-                                                        </div>
-                                                        <span className="shrink-0 rounded-full bg-brand-50 px-2 py-1 text-[10px] font-semibold tabular-nums text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
-                                                            {line.quantity} τεμ.
-                                                        </span>
-                                                    </div>
-                                                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-gray-400">
-                                                        <span>MTRL {line.mtrl}</span>
-                                                        {line.basketId && (
-                                                            <span>ID {line.basketId}</span>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                                <StockBasketLine
+                                                    key={line.id}
+                                                    idPrefix="company-stock"
+                                                    code={line.code}
+                                                    name={line.name}
+                                                    quantity={line.quantity}
+                                                    mtrl={line.mtrl}
+                                                    basketId={line.basketId}
+                                                    updating={updatingBasketIds?.has(line.basketId)}
+                                                    onQuantityChange={
+                                                        onChangeLineQuantity
+                                                            ? (quantity) =>
+                                                                onChangeLineQuantity(line, quantity)
+                                                            : undefined
+                                                    }
+                                                />
                                             ))}
                                         </div>
                                     )}

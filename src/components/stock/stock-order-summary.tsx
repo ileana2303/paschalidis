@@ -1,18 +1,38 @@
 "use client";
 
-import { Check, RefreshCw, Send, StickyNote } from "@/lib/icons/lucide";
+import {
+    Check,
+    Loader2,
+    RefreshCw,
+    Send,
+    StickyNote,
+    Trash2,
+} from "@/lib/icons/lucide";
 import SummaryPanel from "@/components/ui/summary-panel/summary-panel";
 import SummaryInfoCard from "@/components/ui/summary-panel/summary-info-card";
 import SummaryMetricGrid from "@/components/ui/summary-panel/summary-metric-grid";
 import SummaryPrimaryAction from "@/components/ui/summary-panel/summary-primary-action";
 import SummaryTextareaField from "@/components/ui/summary-panel/summary-textarea-field";
+import StockBasketLine from "@/components/stock/stock-basket-line";
 import type { IStockRequestListRow } from "@/lib/interface";
 
 export interface StockOrderSummaryProps {
     rows: IStockRequestListRow[];
     requestedQtyTotal: number;
     branchLabel: string;
-    getStatusStyle: (status: string) => string;
+    title?: string;
+    basketTitle?: string;
+    emptyMessage?: string;
+    error?: string;
+    showRequestDetails?: boolean;
+    onChangeQuantity?: (row: IStockRequestListRow, quantity: number) => void;
+    updatingBasketIds?: Set<string>;
+    selectedBasketIds?: Set<string>;
+    removingBasketIds?: Set<string>;
+    removingSelectedLines?: boolean;
+    onToggleLineSelection?: (basketId: string) => void;
+    onRemoveLine?: (row: IStockRequestListRow) => void;
+    onRemoveSelectedLines?: () => void;
     getRequestedQty: (row: IStockRequestListRow) => string;
     formatDateTime: (value?: string) => string;
     loading: boolean;
@@ -30,7 +50,19 @@ export default function StockOrderSummary({
     rows,
     requestedQtyTotal,
     branchLabel,
-    getStatusStyle,
+    title = "Αποστολή Ανατροφοδοσίας S1",
+    basketTitle = "Καλάθι Ανατροφοδοσίας",
+    emptyMessage = "Εδώ θα εμφανιστούν τα αιτήματα ανατροφοδοσίας που αποδέχεστε και μπορείτε να στείλετε στο SoftOne.",
+    error = "",
+    showRequestDetails = false,
+    onChangeQuantity,
+    updatingBasketIds,
+    selectedBasketIds,
+    removingBasketIds,
+    removingSelectedLines = false,
+    onToggleLineSelection,
+    onRemoveLine,
+    onRemoveSelectedLines,
     getRequestedQty,
     formatDateTime,
     loading,
@@ -43,18 +75,41 @@ export default function StockOrderSummary({
     collapsed = false,
     onToggleCollapse,
 }: StockOrderSummaryProps) {
+    const allLinesSelected =
+        rows.length > 0 &&
+        selectedBasketIds != null &&
+        rows.every((row) => selectedBasketIds.has(row.BASKETID));
+    const selectedLineCount = selectedBasketIds
+        ? rows.filter((row) => selectedBasketIds.has(row.BASKETID)).length
+        : rows.length;
+    const hasPartialSelection =
+        selectedBasketIds != null && selectedLineCount !== rows.length;
     const sendDisabled = sendingOrder || rows.length === 0;
+
+    const handleToggleAllLines = () => {
+        if (!selectedBasketIds || !onToggleLineSelection) return;
+
+        rows.forEach((row) => {
+            const selected = selectedBasketIds.has(row.BASKETID);
+            if (allLinesSelected ? selected : !selected) {
+                onToggleLineSelection(row.BASKETID);
+            }
+        });
+    };
 
     return (
         <SummaryPanel
-            label="Σύνοψη Ανατροφοδοσίας"
-            title="Αποστολή Ανατροφοδοσίας S1"
-            asideClassName="xl:!basis-[25%] xl:!min-w-[272px]"
+            label="Σύνοψη Αιτημάτων Ανατροφοδοσίας"
+            title={title}
+            asideClassName={collapsed
+                ? "xl:!basis-auto xl:!min-w-0"
+                : "xl:!basis-[25%] xl:!min-w-[272px] xl:max-h-full xl:min-h-0 xl:self-stretch"}
             fitContentWhenStacked
             collapsible={collapsible}
             collapsed={collapsed}
             onToggleCollapse={onToggleCollapse}
             collapseTitle="Απόκρυψη καλαθιού"
+            error={error}
             actions={
                 <button
                     type="button"
@@ -89,7 +144,10 @@ export default function StockOrderSummary({
                     {
                         id: "lines",
                         label: "Γραμμές",
-                        value: rows.length,
+                        value: selectedLineCount,
+                        trailingValue: hasPartialSelection
+                            ? `/ ${rows.length}`
+                            : undefined,
                     },
                     {
                         id: "qty",
@@ -103,13 +161,52 @@ export default function StockOrderSummary({
             <section className="mt-5">
                 <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                        Καλάθι Ανατροφοδοσίας
+                        {basketTitle}
                     </p>
-                    {rows.length > 0 && (
-                        <span className="text-xs text-gray-400">
-                            {rows.length} {rows.length === 1 ? "γραμμή" : "γραμμές"}
-                        </span>
-                    )}
+                    <div className="flex max-w-full flex-wrap items-center gap-2">
+                        {selectedBasketIds &&
+                            onToggleLineSelection &&
+                            rows.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={handleToggleAllLines}
+                                    className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-500/30 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
+                                >
+                                    {allLinesSelected
+                                        ? "Αποεπιλογή όλων"
+                                        : "Επιλογή όλων"}
+                                </button>
+                            )}
+
+                        {onRemoveSelectedLines &&
+                            rows.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={onRemoveSelectedLines}
+                                    disabled={
+                                        !selectedBasketIds?.size ||
+                                        removingSelectedLines
+                                    }
+                                    title="Διαγραφή επιλεγμένων"
+                                    aria-label="Διαγραφή επιλεγμένων γραμμών"
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-200 bg-white text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 dark:border-red-500/30 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
+                                >
+                                    {removingSelectedLines ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    )}
+                                </button>
+                            )}
+
+                        {rows.length > 0 && (
+                            <span className="text-xs text-gray-400">
+                                {hasPartialSelection
+                                    ? `${selectedLineCount} / ${rows.length} γραμμές`
+                                    : `${rows.length} ${rows.length === 1 ? "γραμμή" : "γραμμές"}`}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {rows.length === 0 ? (
@@ -118,87 +215,76 @@ export default function StockOrderSummary({
                             <Check className="h-8 w-8" />
                         </div>
                         <p className="mt-3 text-sm text-gray-400">
-                            Δεν υπάρχουν ολοκληρωμένα αιτήματα.
+                            {emptyMessage}
                         </p>
                     </div>
                 ) : (
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-4 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white/70 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-950/30">
                         {rows.map((row) => (
-                            <article
+                            <StockBasketLine
                                 key={row.BASKETID}
-                                className="group rounded-xl border border-gray-200 bg-gray-50 p-3 transition-all dark:border-gray-800 dark:bg-gray-900/40"
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-medium text-gray-700 dark:text-white/90">
-                                            {row.ITEM_NAME || "—"}
-                                        </p>
-                                        <p className="mt-1 line-clamp-2 text-xs text-gray-500">
-                                            {row.ITEM_CODE || row.MTRL}
-                                        </p>
-                                    </div>
-
-                                    <span
-                                        className={`shrink-0 rounded-full px-2 py-1 text-[10px] ${getStatusStyle(
-                                            row.STATUS
-                                        )}`}
-                                    >
-                                        {row.STATUS}
-                                    </span>
-                                </div>
-
-                                <div className="mt-3">
-                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1.5 text-xs font-semibold tabular-nums text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
-                                        <span className="text-[10px] uppercase tracking-[0.14em] opacity-75">
-                                            ΠΟΣΟΤΗΤΑ:
-                                        </span>
-                                        <span>{getRequestedQty(row)}</span>
-                                    </span>
-                                </div>
-
-                                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-500">
-                                    <span className="min-w-0">
-                                        ID:{" "}
-                                        <span className="font-medium text-gray-700 dark:text-white/90">
-                                            {row.BASKETID}
-                                        </span>
-                                    </span>
-                                    <span className="min-w-0">
-                                        MTRL:{" "}
-                                        <span className="font-medium text-gray-700 dark:text-white/90">
-                                            {row.MTRL}
-                                        </span>
-                                    </span>
-                                    <span className="min-w-0">
-                                        ΚΑΤ/ΜΑ:{" "}
-                                        <span className="font-medium text-gray-700 dark:text-white/90">
-                                            {row.BRANCH}
-                                        </span>
-                                    </span>
-                                </div>
-
-                                <div className="mt-3 border-t border-gray-200 pt-3 text-[11px] text-gray-500 dark:border-gray-800">
-                                    <p>Ημ/νία Αιτήματος: {formatDateTime(row.INS_DATE)}</p>
-                                    <p className="mt-1">
-                                        Ημ/νία Έγκρισης: {formatDateTime(row.APPROVED_TS)}
-                                    </p>
-                                </div>
-                            </article>
+                                idPrefix="stock-order"
+                                code={row.ITEM_CODE}
+                                name={row.ITEM_NAME}
+                                quantity={Number(getRequestedQty(row))}
+                                mtrl={row.MTRL}
+                                basketId={row.BASKETID}
+                                updating={updatingBasketIds?.has(row.BASKETID)}
+                                selected={
+                                    selectedBasketIds?.has(row.BASKETID) ?? true
+                                }
+                                removing={removingBasketIds?.has(row.BASKETID)}
+                                details={
+                                    showRequestDetails ? (
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                            <span className="whitespace-nowrap">
+                                                Ημ/νία Αιτήματος:{" "}
+                                                <strong className="font-semibold tabular-nums text-gray-700 dark:text-gray-200">
+                                                    {formatDateTime(row.INS_DATE)}
+                                                </strong>
+                                            </span>
+                                            <span className="whitespace-nowrap">
+                                                Ημ/νία Έγκρισης:{" "}
+                                                <strong className="font-semibold tabular-nums text-gray-700 dark:text-gray-200">
+                                                    {formatDateTime(row.APPROVED_TS)}
+                                                </strong>
+                                            </span>
+                                        </div>
+                                    ) : undefined
+                                }
+                                onQuantityChange={
+                                    onChangeQuantity
+                                        ? (quantity) => onChangeQuantity(row, quantity)
+                                        : undefined
+                                }
+                                onToggleSelection={
+                                    onToggleLineSelection
+                                        ? () => onToggleLineSelection(row.BASKETID)
+                                        : undefined
+                                }
+                                onRemove={
+                                    onRemoveLine
+                                        ? () => onRemoveLine(row)
+                                        : undefined
+                                }
+                            />
                         ))}
                     </div>
                 )}
             </section>
 
-            <SummaryTextareaField
-                id="anatrof-notes"
-                label="Παρατηρήσεις"
-                icon={<StickyNote className="h-4 w-4" />}
-                value={notes}
-                onChange={(value) => onNotesChange?.(value)}
-                rows={3}
-                placeholder="Προσθέστε παρατηρήσεις για την ανατροφοδοσία..."
-                fieldClassName="mt-5"
-            />
+            {onNotesChange ? (
+                <SummaryTextareaField
+                    id="anatrof-notes"
+                    label="Παρατηρήσεις"
+                    icon={<StickyNote className="h-4 w-4" />}
+                    value={notes}
+                    onChange={onNotesChange}
+                    rows={3}
+                    placeholder="Προσθέστε παρατηρήσεις για την ανατροφοδοσία..."
+                    fieldClassName="mt-5"
+                />
+            ) : null}
         </SummaryPanel>
     );
 }

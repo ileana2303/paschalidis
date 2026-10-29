@@ -12,6 +12,7 @@ interface RowActionGroupProps {
   onEdit: () => void;
   onApprove: () => void;
   onDelete: () => void;
+  showEdit?: boolean;
   showApprove?: boolean;
   editTitle?: string;
   approveTitle?: string;
@@ -29,6 +30,7 @@ export function RowActionGroup({
   onEdit,
   onApprove,
   onDelete,
+  showEdit = true,
   showApprove = true,
   editTitle = "Επεξεργασία",
   approveTitle = "Έγκριση",
@@ -49,17 +51,19 @@ export function RowActionGroup({
           className,
         ].join(" ")}
       >
-        <button
-          type="button"
-          onClick={onEdit}
-          disabled={loading || disabled}
-          title={editTitle}
-          aria-label={editAriaLabel}
-          className="flex h-11 min-w-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-        >
-          <Pencil className="h-4 w-4 shrink-0" />
-          <span className="sr-only">{editTitle}</span>
-        </button>
+        {showEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={loading || disabled}
+            title={editTitle}
+            aria-label={editAriaLabel}
+            className="flex h-11 min-w-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            <Pencil className="h-4 w-4 shrink-0" />
+            <span className="sr-only">{editTitle}</span>
+          </button>
+        )}
 
         {showApprove && (
           <button
@@ -101,20 +105,24 @@ export function RowActionGroup({
         className,
       ].join(" ")}
     >
-      <button
-        type="button"
-        onClick={onEdit}
-        disabled={loading || disabled}
-        title={editTitle}
-        aria-label={editAriaLabel}
-        className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-50 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-gray-800 dark:hover:text-white"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </button>
+      {showEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          disabled={loading || disabled}
+          title={editTitle}
+          aria-label={editAriaLabel}
+          className="flex h-9 w-9 items-center justify-center text-gray-500 transition hover:bg-gray-50 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-gray-800 dark:hover:text-white"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
 
       {showApprove && (
         <>
-          <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
+          {showEdit && (
+            <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
+          )}
 
           <button
             type="button"
@@ -133,7 +141,9 @@ export function RowActionGroup({
         </>
       )}
 
-      <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
+      {(showEdit || showApprove) && (
+        <div className="h-5 w-px bg-gray-200 dark:bg-gray-700" />
+      )}
 
       <button
         type="button"
