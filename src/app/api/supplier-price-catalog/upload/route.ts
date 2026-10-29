@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import { verifySessionToken } from "@/lib/auth/session-token";
-import { SUPPLIER_PRICE_CATALOG_OPTIONS } from "@/lib/supplier-price-catalog/constants";
 import { uploadSupplierPriceCatalogToSoftOne } from "@/lib/supplier-price-catalog/softone-batch";
+import {
+  isValidSupplierPriceCatalogCode,
+  normalizeSupplierPriceCatalogCode,
+} from "@/lib/supplier-price-catalog/normalize-supplier";
 import type {
-  SupplierPriceCatalogCode,
   SupplierPriceRow,
   UploadSupplierPriceCatalogRequest,
   UploadSupplierPriceCatalogResponse,
 } from "@/lib/supplier-price-catalog/types";
-
-const SUPPLIER_CODES = new Set(
-  SUPPLIER_PRICE_CATALOG_OPTIONS.map((option) => option.value)
-);
 
 function unauthorizedResponse() {
   return NextResponse.json(
@@ -39,14 +37,16 @@ function parseRequest(body: unknown): UploadSupplierPriceCatalogRequest | null {
   if (!body || typeof body !== "object") return null;
 
   const record = body as Record<string, unknown>;
-  const supplier = String(record.supplier ?? "").trim() as SupplierPriceCatalogCode;
+  const supplier = normalizeSupplierPriceCatalogCode(
+    String(record.supplier ?? "")
+  );
   const descr = String(record.descr ?? "").trim();
   const filePath = String(record.filePath ?? "").trim();
   const prefixes = String(record.prefixes ?? "").trim();
   const rows = record.rows;
 
   if (
-    !SUPPLIER_CODES.has(supplier) ||
+    !isValidSupplierPriceCatalogCode(supplier) ||
     !descr ||
     !filePath ||
     !Array.isArray(rows) ||

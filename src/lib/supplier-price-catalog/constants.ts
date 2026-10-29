@@ -1,14 +1,3 @@
-import type { SupplierPriceCatalogCode } from "@/lib/supplier-price-catalog/types";
-
-export const SUPPLIER_PRICE_CATALOG_OPTIONS: Array<{
-  value: SupplierPriceCatalogCode;
-  label: string;
-}> = [
-  { value: "FEBI", label: "FEBI" },
-  { value: "PRICES", label: "PRICES" },
-  { value: "TRISCAN", label: "TRISCAN" },
-];
-
 /** Rows per SoftOne `savePrices` request. */
 export const SUPPLIER_PRICE_SAVE_CHUNK_SIZE = 500;
 

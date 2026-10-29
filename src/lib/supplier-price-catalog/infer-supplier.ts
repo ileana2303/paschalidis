@@ -1,8 +1,8 @@
-import type { SupplierPriceCatalogCode } from "@/lib/supplier-price-catalog/types";
+export type InferredSupplierPriceCatalogCode = "FEBI" | "PRICES" | "TRISCAN";
 
 export function inferSupplierFromSheetName(
   sheetName: string
-): SupplierPriceCatalogCode | null {
+): InferredSupplierPriceCatalogCode | null {
   const normalized = sheetName.trim().toUpperCase();
   if (normalized === "FEBI") return "FEBI";
   if (normalized === "PRICES") return "PRICES";

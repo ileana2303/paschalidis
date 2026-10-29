@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSupplierPriceCatalogSession } from "@/app/api/supplier-price-catalog/_lib/session";
-import { SUPPLIER_PRICE_CATALOG_OPTIONS } from "@/lib/supplier-price-catalog/constants";
 import { openSupplierPriceBatch } from "@/lib/supplier-price-catalog/softone-batch";
-import type { SupplierPriceCatalogCode } from "@/lib/supplier-price-catalog/types";
-
-const SUPPLIER_CODES = new Set(
-  SUPPLIER_PRICE_CATALOG_OPTIONS.map((option) => option.value)
-);
+import {
+  isValidSupplierPriceCatalogCode,
+  normalizeSupplierPriceCatalogCode,
+} from "@/lib/supplier-price-catalog/normalize-supplier";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,12 +18,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-    const supplier = String(body.supplier ?? "").trim() as SupplierPriceCatalogCode;
+    const supplier = normalizeSupplierPriceCatalogCode(
+      String(body.supplier ?? "")
+    );
     const descr = String(body.descr ?? "").trim();
     const filePath = String(body.filePath ?? "").trim();
     const prefixes = String(body.prefixes ?? "").trim();
 
-    if (!SUPPLIER_CODES.has(supplier) || !descr || !filePath) {
+    if (!isValidSupplierPriceCatalogCode(supplier) || !descr || !filePath) {
       return NextResponse.json(
         {
           success: false,
