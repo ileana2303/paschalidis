@@ -4,7 +4,7 @@ import BasePricePurClient from "./base-price-pur-client";
 const title = "Διαμόρφωση Τιμών";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function BasePricePurPage() {

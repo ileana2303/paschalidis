@@ -4,7 +4,7 @@ import SuffixManagementClient from "./suffix-management-client";
 const title = "Διαχείριση Suffix";
 
 export const metadata: Metadata = {
-  title: `${title} | Paschalidis ERP`,
+  title: `${title} | Oval`,
 };
 
 export default function SuffixManagementPage() {

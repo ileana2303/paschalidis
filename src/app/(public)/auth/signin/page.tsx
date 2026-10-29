@@ -3,7 +3,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title:
-    "Sign In | Paschalidis ERP",
+    "Sign In | Oval",
 };
 
 export default function SignIn() {

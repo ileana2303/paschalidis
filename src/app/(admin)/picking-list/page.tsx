@@ -4,7 +4,7 @@ import PickingListClient from "./picking-list-client";
 const title = "Picking List";
 
 export const metadata: Metadata = {
-  title: `${title} | Paschalidis ERP`,
+  title: `${title} | Oval`,
 };
 
 export default function PickingListPage() {

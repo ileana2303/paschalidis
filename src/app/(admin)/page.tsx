@@ -6,7 +6,7 @@ import ActiveBasketsCard from "@/components/template-components/ecommerce/Active
 
 export const metadata: Metadata = {
   title:
-    "Paschalidis - ERP Platform",
+    "Oval - ERP Platform",
 };
 
 export default function Ecommerce() {

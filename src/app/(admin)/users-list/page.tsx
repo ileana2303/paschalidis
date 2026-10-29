@@ -4,7 +4,7 @@ import UsersClient from "../users/users-client";
 const title = "Λίστα Χρηστών";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function UsersListPage() {

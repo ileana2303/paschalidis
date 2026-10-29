@@ -4,7 +4,7 @@ import ReferenceManagementClient from "@/components/suffix-management/reference-
 const title = "Διαχείριση B2B";
 
 export const metadata: Metadata = {
-  title: `${title} | Paschalidis ERP`,
+  title: `${title} | Oval`,
 };
 
 export default function B2BManagementPage() {

@@ -4,7 +4,7 @@ import StockRequestsClient from "./stock-requests-client";
 const title = "Αιτήματα Ανατροφοδοσίας";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function StockRequestsPage() {

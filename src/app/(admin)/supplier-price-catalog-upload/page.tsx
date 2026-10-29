@@ -4,7 +4,7 @@ import SupplierPriceCatalogUploadClient from "./supplier-price-catalog-upload-cl
 const title = "Ανέβασμα Τιμοκαταλόγου";
 
 export const metadata: Metadata = {
-  title: `${title} | Paschalidis ERP`,
+  title: `${title} | Oval`,
 };
 
 export default function SupplierPriceCatalogUploadPage() {

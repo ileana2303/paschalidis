@@ -13,11 +13,11 @@ export default function AuthLayout({
         {children}
         <div className="lg:w-1/2 w-full h-full bg-brand-950 dark:bg-white/5 lg:grid items-center hidden">
           <div className="relative items-center justify-center flex z-1">
-            
+
             <div className="flex flex-col items-center max-w-xs gap-5 px-6">
               <Image
                 src="/images/logo/logo-dark.png"
-                alt="Paschalidis ERP"
+                alt="Oval"
                 width={300}
                 height={86}
                 priority

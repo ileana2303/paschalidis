@@ -4,7 +4,7 @@ import StockFeedbackClient from "./stock-feedback-client";
 const title = "Ανατροφοδοσία Καταστήματος";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function StockFeedbackPage() {

@@ -5,7 +5,7 @@ import BasketClient from "./basket-client";
 const title = "Παραγγελία Πελάτη";
 
 export const metadata: Metadata = {
-    title: `${title} | Paschalidis ERP`,
+    title: `${title} | Oval`,
 };
 
 export default function BasketPage() {
