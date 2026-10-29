@@ -503,62 +503,65 @@ export interface CompanyStockResponse
 export interface ItemForensicsRoutePayload {
     mtrl: string | number;
     days: number;
+    branch: string;
 }
 
 export interface ItemForensicsPayload {
     service: "SqlData";
     clientID: string;
     appId: "1305";
-    SqlName: "ITEM_FORENSICS_QTY";
+    SqlName: "SALES_PASCHA_ITEM";
     MTRL: string;
     DAYS: string;
+    BRANCH: string;
 }
 
 export interface IItemForensicsRow {
-    IS_SELF: string;
-    SAME_GROUP: string;
-    SAME_B2B: string;
-    SXESI: string;
-    RN: string;
     MTRL: string;
     CODE: string;
     NAME: string;
-    CODE1?: string;
-    CODE2?: string;
-    CCCSUFIX?: string;
-    ZGROUP_CODE?: string;
-    ZB2B_CODE?: string;
-    SUGGESTED_TRDR?: string;
-    SUGGESTED_TRDR_CODE?: string;
-    SUGGESTED_TRDR_NAME?: string;
-    QTY_SOLD: string;
-    CY: string;
-    CY_1: string;
-    CY_2: string;
-    CY_3: string;
-    CY_4: string;
-    ONGOING: string;
+    CODE1: string;
+    ZGROUP_CODE: string;
+    ZB2B_CODE: string;
+    DAYS: string;
+    BRANCH: string;
+    MINES: string;
+    SORT: string;
+    SCOPE: "ΕΙΔΟΣ" | "ΟΜΟΙΑ" | "GROUP" | "B2B" | string;
+    ITEMS: string;
+    QTY_WIN: string;
+    RYTHMOS_MINA: string;
+    Y0: string;
+    Y1: string;
+    Y2: string;
+    Y3: string;
+    Y4: string;
+    M0: string;
+    M1: string;
+    M2: string;
+    M3: string;
+    M4: string;
+    TASI_WIN: string;
     YP1000: string;
     YP1006: string;
     YP1007: string;
-    TOTAL_AVAIL: string;
-    FAM_ITEMS: string;
-    FAM_QTY_SOLD: string;
-    FAM_CY: string;
-    FAM_CY_1: string;
-    FAM_AVAIL: string;
-    GRP_ITEMS: string;
-    GRP_QTY_SOLD: string;
-    GRP_CY: string;
-    GRP_CY_1: string;
-    GRP_AVAIL: string;
-    B2B_ITEMS: string;
-    B2B_QTY_SOLD: string;
-    B2B_CY: string;
-    B2B_CY_1: string;
-    B2B_AVAIL: string;
-    SELECTED_GROUP?: string;
-    SELECTED_B2B?: string;
+    AVAIL: string;
+    ONGOING: string;
+    RES1000: string;
+    RES1006: string;
+    RES1007: string;
+    RES_TOTAL: string;
+    END1000: string;
+    END1006: string;
+    END1007: string;
+    END_TOTAL: string;
+    FREE_AVAIL: string;
+    YP_BRANCH: string;
+    RES_BRANCH: string;
+    END_BRANCH: string;
+    MERIDIO_FETOS: string;
+    MERIDIO_PERSI: string;
+    MERIDIO_STOK: string;
 }
 
 export interface ItemForensicsResponse

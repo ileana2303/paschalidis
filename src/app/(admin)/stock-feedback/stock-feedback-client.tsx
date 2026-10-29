@@ -36,6 +36,7 @@ import {
   formatNumber,
   toNumber,
 } from "@/lib/utils/stock-feedback";
+import { getAthensMonthName } from "@/lib/utils/athens-date";
 
 const DAY_OPTIONS = [1, 3, 7, 10] as const;
 const SALES_HISTORY_FIELDS = [
@@ -168,6 +169,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
     useState<IStockFeedbackRow | null>(null);
   const itemSearchRequestId = useRef(0);
   const currentYear = new Date().getFullYear();
+  const currentMonth = getAthensMonthName();
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -542,7 +544,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                                 <div
                                   key={sales}
                                   className="min-w-0 rounded-lg bg-gray-50 px-1.5 py-1.5 text-center dark:bg-gray-800/70"
-                                  title={`${sales}-${year} · ${monthlyRate}`}
+                                  title={`${sales}-${year} · ${monthlyRate}-${currentMonth}`}
                                 >
                                   <p className="whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500">
                                     {year}
@@ -551,7 +553,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                                     {formatNumber(row[sales])}
                                   </p>
                                   <p className="mt-1 whitespace-nowrap text-[10px] font-medium leading-tight text-gray-400 dark:text-gray-500">
-                                    Ρυθμός/μήνα
+                                    {currentMonth}
                                   </p>
                                   <p className="mt-0.5 text-xs font-medium tabular-nums leading-tight text-gray-600 dark:text-gray-300">
                                     {formatNumber(row[monthlyRate])}
@@ -670,9 +672,10 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
       </DataTable>
       {selectedForensicsItem ? (
         <ItemForensicsDrawer
-          key={`${selectedForensicsItem.MTRL}-${days}`}
+          key={`${selectedForensicsItem.MTRL}-${days}-${currentBranchCode}`}
           item={selectedForensicsItem}
           days={days}
+          branch={currentBranchCode}
           onClose={closeForensicsDrawer}
         />
       ) : null}
