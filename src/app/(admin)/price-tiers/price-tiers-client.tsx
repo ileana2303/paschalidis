@@ -7,12 +7,13 @@ import PriceTierGrid, {
     PRICE_TIER_AXIS_LABELS,
     type PriceTierGridOrientation,
 } from "@/components/price-tiers/price-tier-grid";
+import { getPriceTierTone } from "@/components/price-tiers/price-tier-visuals";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import { usePriceTierGridQuery } from "@/hooks/queries/usePriceTierQueries";
 import { Loader2, RefreshCw, Table2 } from "@/lib/icons/lucide";
-import { buildPriceTierGrid } from "@/lib/price-tiers/grid";
+import { buildPriceTierGrid, PRICE_TIER_OPTIONS } from "@/lib/price-tiers/grid";
 
 const ORIENTATION_OPTIONS: ReadonlyArray<{
     value: PriceTierGridOrientation;
@@ -42,7 +43,7 @@ export default function PriceTiersClient() {
         <div>
             <PageBreadcrumb pageTitle="Βαθμίδες Τιμών" />
 
-            <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <div className="grid items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_22rem]">
                 <DataTable className="min-w-0">
                     <DataTableHeader
                         title="Πλέγμα βαθμίδων"
@@ -101,6 +102,30 @@ export default function PriceTiersClient() {
                         )}
                     />
 
+                    <div
+                        className="flex flex-wrap items-center gap-1.5 border-b border-gray-100 px-3 py-2.5 sm:px-5 dark:border-gray-800"
+                        aria-label="Χρωματική κλίμακα βαθμίδων τιμών"
+                    >
+                        <span className="mr-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                            Κλίμακα:
+                        </span>
+                        {PRICE_TIER_OPTIONS.map((option) => (
+                            <span
+                                key={option.value}
+                                className={[
+                                    "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold ring-1 ring-inset",
+                                    getPriceTierTone(option.value),
+                                ].join(" ")}
+                            >
+                                <span className="font-bold tabular-nums">{option.value}</span>
+                                <span className="hidden sm:inline">{option.label}</span>
+                            </span>
+                        ))}
+                        <span className="ml-1 text-[11px] text-gray-500 dark:text-gray-400">
+                            1 χαμηλότερη · 5 υψηλότερη
+                        </span>
+                    </div>
+
                     {isLoading ? (
                         <div className="flex items-center justify-center gap-2 py-16 text-gray-500">
                             <Loader2 className="size-6 animate-spin" />
@@ -127,7 +152,9 @@ export default function PriceTiersClient() {
                     )}
                 </DataTable>
 
-                <CustomerGroupForm />
+                <div className="w-full max-w-2xl 2xl:max-w-none">
+                    <CustomerGroupForm />
+                </div>
             </div>
         </div>
     );

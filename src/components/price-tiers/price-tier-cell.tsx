@@ -1,6 +1,7 @@
 import { Check, ChevronDown, Loader2 } from "@/lib/icons/lucide";
 import { isPriceTierValue, PRICE_TIER_OPTIONS } from "@/lib/price-tiers/grid";
 import type { PriceTierCell as PriceTierCellData } from "@/lib/price-tiers/types";
+import { getPriceTierTone } from "@/components/price-tiers/price-tier-visuals";
 
 export type PriceTierCellStatus = "idle" | "saving" | "saved" | "failed";
 
@@ -10,20 +11,6 @@ interface PriceTierCellProps {
     value: string;
     status: PriceTierCellStatus;
     onChange: (tier: string) => void;
-}
-
-// Tier 0 (χονδρική) is the normal default, so it stays neutral rather than
-// looking like a missing or erroneous value.
-function getTierTone(value: string) {
-    if (value === "99") {
-        return "bg-violet-50 text-violet-800 ring-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:ring-violet-500/30";
-    }
-
-    if (value === "0") {
-        return "bg-white text-gray-800 ring-gray-200 dark:bg-gray-900 dark:text-gray-100 dark:ring-gray-700";
-    }
-
-    return "bg-brand-50 text-brand-800 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-200 dark:ring-brand-500/30";
 }
 
 function getStatusRing(status: PriceTierCellStatus) {
@@ -42,7 +29,10 @@ export default function PriceTierCell({
 
     return (
         <div
-            className={["relative", cell.isActive ? "" : "opacity-60"].join(" ")}
+            className={[
+                "relative inline-block w-full max-w-[7.5rem] text-left",
+                cell.isActive ? "" : "opacity-60",
+            ].join(" ")}
             title={cell.lastUser ? `Τελευταία αλλαγή: ${cell.lastUser}` : undefined}
         >
             <select
@@ -52,8 +42,8 @@ export default function PriceTierCell({
                 aria-label={`Βαθμίδα ${cell.mtrCode} × ${cell.trdCode}`}
                 aria-busy={isSaving}
                 className={[
-                    "h-11 w-full min-w-[8.5rem] cursor-pointer appearance-none rounded-lg py-2 pl-3 pr-8 text-sm font-semibold tabular-nums ring-inset transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-wait",
-                    getTierTone(value),
+                    "h-9 w-full min-w-0 cursor-pointer appearance-none rounded-md py-1 pl-2 pr-6 text-center text-sm font-bold tabular-nums ring-inset transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-wait",
+                    getPriceTierTone(value),
                     getStatusRing(status),
                 ].join(" ")}
             >
@@ -69,7 +59,7 @@ export default function PriceTierCell({
                 ))}
             </select>
 
-            <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-gray-500 dark:text-gray-400">
+            <span className="pointer-events-none absolute right-1.5 top-0 flex h-9 items-center text-gray-500 dark:text-gray-400">
                 {isSaving ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                 ) : status === "saved" ? (

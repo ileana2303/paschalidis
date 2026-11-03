@@ -91,20 +91,26 @@ export default function PriceTierGrid({ grid, orientation }: PriceTierGridProps)
     const columnAxis = itemsAsRows ? grid.columns : grid.rows;
     const rowLabel = itemsAsRows ? PRICE_TIER_AXIS_LABELS.items : PRICE_TIER_AXIS_LABELS.customers;
     const columnLabel = itemsAsRows ? PRICE_TIER_AXIS_LABELS.customers : PRICE_TIER_AXIS_LABELS.items;
+    const rowsAreCustomers = !itemsAsRows;
+    const columnsAreCustomers = itemsAsRows;
     const getCell = (rowId: string, columnId: string) =>
         grid.cells[
             itemsAsRows ? priceTierCellKey(rowId, columnId) : priceTierCellKey(columnId, rowId)
         ];
 
     return (
-        <div className="max-h-[70dvh] overflow-auto">
-            <table className="min-w-full border-separate border-spacing-0 text-sm">
+        <div className="max-h-[70dvh] overflow-x-hidden overflow-y-auto">
+            <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
+                <colgroup>
+                    <col className="w-[30%] sm:w-[26%] lg:w-[22%] 2xl:w-[20%]" />
+                    {columnAxis.map((column) => <col key={column.id} />)}
+                </colgroup>
                 <thead>
                     <tr>
                         <th
                             scope="col"
                             rowSpan={2}
-                            className="sticky left-0 top-0 z-30 border-b border-r border-gray-200 bg-gray-100 px-4 py-2 text-left align-bottom dark:border-gray-800 dark:bg-gray-900"
+                            className="sticky top-0 z-30 border-b border-r border-gray-200 bg-gray-100 px-2 py-2 text-left align-bottom sm:px-3 dark:border-gray-800 dark:bg-gray-900"
                         >
                             <span className="block text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                 Γραμμές
@@ -116,7 +122,7 @@ export default function PriceTierGrid({ grid, orientation }: PriceTierGridProps)
                         <th
                             scope="colgroup"
                             colSpan={columnAxis.length}
-                            className="sticky top-0 z-20 h-9 border-b border-gray-200 bg-gray-100 px-3 text-left dark:border-gray-800 dark:bg-gray-900"
+                            className="sticky top-0 z-20 h-9 border-b border-gray-200 bg-gray-100 px-2 text-left dark:border-gray-800 dark:bg-gray-900"
                         >
                             <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                 Στήλες
@@ -131,10 +137,17 @@ export default function PriceTierGrid({ grid, orientation }: PriceTierGridProps)
                             <th
                                 key={column.id}
                                 scope="col"
-                                title={column.name || undefined}
-                                className="sticky top-9 z-20 border-b border-gray-200 bg-gray-50 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                                title={column.name ? `${column.code} — ${column.name}` : column.code}
+                                className="sticky top-9 z-20 overflow-hidden border-b border-gray-200 bg-gray-50 px-1 py-2 text-center text-xs font-semibold text-gray-700 sm:px-1.5 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200"
                             >
-                                {column.code}
+                                <span className="block truncate uppercase tracking-wide">
+                                    {column.code}
+                                </span>
+                                {columnsAreCustomers && column.name && (
+                                    <span className="mt-0.5 block break-words text-[10px] font-medium leading-3 text-gray-500 dark:text-gray-400">
+                                        {column.name}
+                                    </span>
+                                )}
                             </th>
                         ))}
                     </tr>
@@ -144,10 +157,15 @@ export default function PriceTierGrid({ grid, orientation }: PriceTierGridProps)
                         <tr key={row.id}>
                             <th
                                 scope="row"
-                                title={row.name || undefined}
-                                className="sticky left-0 z-10 whitespace-nowrap border-b border-r border-gray-100 bg-white px-4 py-2 text-left font-semibold text-gray-900 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
+                                title={row.name ? `${row.code} — ${row.name}` : row.code}
+                                className="border-b border-r border-gray-100 bg-white px-2 py-2 text-left font-semibold text-gray-900 sm:px-3 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
                             >
-                                {row.code}
+                                <span className="block truncate">{row.code}</span>
+                                {rowsAreCustomers && row.name && (
+                                    <span className="mt-0.5 block break-words text-[11px] font-medium leading-4 text-gray-500 dark:text-gray-400">
+                                        {row.name}
+                                    </span>
+                                )}
                             </th>
                             {columnAxis.map((column) => {
                                 const cell = getCell(row.id, column.id);
@@ -155,7 +173,7 @@ export default function PriceTierGrid({ grid, orientation }: PriceTierGridProps)
                                 return (
                                     <td
                                         key={column.id}
-                                        className="border-b border-gray-100 px-2 py-2 align-top dark:border-gray-800"
+                                        className="overflow-hidden border-b border-gray-100 px-1 py-1.5 text-center align-top sm:px-1.5 dark:border-gray-800"
                                     >
                                         {cell ? (
                                             <PriceTierCell
@@ -165,7 +183,7 @@ export default function PriceTierGrid({ grid, orientation }: PriceTierGridProps)
                                                 onChange={(tier) => void handleChange(cell, tier)}
                                             />
                                         ) : (
-                                            <span className="flex h-11 items-center px-3 text-gray-400">
+                                            <span className="flex h-9 items-center justify-center text-gray-400">
                                                 —
                                             </span>
                                         )}
