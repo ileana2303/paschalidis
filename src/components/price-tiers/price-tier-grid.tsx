@@ -21,9 +21,14 @@ export const PRICE_TIER_AXIS_LABELS = {
 interface PriceTierGridProps {
     grid: PriceTierGridData;
     orientation: PriceTierGridOrientation;
+    customerGroupId?: string | null;
 }
 
-export default function PriceTierGrid({ grid, orientation }: PriceTierGridProps) {
+export default function PriceTierGrid({
+    grid,
+    orientation,
+    customerGroupId = null,
+}: PriceTierGridProps) {
     const { mutateAsync: saveTier } = useSavePriceTierMutation();
     // autoId → tier currently being saved for that cell.
     const [pending, setPending] = useState<Record<string, string>>({});
@@ -84,11 +89,20 @@ export default function PriceTierGrid({ grid, orientation }: PriceTierGridProps)
     const getStatus = (autoId: string): PriceTierCellStatus =>
         pending[autoId] !== undefined ? "saving" : flash[autoId] ?? "idle";
 
-    // The grid is keyed MTRGROUP × TRDPGROUP; transposing only swaps which
-    // axis is drawn as rows, so the cell lookup swaps its arguments too.
-    const itemsAsRows = orientation === "items-as-rows";
+    const focusedCustomer = customerGroupId
+        ? grid.columns.find((column) => column.id === customerGroupId)
+        : undefined;
+    const isFocused = focusedCustomer !== undefined;
+
+    // Focus mode always shows item groups vertically and the selected customer
+    // group as the sole tier column. The full matrix can still be transposed.
+    const itemsAsRows = isFocused || orientation === "items-as-rows";
     const rowAxis = itemsAsRows ? grid.rows : grid.columns;
-    const columnAxis = itemsAsRows ? grid.columns : grid.rows;
+    const columnAxis = focusedCustomer
+        ? [focusedCustomer]
+        : itemsAsRows
+            ? grid.columns
+            : grid.rows;
     const rowLabel = itemsAsRows ? PRICE_TIER_AXIS_LABELS.items : PRICE_TIER_AXIS_LABELS.customers;
     const columnLabel = itemsAsRows ? PRICE_TIER_AXIS_LABELS.customers : PRICE_TIER_AXIS_LABELS.items;
     const rowsAreCustomers = !itemsAsRows;
@@ -102,7 +116,11 @@ export default function PriceTierGrid({ grid, orientation }: PriceTierGridProps)
         <div className="max-h-[70dvh] overflow-x-hidden overflow-y-auto">
             <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
                 <colgroup>
-                    <col className="w-[30%] sm:w-[26%] lg:w-[22%] 2xl:w-[20%]" />
+                    <col
+                        className={isFocused
+                            ? "w-[58%] sm:w-[68%] lg:w-[72%]"
+                            : "w-[30%] sm:w-[26%] lg:w-[22%] 2xl:w-[20%]"}
+                    />
                     {columnAxis.map((column) => <col key={column.id} />)}
                 </colgroup>
                 <thead>
@@ -161,7 +179,7 @@ export default function PriceTierGrid({ grid, orientation }: PriceTierGridProps)
                                 className="border-b border-r border-gray-100 bg-white px-2 py-2 text-left font-semibold text-gray-900 sm:px-3 dark:border-gray-800 dark:bg-gray-950 dark:text-white"
                             >
                                 <span className="block truncate">{row.code}</span>
-                                {rowsAreCustomers && row.name && (
+                                {(rowsAreCustomers || isFocused) && row.name && (
                                     <span className="mt-0.5 block break-words text-[11px] font-medium leading-4 text-gray-500 dark:text-gray-400">
                                         {row.name}
                                     </span>
