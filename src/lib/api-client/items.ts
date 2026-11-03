@@ -93,9 +93,15 @@ export async function searchItemsByTrdr(
     search: string,
     trdr: string
 ): Promise<ApiResponse<IItemTRDR>> {
+    const parsedTrdr = Number(trdr);
+
+    if (!Number.isFinite(parsedTrdr) || parsedTrdr <= 0) {
+        throw new Error("Μη έγκυρος κωδικός πελάτη.");
+    }
+
     const { data } = await httpClient.post<ApiResponse<IItemTRDR>>(
         "/api/items/search",
-        { search, trdr: Number(trdr) }
+        { search, trdr: parsedTrdr }
     );
     return data;
 }

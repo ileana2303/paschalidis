@@ -5,11 +5,23 @@ import {
     postSoftOne,
 } from "@/lib/softone";
 
+const sanitizeSearch = (value: unknown): string => {
+    if (typeof value !== "string") return "";
+    return value
+        .normalize("NFC")
+        .replace(/[^0-9A-Za-zͰ-Ͽἀ-῿ \-./]/g, "")
+        .trim()
+        .slice(0, 50);
+};
+
 export async function POST(req: NextRequest) {
     try {
         const { search, trdr } = await req.json();
-        const normalizedSearch = typeof search === "string" ? search.trim() : "";
-        const normalizedTrdr = trdr != null ? Number(trdr) : undefined;
+        const normalizedSearch = sanitizeSearch(search);
+        const parsed = trdr != null ? Number(trdr) : NaN;
+        const normalizedTrdr = Number.isFinite(parsed) && parsed > 0
+            ? parsed
+            : undefined;
         const clientID = getSoftOneClientID();
 
         if (!normalizedSearch) {
@@ -28,7 +40,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const hasCustomer = normalizedTrdr != null;
+        const hasCustomer = normalizedTrdr !== undefined;
 
         const requestBody = hasCustomer
             ? {

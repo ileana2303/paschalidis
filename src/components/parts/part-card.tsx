@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils/basket-helpers";
 import type { IBasketItem, ICustomerInfo, IItem, StockRequestStatus } from "@/lib/interface";
 import {
+    formatCustomerSearchPrice,
     getCustomerBasketUnitPrice,
     getCustomerUnitListPrice,
     getCustomerUnitPriceLabel,
@@ -166,6 +167,7 @@ export default function PartResults({
     const itemDescription = String(item.ITEM_DESCR ?? "").trim();
     const unitListPrice = getCustomerUnitListPrice(item, customer);
     const unitPriceLabel = getCustomerUnitPriceLabel(customer);
+    const locatedTier = String(item.LOCATED_TIER ?? "").trim();
     const basketQuantity = basketItem != null
         ? Math.max(1, getBasketItemQty(basketItem))
         : null;
@@ -376,23 +378,45 @@ export default function PartResults({
                             <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-x-2 sm:gap-x-3 lg:gap-x-4 lg:justify-end">
                                 {canSeePrices && (
                                 <>
-                                <div className="flex shrink-0 items-baseline gap-2">
-                                    <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                        {unitPriceLabel}
-                                    </span>
-                                    {hasApprovedRequestedPrice ? (
-                                        <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-                                            <span className="text-sm font-medium tabular-nums text-gray-400 line-through decoration-red-400 dark:text-gray-500">
-                                                {formatPrice(unitListPrice)}
-                                            </span>
-                                            <span className="text-base font-bold tabular-nums text-green-700 dark:text-green-400">
-                                                {formatPrice(requestedPrice)}
-                                            </span>
+                                <div className="flex shrink-0 flex-col items-end gap-0.5">
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            {unitPriceLabel}
                                         </span>
-                                    ) : (
-                                        <span className="text-base font-bold tabular-nums text-gray-900 dark:text-white">
-                                            {formatPrice(unitListPrice)}
-                                        </span>
+                                        {hasApprovedRequestedPrice ? (
+                                            <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+                                                <span className="text-sm font-medium tabular-nums text-gray-400 line-through decoration-red-400 dark:text-gray-500">
+                                                    {hasCustomer
+                                                        ? formatCustomerSearchPrice(unitListPrice)
+                                                        : formatPrice(unitListPrice)}
+                                                </span>
+                                                <span className="text-base font-bold tabular-nums text-green-700 dark:text-green-400">
+                                                    {formatPrice(requestedPrice)}
+                                                </span>
+                                            </span>
+                                        ) : (
+                                            <span className="text-base font-bold tabular-nums text-gray-900 dark:text-white">
+                                                {hasCustomer
+                                                    ? formatCustomerSearchPrice(unitListPrice)
+                                                    : formatPrice(unitListPrice)}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {hasCustomer && (
+                                        <div className="flex items-baseline gap-1.5 whitespace-nowrap text-gray-400 dark:text-gray-500">
+                                            <span className="text-[10px] font-semibold uppercase tracking-wide">
+                                                Λιανική
+                                            </span>
+                                            <span className="text-xs tabular-nums">
+                                                {formatCustomerSearchPrice(item.PRICE_RETAIL)}
+                                            </span>
+                                            {locatedTier && (
+                                                <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                                    Βαθμίδα {locatedTier}
+                                                </span>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
 
@@ -460,7 +484,7 @@ export default function PartResults({
                     isExpanded={canExpandDetails && isExpanded}
                     formatPrice={formatPrice}
                     customer={customer}
-                    showPrices={canSeePrices}
+                    showPrices={canSeePrices && !hasCustomer}
                 />
 
             </div>

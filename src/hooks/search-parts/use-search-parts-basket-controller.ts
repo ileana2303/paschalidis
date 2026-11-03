@@ -207,8 +207,14 @@ export function useSearchPartsBasketController({
             }
 
             if (customer?.TRDR) {
+                setBasket(null);
+                setBasketError("");
+                setSelectedItems(new Set());
+                setRequestedPrices({});
                 setBasketLineRequestedPrices({});
+                setSubmittingRequestedPrices(new Set());
                 setSubmittingBasketLineRequestedPrices(new Set());
+                setAddingToBasket(new Set());
                 void loadBasket(customer.TRDR);
                 return;
             }
@@ -222,8 +228,11 @@ export function useSearchPartsBasketController({
             setOrderSubmittedSuccess(false);
             setNotes("");
             setSelectedItems(new Set());
+            setRequestedPrices({});
             setBasketLineRequestedPrices({});
+            setSubmittingRequestedPrices(new Set());
             setSubmittingBasketLineRequestedPrices(new Set());
+            setAddingToBasket(new Set());
             setBasketLoading(false);
         });
 

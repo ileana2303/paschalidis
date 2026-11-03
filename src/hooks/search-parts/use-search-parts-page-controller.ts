@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { ICustomerInfo, IItem } from "@/lib/interface";
 import { useModal } from "@/hooks/useModal";
 import {
@@ -33,6 +33,7 @@ export function useSearchPartsPageController({
     const [customerModalLoading, setCustomerModalLoading] = useState(false);
     const [customerModalHasSearched, setCustomerModalHasSearched] = useState(false);
     const [customerModalError, setCustomerModalError] = useState("");
+    const searchRequestIdRef = useRef(0);
 
     const {
         isOpen: isSearchModalOpen,
@@ -62,22 +63,32 @@ export function useSearchPartsPageController({
         openCustomerModal();
     }, [openCustomerModal]);
 
-    const runSearch = useCallback(async (value: string) => {
+    const runSearch = useCallback(async (
+        value: string,
+        selectedTrdr: string | null = String(customer?.TRDR ?? "").trim() || null
+    ) => {
         const trimmedSearch = value.trim();
 
         if (!trimmedSearch) return false;
 
-        setSearchStateTrdr(String(customer?.TRDR ?? "").trim() || null);
+        const requestId = ++searchRequestIdRef.current;
+        setItems([]);
+        setSearchStateTrdr(selectedTrdr);
         setHasSearched(true);
         setLoading(true);
 
         try {
-            const data = customer?.TRDR
+            const data = selectedTrdr
                 ? await searchItemsByTrdr({
                     search: trimmedSearch,
-                    trdr: customer.TRDR,
+                    trdr: selectedTrdr,
                 })
                 : await searchItems(trimmedSearch);
+
+            if (searchRequestIdRef.current !== requestId) {
+                return true;
+            }
+
             setSearch(trimmedSearch);
 
             if (data.success) {
@@ -88,10 +99,15 @@ export function useSearchPartsPageController({
 
             return true;
         } catch (error) {
-            console.error(error);
+            if (searchRequestIdRef.current === requestId) {
+                setItems([]);
+                console.error(error);
+            }
             return false;
         } finally {
-            setLoading(false);
+            if (searchRequestIdRef.current === requestId) {
+                setLoading(false);
+            }
         }
     }, [
         customer,
@@ -102,6 +118,12 @@ export function useSearchPartsPageController({
         setSearch,
         setSearchStateTrdr,
     ]);
+
+    const invalidateSearchResults = useCallback(() => {
+        searchRequestIdRef.current += 1;
+        setItems([]);
+        setLoading(false);
+    }, [setItems]);
 
     const handleSearch = useCallback(async () => {
         await runSearch(search);
@@ -163,6 +185,7 @@ export function useSearchPartsPageController({
         closeCustomerModal,
         handleOpenSearchModal,
         handleOpenCustomerModal,
+        invalidateSearchResults,
         runSearch,
         handleSearch,
         handleModalSearch,

@@ -30,6 +30,9 @@ export interface ICustomerInfo {
     MAIN_ADDRESS: string;
     MAIN_CITY: string;
     PRICE_TIER: string;
+    TRDPGROUP?: string;
+    GROUP_CODE?: string;
+    GROUP_NAME?: string;
     NUMBER_OF_BRANCHES: string;
     INDEX_SEARCH: string;
 }
@@ -104,6 +107,8 @@ export interface IItem {
     SUFIX_PCT04: string;
     SUFIX_PCT05: string;
     PRICE_MESSAGE: string;
+    FINAL_CUSTOMER_PRICE_BASED_ON_TIER?: string;
+    LOCATED_TIER?: string;
 
     BASKET_QTY: string;
     BASKET_DATE: string;
@@ -113,6 +118,8 @@ export interface IItem {
 
 // SEARCH_PARTS_PER_TRDR :: Search items with selected customer - includes basket info.
 export interface IItemTRDR extends IItem {
+    FINAL_CUSTOMER_PRICE_BASED_ON_TIER?: string;
+    LOCATED_TIER?: string;
     BasketReserved: string;
     BASKET_QTY: string;
     BASKET_DATE: string;

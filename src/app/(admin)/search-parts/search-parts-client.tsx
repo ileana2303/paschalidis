@@ -45,8 +45,6 @@ export default function SearchPartsClient() {
     const setHasSearched = useSearchPartsStore((state) => state.setHasSearched);
     const searchStateTrdr = useSearchPartsStore((state) => state.trdr);
     const setSearchStateTrdr = useSearchPartsStore((state) => state.setTrdr);
-    const clearSearchPartsState = useSearchPartsStore((state) => state.clearState);
-
     const customer = useCustomerStore((state) => state.customer);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const clearCustomer = useCustomerStore((state) => state.clearCustomer);
@@ -105,6 +103,7 @@ export default function SearchPartsClient() {
         closeCustomerModal,
         handleOpenSearchModal,
         handleOpenCustomerModal,
+        invalidateSearchResults,
         runSearch: runPageDirectSearch,
         handleSearch: runPageSearch,
         handleModalSearch: runPageModalSearch,
@@ -210,7 +209,8 @@ export default function SearchPartsClient() {
 
         const urlTrdr = String(searchParams.get("trdr") ?? "").trim();
         const customerTrdr = String(customer?.TRDR ?? "").trim();
-        const searchKey = [urlTrdr, customerTrdr, urlPart].join("|");
+        const effectiveTrdr = urlTrdr || customerTrdr || null;
+        const searchKey = [effectiveTrdr, urlPart].join("|");
 
         if (lastUrlPartSearchRef.current === searchKey) {
             return;
@@ -221,7 +221,7 @@ export default function SearchPartsClient() {
         setResultsTextFilter("");
         prepareResultsForSearch();
 
-        void runPageDirectSearch(urlPart).then((hasRunSearch) => {
+        void runPageDirectSearch(urlPart, effectiveTrdr).then((hasRunSearch) => {
             if (!hasRunSearch) {
                 return;
             }
@@ -346,16 +346,23 @@ export default function SearchPartsClient() {
             return;
         }
 
-        if (customerTrdr && snapshotTrdr && customerTrdr !== snapshotTrdr) {
-            clearSearchPartsState();
-            resetScopedSearchState();
-        }
+        const activeSearch = search.trim();
+        const shouldRepeatSearch = hasSearched && activeSearch.length > 0;
 
+        invalidateSearchResults();
+        resetScopedSearchState({ resetScroll: true });
         setSearchStateTrdr(customerTrdr);
+
+        if (shouldRepeatSearch) {
+            void runPageDirectSearch(activeSearch, customerTrdr);
+        }
     }, [
-        clearSearchPartsState,
         customer?.TRDR,
+        hasSearched,
+        invalidateSearchResults,
         resetScopedSearchState,
+        runPageDirectSearch,
+        search,
         searchStateTrdr,
         setSearchStateTrdr,
         storesReady,
@@ -418,22 +425,37 @@ export default function SearchPartsClient() {
     ]);
 
     const handleCustomerSelect = (selectedCustomer: ICustomerInfo) => {
+        const activeSearch = search.trim();
+        const shouldRepeatSearch = hasSearched && activeSearch.length > 0;
+
         pendingScopedNavigationRef.current = true;
         setCustomer(selectedCustomer);
-        clearSearchPartsState();
+        invalidateSearchResults();
         setSearchStateTrdr(String(selectedCustomer.TRDR).trim() || null);
         setModalSearch("");
         resetScopedSearchState({ resetScroll: true });
         closeCustomerModal();
         router.replace(`/search-parts?trdr=${selectedCustomer.TRDR}`);
+
+        if (shouldRepeatSearch) {
+            void runPageDirectSearch(activeSearch, String(selectedCustomer.TRDR).trim() || null);
+        }
     };
 
     const handleClearCustomer = () => {
+        const activeSearch = search.trim();
+        const shouldRepeatSearch = hasSearched && activeSearch.length > 0;
+
         pendingScopedNavigationRef.current = false;
         clearCustomer();
-        clearSearchPartsState();
-        resetScopedSearchState();
+        invalidateSearchResults();
+        setSearchStateTrdr(null);
+        resetScopedSearchState({ resetScroll: true });
         router.replace("/search-parts");
+
+        if (shouldRepeatSearch) {
+            void runPageDirectSearch(activeSearch, null);
+        }
     };
 
     const handleSendOrder = useCallback(async () => {

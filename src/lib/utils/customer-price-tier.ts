@@ -46,6 +46,10 @@ export function getCustomerUnitListPrice(
     item: IItem,
     customer: ICustomerInfo | null | undefined
 ): string | number | null | undefined {
+    if (customer) {
+        return item.FINAL_CUSTOMER_PRICE_BASED_ON_TIER;
+    }
+
     const tier = getCustomerPriceTier(customer);
     const catalogKey = getCatalogPriceKeyForTier(tier);
 
@@ -70,14 +74,21 @@ export function getCustomerBasketUnitPrice(
         return unitPrice;
     }
 
-    const fallback = parseSoftOneNumber(item.PRICE_WHOLE);
+    if (customer) {
+        return 0;
+    }
 
+    const fallback = parseSoftOneNumber(item.PRICE_WHOLE);
     return fallback != null && fallback > 0 ? fallback : 0;
 }
 
 export function getCustomerUnitPriceLabel(
     customer: ICustomerInfo | null | undefined
 ): string {
+    if (customer) {
+        return "Τιμή πελάτη";
+    }
+
     const tier = getCustomerPriceTier(customer);
 
     if (isNamedPriceTier(tier)) {
@@ -85,6 +96,19 @@ export function getCustomerUnitPriceLabel(
     }
 
     return "Τιμή μονάδας";
+}
+
+export function formatCustomerSearchPrice(
+    value: string | number | null | undefined
+): string {
+    const raw = String(value ?? "").trim();
+    const numericValue = parseSoftOneNumber(raw);
+
+    if (!raw || numericValue == null || numericValue === 0) {
+        return "—";
+    }
+
+    return `${raw} €`;
 }
 
 /** Label used in the expanded price ladder for the tier shown in the part card header. */
