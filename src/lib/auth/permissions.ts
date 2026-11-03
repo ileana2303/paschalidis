@@ -2,10 +2,6 @@ import type { AuthPermissions } from "@/lib/auth/types";
 
 export const NO_ACCESS_PATH = "/no-access";
 
-/**
- * Pages and the module code that unlocks them, in menu order. The first entry
- * the user may open is where login and the route guard send them.
- */
 const MODULE_ROUTES: ReadonlyArray<{ path: string; modules: string[] }> = [
   { path: "/search-customer", modules: ["search-customer"] },
   { path: "/search-parts", modules: ["search-parts"] },
@@ -33,6 +29,7 @@ const MODULE_ROUTES: ReadonlyArray<{ path: string; modules: string[] }> = [
   { path: "/stock-requests", modules: ["stock-requests"] },
   { path: "/price-requests", modules: ["price-requests"] },
   { path: "/base-price-pur", modules: ["base-price-pur"] },
+  { path: "/price-tiers", modules: ["price-tiers"] },
   { path: "/users-list", modules: ["users-list"] },
   { path: "/users", modules: ["users-list"] },
 ];
