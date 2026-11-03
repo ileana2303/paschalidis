@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
                 .map((row) => ({
                     trdpGroup: field(row, "TRDPGROUP"),
                     code: field(row, "CODE"),
-                    name: field(row, "NAME"),
+                    name: field(row, "NAME") || field(row, "TRD_NAME"),
                 }))
                 .filter((group) => group.trdpGroup),
         };

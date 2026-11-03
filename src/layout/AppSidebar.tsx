@@ -147,7 +147,7 @@ const navItems: NavItem[] = [
   },
   {
     icon: Settings,
-    name: "Διαχείριση Καταστημάτων",
+    name: "Διαχείριση",
     subItems: [
       {
         name: "Κεντρικός Εφοδιασμός",
@@ -260,7 +260,7 @@ const AppSidebar: React.FC = () => {
     <ul className="flex flex-col gap-4">
       {navItems.map((nav) => {
         const Icon = nav.icon;
-        const isManagement = nav.name === "Διαχείριση Καταστημάτων";
+        const isManagement = nav.name === "Διαχείριση";
         const visibleSubItems = nav.subItems;
         const hasActiveSubItem =
           visibleSubItems?.some((subItem) => isActive(subItem.path)) ?? false;

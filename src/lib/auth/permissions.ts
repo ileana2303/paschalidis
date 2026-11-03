@@ -40,7 +40,7 @@ export const MODULE_GROUP_LABELS: Record<string, string> = {
   "warehouse-management": "Επεξεργασία Αποθήκης",
   anatrofodosia: "Ανατροφοδοσία",
   endodiakinisi: "Ενδοδιακίνηση",
-  "company-management": "Διαχείριση Καταστημάτων",
+  "company-management": "Διαχείριση",
 };
 
 /** Feature code → the module (page) it lives in. */
