@@ -144,6 +144,7 @@ export async function POST(req: NextRequest) {
             appId: S1_APP_ID,
             SqlName: S1_SQL_NAME,
             BRANCH: branch,
+            TRDR: 0,
         });
 
         if (!upstreamResponse.ok) {

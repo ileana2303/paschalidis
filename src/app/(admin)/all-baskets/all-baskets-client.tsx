@@ -63,19 +63,22 @@ export default function AllBasketsClient() {
   const [totalcount, setTotalcount] = useState(0);
   const [rows, setRows] = useState<BasketListRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBranchCode, setSelectedBranchCode] = useState<BasketBranchCode>(
-    () => {
-      const currentBranchCode = normalizeBranchCode(user?.mainBranch);
-      return isBasketBranchCode(currentBranchCode)
-        ? currentBranchCode
-        : BASKET_BRANCH_OPTIONS[0].code;
-    }
-  );
+  const loggedInBranchCode = normalizeBranchCode(user?.mainBranch);
+  const defaultBranchCode = isBasketBranchCode(loggedInBranchCode)
+    ? loggedInBranchCode
+    : BASKET_BRANCH_OPTIONS[0].code;
+  const [selectedBranchOverride, setSelectedBranchCode] =
+    useState<BasketBranchCode | null>(null);
+  const selectedBranchCode = selectedBranchOverride ?? defaultBranchCode;
   const [deletingSelected, setDeletingSelected] = useState(false);
   const [navigatingTrdr, setNavigatingTrdr] = useState<string | null>(null);
   const [selectedTrdrs, setSelectedTrdrs] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -101,7 +104,14 @@ export default function AllBasketsClient() {
     } finally {
       setLoading(false);
     }
-  }, [appliedSearch, fetchAllClientBaskets, page, pageSize, selectedBranchCode]);
+  }, [
+    appliedSearch,
+    fetchAllClientBaskets,
+    page,
+    pageSize,
+    selectedBranchCode,
+    user,
+  ]);
 
   useLoadOnChange(loadData);
 
@@ -362,7 +372,7 @@ export default function AllBasketsClient() {
   const isDeleting = deletingSelected;
 
   return (
-    <div>
+    <div className="min-w-0 w-full max-w-full">
       <PageBreadcrumb pageTitle="Καλάθια Πελατών" />
 
       <DataTable className="mt-4">
@@ -371,7 +381,7 @@ export default function AllBasketsClient() {
           description="Αναζήτηση και προβολή όλων των καλαθιών πελατών."
           count={totalcount}
           action={
-            <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center">
+            <div className="grid w-full min-w-0 gap-2 @3xl:grid-cols-2 @7xl:flex @7xl:w-auto @7xl:flex-row @7xl:items-center">
               <button
                 type="button"
                 onClick={() => void handleDeleteSelectedBaskets()}
@@ -420,8 +430,8 @@ export default function AllBasketsClient() {
                 isRefreshing={loading}
                 refreshDisabled={loading}
                 placeholder="Όνομα πελάτη ή TRDR..."
+                className="@3xl:col-span-2 @7xl:col-span-1"
               />
-
             </div>
           }
         />
