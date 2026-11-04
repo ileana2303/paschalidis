@@ -55,6 +55,8 @@ interface EndoOrderSummaryProps {
     collapsible?: boolean;
     collapsed?: boolean;
     onToggleCollapse?: () => void;
+    fitContentWhenStacked?: boolean;
+    wideLayoutBreakpoint?: "xl" | "2xl";
 }
 
 export default function EndoOrderSummary({
@@ -84,6 +86,8 @@ export default function EndoOrderSummary({
     collapsible = false,
     collapsed = false,
     onToggleCollapse,
+    fitContentWhenStacked = false,
+    wideLayoutBreakpoint = "xl",
 }: EndoOrderSummaryProps) {
     const selectedSet = selectedItems ?? new Set(basketItems.map((item) => item.uid));
     const selectedBasketItems =
@@ -123,6 +127,8 @@ export default function EndoOrderSummary({
             href="/endo/endo-lists-requested"
             onToggleCollapse={onToggleCollapse}
             collapseTitle="Απόκρυψη καλαθιού"
+            fitContentWhenStacked={fitContentWhenStacked}
+            wideLayoutBreakpoint={wideLayoutBreakpoint}
             footer={
                 onSendOrder ? (
                     <div className="flex gap-2">

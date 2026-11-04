@@ -43,8 +43,8 @@ export default function DataTableSearchBar({
   };
 
   return (
-    <div className={["flex w-full items-center gap-2 lg:w-auto", className].join(" ")}>
-      <div className="relative w-full lg:min-w-[320px] lg:max-w-sm">
+    <div className={["flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center lg:w-auto", className].join(" ")}>
+      <div className="relative min-w-0 flex-1 sm:min-w-60 lg:min-w-[320px] lg:max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
         <input
@@ -95,7 +95,7 @@ export default function DataTableSearchBar({
         type="button"
         onClick={onRefresh}
         disabled={refreshDisabled}
-        className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+        className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
       >
         {isRefreshing ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />

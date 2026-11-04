@@ -23,6 +23,8 @@ import { useLoadOnChange } from "@/hooks/useLoadOnChange";
 import PartsSearchModal from "@/components/search/parts-search-modal";
 import SearchBar from "@/components/search/search-bar";
 import ResultsFilterInput from "@/components/search/results-filter-input";
+import { SEARCH_PANEL_VIEWPORT_MAX_HEIGHT_CLASS } from "@/components/search/search-layout";
+import SearchResultsScrollArea from "@/components/search/search-results-scroll-area";
 import Checkbox from "@/components/template-components/form/input/Checkbox";
 import {
     useAddItemToEndoBasketMutation,
@@ -91,6 +93,20 @@ export default function EndoPartsClient() {
             clearSearchState();
         };
     }, [clearSearchState]);
+
+    useEffect(() => {
+        const wideLayoutQuery = window.matchMedia("(min-width: 1536px)");
+        const handleWideLayoutChange = (event: MediaQueryListEvent) => {
+            if (!event.matches) {
+                setSidebarVisible(true);
+            }
+        };
+
+        wideLayoutQuery.addEventListener("change", handleWideLayoutChange);
+        return () => {
+            wideLayoutQuery.removeEventListener("change", handleWideLayoutChange);
+        };
+    }, []);
 
     const currentBranchCode = useMemo(
         () => normalizeBranchCode(user?.mainBranch),
@@ -667,19 +683,16 @@ export default function EndoPartsClient() {
     };
 
     return (
-        <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
-
+        <div className="flex min-h-[calc(100dvh-8rem)] min-w-0 max-w-full flex-col md:min-h-[calc(100dvh-9rem)] 2xl:h-[calc(100dvh-9rem)] 2xl:min-h-0 2xl:overflow-hidden">
             <div className="shrink-0">
                 <PageBreadcrumb pageTitle="Ενδοδιακίνηση Ανταλλακτικών" />
             </div>
 
-
-
-            <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
+            <div className="flex min-w-0 max-w-full flex-col gap-4 2xl:min-h-0 2xl:flex-1 2xl:flex-row">
                 <div
-                    className={`min-h-0 w-full xl:min-w-0 ${sidebarVisible ? "xl:basis-2/3" : ""} flex flex-1 flex-col transition-all duration-300`}
+                    className={`flex min-w-0 w-full shrink-0 flex-col transition-all duration-300 2xl:min-h-0 2xl:flex-1 2xl:shrink ${sidebarVisible ? "2xl:basis-2/3" : ""}`}
                 >
-                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all duration-300 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <div className={`${SEARCH_PANEL_VIEWPORT_MAX_HEIGHT_CLASS} flex min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all duration-300 dark:border-gray-800 dark:bg-white/[0.03] 2xl:h-full 2xl:max-h-none 2xl:flex-1`}>
                         <div className="shrink-0 px-5 py-6 dark:border-gray-800 xl:px-10">
                             <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
                                 <h3
@@ -705,12 +718,22 @@ export default function EndoPartsClient() {
                             </div>
                         </div>
 
-                        <div className="relative min-h-0 flex-1">
-                            <div
-                                ref={resultsContainerRef}
-                                className="h-full overflow-y-auto overscroll-contain"
-                                onScroll={handleResultsScroll}
-                            >
+                        <SearchResultsScrollArea
+                            scrollRef={resultsContainerRef}
+                            onScroll={handleResultsScroll}
+                            overlay={
+                                items.length > 0 && (hasScrolledResults || isResultsScrollable === false) ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenSearchModal}
+                                        aria-label="Νέα αναζήτηση ανταλλακτικού"
+                                        className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
+                                    >
+                                        <Plus className="h-5 w-5" />
+                                    </button>
+                                ) : undefined
+                            }
+                        >
                                 <div className="px-5 pb-2 xl:px-10 xl:pb-2">
                                     <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
                                         {items.length > 0 && (
@@ -825,19 +848,7 @@ export default function EndoPartsClient() {
                                         )}
                                     </div>
                                 </div>
-                            </div>
-
-                            {items.length > 0 && (hasScrolledResults || isResultsScrollable === false) && (
-                                <button
-                                    type="button"
-                                    onClick={handleOpenSearchModal}
-                                    aria-label="Νέα αναζήτηση ανταλλακτικού"
-                                    className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
-                                >
-                                    <Plus className="h-5 w-5" />
-                                </button>
-                            )}
-                        </div>
+                        </SearchResultsScrollArea>
                     </div>
                 </div>
 
@@ -862,6 +873,8 @@ export default function EndoPartsClient() {
                     collapsible
                     collapsed={!sidebarVisible}
                     onToggleCollapse={() => setSidebarVisible((prev) => !prev)}
+                    fitContentWhenStacked
+                    wideLayoutBreakpoint="2xl"
                 />
             </div>
 

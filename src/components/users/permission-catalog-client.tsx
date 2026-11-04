@@ -141,7 +141,7 @@ export default function PermissionCatalogClient() {
     }
 
     return (
-        <div className="mx-auto w-full">
+        <div className="mx-auto min-w-0 w-full max-w-full">
             <PageBreadcrumb pageTitle="Κατάλογος Δικαιωμάτων" />
 
             <Link
@@ -159,7 +159,7 @@ export default function PermissionCatalogClient() {
                     description="Σελίδες, λειτουργίες και καταστήματα που μπορούν να αποδοθούν σε χρήστες."
                     count={entries.length}
                     action={
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <div className="flex w-full min-w-0 flex-col gap-2 @5xl:flex-row @5xl:items-center">
                             <DataTableSearchBar
                                 value={searchTerm}
                                 onChange={setSearchTerm}
@@ -181,13 +181,13 @@ export default function PermissionCatalogClient() {
                     }
                 />
 
-                <div className="flex gap-1 border-b border-gray-100 px-5 pt-3 dark:border-gray-800">
+                <div className="flex max-w-full gap-1 overflow-x-auto overscroll-x-contain border-b border-gray-100 px-4 pt-3 dark:border-gray-800 sm:px-5">
                     {(Object.keys(TAB_LABELS) as PermissionCatalogType[]).map((type) => (
                         <button
                             key={type}
                             type="button"
                             onClick={() => setActiveType(type)}
-                            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition ${activeType === type
+                            className={`-mb-px shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition ${activeType === type
                                 ? "border-brand-500 text-brand-700 dark:text-brand-300"
                                 : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
                         >
@@ -217,7 +217,7 @@ export default function PermissionCatalogClient() {
                         }
                     />
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div className="max-w-full overflow-x-auto overscroll-x-contain">
                         <table className="w-full min-w-[820px] table-auto">
                             <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-gray-900/60 dark:text-gray-400">
                                 <tr>
@@ -225,7 +225,9 @@ export default function PermissionCatalogClient() {
                                     <th className="px-4 py-3">Περιγραφή</th>
                                     <th className="px-4 py-3">Γονέας</th>
                                     <th className="px-4 py-3">Κατάσταση</th>
-                                    <th className="px-4 py-3 text-right">Ενέργειες</th>
+                                    <th className="sticky right-0 z-20 border-l border-gray-200 bg-gray-50 px-4 py-3 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)] dark:border-gray-700 dark:bg-gray-900">
+                                        Ενέργειες
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -235,7 +237,7 @@ export default function PermissionCatalogClient() {
                                     return (
                                         <tr
                                             key={entry.code}
-                                            className="text-sm text-gray-700 hover:bg-gray-50/70 dark:text-gray-300 dark:hover:bg-white/[0.02]"
+                                            className="group text-sm text-gray-700 hover:bg-gray-50/70 dark:text-gray-300 dark:hover:bg-white/[0.02]"
                                         >
                                             <td className="px-4 py-3 font-mono font-semibold text-gray-900 dark:text-white">
                                                 {entry.code}
@@ -256,7 +258,7 @@ export default function PermissionCatalogClient() {
                                                     {entry.isActive === 1 ? "Ενεργό" : "Ανενεργό"}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-right">
+                                            <td className="sticky right-0 z-10 whitespace-nowrap border-l border-gray-200 bg-white px-4 py-3 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)] group-hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:group-hover:bg-gray-900">
                                                 <div className="inline-flex items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
                                                     <button
                                                         type="button"

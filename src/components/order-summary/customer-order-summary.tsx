@@ -57,6 +57,7 @@ export interface CustomerOrderSummaryProps {
     onToggleCollapse?: () => void;
     onChangeQuantity?: (uid: string, quantity: number) => void;
     fitContentWhenStacked?: boolean;
+    wideLayoutBreakpoint?: "xl" | "2xl";
     onClearCustomer?: () => void;
     onOpenCustomerModal?: () => void;
 }
@@ -139,6 +140,7 @@ export default function CustomerOrderSummary({
     onToggleCollapse,
     onChangeQuantity,
     fitContentWhenStacked = false,
+    wideLayoutBreakpoint = "xl",
     onClearCustomer,
     onOpenCustomerModal,
 }: CustomerOrderSummaryProps) {
@@ -211,6 +213,7 @@ export default function CustomerOrderSummary({
             collapseTitle="Απόκρυψη καλαθιού"
             panelClassName="bg-[#FCFDFE]"
             fitContentWhenStacked={fitContentWhenStacked}
+            wideLayoutBreakpoint={wideLayoutBreakpoint}
             footer={
                 onSendOrder ? (
                     <SummaryPrimaryAction

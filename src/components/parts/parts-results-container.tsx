@@ -11,6 +11,7 @@ import type { EndoBranchOption } from "@/components/endo/request-endo-card";
 import PartResults from "@/components/parts/part-card";
 import Checkbox from "@/components/template-components/form/input/Checkbox";
 import ResultsFilterInput from "@/components/search/results-filter-input";
+import SearchResultsScrollArea from "@/components/search/search-results-scroll-area";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { useCan } from "@/hooks/usePermissions";
 import { useMemo, useState, type RefObject, type UIEvent } from "react";
@@ -241,12 +242,23 @@ export default function PartsResultsContainer({
     };
 
     return (
-        <div className="relative min-h-0 flex-1">
-            <div
-                ref={resultsContainerRef}
-                className="h-full overflow-y-auto overscroll-contain dark:bg-[#0f172a]/95"
-                onScroll={onResultsScroll}
-            >
+        <SearchResultsScrollArea
+            scrollRef={resultsContainerRef}
+            onScroll={onResultsScroll}
+            scrollClassName="dark:bg-[#0f172a]/95"
+            overlay={
+                items.length > 0 && (hasScrolledResults || isResultsScrollable === false) ? (
+                    <button
+                        type="button"
+                        onClick={onOpenSearchModal}
+                        aria-label="Νέα αναζήτηση ανταλλακτικού"
+                        className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
+                    >
+                        <Plus className="h-5 w-5" />
+                    </button>
+                ) : undefined
+            }
+        >
                 <div className="px-5 pb-2 xl:px-10 xl:pb-2">
                     <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
 
@@ -490,18 +502,6 @@ export default function PartsResultsContainer({
                         )}
                     </div>
                 </div>
-            </div>
-
-            {items.length > 0 && (hasScrolledResults || isResultsScrollable === false) && (
-                <button
-                    type="button"
-                    onClick={onOpenSearchModal}
-                    aria-label="Νέα αναζήτηση ανταλλακτικού"
-                    className="absolute bottom-6 right-6 z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-brand-500 bg-brand-500 text-white shadow-lg transition-all duration-200 hover:bg-brand-600 dark:border-brand-500 dark:bg-brand-500 dark:text-white dark:hover:bg-brand-600"
-                >
-                    <Plus className="h-5 w-5" />
-                </button>
-            )}
-        </div>
+        </SearchResultsScrollArea>
     );
 }

@@ -296,7 +296,7 @@ export default function UsersClient() {
     };
 
     return (
-        <div className="mx-auto w-full">
+        <div className="mx-auto min-w-0 w-full max-w-full">
             <PageBreadcrumb pageTitle="Λίστα Χρηστών" />
 
             <DataTable>
@@ -305,7 +305,7 @@ export default function UsersClient() {
                     description="Διαχείριση στοιχείων, κατάστασης, καταστημάτων και δικαιωμάτων χρηστών."
                     count={records.length}
                     action={
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <div className="flex w-full min-w-0 flex-col gap-2 @5xl:flex-row @5xl:items-center">
                             <DataTableSearchBar
                                 value={searchTerm}
                                 onChange={setSearchTerm}
@@ -368,7 +368,7 @@ export default function UsersClient() {
                         }
                     />
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div className="max-w-full overflow-x-auto overscroll-x-contain">
                         <table className="w-full min-w-[1320px] table-auto">
                             <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-gray-900/60 dark:text-gray-400">
                                 <tr>
@@ -380,7 +380,11 @@ export default function UsersClient() {
                                     <th className="px-4 py-3">Κατάσταση</th>
                                     <th className="px-4 py-3">Τύπος</th>
                                     <th className="px-4 py-3">Δικαιώματα</th>
-                                    {canEdit && <th className="px-4 py-3 text-right">Ενέργειες</th>}
+                                    {canEdit && (
+                                        <th className="sticky right-0 z-20 border-l border-gray-200 bg-gray-50 px-4 py-3 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)] dark:border-gray-700 dark:bg-gray-900">
+                                            Ενέργειες
+                                        </th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -396,7 +400,7 @@ export default function UsersClient() {
 
                                     return (
                                         <Fragment key={key}>
-                                            <tr className="text-sm text-gray-700 hover:bg-gray-50/70 dark:text-gray-300 dark:hover:bg-white/[0.02]">
+                                            <tr className="group text-sm text-gray-700 hover:bg-gray-50/70 dark:text-gray-300 dark:hover:bg-white/[0.02]">
                                                 <td className="px-4 py-4 font-semibold text-gray-900 dark:text-white">
                                                     {user.username}
                                                 </td>
@@ -452,7 +456,7 @@ export default function UsersClient() {
                                                     </button>
                                                 </td>
                                                 {canEdit && (
-                                                    <td className="px-4 py-4 text-right">
+                                                    <td className="sticky right-0 z-10 whitespace-nowrap border-l border-gray-200 bg-white px-4 py-4 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)] group-hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:group-hover:bg-gray-900">
                                                         <div className="inline-flex items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
                                                             <button
                                                                 type="button"

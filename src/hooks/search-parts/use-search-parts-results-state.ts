@@ -65,6 +65,7 @@ export interface SearchPartsResultsState {
     toggleStockRequestCardsVisibility: () => void;
     handleResultsScroll: (event: UIEvent<HTMLDivElement>) => void;
     handleToggleSidebarVisibility: () => void;
+    showSidebar: () => void;
     setOpenEndoItemKeys: Dispatch<SetStateAction<Set<string>>>;
     setExpandedItems: Dispatch<SetStateAction<Set<string>>>;
     setEndoPendingQuantities: Dispatch<SetStateAction<Record<string, number>>>;
@@ -185,6 +186,10 @@ export function useSearchPartsResultsState({
 
     const handleToggleSidebarVisibility = useCallback(() => {
         setSidebarVisible((visible) => !visible);
+    }, []);
+
+    const showSidebar = useCallback(() => {
+        setSidebarVisible(true);
     }, []);
 
     const getStoreStock = useCallback((item: IItem) => {
@@ -359,6 +364,7 @@ export function useSearchPartsResultsState({
         toggleStockRequestCardsVisibility,
         handleResultsScroll,
         handleToggleSidebarVisibility,
+        showSidebar,
         setOpenEndoItemKeys,
         setExpandedItems,
         setEndoPendingQuantities,

@@ -6,6 +6,7 @@ import { useCustomerStore } from "@/stores/customerStore";
 import { useCustomerSearchStore } from "@/stores/customerSearchStore";
 import { useRouter } from "next/navigation";
 import SearchBar from "@/components/search/search-bar";
+import { SEARCH_PANEL_VIEWPORT_MAX_HEIGHT_CLASS } from "@/components/search/search-layout";
 import CustomerResults from "@/components/customer/customer-results";
 import { useSearchCustomersMutation } from "@/hooks/queries/useApiMutations";
 
@@ -63,7 +64,7 @@ export default function SearchCustomerClient() {
         <div>
             <PageBreadcrumb pageTitle="Αναζήτηση Πελάτη" />
 
-            <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-[#0f172a]/95 lg:max-h-[calc(100dvh-10.5rem)]">
+            <div className={`${SEARCH_PANEL_VIEWPORT_MAX_HEIGHT_CLASS} overflow-y-auto overscroll-contain rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-[#0f172a]/95`}>
                 <div className="sticky top-0 z-10 bg-white px-5 py-7 dark:bg-[#0f172a] xl:px-10 xl:py-12">
                     <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
                         <h3 className="mb-4 text-theme-xl font-semibold text-gray-800 dark:text-white/90 sm:text-2xl">

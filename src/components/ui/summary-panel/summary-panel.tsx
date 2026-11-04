@@ -25,6 +25,7 @@ export interface SummaryPanelProps {
     panelClassName?: string;
     contentClassName?: string;
     fitContentWhenStacked?: boolean;
+    wideLayoutBreakpoint?: "xl" | "2xl";
 }
 
 type SummaryPanelMessageTone = "error" | "success" | "warning" | "info";
@@ -92,10 +93,20 @@ export default function SummaryPanel({
     panelClassName = "bg-white",
     contentClassName = "",
     fitContentWhenStacked = false,
+    wideLayoutBreakpoint = "xl",
 }: SummaryPanelProps) {
+    const usesExtraWideLayout = wideLayoutBreakpoint === "2xl";
+
     if (collapsible && collapsed) {
         return (
-            <aside className={["hidden min-w-0 shrink-0 xl:flex", asideClassName].join(" ")}>
+            <aside
+                className={[
+                    usesExtraWideLayout
+                        ? "hidden min-w-0 shrink-0 2xl:flex"
+                        : "hidden min-w-0 shrink-0 xl:flex",
+                    asideClassName,
+                ].join(" ")}
+            >
                 <button
                     type="button"
                     onClick={onToggleCollapse}
@@ -123,12 +134,19 @@ export default function SummaryPanel({
     return (
         <aside
             className={[
-                "min-h-[280px] min-w-0 max-w-full w-full xl:min-h-0 xl:basis-1/3 xl:min-w-[320px]",
+                usesExtraWideLayout
+                    ? "min-h-[280px] min-w-0 max-w-full w-full 2xl:min-h-0 2xl:basis-1/3 2xl:min-w-[320px]"
+                    : "min-h-[280px] min-w-0 max-w-full w-full xl:min-h-0 xl:basis-1/3 xl:min-w-[320px]",
                 asideClassName,
             ].join(" ")}
         >
             <div
-                className={`flex min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-gray-200 ${fitContentWhenStacked ? "xl:h-full" : "h-full"} ${panelClassName} dark:border-gray-800 dark:bg-white/[0.03]`}
+                className={`flex min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-gray-200 ${fitContentWhenStacked
+                    ? usesExtraWideLayout
+                        ? "2xl:h-full"
+                        : "xl:h-full"
+                    : "h-full"
+                    } ${panelClassName} dark:border-gray-800 dark:bg-white/[0.03]`}
             >
                 <div className="shrink-0 border-b border-gray-100 px-5 py-5 dark:border-gray-800">
                     <div className="flex min-w-0 items-start justify-between gap-3">
@@ -149,7 +167,7 @@ export default function SummaryPanel({
                                         onClick={onToggleCollapse}
                                         title={collapseTitle}
                                         aria-label={collapseTitle}
-                                        className="hidden h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200 xl:flex"
+                                        className={`${usesExtraWideLayout ? "2xl:flex" : "xl:flex"} hidden h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200`}
                                     >
                                         <PanelRightClose className="h-4 w-4" />
                                     </button>
@@ -163,7 +181,9 @@ export default function SummaryPanel({
                     className={[
                         "min-w-0 overflow-x-hidden px-5 py-5",
                         fitContentWhenStacked
-                            ? "overflow-y-visible xl:flex-1 xl:overflow-y-auto"
+                            ? usesExtraWideLayout
+                                ? "overflow-y-visible 2xl:flex-1 2xl:overflow-y-auto"
+                                : "overflow-y-visible xl:flex-1 xl:overflow-y-auto"
                             : "flex-1 overflow-y-auto",
                         contentClassName,
                     ].join(" ")}

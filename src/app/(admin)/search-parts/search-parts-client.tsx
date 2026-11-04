@@ -12,6 +12,7 @@ import type { ICustomerInfo, IItem } from "@/lib/interface";
 import PartsSearchModal from "@/components/search/parts-search-modal";
 import CustomerSearchModal from "@/components/search/customer-search-modal";
 import SearchBar from "@/components/search/search-bar";
+import { SEARCH_PANEL_VIEWPORT_MAX_HEIGHT_CLASS } from "@/components/search/search-layout";
 import PartsResultsContainer from "@/components/parts/parts-results-container";
 import PartInsightsModal, {
     type InsightSectionState,
@@ -118,6 +119,21 @@ export default function SearchPartsClient() {
         resultsContainerRef,
         onRequireCustomerSelection: handleOpenCustomerModal,
     });
+    const { showSidebar } = resultsController;
+
+    useEffect(() => {
+        const wideLayoutQuery = window.matchMedia("(min-width: 1536px)");
+        const handleWideLayoutChange = (event: MediaQueryListEvent) => {
+            if (!event.matches) {
+                showSidebar();
+            }
+        };
+
+        wideLayoutQuery.addEventListener("change", handleWideLayoutChange);
+        return () => {
+            wideLayoutQuery.removeEventListener("change", handleWideLayoutChange);
+        };
+    }, [showSidebar]);
 
     const basketController = useSearchPartsBasketController({
         customer,
@@ -488,7 +504,7 @@ export default function SearchPartsClient() {
     }, [basketController]);
 
     return (
-        <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden md:h-[calc(100dvh-9rem)]">
+        <div className="flex min-h-[calc(100dvh-8rem)] min-w-0 max-w-full flex-col md:min-h-[calc(100dvh-9rem)] 2xl:h-[calc(100dvh-9rem)] 2xl:min-h-0 2xl:overflow-hidden">
             {!resultsController.hasScrolledResults && (
                 <div className="shrink-0">
                     <PageBreadcrumb
@@ -498,11 +514,11 @@ export default function SearchPartsClient() {
                 </div>
             )}
 
-            <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row">
+            <div className="flex min-w-0 max-w-full flex-col gap-4 2xl:min-h-0 2xl:flex-1 2xl:flex-row">
                 <div
-                    className={`order-2 flex min-h-0 w-full flex-1 flex-col transition-all duration-300 xl:order-1 xl:min-w-0 ${customer != null && resultsController.sidebarVisible ? "xl:basis-2/3" : ""}`}
+                    className={`order-2 flex min-w-0 w-full shrink-0 flex-col transition-all duration-300 2xl:order-1 2xl:min-h-0 2xl:flex-1 2xl:shrink ${customer != null && resultsController.sidebarVisible ? "2xl:basis-2/3" : ""}`}
                 >
-                     <div className="min-h-0 flex flex-1 flex-col overflow-hidden bg-white transition-all duration-300 dark:bg-[#0f172a]/95">
+                    <div className={`${SEARCH_PANEL_VIEWPORT_MAX_HEIGHT_CLASS} flex min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all duration-300 dark:border-gray-800 dark:bg-[#0f172a]/95 2xl:h-full 2xl:max-h-none 2xl:flex-1`}>
                         <div className="shrink-0 px-5 py-6 dark:border-gray-800 xl:px-10">
                             <div className="mx-auto w-full max-w-[820px] text-center xl:max-w-[1120px] 2xl:max-w-[1360px]">
                                 <h3
@@ -613,56 +629,58 @@ export default function SearchPartsClient() {
                 </div>
 
                 {customer && (
-                    <div className={`order-3 min-h-0 xl:order-2 [&>aside]:h-full ${resultsController.sidebarVisible ? "xl:basis-1/3 xl:min-w-[320px]" : "xl:w-8 xl:shrink-0"}`}>
+                    <div className={`order-3 min-w-0 w-full max-w-full 2xl:order-2 2xl:min-h-0 2xl:[&>aside]:h-full ${resultsController.sidebarVisible ? "2xl:basis-1/3 2xl:min-w-[320px]" : "2xl:w-8 2xl:shrink-0"}`}>
                         <CustomerOrderSummary
-                                customer={customer}
-                                basket={basketController.basket}
-                                loading={basketController.basketLoading}
-                                error={basketController.basketError}
-                                successMessage={
-                                    basketController.orderSubmittedSuccess ? (
-                                        <div className="space-y-3">
-                                            <p className="font-semibold">
-                                                Η παραγγελία καταχωρήθηκε επιτυχώς.
-                                            </p>
-                                            <p className="text-xs opacity-90">
-                                                Μπορείτε να επιστρέψετε στην αρχική σελίδα ή να συνεχίσετε με νέα παραγγελία.
-                                            </p>
-                                            <button
-                                                type="button"
-                                                onClick={() => router.push("/")}
-                                                className="inline-flex items-center rounded-lg bg-green-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-green-700"
-                                            >
-                                                Επιστροφή στην αρχική
-                                            </button>
-                                        </div>
-                                    ) : undefined
-                                }
-                                onRefresh={basketController.handleRefreshBasket}
-                                selectedItems={basketController.selectedItems}
-                                selectedCount={basketController.selectedItemsList.length}
-                                selectedTotal={basketController.selectedTotal}
-                                receiptType={basketController.receiptType}
-                                onReceiptTypeChange={basketController.setReceiptType}
-                                notes={basketController.notes}
-                                onNotesChange={basketController.setNotes}
-                                onSendOrder={handleSendOrder}
-                                sendingOrder={basketController.sendingOrder}
-                                onToggleItem={basketController.handleToggleSelectedItem}
-                                onRemoveItem={basketController.handleRemoveItem}
-                                removingItems={basketController.removingBasketItems}
-                                onRemoveSelectedItems={basketController.handleRemoveSelectedItems}
-                                removingSelectedItems={basketController.removingSelectedBasketItems}
-                                onChangeQuantity={handleUpdateQty}
-                                requestedPriceValues={basketController.basketLineRequestedPrices}
-                                onRequestedPriceValueChange={basketController.setBasketLineRequestedPriceValue}
-                                onRequestPrice={canRequestPrice ? basketController.handleRequestBasketLinePrice : undefined}
-                                submittingRequestedPrices={basketController.submittingBasketLineRequestedPrices}
-                                collapsible
-                                collapsed={!resultsController.sidebarVisible}
-                                onToggleCollapse={resultsController.handleToggleSidebarVisibility}
-                                onClearCustomer={handleClearCustomer}
-                                onOpenCustomerModal={handleOpenCustomerModal}
+                            customer={customer}
+                            basket={basketController.basket}
+                            loading={basketController.basketLoading}
+                            error={basketController.basketError}
+                            successMessage={
+                                basketController.orderSubmittedSuccess ? (
+                                    <div className="space-y-3">
+                                        <p className="font-semibold">
+                                            Η παραγγελία καταχωρήθηκε επιτυχώς.
+                                        </p>
+                                        <p className="text-xs opacity-90">
+                                            Μπορείτε να επιστρέψετε στην αρχική σελίδα ή να συνεχίσετε με νέα παραγγελία.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => router.push("/")}
+                                            className="inline-flex items-center rounded-lg bg-green-600 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-green-700"
+                                        >
+                                            Επιστροφή στην αρχική
+                                        </button>
+                                    </div>
+                                ) : undefined
+                            }
+                            onRefresh={basketController.handleRefreshBasket}
+                            selectedItems={basketController.selectedItems}
+                            selectedCount={basketController.selectedItemsList.length}
+                            selectedTotal={basketController.selectedTotal}
+                            receiptType={basketController.receiptType}
+                            onReceiptTypeChange={basketController.setReceiptType}
+                            notes={basketController.notes}
+                            onNotesChange={basketController.setNotes}
+                            onSendOrder={handleSendOrder}
+                            sendingOrder={basketController.sendingOrder}
+                            onToggleItem={basketController.handleToggleSelectedItem}
+                            onRemoveItem={basketController.handleRemoveItem}
+                            removingItems={basketController.removingBasketItems}
+                            onRemoveSelectedItems={basketController.handleRemoveSelectedItems}
+                            removingSelectedItems={basketController.removingSelectedBasketItems}
+                            onChangeQuantity={handleUpdateQty}
+                            requestedPriceValues={basketController.basketLineRequestedPrices}
+                            onRequestedPriceValueChange={basketController.setBasketLineRequestedPriceValue}
+                            onRequestPrice={canRequestPrice ? basketController.handleRequestBasketLinePrice : undefined}
+                            submittingRequestedPrices={basketController.submittingBasketLineRequestedPrices}
+                            collapsible
+                            collapsed={!resultsController.sidebarVisible}
+                            onToggleCollapse={resultsController.handleToggleSidebarVisibility}
+                            fitContentWhenStacked
+                            wideLayoutBreakpoint="2xl"
+                            onClearCustomer={handleClearCustomer}
+                            onOpenCustomerModal={handleOpenCustomerModal}
                         />
                     </div>
                 )}
