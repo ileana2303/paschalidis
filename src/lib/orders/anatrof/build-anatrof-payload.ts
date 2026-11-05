@@ -7,6 +7,7 @@ import {
 export type AnatrofSaldoc = {
     SERIES: string;
     TAXSERIES: string;
+    BRANCH: number;
     TRDR: number;
     TRDBRANCH: number;
     PAYMENT: number;
@@ -16,6 +17,7 @@ export type AnatrofSaldoc = {
     REMARKS: string;
     SHIPKIND: number;
     SOCASH: number;
+    VARCHAR02: "S1";
     CCCEXTUSER: string;
 };
 
@@ -83,6 +85,7 @@ export function buildAnatrofPayload({
             {
                 SERIES: series,
                 TAXSERIES: taxSeries,
+                BRANCH: supplyingBranch,
                 TRDR: trdr,
                 TRDBRANCH: trdBranch, // requesting branch
                 PAYMENT: payment,
@@ -92,6 +95,7 @@ export function buildAnatrofPayload({
                 REMARKS: remarks,
                 SHIPKIND: shipKind,
                 SOCASH: socash,
+                VARCHAR02: "S1",
                 CCCEXTUSER: cccExtUser,
             },
         ],

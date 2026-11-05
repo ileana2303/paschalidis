@@ -414,6 +414,7 @@ export function useSearchPartsBasketController({
         try {
             await submitBasketOrder({
                 TRDR: customer.TRDR,
+                BRANCH: currentBranchCode,
                 RECEIPT_TYPE: receiptType,
                 NOTES: notes,
                 APPUSER_ID: userId,
@@ -437,7 +438,7 @@ export function useSearchPartsBasketController({
         } finally {
             setSendingOrder(false);
         }
-    }, [basket, customer, loadBasket, notes, receiptType, selectedItems.size, submitBasketOrder, userId]);
+    }, [basket, currentBranchCode, customer, loadBasket, notes, receiptType, selectedItems.size, submitBasketOrder, userId]);
 
     const handleRefreshBasket = useCallback(() => {
         if (!customer) {

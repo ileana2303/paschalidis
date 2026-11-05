@@ -18,9 +18,5 @@ export const BASKET_TRUCKS = 2;
 export const BASKET_SHIPKIND = 1000;
 export const BASKET_SOCASH = 1005;
 
-/** Fallback SERIES when the branch is unknown (1006 / Λ. Αθηνών). */
-export const BASKET_DEFAULT_SERIES = "17002";
-export const BASKET_DEFAULT_BRANCH = 1006;
-
 export const BASKET_TABLE_ACTION = "ΠΑΡΑΓΓΕΛΙΑ ΠΕΛΑΤΗ" as const;
 export const BASKET_LOG_LABEL = "[orders/basket]";

@@ -12,8 +12,6 @@ import { postSetDataDocument } from "../shared/post-setdata";
 import { jsonSafeNumber, resolveIsoDate, uniqueBasketIds } from "../validation";
 import { buildBasketPayload } from "./build-basket-payload";
 import {
-    BASKET_DEFAULT_BRANCH,
-    BASKET_DEFAULT_SERIES,
     BASKET_ENDPOINT_ENV_KEY,
     BASKET_LOG_LABEL,
     BASKET_PAYMENT,
@@ -112,11 +110,24 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         );
     }
 
-    // The branch that sends the order: decides SERIES and the setData clientID.
+    // The branch that submits the order owns the Picking List document and
+    // decides both SERIES and the setData clientID.
     const branch =
         jsonSafeNumber(body.branch) ??
-        firstItemNumber(rawItems, ["branch", "BRANCH"]) ??
-        BASKET_DEFAULT_BRANCH;
+        firstItemNumber(rawItems, ["branch", "BRANCH"]);
+
+    if (!branch) {
+        throw new Error('Λείπει το υποκατάστημα υποβολής της παραγγελίας.');
+    }
+
+    const series = getSaldocSeriesByBranchCode(branch);
+
+    if (!series) {
+        throw new Error(
+            `Δεν βρέθηκε σειρά παραγγελίας για το υποκατάστημα υποβολής (${branch}).`
+        );
+    }
+
     const clientID = getSoftOneSetDataClientID(branch);
 
     if (!clientID) {
@@ -139,7 +150,7 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
 
     const payload = buildBasketPayload({
         clientID,
-        series: getSaldocSeriesByBranchCode(branch) ?? BASKET_DEFAULT_SERIES,
+        series,
         customerTrdr,
         receiptType,
         trdBranch,

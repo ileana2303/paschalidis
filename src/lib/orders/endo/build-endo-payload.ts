@@ -16,6 +16,7 @@ import {
 export type EndoSaldoc = {
     SERIES: string;
     TAXSERIES: string;
+    BRANCH: number;
     TRDR: number;
     TRDBRANCH: number;
     PAYMENT: number;
@@ -26,6 +27,7 @@ export type EndoSaldoc = {
     REMARKS: string;
     SHIPKIND: number;
     SOCASH: number;
+    VARCHAR02: "S1";
     CCCEXTUSER: string;
 };
 
@@ -89,6 +91,7 @@ export function buildEndoPayload({
             {
                 SERIES: ENDO_SERIES, // fixed - παραγγελία
                 TAXSERIES: ENDO_TAXSERIES, // fixed
+                BRANCH: supplyingBranch, // branch that supplies and picks the items
                 TRDR: trdr,
                 TRDBRANCH: trdBranch, // requesting branch: asked for the items
                 PAYMENT: ENDO_PAYMENT, // fixed
@@ -99,6 +102,7 @@ export function buildEndoPayload({
                 REMARKS: remarks, // user notes
                 SHIPKIND: ENDO_SHIPKIND, // fixed
                 SOCASH: ENDO_SOCASH, // fixed
+                VARCHAR02: "S1", // initial Picking List status
                 CCCEXTUSER: cccExtUser,
             },
         ],

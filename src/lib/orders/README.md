@@ -57,6 +57,10 @@ ENDO ignores the SERIES column: it always sends the fixed `7004|πΔ` + `TAXSERI
 | Customer basket receipt | `11643`, fixed | the customer's basket `TRD_BRANCH` (`0` when unavailable) |
 | ANATROF | `8674` ΠΑΣΧΑΛΙΔΗΣ, fixed | **requesting** branch |
 
+Customer, ANATROF, and ENDO documents are all created with `SALDOC.VARCHAR02 = S1`
+so they enter the Picking List lifecycle. A customer order must include its
+submitting branch; there is no fallback branch.
+
 For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚΗΣ B2B`. Receipt comments are
 `ΠΑΡΑΓΓΕΛΙΑ ΛΙΑΝΙΚΗΣ Α/Α<customer TRDR>` even though the submitted TRDR is `11643`.
 

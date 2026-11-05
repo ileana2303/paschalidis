@@ -214,7 +214,9 @@ export async function submitBasketOrder(
         receiptType: params.RECEIPT_TYPE,
         trdr: asPositiveNumber(params.TRDR),
         trdBranch: asNonNegativeNumber(firstItem?.TRD_BRANCH) ?? 0,
-        branch: asPositiveNumber(firstItem?.BRANCH),
+        branch:
+            asPositiveNumber(params.BRANCH) ??
+            asPositiveNumber(firstItem?.BRANCH),
         items: params.items.map((item) => ({
             basketId: item.BASKETID,
             mtrl: item.MTRL,
