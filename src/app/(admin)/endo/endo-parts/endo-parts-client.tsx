@@ -234,9 +234,8 @@ export default function EndoPartsClient() {
                 await deleteBasketItems({
                     basketIds,
                     tableAction: "ENDO",
-                    method: "LINK_S1",
+                    method: "DELETE",
                     s1Key: "1305",
-                    appUserId: user?.username,
                 });
 
                 await loadRequestedEndoLines();

@@ -18,5 +18,5 @@ export const BASKET_TRUCKS = 2;
 export const BASKET_SHIPKIND = 1000;
 export const BASKET_SOCASH = 1005;
 
-export const BASKET_TABLE_ACTION = "ΠΑΡΑΓΓΕΛΙΑ ΠΕΛΑΤΗ" as const;
+export const BASKET_TABLE_ACTION = "USRCUST" as const;
 export const BASKET_LOG_LABEL = "[orders/basket]";

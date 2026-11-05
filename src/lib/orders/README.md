@@ -22,7 +22,8 @@ Each flow has exactly three files:
    reads, no branch lookups. What you read here is what SoftOne receives.
 3. `submit-*-order.ts` - resolves the branch-dependent values, builds the
    document and posts it. Flows with a confirmed table action then run
-   MASS_DELETE / LINK_S1.
+   MASS_DELETE / LINK_S1 followed by MASS_DELETE / DELETE so the source rows
+   cannot remain in their lists.
 
 Every request logs the outgoing payload (clientID masked) and the returned S1 id
 under the flow's log label, e.g.:

@@ -16,11 +16,16 @@ type LinkBasketRowsToDocumentParams = {
     logLabel: string;
 };
 
+// These are the same values used by the working manual basket-delete route.
+// DELETE does not link to a document; S1_KEY identifies the application and
+// APPUSER_ID is the SoftOne system user used for basket maintenance actions.
+const DELETE_S1_KEY = "1305";
+const DELETE_APPUSER_ID = "00000001-0001-0001-0001-000000000001";
+
 /**
- * MASS_DELETE / METHOD=LINK_S1: clears the submitted basket rows and links them
- * to the SoftOne document that was just created. Always runs after a successful
- * setData - per line for ENDO, once per customer basket, ANATROF order, or
- * supplier PURDOC basket.
+ * Runs after a successful setData. LINK_S1 preserves the relationship to the
+ * newly-created SoftOne document, then DELETE explicitly removes the source
+ * rows so they cannot remain visible or be submitted again.
  */
 export async function linkBasketRowsToDocument({
     sqlClientID,
@@ -35,7 +40,7 @@ export async function linkBasketRowsToDocument({
         `${logLabel} MASS_DELETE LINK_S1 ${tableAction} basketIds=${basketIds.join(",")} S1_KEY=${documentId}`
     );
 
-    const result = await callMassDelete({
+    const linkResult = await callMassDelete({
         clientID: sqlClientID,
         basketIds,
         tableAction,
@@ -50,5 +55,26 @@ export async function linkBasketRowsToDocument({
         `${logLabel} MASS_DELETE LINK_S1 ok basketIds=${basketIds.join(",")} S1_KEY=${documentId}`
     );
 
-    return result;
+    console.info(
+        `${logLabel} MASS_DELETE DELETE ${tableAction} basketIds=${basketIds.join(",")}`
+    );
+
+    const deleteResult = await callMassDelete({
+        clientID: sqlClientID,
+        basketIds,
+        tableAction,
+        method: "DELETE",
+        s1Key: DELETE_S1_KEY,
+        appUserId: DELETE_APPUSER_ID,
+        logLabel,
+    });
+
+    console.info(
+        `${logLabel} MASS_DELETE DELETE ok basketIds=${basketIds.join(",")}`
+    );
+
+    return {
+        link: linkResult,
+        delete: deleteResult,
+    };
 }

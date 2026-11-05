@@ -91,6 +91,9 @@ export function buildEndoPayload({
             {
                 SERIES: ENDO_SERIES, // fixed - παραγγελία
                 TAXSERIES: ENDO_TAXSERIES, // fixed
+                // Must be sent explicitly: without it SoftOne uses the clientID's
+                // login branch (1006 for the generic S1_CLIENT_ID), and the
+                // supplier's picking list (filtered by SALDOC.BRANCH) never sees it.
                 BRANCH: supplyingBranch, // branch that supplies and picks the items
                 TRDR: trdr,
                 TRDBRANCH: trdBranch, // requesting branch: asked for the items
