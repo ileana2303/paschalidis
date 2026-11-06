@@ -1,7 +1,13 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 import { ICustomerInfo } from "@/lib/interface";
 import { storageKey } from "@/lib/storage-keys";
+
+if (typeof window !== "undefined") {
+    try {
+        sessionStorage.removeItem(storageKey("customer-search-storage"));
+    } catch {
+    }
+}
 
 type CustomerSearchStore = {
     search: string;
@@ -14,8 +20,7 @@ type CustomerSearchStore = {
 };
 
 export const useCustomerSearchStore = create<CustomerSearchStore>()(
-    persist(
-        (set) => ({
+    (set) => ({
             search: "",
             customers: [],
             hasSearched: false,
@@ -29,9 +34,4 @@ export const useCustomerSearchStore = create<CustomerSearchStore>()(
                     hasSearched: false,
                 }),
         }),
-        {
-            name: storageKey("customer-search-storage"),
-            storage: createJSONStorage(() => sessionStorage),
-        }
-    )
 );

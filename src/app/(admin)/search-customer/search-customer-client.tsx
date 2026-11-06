@@ -1,7 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useCustomerStore } from "@/stores/customerStore";
 import { useCustomerSearchStore } from "@/stores/customerSearchStore";
 import { useRouter } from "next/navigation";
@@ -24,6 +24,11 @@ export default function SearchCustomerClient() {
     const router = useRouter();
     const searchInputRef = useRef<HTMLInputElement>(null);
     const searchCustomersMutation = useSearchCustomersMutation();
+
+    useLayoutEffect(() => {
+        clearSearchState();
+        return clearSearchState;
+    }, [clearSearchState]);
 
     useEffect(() => {
         searchInputRef.current?.focus();

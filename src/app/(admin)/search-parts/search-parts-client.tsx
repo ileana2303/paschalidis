@@ -2,7 +2,13 @@
 
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import { Modal } from "@/components/ui/modal";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSearchPartsStore } from "@/stores/searchPartsStore";
@@ -46,6 +52,7 @@ export default function SearchPartsClient() {
     const setHasSearched = useSearchPartsStore((state) => state.setHasSearched);
     const searchStateTrdr = useSearchPartsStore((state) => state.trdr);
     const setSearchStateTrdr = useSearchPartsStore((state) => state.setTrdr);
+    const clearSearchPartsState = useSearchPartsStore((state) => state.clearState);
     const customer = useCustomerStore((state) => state.customer);
     const setCustomer = useCustomerStore((state) => state.setCustomer);
     const clearCustomer = useCustomerStore((state) => state.clearCustomer);
@@ -62,6 +69,14 @@ export default function SearchPartsClient() {
     const lastUrlPartSearchRef = useRef<string | null>(null);
     const customerHydrationAttemptedRef = useRef<Set<string>>(new Set());
     const partInsightsRequestIdRef = useRef(0);
+    useLayoutEffect(() => {
+        clearSearchPartsState();
+        const keptTrdr =
+            String(useCustomerStore.getState().customer?.TRDR ?? "").trim() || null;
+        useSearchPartsStore.getState().setTrdr(keptTrdr);
+        return clearSearchPartsState;
+    }, [clearSearchPartsState]);
+
     const { mutateAsync: fetchCustomerByTrdr } = useFetchCustomerByTrdrMutation();
     const { mutateAsync: fetchPartLastOrders } = useFetchPartLastOrdersMutation();
     const { mutateAsync: fetchPartCompetitionSales } =
@@ -258,25 +273,14 @@ export default function SearchPartsClient() {
 
     useEffect(() => {
         const syncStoresReady = () => {
-            if (
-                useCustomerStore.persist.hasHydrated() &&
-                useSearchPartsStore.persist.hasHydrated()
-            ) {
+            if (useCustomerStore.persist.hasHydrated()) {
                 setStoresReady(true);
             }
         };
 
         syncStoresReady();
 
-        const unsubscribeCustomer =
-            useCustomerStore.persist.onFinishHydration(syncStoresReady);
-        const unsubscribeSearch =
-            useSearchPartsStore.persist.onFinishHydration(syncStoresReady);
-
-        return () => {
-            unsubscribeCustomer();
-            unsubscribeSearch();
-        };
+        return useCustomerStore.persist.onFinishHydration(syncStoresReady);
     }, []);
 
     useEffect(() => {
@@ -474,6 +478,43 @@ export default function SearchPartsClient() {
         }
     };
 
+    // After a successful order the previous parts search is no longer useful:
+    // empty the results and return to the plain `?trdr=` state (customer kept,
+    // so the success message and a new order can follow).
+    const resetSearchAfterOrder = useCallback(() => {
+        const customerTrdr = String(customer?.TRDR ?? "").trim() || null;
+
+        invalidateSearchResults();
+        clearSearchPartsState();
+        setSearchStateTrdr(customerTrdr);
+        setResultsTextFilter("");
+        resetScopedSearchState({ resetScroll: true });
+        handleClosePartInsights();
+
+        if (searchParams.get("part")) {
+            router.replace(
+                customerTrdr ? `/search-parts?trdr=${customerTrdr}` : "/search-parts"
+            );
+        }
+    }, [
+        clearSearchPartsState,
+        customer?.TRDR,
+        handleClosePartInsights,
+        invalidateSearchResults,
+        resetScopedSearchState,
+        router,
+        searchParams,
+        setSearchStateTrdr,
+    ]);
+
+    const submitOrder = useCallback(async () => {
+        const submitted = await basketController.handleSendOrder();
+
+        if (submitted) {
+            resetSearchAfterOrder();
+        }
+    }, [basketController, resetSearchAfterOrder]);
+
     const handleSendOrder = useCallback(async () => {
         if (!customer) {
             return;
@@ -491,17 +532,17 @@ export default function SearchPartsClient() {
                 return;
             }
         } catch {
-            await basketController.handleSendOrder();
+            await submitOrder();
             return;
         }
 
-        await basketController.handleSendOrder();
-    }, [basketController, customer, fetchRequestedPriceRequests]);
+        await submitOrder();
+    }, [customer, fetchRequestedPriceRequests, submitOrder]);
 
     const handleConfirmSendOrder = useCallback(async () => {
         setOrderConfirmOpen(false);
-        await basketController.handleSendOrder();
-    }, [basketController]);
+        await submitOrder();
+    }, [submitOrder]);
 
     return (
         <div className="flex min-h-[calc(100dvh-8rem)] min-w-0 max-w-full flex-col md:min-h-[calc(100dvh-9rem)] 2xl:h-[calc(100dvh-9rem)] 2xl:min-h-0 2xl:overflow-hidden">

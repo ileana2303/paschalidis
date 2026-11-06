@@ -403,8 +403,11 @@ export function useSearchPartsBasketController({
         }
     }, [basket?.items, setBasketItemQty, updateBasketItemQty]);
 
-    const handleSendOrder = useCallback(async () => {
-        if (!customer || !basket || basket.items.length === 0 || selectedItems.size === 0) return;
+    /** Resolves `true` when the order was submitted successfully. */
+    const handleSendOrder = useCallback(async (): Promise<boolean> => {
+        if (!customer || !basket || basket.items.length === 0 || selectedItems.size === 0) {
+            return false;
+        }
 
         setSendingOrder(true);
         setBasketError("");
@@ -438,6 +441,8 @@ export function useSearchPartsBasketController({
         } finally {
             setSendingOrder(false);
         }
+
+        return submittedSuccessfully;
     }, [basket, currentBranchCode, customer, loadBasket, notes, receiptType, selectedItems.size, submitBasketOrder, userId]);
 
     const handleRefreshBasket = useCallback(() => {
