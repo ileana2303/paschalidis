@@ -9,12 +9,14 @@ import {
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import {
+  deletePickingListOrder,
   fetchPickingList,
   updatePickingListOrder,
 } from "@/lib/api-client/picking-list";
 import {
   groupPickingListRows,
   type PickingListOrder,
+  type PickingListDeletePayload,
   type PickingListUpdatePayload,
   type PickingStatusFilter,
 } from "@/lib/picking-list";
@@ -108,6 +110,27 @@ export function useUpdatePickingListOrderMutation(
 
           return next;
         }
+      );
+    },
+  });
+}
+
+export function useDeletePickingListOrderMutation(
+  statusFilter: PickingStatusFilter
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: PickingListDeletePayload) =>
+      deletePickingListOrder(payload),
+    onSuccess: (_response, payload) => {
+      const findoc = payload.findoc.trim();
+      if (!findoc) return;
+
+      queryClient.setQueryData<PickingListOrder[]>(
+        pickingListQueryKey(statusFilter),
+        (current) =>
+          current?.filter((order) => order.findoc !== findoc) ?? current
       );
     },
   });

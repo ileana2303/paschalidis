@@ -97,11 +97,22 @@ export type PickingListResponse = {
 
 export type PickingListUpdatePayload = {
   findoc: string;
+  branch: string;
   pickerComment?: string;
   status?: PickingStatus;
 };
 
 export type PickingListUpdateResponse = {
+  success: boolean;
+  message?: string;
+};
+
+export type PickingListDeletePayload = {
+  findoc: string;
+  branch: string;
+};
+
+export type PickingListDeleteResponse = {
   success: boolean;
   message?: string;
 };

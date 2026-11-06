@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import {
   getSoftOneClientID,
+  getSoftOneData,
   getSoftOneSetDataClientID,
   parseJsonWithEncodingFallback,
   postSoftOne,
+  SoftOneServiceError,
 } from "@/lib/softone";
 import {
   isPickingStatus,
+  type PickingListDeletePayload,
+  type PickingListDeleteResponse,
   type PickingListLine,
   type PickingListResponse,
   type PickingListUpdatePayload,
@@ -195,6 +199,7 @@ export async function PATCH(req: NextRequest) {
 
     const body = (await req.json().catch(() => ({}))) as PickingListUpdatePayload;
     const findoc = String(body.findoc ?? "").trim();
+    const branch = String(body.branch ?? "").trim();
     const hasPickerComment = Object.prototype.hasOwnProperty.call(
       body,
       "pickerComment"
@@ -207,6 +212,7 @@ export async function PATCH(req: NextRequest) {
 
     if (
       !findoc ||
+      !branch ||
       (!hasPickerComment && !status) ||
       (rawStatus && !status)
     ) {
@@ -219,7 +225,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const clientID = getSoftOneSetDataClientID();
+    const clientID = getSoftOneSetDataClientID(branch);
 
     if (!clientID) {
       return NextResponse.json(
@@ -231,7 +237,45 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const fields: { VARCHAR01?: string; VARCHAR02?: PickingStatus } = {};
+    const documentData = await getSoftOneData<{ SALDOC?: unknown[] }>({
+      clientID,
+      appId: S1_APP_ID,
+      object: "SALDOC",
+      key: findoc,
+      locateInfo: "SALDOC:FISCPRD,PERIOD",
+    });
+    const documentFields = documentData.data?.SALDOC?.find(isRecord);
+    const fiscalPeriod = documentFields?.FISCPRD;
+    const period = documentFields?.PERIOD;
+    const hasFiscalPeriod =
+      fiscalPeriod !== null &&
+      fiscalPeriod !== undefined &&
+      String(fiscalPeriod).trim() !== "";
+    const hasPeriod =
+      period !== null && period !== undefined && String(period).trim() !== "";
+
+    if (!hasFiscalPeriod || !hasPeriod) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: getUpstreamMessage(
+            documentData,
+            "Δεν βρέθηκαν η Χρήση και η Περίοδος της παραγγελίας στο ERP."
+          ),
+        },
+        { status: 502 }
+      );
+    }
+
+    const fields: {
+      FISCPRD: unknown;
+      PERIOD: unknown;
+      VARCHAR01?: string;
+      VARCHAR02?: PickingStatus;
+    } = {
+      FISCPRD: fiscalPeriod,
+      PERIOD: period,
+    };
     if (hasPickerComment) fields.VARCHAR01 = pickerComment;
     if (status) fields.VARCHAR02 = status;
 
@@ -287,6 +331,112 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error("[picking-list:update] Server error", error);
+
+    if (error instanceof SoftOneServiceError) {
+      if (error.details) {
+        console.error(
+          "[picking-list:update:getData] Upstream error body:",
+          error.details
+        );
+      }
+
+      return NextResponse.json(
+        { success: false, message: error.message },
+        { status: error.status }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Σφάλμα διακομιστή.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    if (!hasSession(req)) return unauthorizedResponse();
+
+    const body = (await req.json().catch(() => ({}))) as PickingListDeletePayload;
+    const findoc = String(body.findoc ?? "").trim();
+    const branch = String(body.branch ?? "").trim();
+
+    if (!findoc || !branch) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Μη έγκυρα δεδομένα διαγραφής Picking List.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const clientID = getSoftOneSetDataClientID(branch);
+
+    if (!clientID) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const upstreamResponse = await postSoftOne({
+      service: "delData",
+      clientID,
+      appId: S1_APP_ID,
+      OBJECT: "SALDOC",
+      FORM: "",
+      KEY: findoc,
+    });
+
+    if (!upstreamResponse.ok) {
+      const errorText = await upstreamResponse.text();
+      console.error("[picking-list:delete] Upstream error body:", errorText);
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Αποτυχία επικοινωνίας με το ERP (HTTP ${upstreamResponse.status}).`,
+        },
+        { status: upstreamResponse.status }
+      );
+    }
+
+    const upstreamData = (await parseJsonWithEncodingFallback(
+      upstreamResponse
+    )) as {
+      success?: boolean;
+      message?: string;
+    };
+
+    if (upstreamData?.success === false) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: getUpstreamMessage(
+            upstreamData,
+            "Αποτυχία διαγραφής παραγγελίας."
+          ),
+        },
+        { status: 502 }
+      );
+    }
+
+    const response: PickingListDeleteResponse = {
+      success: true,
+      message: upstreamData?.message ?? "Η παραγγελία διαγράφηκε.",
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error("[picking-list:delete] Server error", error);
 
     return NextResponse.json(
       {

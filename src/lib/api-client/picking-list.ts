@@ -1,5 +1,7 @@
 import { httpClient } from "@/lib/http/client";
 import type {
+  PickingListDeletePayload,
+  PickingListDeleteResponse,
   PickingListResponse,
   PickingListUpdatePayload,
   PickingListUpdateResponse,
@@ -31,6 +33,21 @@ export async function updatePickingListOrder(
 
   if (!data.success) {
     throw new Error(data.message ?? "Αποτυχία ενημέρωσης Picking List.");
+  }
+
+  return data;
+}
+
+export async function deletePickingListOrder(
+  payload: PickingListDeletePayload
+): Promise<PickingListDeleteResponse> {
+  const { data } = await httpClient.delete<PickingListDeleteResponse>(
+    "/api/picking-list",
+    { data: payload }
+  );
+
+  if (!data.success) {
+    throw new Error(data.message ?? "Αποτυχία διαγραφής παραγγελίας.");
   }
 
   return data;

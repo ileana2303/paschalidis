@@ -9,6 +9,36 @@ type SoftOnePostOptions = {
     fallbackToGenericEndpoint?: boolean;
 };
 
+type SoftOneGetDataParams = {
+    clientID: string;
+    appId: string;
+    object: string;
+    key: string | number;
+    form?: string;
+    locateInfo?: string;
+};
+
+export type SoftOneGetDataResponse<TData> = {
+    success?: boolean;
+    readOnly?: boolean;
+    message?: string;
+    error?: string;
+    errorcode?: string;
+    data?: TData;
+};
+
+export class SoftOneServiceError extends Error {
+    status: number;
+    details?: string;
+
+    constructor(message: string, status: number, details?: string) {
+        super(message);
+        this.name = "SoftOneServiceError";
+        this.status = status;
+        this.details = details;
+    }
+}
+
 export function sanitizeEnvValue(value: string | undefined): string {
     return value?.trim().replace(/^['"]|['"]$/g, "") ?? "";
 }
@@ -53,12 +83,20 @@ export function getSoftOneClientID(
 
 export function getSoftOneSetDataClientID(
     branch?: string | number,
-    { endo = false }: { endo?: boolean } = {}
+    {
+        endo = false,
+        anatrof = false,
+    }: { endo?: boolean; anatrof?: boolean } = {}
 ): string {
     const normalizedBranch = String(branch ?? "").trim();
     const endoBranchClientID =
         endo && normalizedBranch
             ? getEnvString(`S1_ENDO_SETDATA_CLIENT_ID_${normalizedBranch}`)
+            : "";
+    const anatrofBranchClientID =
+        anatrof && normalizedBranch
+            ? getEnvString(`S1_ANATROF_SETDATA_CLIENT_ID_${normalizedBranch}`) ||
+              getEnvString(`S1_ENDO_SETDATA_CLIENT_ID_${normalizedBranch}`)
             : "";
     const setDataBranchClientID = normalizedBranch
         ? getEnvString(`S1_SETDATA_CLIENT_ID_${normalizedBranch}`)
@@ -71,6 +109,7 @@ export function getSoftOneSetDataClientID(
 
     return (
         endoBranchClientID ||
+        anatrofBranchClientID ||
         setDataBranchClientID ||
         setDataClientID ||
         sqlBranchClientID ||
@@ -145,4 +184,60 @@ export async function postSoftOne(
         },
         body: JSON.stringify(payload),
     });
+}
+
+function getSoftOneResponseMessage(
+    data: SoftOneGetDataResponse<unknown>,
+    fallback: string
+) {
+    const message = [data.message, data.error, data.errorcode].find(
+        (value) => typeof value === "string" && value.trim()
+    );
+
+    return typeof message === "string" ? message.trim() : fallback;
+}
+
+/** Reads selected fields from an existing SoftOne Business Object record. */
+export async function getSoftOneData<TData>({
+    clientID,
+    appId,
+    object,
+    key,
+    form = "",
+    locateInfo,
+}: SoftOneGetDataParams): Promise<SoftOneGetDataResponse<TData>> {
+    const response = await postSoftOne({
+        service: "getData",
+        clientID,
+        appId,
+        OBJECT: object,
+        FORM: form,
+        KEY: key,
+        ...(locateInfo ? { LOCATEINFO: locateInfo } : {}),
+    });
+
+    if (!response.ok) {
+        const details = await response.text();
+        throw new SoftOneServiceError(
+            `Αποτυχία ανάγνωσης δεδομένων από το ERP (HTTP ${response.status}).`,
+            response.status,
+            details
+        );
+    }
+
+    const data = await parseJsonWithEncodingFallback<
+        SoftOneGetDataResponse<TData>
+    >(response);
+
+    if (data.success === false) {
+        throw new SoftOneServiceError(
+            getSoftOneResponseMessage(
+                data,
+                "Αποτυχία ανάγνωσης δεδομένων από το ERP."
+            ),
+            502
+        );
+    }
+
+    return data;
 }

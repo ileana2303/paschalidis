@@ -109,12 +109,14 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
 
 ## setData clientID resolution
 
-`getSoftOneSetDataClientID(branch, { endo })` in `lib/softone.ts`, first hit wins:
+`getSoftOneSetDataClientID(branch, { endo, anatrof })` in `lib/softone.ts`, first hit wins:
 
 1. `S1_ENDO_SETDATA_CLIENT_ID_<branch>` (ENDO only)
-2. `S1_SETDATA_CLIENT_ID_<branch>`
-3. `S1_SETDATA_CLIENT_ID`
-4. `S1_CLIENT_ID_<branch>`
-5. `S1_CLIENT_ID`
+2. `S1_ANATROF_SETDATA_CLIENT_ID_<branch>` (ANATROF only), then the matching
+   `S1_ENDO_SETDATA_CLIENT_ID_<branch>` as the shared transfer-client fallback
+3. `S1_SETDATA_CLIENT_ID_<branch>`
+4. `S1_SETDATA_CLIENT_ID`
+5. `S1_CLIENT_ID_<branch>`
+6. `S1_CLIENT_ID`
 
 MASS_DELETE always uses the SQL clientID (`S1_CLIENT_ID`), never the setData one.

@@ -87,7 +87,9 @@ export async function submitAnatrofOrder(body: AnatrofOrderRequestBody) {
         );
     }
 
-    const clientID = getSoftOneSetDataClientID(supplyingBranch);
+    const clientID = getSoftOneSetDataClientID(supplyingBranch, {
+        anatrof: true,
+    });
 
     if (!clientID) {
         throw new Error(

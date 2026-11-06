@@ -25,8 +25,10 @@ import {
   ListChevronsDownUp,
   ListChevronsUpDown,
   Loader2,
+  Trash2,
 } from "@/lib/icons/lucide";
 import {
+  useDeletePickingListOrderMutation,
   usePickingListIntervalNotifications,
   usePickingListQuery,
   useUpdatePickingListOrderMutation,
@@ -858,6 +860,8 @@ export default function PickingListClient() {
   const orders = data ?? EMPTY_PICKING_ORDERS;
   const { mutateAsync: updatePickingListOrder } =
     useUpdatePickingListOrderMutation(statusFilter);
+  const { mutateAsync: deletePickingListOrder } =
+    useDeletePickingListOrderMutation(statusFilter);
   const [searchTerm, setSearchTerm] = useSessionState(
     "picking-list-search",
     ""
@@ -875,6 +879,7 @@ export default function PickingListClient() {
     new Set()
   );
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [deletingSelected, setDeletingSelected] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const inFlightFindocs = useRef(new Set<string>());
   const automaticLoadAttemptedFindocs = useRef(new Set<string>());
@@ -1022,11 +1027,13 @@ export default function PickingListClient() {
 
         return true;
       } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Αποτυχία ενημέρωσης Picking List."
-        );
+        if (successMessage !== false) {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Αποτυχία ενημέρωσης Picking List."
+          );
+        }
         return false;
       } finally {
         inFlightFindocs.current.delete(findoc);
@@ -1045,7 +1052,10 @@ export default function PickingListClient() {
       const status = getFirstInteractionStatus(order.status);
       if (!status) return;
 
-      void persistOrderUpdate({ findoc: order.findoc, status }, false);
+      void persistOrderUpdate(
+        { findoc: order.findoc, branch: order.branch, status },
+        false
+      );
     },
     [persistOrderUpdate]
   );
@@ -1078,12 +1088,22 @@ export default function PickingListClient() {
         persistOrderUpdate(
           {
             findoc: order.findoc,
+            branch: order.branch,
             status,
           },
           false
         )
       )
-    );
+    ).then((results) => {
+      const failedCount = results.filter((updated) => !updated).length;
+      if (failedCount === 0) return;
+
+      toast.error(
+        failedCount === 1
+          ? "1 παραγγελία δεν ενημερώθηκε στο SoftOne."
+          : `${failedCount} παραγγελίες δεν ενημερώθηκαν στο SoftOne.`
+      );
+    });
   }, [activeBranch, isLoading, orders, persistOrderUpdate]);
 
   const handleToggleExpanded = useCallback(
@@ -1106,6 +1126,7 @@ export default function PickingListClient() {
       void persistOrderUpdate(
         {
           findoc: order.findoc,
+          branch: order.branch,
           pickerComment,
           ...(firstInteractionStatus ? { status: firstInteractionStatus } : {}),
         },
@@ -1122,7 +1143,7 @@ export default function PickingListClient() {
 
       void (async () => {
         const updated = await persistOrderUpdate(
-          { findoc: order.findoc, status },
+          { findoc: order.findoc, branch: order.branch, status },
           "Η παραγγελία σημάνθηκε ως PICKED IT UP."
         );
 
@@ -1148,7 +1169,11 @@ export default function PickingListClient() {
       const results = await Promise.all(
         selectedVisibleOrders.map((order) =>
           persistOrderUpdate(
-            { findoc: order.findoc, status: "PICKED_IT_UP" },
+            {
+              findoc: order.findoc,
+              branch: order.branch,
+              status: "PICKED_IT_UP",
+            },
             false
           )
         )
@@ -1178,6 +1203,73 @@ export default function PickingListClient() {
       setBulkUpdating(false);
     }
   }, [persistOrderUpdate, refetch, selectedVisibleOrders]);
+
+  const handleDeleteSelectedOrders = useCallback(async () => {
+    if (selectedVisibleOrders.length === 0 || deletingSelected) return;
+
+    const count = selectedVisibleOrders.length;
+    const confirmed = window.confirm(
+      count === 1
+        ? "Διαγραφή της επιλεγμένης παραγγελίας από το SoftOne;"
+        : `Διαγραφή ${count} επιλεγμένων παραγγελιών από το SoftOne;`
+    );
+    if (!confirmed) return;
+
+    setDeletingSelected(true);
+
+    try {
+      const results = await Promise.allSettled(
+        selectedVisibleOrders.map((order) =>
+          deletePickingListOrder({
+            findoc: order.findoc,
+            branch: order.branch,
+          })
+        )
+      );
+      const deletedFindocs = new Set(
+        selectedVisibleOrders.flatMap((order, index) =>
+          results[index].status === "fulfilled" ? [order.findoc] : []
+        )
+      );
+      const failedCount = count - deletedFindocs.size;
+
+      if (deletedFindocs.size > 0) {
+        setSelectedFindocs((current) => {
+          const next = new Set(current);
+          deletedFindocs.forEach((findoc) => next.delete(findoc));
+          return next;
+        });
+        setExpandedFindocs((current) => {
+          const next = new Set(current);
+          deletedFindocs.forEach((findoc) => next.delete(findoc));
+          return next;
+        });
+      }
+
+      if (failedCount > 0) {
+        toast.error(
+          failedCount === 1
+            ? "1 παραγγελία δεν διαγράφηκε."
+            : `${failedCount} παραγγελίες δεν διαγράφηκαν.`
+        );
+      } else {
+        toast.success(
+          count === 1
+            ? "Η επιλεγμένη παραγγελία διαγράφηκε."
+            : `Διαγράφηκαν ${count} επιλεγμένες παραγγελίες.`
+        );
+      }
+
+      await refetch();
+    } finally {
+      setDeletingSelected(false);
+    }
+  }, [
+    deletePickingListOrder,
+    deletingSelected,
+    refetch,
+    selectedVisibleOrders,
+  ]);
 
   const toggleSelected = useCallback((findoc: string) => {
     setSelectedFindocs((current) => {
@@ -1231,6 +1323,31 @@ export default function PickingListClient() {
           action={
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
               <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteSelectedOrders()}
+                  disabled={
+                    selectedVisibleCount === 0 ||
+                    deletingSelected ||
+                    bulkUpdating ||
+                    isLoading
+                  }
+                  title={
+                    selectedVisibleCount === 0
+                      ? "Επιλέξτε παραγγελίες για διαγραφή."
+                      : "Διαγραφή των επιλεγμένων παραγγελιών από το SoftOne"
+                  }
+                  className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 sm:w-auto dark:border-red-500/30 dark:bg-gray-900 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
+                >
+                  {deletingSelected ? (
+                    <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                  ) : (
+                    <Trash2 aria-hidden="true" className="size-4" />
+                  )}
+                  Διαγραφή
+                  {selectedVisibleCount > 0 ? ` (${selectedVisibleCount})` : ""}
+                </button>
+
                 {can("picked-it-up") && (
                 <button
                   type="button"

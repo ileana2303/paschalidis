@@ -3,7 +3,6 @@ import { formatDateTimeEl } from "@/lib/utils/date";
 import { parseSoftOneNumber } from "@/lib/utils/number";
 
 export type StockBranchCode = "1000" | "1006" | "1007";
-/** SoftOne stock columns - still YP1000 for Κασομούλη. CHECK with BE*/
 export type StockBranchStockKey = "YP1000" | "YP1006" | "YP1007";
 
 export const STOCK_REQUEST_BRANCH_OPTIONS: Array<{ code: StockBranchCode; label: string }> = [
