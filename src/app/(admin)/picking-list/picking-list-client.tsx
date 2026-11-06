@@ -10,6 +10,7 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
+import OrderTypePicker from "@/components/picking-list/order-type-picker";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
@@ -17,6 +18,8 @@ import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import {
+  ArrowDown,
+  ArrowUp,
   Check,
   ChevronDown,
   ClipboardList,
@@ -47,17 +50,94 @@ import {
   getAutomaticPickingStatus,
   getFirstInteractionStatus,
   getNextPickingStatus,
+  getPickingOrderType,
+  getPickingOrderTypeOption,
   getPickingPositionsForBranch,
   matchesPickingOrderSearch,
   PICKER_COMMENT_SUGGESTIONS,
   PICKING_STATUS_FILTERS,
+  sortPickingOrders,
   shouldShowRetailCustomerName,
   type PickingListOrder,
   type PickingListUpdatePayload,
+  type PickingOrderSortDirection,
+  type PickingOrderSortKey,
+  type PickingOrderType,
+  type PickingOrderTypeFilter,
   type PickingStatusFilter,
 } from "@/lib/picking-list";
 
 const EMPTY_PICKING_ORDERS: PickingListOrder[] = [];
+
+type PickingOrderSort = {
+  key: PickingOrderSortKey;
+  direction: PickingOrderSortDirection;
+};
+
+function PickingOrderTypeBadge({ order }: { order: PickingListOrder }) {
+  const option = getPickingOrderTypeOption(getPickingOrderType(order));
+
+  return (
+    <span
+      className={[
+        "inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-inset",
+        option.tone,
+      ].join(" ")}
+    >
+      {option.label}
+    </span>
+  );
+}
+
+function PickingSortableHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  className = "",
+}: {
+  label: string;
+  sortKey: PickingOrderSortKey;
+  sort: PickingOrderSort;
+  onSort: (key: PickingOrderSortKey) => void;
+  className?: string;
+}) {
+  const active = sort.key === sortKey;
+
+  return (
+    <th
+      aria-sort={
+        active
+          ? sort.direction === "asc"
+            ? "ascending"
+            : "descending"
+          : "none"
+      }
+      className={className}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        title={`Ταξινόμηση: ${label}`}
+        className="group/sort inline-flex w-full items-center gap-1.5 text-left focus-visible:outline-none focus-visible:text-brand-600"
+      >
+        <span>{label}</span>
+        {active ? (
+          sort.direction === "asc" ? (
+            <ArrowUp aria-hidden="true" className="size-3.5 text-brand-500" />
+          ) : (
+            <ArrowDown aria-hidden="true" className="size-3.5 text-brand-500" />
+          )
+        ) : (
+          <ChevronDown
+            aria-hidden="true"
+            className="size-3.5 text-gray-300 transition group-hover/sort:text-gray-500 dark:text-gray-700 dark:group-hover/sort:text-gray-400"
+          />
+        )}
+      </button>
+    </th>
+  );
+}
 
 type PickingOrderRowProps = {
   order: PickingListOrder;
@@ -526,11 +606,13 @@ function PickingOrderCard({
   const parastatikoLabel = order.parastatiko || order.fincode;
   const showRetailCustomerName = shouldShowRetailCustomerName(order);
   const displayedComments = formatPickingOrderComments(order.comments);
+  const orderTypeOption = getPickingOrderTypeOption(getPickingOrderType(order));
 
   return (
     <article
       className={[
-        "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900/80",
+        "rounded-2xl border border-l-4 border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900/80",
+        orderTypeOption.borderTone,
         expanded ? "ring-2 ring-brand-500/20" : "",
       ].join(" ")}
     >
@@ -584,6 +666,10 @@ function PickingOrderCard({
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Πωλητής: {order.submittedBy || "—"}
             </p>
+          </div>
+
+          <div className="mt-3">
+            <PickingOrderTypeBadge order={order} />
           </div>
 
           {order.comments ? (
@@ -687,6 +773,7 @@ function PickingOrderRow({
   const submittedMinutesAgo = formatMinutesAgoEl(order.submittedAt, nowMs);
   const showRetailCustomerName = shouldShowRetailCustomerName(order);
   const displayedComments = formatPickingOrderComments(order.comments);
+  const orderTypeOption = getPickingOrderTypeOption(getPickingOrderType(order));
   const pinnedCellBackground = expanded
     ? "bg-brand-25/60 dark:bg-gray-950"
     : "bg-white dark:bg-gray-950";
@@ -700,7 +787,7 @@ function PickingOrderRow({
         ].join(" ")}
       >
         <td
-          className={`sticky left-0 z-20 px-3 py-3 align-top transition-colors group-hover:bg-gray-50 dark:group-hover:bg-gray-900 ${pinnedCellBackground}`}
+          className={`sticky left-0 z-20 border-l-4 px-3 py-3 align-top transition-colors group-hover:bg-gray-50 dark:group-hover:bg-gray-900 ${orderTypeOption.borderTone} ${pinnedCellBackground}`}
         >
           <DataTableSelectionCheckbox
             ariaLabel={`Επιλογή παραγγελίας ${order.parastatiko || order.findoc}`}
@@ -761,9 +848,12 @@ function PickingOrderRow({
         </td>
 
         <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
-          <p className="line-clamp-3 break-words" title={displayedComments}>
-            {displayedComments || "—"}
-          </p>
+          <div className="flex flex-col items-start gap-2">
+            <PickingOrderTypeBadge order={order} />
+            <p className="line-clamp-3 break-words" title={displayedComments}>
+              {displayedComments || "—"}
+            </p>
+          </div>
         </td>
 
         <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
@@ -851,6 +941,12 @@ export default function PickingListClient() {
   const [selectedBranch, setSelectedBranch] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<PickingStatusFilter>("ALL");
+  const [orderTypeFilter, setOrderTypeFilter] =
+    useState<PickingOrderTypeFilter>("ALL");
+  const [sort, setSort] = useState<PickingOrderSort>({
+    key: "date",
+    direction: "desc",
+  });
   const { data, isLoading,
     isFetching,
     isError,
@@ -954,7 +1050,7 @@ export default function PickingListClient() {
     setExpandedFindocs(new Set());
   }, [currentBranch]);
 
-  const visibleOrders = useMemo(
+  const ordersBeforeTypeFilter = useMemo(
     () =>
       orders.filter(
         (order) =>
@@ -964,6 +1060,57 @@ export default function PickingListClient() {
       ),
     [activeBranch, orders, searchTerm, statusFilter]
   );
+
+  const orderTypeCounts = useMemo<Record<PickingOrderType, number>>(() => {
+    const counts: Record<PickingOrderType, number> = {
+      WHOLESALE: 0,
+      RETAIL: 0,
+      REPLENISHMENT: 0,
+      INTERNAL_TRANSFER: 0,
+      OTHER: 0,
+    };
+
+    ordersBeforeTypeFilter.forEach((order) => {
+      counts[getPickingOrderType(order)] += 1;
+    });
+
+    return counts;
+  }, [ordersBeforeTypeFilter]);
+
+  const visibleOrders = useMemo(() => {
+    const filteredOrders = orderTypeFilter === "ALL"
+      ? ordersBeforeTypeFilter
+      : ordersBeforeTypeFilter.filter(
+          (order) => getPickingOrderType(order) === orderTypeFilter
+        );
+
+    return sortPickingOrders(filteredOrders, sort.key, sort.direction);
+  }, [orderTypeFilter, ordersBeforeTypeFilter, sort]);
+
+  const handleSelectOrderType = useCallback(
+    (type: PickingOrderTypeFilter) => {
+      setOrderTypeFilter(type);
+      setSelectedFindocs(new Set());
+      setExpandedFindocs(new Set());
+    },
+    []
+  );
+
+  const handleSort = useCallback((key: PickingOrderSortKey) => {
+    setSort((current) => {
+      if (current.key === key) {
+        return {
+          key,
+          direction: current.direction === "asc" ? "desc" : "asc",
+        };
+      }
+
+      return {
+        key,
+        direction: key === "date" ? "desc" : "asc",
+      };
+    });
+  }, []);
 
   const visibleFindocs = useMemo(
     () => visibleOrders.map((order) => order.findoc),
@@ -1464,6 +1611,12 @@ export default function PickingListClient() {
           }
         />
 
+        <OrderTypePicker
+          selectedType={orderTypeFilter}
+          counts={orderTypeCounts}
+          onSelect={handleSelectOrderType}
+        />
+
         {isLoading ? (
           <div className="flex items-center justify-center px-5 py-16 text-gray-500 dark:text-gray-400">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1573,18 +1726,30 @@ export default function PickingListClient() {
                       )}
                     </button>
                   </th>
-                  <th className="sticky left-[48px] z-30 border-r border-gray-200 bg-gray-50 px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] dark:border-gray-700 dark:bg-gray-950">
-                    Πελάτης
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Υποβολή / Κατάστημα
-                  </th>
+                  <PickingSortableHeader
+                    label="Πελάτης"
+                    sortKey="customerName"
+                    sort={sort}
+                    onSort={handleSort}
+                    className="sticky left-[48px] z-30 border-r border-gray-200 bg-gray-50 px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] dark:border-gray-700 dark:bg-gray-950"
+                  />
+                  <PickingSortableHeader
+                    label="Υποβολή / Κατάστημα"
+                    sortKey="date"
+                    sort={sort}
+                    onSort={handleSort}
+                    className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500"
+                  />
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Πωλητής
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Τύπος παραγγελίας
-                  </th>
+                  <PickingSortableHeader
+                    label="Τύπος παραγγελίας"
+                    sortKey="orderType"
+                    sort={sort}
+                    onSort={handleSort}
+                    className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500"
+                  />
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Παρατηρήσεις
                   </th>

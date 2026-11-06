@@ -13,6 +13,75 @@ export const PICKING_STATUSES = [
 export type PickingStatus = (typeof PICKING_STATUSES)[number];
 export type PickingStatusFilter = "ALL" | PickingStatus;
 
+export const PICKING_ORDER_TYPES = [
+  "WHOLESALE",
+  "RETAIL",
+  "REPLENISHMENT",
+  "INTERNAL_TRANSFER",
+] as const;
+
+export type PickingOrderType =
+  | (typeof PICKING_ORDER_TYPES)[number]
+  | "OTHER";
+export type PickingOrderTypeFilter = "ALL" | PickingOrderType;
+export type PickingOrderSortKey = "customerName" | "date" | "orderType";
+export type PickingOrderSortDirection = "asc" | "desc";
+
+export const PICKING_ORDER_TYPE_OPTIONS: ReadonlyArray<{
+  value: (typeof PICKING_ORDER_TYPES)[number];
+  label: string;
+  tone: string;
+  selectedTone: string;
+  borderTone: string;
+}> = [
+  {
+    value: "WHOLESALE",
+    label: "Χονδρική",
+    tone:
+      "bg-sky-50 text-sky-800 ring-sky-200 dark:bg-sky-500/10 dark:text-sky-200 dark:ring-sky-500/30",
+    selectedTone:
+      "bg-sky-600 text-white ring-sky-600 shadow-theme-xs dark:bg-sky-500 dark:ring-sky-500",
+    borderTone: "border-l-sky-500 dark:border-l-sky-500",
+  },
+  {
+    value: "RETAIL",
+    label: "Λιανική",
+    tone:
+      "bg-violet-50 text-violet-800 ring-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:ring-violet-500/30",
+    selectedTone:
+      "bg-violet-600 text-white ring-violet-600 shadow-theme-xs dark:bg-violet-500 dark:ring-violet-500",
+    borderTone: "border-l-violet-500 dark:border-l-violet-500",
+  },
+  {
+    value: "REPLENISHMENT",
+    label: "Ανατροφοδοσία",
+    tone:
+      "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30",
+    selectedTone:
+      "bg-amber-500 text-white ring-amber-500 shadow-theme-xs dark:bg-amber-500 dark:ring-amber-500",
+    borderTone: "border-l-amber-500 dark:border-l-amber-500",
+  },
+  {
+    value: "INTERNAL_TRANSFER",
+    label: "Ενδοδιακίνηση",
+    tone:
+      "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/30",
+    selectedTone:
+      "bg-emerald-600 text-white ring-emerald-600 shadow-theme-xs dark:bg-emerald-500 dark:ring-emerald-500",
+    borderTone: "border-l-emerald-500 dark:border-l-emerald-500",
+  },
+];
+
+export const PICKING_OTHER_ORDER_TYPE_OPTION = {
+  value: "OTHER" as const,
+  label: "Άλλο",
+  tone:
+    "bg-gray-100 text-gray-700 ring-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-700",
+  selectedTone:
+    "bg-gray-700 text-white ring-gray-700 shadow-theme-xs dark:bg-gray-200 dark:text-gray-900 dark:ring-gray-200",
+  borderTone: "border-l-gray-400 dark:border-l-gray-500",
+};
+
 export const PICKING_STATUS_FILTERS: Array<{
   value: PickingStatusFilter;
   label: string;
@@ -200,7 +269,7 @@ export function getPickingPositionsForBranch(
   return position ? [position] : [];
 }
 
-function getPickingOrderTimestamp(order: PickingListOrder) {
+export function getPickingOrderTimestamp(order: PickingListOrder) {
   const value = order.submittedAt || order.transactionDate;
   const normalizedValue = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)
     ? value.replace(" ", "T")
@@ -208,6 +277,85 @@ function getPickingOrderTimestamp(order: PickingListOrder) {
   const timestamp = Date.parse(normalizedValue);
 
   return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+export function getPickingOrderType(
+  order: Pick<PickingListOrder, "comments">
+): PickingOrderType {
+  const comments = order.comments.toLocaleUpperCase("el-GR");
+
+  if (comments.includes("ΑΝΑΤΡΟΦΟΔΟΣ")) return "REPLENISHMENT";
+  if (
+    comments.includes("ΕΝΔΟΔΙΑΚ") ||
+    (comments.includes("ΠΑΡΑΣΤΑΤΙΚΟ") && /-{1,2}>/u.test(comments))
+  ) {
+    return "INTERNAL_TRANSFER";
+  }
+  if (comments.includes("ΛΙΑΝΙΚ") || comments.includes("ΑΠΟΔΕΙΞ")) {
+    return "RETAIL";
+  }
+  if (comments.includes("ΧΟΝΔΡΙΚ") || comments.includes("B2B")) {
+    return "WHOLESALE";
+  }
+
+  return "OTHER";
+}
+
+export function getPickingOrderTypeOption(type: PickingOrderType) {
+  return (
+    PICKING_ORDER_TYPE_OPTIONS.find((option) => option.value === type) ??
+    PICKING_OTHER_ORDER_TYPE_OPTION
+  );
+}
+
+const PICKING_ORDER_TYPE_RANK: Record<PickingOrderType, number> = {
+  WHOLESALE: 0,
+  RETAIL: 1,
+  REPLENISHMENT: 2,
+  INTERNAL_TRANSFER: 3,
+  OTHER: 4,
+};
+
+export function sortPickingOrders(
+  orders: PickingListOrder[],
+  sortKey: PickingOrderSortKey,
+  direction: PickingOrderSortDirection
+) {
+  const directionMultiplier = direction === "asc" ? 1 : -1;
+
+  return orders
+    .map((order, index) => ({ order, index }))
+    .sort((left, right) => {
+      let comparison = 0;
+
+      if (sortKey === "customerName") {
+        comparison = left.order.customerName.localeCompare(
+          right.order.customerName,
+          "el",
+          { numeric: true, sensitivity: "base" }
+        );
+      } else if (sortKey === "date") {
+        const leftTimestamp = getPickingOrderTimestamp(left.order);
+        const rightTimestamp = getPickingOrderTimestamp(right.order);
+
+        if (leftTimestamp === null && rightTimestamp !== null) return 1;
+        if (leftTimestamp !== null && rightTimestamp === null) return -1;
+        comparison = (leftTimestamp ?? 0) - (rightTimestamp ?? 0);
+      } else {
+        comparison =
+          PICKING_ORDER_TYPE_RANK[getPickingOrderType(left.order)] -
+          PICKING_ORDER_TYPE_RANK[getPickingOrderType(right.order)];
+      }
+
+      if (comparison !== 0) return comparison * directionMultiplier;
+
+      const leftTimestamp = getPickingOrderTimestamp(left.order) ?? 0;
+      const rightTimestamp = getPickingOrderTimestamp(right.order) ?? 0;
+      const timestampComparison = rightTimestamp - leftTimestamp;
+
+      return timestampComparison || left.index - right.index;
+    })
+    .map(({ order }) => order);
 }
 
 export function groupPickingListRows(
