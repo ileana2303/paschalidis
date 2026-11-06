@@ -1,7 +1,15 @@
 "use client";
 
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
-import { type UIEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    type UIEvent,
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import {
     ListChevronsDownUp,
     ListChevronsUpDown,
@@ -65,6 +73,10 @@ export default function EndoPartsClient() {
     const hasSearched = useSearchEndoStore((state) => state.hasSearched);
     const setHasSearched = useSearchEndoStore((state) => state.setHasSearched);
     const clearSearchState = useSearchEndoStore((state) => state.clearState);
+    useLayoutEffect(() => {
+        clearSearchState();
+        return clearSearchState;
+    }, [clearSearchState]);
     const [textFilter, setTextFilter] = useState("");
     const [statusFilterSelection, setStatusFilterSelection] = useState<Set<string> | null>(null);
     const user = useAuthStore((state) => state.user);

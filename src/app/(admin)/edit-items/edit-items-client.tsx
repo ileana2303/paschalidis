@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import flatpickr from "flatpickr";
 import type { Instance as FlatpickrInstance } from "flatpickr/dist/types/instance";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
@@ -229,6 +229,11 @@ export default function EditItemsClient() {
     const hasSearched = useEditItemsSearchStore((state) => state.hasSearched);
     const setHasSearched = useEditItemsSearchStore((state) => state.setHasSearched);
     const clearSearchState = useEditItemsSearchStore((state) => state.clearState);
+    // Every visit starts with an empty search (no previous results).
+    useLayoutEffect(() => {
+        clearSearchState();
+        return clearSearchState;
+    }, [clearSearchState]);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [loadedKey, setLoadedKey] = useState("");
     const [originalFields, setOriginalFields] = useState<ItemEditFields>({});

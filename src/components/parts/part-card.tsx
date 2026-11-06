@@ -171,18 +171,23 @@ export default function PartResults({
     const basketQuantity = basketItem != null
         ? Math.max(1, getBasketItemQty(basketItem))
         : null;
+    // The basket can only hold what the user's own branch has in stock.
+    const availableStock = Math.max(0, Math.floor(storeStock));
+    const isOutOfStock = availableStock <= 0;
     const hasUnsavedBasketQuantity = basketQuantity != null && qty !== basketQuantity;
     const isBasketActionMuted = basketItem != null && !hasUnsavedBasketQuantity;
-    const isBasketActionDisabled = isAdding || isBasketActionMuted;
+    const isBasketActionDisabled = isAdding || isBasketActionMuted || isOutOfStock;
     const basketActionLabel = isAdding
         ? basketItem != null
             ? "Ενημέρωση..."
             : "Προσθήκη..."
         : isBasketActionMuted
             ? "Στο καλάθι"
-            : basketItem != null
-                ? "Ενημέρωση"
-                : "Προσθήκη";
+            : isOutOfStock
+                ? "Χωρίς απόθεμα"
+                : basketItem != null
+                    ? "Ενημέρωση"
+                    : "Προσθήκη";
 
     const basketActionClassName = isBasketActionMuted
         ? "group inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-green-200 bg-green-50 px-3.5 text-xs font-semibold text-green-700 transition disabled:cursor-not-allowed disabled:opacity-70 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-300"
@@ -425,13 +430,26 @@ export default function PartResults({
                                 )}
 
                                 <div className="flex shrink-0 items-center gap-2.5">
-                                    <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                        Ποσότητα
-                                    </span>
+                                    <div className="flex flex-col items-end leading-tight">
+                                        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                            Ποσότητα
+                                        </span>
+                                        <span
+                                            className={`text-[10px] font-medium tabular-nums ${isOutOfStock
+                                                ? "text-red-600 dark:text-red-400"
+                                                : "text-gray-400 dark:text-gray-500"}`}
+                                        >
+                                            {isOutOfStock
+                                                ? "Μη διαθέσιμο"
+                                                : `Διαθ.: ${availableStock}`}
+                                        </span>
+                                    </div>
 
                                     <QuantityControl
                                         value={qty}
                                         onChange={onQuantityChange}
+                                        max={Math.max(1, availableStock)}
+                                        disabled={isOutOfStock}
                                     />
                                 </div>
 
@@ -439,6 +457,9 @@ export default function PartResults({
                                     type="button"
                                     onClick={onAddToBasket}
                                     disabled={isBasketActionDisabled}
+                                    title={isOutOfStock && !isBasketActionMuted
+                                        ? "Το είδος δεν έχει απόθεμα στο κατάστημά σας"
+                                        : undefined}
                                     className={basketActionClassName}
                                 >
                                     {isAdding ? (

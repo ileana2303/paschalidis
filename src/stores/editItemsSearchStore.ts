@@ -1,7 +1,19 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 import { IItem } from "@/lib/interface";
 import { storageKey } from "@/lib/storage-keys";
+
+/**
+ * Not persisted: the page always opens with an empty search (no previous
+ * results). The page resets this store on mount and unmount.
+ */
+if (typeof window !== "undefined") {
+    // One-off cleanup of the old persisted snapshot.
+    try {
+        sessionStorage.removeItem(storageKey("edit-items-search-storage"));
+    } catch {
+        // Storage unavailable – nothing to clean.
+    }
+}
 
 type EditItemsSearchStore = {
     searchKey: string;
@@ -14,8 +26,7 @@ type EditItemsSearchStore = {
 };
 
 export const useEditItemsSearchStore = create<EditItemsSearchStore>()(
-    persist(
-        (set) => ({
+    (set) => ({
             searchKey: "",
             searchResults: [],
             hasSearched: false,
@@ -29,9 +40,4 @@ export const useEditItemsSearchStore = create<EditItemsSearchStore>()(
                     hasSearched: false,
                 }),
         }),
-        {
-            name: storageKey("edit-items-search-storage"),
-            storage: createJSONStorage(() => sessionStorage),
-        }
-    )
 );

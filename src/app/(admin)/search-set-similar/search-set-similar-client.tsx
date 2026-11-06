@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import SearchBar from "@/components/search/search-bar";
 import ResultsFilterInput from "@/components/search/results-filter-input";
@@ -71,6 +71,11 @@ export default function SearchSetSimilarClient() {
     const setHasSearchedSide = useSearchSetSimilarStore(
         (state) => state.setHasSearchedSide
     );
+    const clearSearchState = useSearchSetSimilarStore((state) => state.clearState);
+    useLayoutEffect(() => {
+        clearSearchState();
+        return clearSearchState;
+    }, [clearSearchState]);
     const [updatingMtrl, setUpdatingMtrl] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");

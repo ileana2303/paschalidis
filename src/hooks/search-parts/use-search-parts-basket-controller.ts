@@ -27,6 +27,10 @@ import {
 } from "@/lib/utils/basket-price-request";
 import toast from "react-hot-toast";
 import { parseSoftOneNumber } from "@/lib/utils/number";
+import {
+    getItemFieldValue,
+    parseStockValue,
+} from "@/hooks/search-parts/search-parts-stock-utils";
 
 export type ReceiptType = "receipt" | "invoice";
 
@@ -253,6 +257,20 @@ export function useSearchPartsBasketController({
         const basketItem = findBasketItem(item);
         const basketQtyFallback = basketItem ? Math.max(1, getBasketItemQty(basketItem)) : 1;
         const requestedQty = Math.max(1, getQuantity(item.ITEM_CODE, basketQtyFallback));
+
+        const branchStock = Math.max(
+            0,
+            Math.floor(parseStockValue(getItemFieldValue(item, `YP${currentBranchCode}`)))
+        );
+        if (branchStock <= 0) {
+            toast.error("Το είδος δεν έχει απόθεμα στο κατάστημά σας.");
+            return;
+        }
+        if (requestedQty > branchStock) {
+            toast.error(`Διαθέσιμα στο κατάστημά σας μόνο ${branchStock} τεμ.`);
+            return;
+        }
+
         setOrderSubmittedSuccess(false);
 
         setAddingToBasket((prev) => new Set(prev).add(item.ITEM_CODE));
@@ -382,6 +400,26 @@ export function useSearchPartsBasketController({
             return;
         }
 
+        // Basket lines carry no stock; cap with the branch stock when the part
+        // is among the current search results.
+        const catalogItem = searchItems.find(
+            (candidate) => String(candidate.MTRL) === String(item.MTRL)
+        );
+        if (catalogItem && normalizedQty > previousQty) {
+            const branchStock = Math.max(
+                0,
+                Math.floor(parseStockValue(getItemFieldValue(catalogItem, `YP${currentBranchCode}`)))
+            );
+            if (normalizedQty > branchStock) {
+                toast.error(
+                    branchStock > 0
+                        ? `Διαθέσιμα στο κατάστημά σας μόνο ${branchStock} τεμ.`
+                        : "Το είδος δεν έχει απόθεμα στο κατάστημά σας."
+                );
+                return;
+            }
+        }
+
         setBasketError("");
         setOrderSubmittedSuccess(false);
         setBasketItemQty(uid, normalizedQty);
@@ -401,7 +439,7 @@ export function useSearchPartsBasketController({
             setBasketError(message);
             toast.error(message);
         }
-    }, [basket?.items, setBasketItemQty, updateBasketItemQty]);
+    }, [basket?.items, currentBranchCode, searchItems, setBasketItemQty, updateBasketItemQty]);
 
     /** Resolves `true` when the order was submitted successfully. */
     const handleSendOrder = useCallback(async (): Promise<boolean> => {
