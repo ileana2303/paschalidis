@@ -51,7 +51,6 @@ const STOCK_BRANCH_META: Record<
 
 interface PartEndoRequestProps {
     isOpen: boolean;
-    canStart: boolean;
     branches: EndoBranchOption[];
     error: string;
     successMessage: string;

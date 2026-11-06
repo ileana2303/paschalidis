@@ -127,12 +127,10 @@ export default function SearchPartsClient() {
     } = pageController;
 
     const resultsController = useSearchPartsResultsController({
-        customer,
         user,
         items,
         hasMounted,
         resultsContainerRef,
-        onRequireCustomerSelection: handleOpenCustomerModal,
     });
     const { showSidebar } = resultsController;
 

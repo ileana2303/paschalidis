@@ -13,7 +13,6 @@ import type { StockRequestStatus } from "@/lib/interface";
 
 interface EndoRequestCardProps extends RequestEndoCardProps {
     isOpen: boolean;
-    canStart: boolean;
     onToggle: () => void;
 }
 
@@ -126,7 +125,7 @@ export default function StockRequest({
                 )}
             </div>
 
-            {hasRequestableEndoStock && endoRequest.canStart ? (
+            {hasRequestableEndoStock ? (
                 <button
                     type="button"
                     onClick={endoRequest.onToggle}

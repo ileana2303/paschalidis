@@ -469,7 +469,6 @@ export default function PartsResultsContainer({
                                         formatPrice={formatPrice}
                                         endoRequest={{
                                             isOpen: isEndoOpen,
-                                            canStart: hasCustomer,
                                             branches: endoBranches,
                                             error: isEndoOpen ? endoBasketError : "",
                                             successMessage: isEndoOpen ? endoBasketSuccess : "",

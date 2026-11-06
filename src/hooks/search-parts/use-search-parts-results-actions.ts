@@ -3,7 +3,7 @@
 import { isAxiosError } from "axios";
 import { useCallback, useEffect } from "react";
 import type { AuthUser } from "@/lib/auth/types";
-import type { ICustomerInfo, IItem } from "@/lib/interface";
+import type { IItem } from "@/lib/interface";
 import {
     useAddItemToEndoBasketMutation,
     useFetchEndoListsMutation,
@@ -19,9 +19,7 @@ import type { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 import toast from "react-hot-toast";
 
 interface UseSearchPartsResultsActionsParams {
-    customer: ICustomerInfo | null;
     user: AuthUser | null;
-    onRequireCustomerSelection: () => void;
     state: SearchPartsResultsState;
 }
 
@@ -46,9 +44,7 @@ function buildEndoPendingQuantities(
 }
 
 export function useSearchPartsResultsActions({
-    customer,
     user,
-    onRequireCustomerSelection,
     state,
 }: UseSearchPartsResultsActionsParams) {
     const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
@@ -104,11 +100,6 @@ export function useSearchPartsResultsActions({
     }, [refreshEndoPendingQuantities, setEndoPendingQuantities]);
 
     const handleToggleEndoForItem = useCallback((item: IItem) => {
-        if (!customer) {
-            onRequireCustomerSelection();
-            return;
-        }
-
         if (!hasValidBranch) {
             setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
             return;
@@ -118,9 +109,7 @@ export function useSearchPartsResultsActions({
         setEndoBasketError("");
         toggleEndoSourcesForItem(getEndoItemKey(item));
     }, [
-        customer,
         hasValidBranch,
-        onRequireCustomerSelection,
         setEndoBasketError,
         setEndoBasketSuccess,
         toggleEndoSourcesForItem,
