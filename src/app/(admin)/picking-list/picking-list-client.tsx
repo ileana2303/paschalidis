@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  Fragment,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import toast from "react-hot-toast";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
@@ -28,7 +28,11 @@ import {
   ListChevronsDownUp,
   ListChevronsUpDown,
   Loader2,
+  Pencil,
+  Plus,
+  StickyNote,
   Trash2,
+  X,
 } from "@/lib/icons/lucide";
 import {
   useDeletePickingListOrderMutation,
@@ -89,57 +93,70 @@ function PickingOrderTypeBadge({ order }: { order: PickingListOrder }) {
   );
 }
 
-function PickingSortableHeader({
-  label,
-  sortKey,
+const PICKING_SORT_OPTIONS: ReadonlyArray<{
+  key: PickingOrderSortKey;
+  label: string;
+}> = [
+  { key: "date", label: "ΗΜΕΡΟΜΗΝΙΑ" },
+  { key: "customerName", label: "ΠΕΛΑΤΗΣ" },
+  { key: "orderType", label: "ΤΥΠΟΣ" },
+];
+
+function PickingSortControls({
   sort,
   onSort,
-  className = "",
 }: {
-  label: string;
-  sortKey: PickingOrderSortKey;
   sort: PickingOrderSort;
   onSort: (key: PickingOrderSortKey) => void;
-  className?: string;
 }) {
-  const active = sort.key === sortKey;
-
   return (
-    <th
-      aria-sort={
-        active
-          ? sort.direction === "asc"
-            ? "ascending"
-            : "descending"
-          : "none"
-      }
-      className={className}
+    <div
+      role="group"
+      aria-label="Ταξινόμηση παραγγελιών"
+      className="flex flex-wrap items-center gap-1.5"
     >
-      <button
-        type="button"
-        onClick={() => onSort(sortKey)}
-        title={`Ταξινόμηση: ${label}`}
-        className="group/sort inline-flex w-full items-center gap-1.5 text-left focus-visible:outline-none focus-visible:text-brand-600"
-      >
-        <span>{label}</span>
-        {active ? (
-          sort.direction === "asc" ? (
-            <ArrowUp aria-hidden="true" className="size-3.5 text-brand-500" />
-          ) : (
-            <ArrowDown aria-hidden="true" className="size-3.5 text-brand-500" />
-          )
-        ) : (
-          <ChevronDown
-            aria-hidden="true"
-            className="size-3.5 text-gray-300 transition group-hover/sort:text-gray-500 dark:text-gray-700 dark:group-hover/sort:text-gray-400"
-          />
-        )}
-      </button>
-    </th>
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+        ΤΑΞΙΝΟΜΗΣΗ
+      </span>
+      {PICKING_SORT_OPTIONS.map((option) => {
+        const active = sort.key === option.key;
+        const directionLabel =
+          sort.direction === "asc" ? "αύξουσα" : "φθίνουσα";
+
+        return (
+          <button
+            key={option.key}
+            type="button"
+            onClick={() => onSort(option.key)}
+            aria-pressed={active}
+            title={
+              active
+                ? `Ταξινόμηση: ${option.label} (${directionLabel})`
+                : `Ταξινόμηση: ${option.label}`
+            }
+            className={[
+              "inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold tracking-wide ring-1 ring-inset transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
+              active
+                ? "bg-brand-50 text-brand-700 ring-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:ring-brand-500/30"
+                : "bg-white text-gray-600 ring-gray-200 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700 dark:hover:bg-gray-800",
+            ].join(" ")}
+          >
+            {option.label}
+            {active ? (
+              sort.direction === "asc" ? (
+                <ArrowUp aria-hidden="true" className="size-3.5" />
+              ) : (
+                <ArrowDown aria-hidden="true" className="size-3.5" />
+              )
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
-type PickingOrderRowProps = {
+type PickingOrderCardProps = {
   order: PickingListOrder;
   activeBranch: string;
   expanded: boolean;
@@ -249,7 +266,10 @@ function PickingLineCheckbox({
       role="checkbox"
       aria-checked={checked}
       aria-label={ariaLabel}
-      onClick={onToggle}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle();
+      }}
       className={[
         "inline-flex size-6 shrink-0 items-center justify-center rounded border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 print:size-5 print:rounded-none print:border-black print:bg-white print:text-black",
         checked
@@ -262,177 +282,180 @@ function PickingLineCheckbox({
   );
 }
 
+const PICKING_DETAIL_GRID =
+  "grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-x-3 sm:grid-cols-[1.75rem_minmax(8rem,12rem)_3.5rem_minmax(8rem,13rem)_minmax(0,1fr)]";
+
 function PickingOrderDetailsPanel({
   order,
   activeBranch,
   pickedDetailKeys,
   onToggleDetailPicked,
+  footerAction,
+  insetClassName = "px-3",
 }: {
   order: PickingListOrder;
   activeBranch: string;
   pickedDetailKeys: ReadonlySet<string>;
   onToggleDetailPicked: (detailKey: string) => void;
+  footerAction?: ReactNode;
+  /** Horizontal padding for every band, so backgrounds run edge to edge. */
+  insetClassName?: string;
 }) {
-  const parastatikoLabel = order.parastatiko || order.fincode;
+  if (order.details.length === 0) {
+    return (
+      <p
+        className={`border-t border-gray-200 bg-white py-3 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 ${insetClassName}`}
+      >
+        Δεν υπάρχουν διαθέσιμες γραμμές ειδών.
+      </p>
+    );
+  }
+
+  const lines = order.details.map((detail, index) => ({
+    detail,
+    index,
+    detailKey: getPickingDetailKey(
+      order.findoc,
+      detail.lineNumber,
+      detail.code,
+      index
+    ),
+  }));
+  const pickedCount = lines.filter(({ detailKey }) =>
+    pickedDetailKeys.has(detailKey)
+  ).length;
+  const progressLabel = `${pickedCount}/${lines.length}`;
+  const allPicked = pickedCount === lines.length;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-            Είδη παραγγελίας
-            {parastatikoLabel ? (
-              <span className="ml-2 font-medium text-brand-600 dark:text-brand-400">
-                · {parastatikoLabel}
-              </span>
-            ) : null}
-          </p>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            {order.details.length}{" "}
-            {order.details.length === 1 ? "γραμμή" : "γραμμές"}
-          </p>
-        </div>
+    <div className="bg-white dark:bg-gray-900">
+      <div
+        className={`${PICKING_DETAIL_GRID} ${insetClassName} border-y border-gray-200 bg-gray-50 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400`}
+      >
+        <span
+          className="text-center tabular-nums text-gray-700 dark:text-gray-200"
+          title="Συλλεγμένες / σύνολο γραμμών"
+        >
+          {progressLabel}
+        </span>
+        <span className="hidden sm:block">ΚΩΔΙΚΟΣ</span>
+        <span className="hidden text-right sm:block">ΠΟΣ</span>
+        <span className="hidden sm:block">ΘΕΣΗ</span>
+        <span className="hidden sm:block">ΠΕΡΙΓΡΑΦΗ</span>
+        <span className="col-span-2 sm:hidden">
+          ΚΩΔΙΚΟΣ · ΘΕΣΗ · ΠΟΣ
+        </span>
       </div>
 
-      {order.details.length === 0 ? (
-        <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          Δεν υπάρχουν διαθέσιμες γραμμές ειδών.
-        </p>
-      ) : (
-        <div className="divide-y divide-gray-100 dark:divide-gray-800 lg:hidden">
-          {order.details.map((detail, index) => {
-            const positions = getPickingPositionsForBranch(
-              detail,
-              activeBranch
-            );
-            const detailKey = getPickingDetailKey(
-              order.findoc,
-              detail.lineNumber,
-              detail.code,
-              index
-            );
-            const detailLabel =
-              detail.description || detail.code || `${index + 1}`;
+      <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+        {lines.map(({ detail, index, detailKey }) => {
+          const positions = getPickingPositionsForBranch(detail, activeBranch);
+          const picked = pickedDetailKeys.has(detailKey);
+          const detailLabel =
+            detail.description || detail.code || `${index + 1}`;
 
-            return (
-              <div
-                key={`${detail.lineNumber}-${detail.code}-${index}-mobile`}
-                className="space-y-2 px-4 py-3"
+          return (
+            <li
+              key={`${detail.lineNumber}-${detail.code}-${index}`}
+              onClick={() => {
+                if (window.getSelection()?.toString()) return;
+                onToggleDetailPicked(detailKey);
+              }}
+              className={[
+                PICKING_DETAIL_GRID,
+                insetClassName,
+                "cursor-pointer gap-y-1 py-2 transition-colors",
+                picked
+                  ? "bg-success-25 dark:bg-success-500/[0.06]"
+                  : "hover:bg-gray-50 dark:hover:bg-white/[0.03]",
+              ].join(" ")}
+            >
+              <PickingLineCheckbox
+                checked={picked}
+                ariaLabel={`Σήμανση είδους ${detailLabel} ως συλλεγμένο`}
+                onToggle={() => onToggleDetailPicked(detailKey)}
+              />
+
+              <span
+                className={[
+                  "break-all font-mono text-sm font-bold",
+                  picked
+                    ? "text-gray-400 line-through dark:text-gray-500"
+                    : "text-gray-900 dark:text-white",
+                ].join(" ")}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <PickingLineCheckbox
-                    checked={pickedDetailKeys.has(detailKey)}
-                    ariaLabel={`Σήμανση είδους ${detailLabel} ως συλλεγμένο`}
-                    onToggle={() => onToggleDetailPicked(detailKey)}
-                  />
-                  <p className="min-w-0 flex-1 text-sm font-medium text-gray-900 dark:text-white">
-                    {detail.description || "—"}
-                  </p>
-                  <NumberBadge value={detail.quantity || "0"} variant="brand" />
-                </div>
-                <p className="text-xs font-medium text-gray-700 dark:text-gray-200">
-                  {detail.code || "—"}
-                </p>
+                {detail.code || "—"}
+              </span>
+
+              <span
+                className={[
+                  "text-right text-base font-bold tabular-nums",
+                  picked
+                    ? "text-gray-400 dark:text-gray-500"
+                    : "text-brand-700 dark:text-brand-300",
+                ].join(" ")}
+              >
+                {detail.quantity || "0"}
+              </span>
+
+              <div
+                className={[
+                  "col-span-2 col-start-2 flex flex-wrap gap-1 sm:col-span-1 sm:col-start-auto",
+                  picked ? "opacity-50" : "",
+                ].join(" ")}
+              >
                 {positions.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {positions.map((position, positionIndex) => (
-                      <span
-                        key={`${position}-${positionIndex}`}
-                        className="inline-block max-w-full break-all rounded-md bg-amber-100 px-2 py-1 font-mono text-xs font-bold tracking-wide text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
-                      >
-                        {position}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
+                  positions.map((position, positionIndex) => (
+                    <span
+                      key={`${position}-${positionIndex}`}
+                      className="inline-block max-w-full break-all rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs font-bold tracking-wide text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                    >
+                      {position}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-gray-400">—</span>
+                )}
               </div>
-            );
-          })}
-        </div>
-      )}
 
-      {order.details.length > 0 ? (
-        <div className="hidden w-full lg:block">
-          <table className="w-full table-fixed divide-y divide-gray-100 dark:divide-gray-800">
-            <thead className="bg-gray-50 dark:bg-gray-950">
-              <tr>
-                <th
-                  className="w-[64px] px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-500"
-                  title="Συλλογή"
-                >
-                  <span aria-hidden="true">✓</span>
-                  <span className="sr-only">Συλλογή</span>
-                </th>
-                <th className="w-[90px] px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
-                  Ποσότητα
-                </th>
-                <th className="w-[32%] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
-                  Θέση
-                </th>
-                <th className="w-[20%] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
-                  Κωδικός
-                </th>
-                <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:px-4">
-                  Περιγραφή
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {order.details.map((detail, index) => {
-                const positions = getPickingPositionsForBranch(
-                  detail,
-                  activeBranch
-                );
-                const detailKey = getPickingDetailKey(
-                  order.findoc,
-                  detail.lineNumber,
-                  detail.code,
-                  index
-                );
-                const detailLabel =
-                  detail.description || detail.code || `${index + 1}`;
+              <p
+                className={[
+                  "col-span-2 col-start-2 break-words text-xs leading-5 sm:col-span-1 sm:col-start-auto sm:text-sm",
+                  picked
+                    ? "text-gray-400 dark:text-gray-500"
+                    : "text-gray-600 dark:text-gray-300",
+                ].join(" ")}
+              >
+                {detail.description || "—"}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
 
-                return (
-                  <tr key={`${detail.lineNumber}-${detail.code}-${index}`}>
-                    <td className="px-3 py-3 text-center">
-                      <div className="flex justify-center">
-                        <PickingLineCheckbox
-                          checked={pickedDetailKeys.has(detailKey)}
-                          ariaLabel={`Σήμανση είδους ${detailLabel} ως συλλεγμένο`}
-                          onToggle={() => onToggleDetailPicked(detailKey)}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-right text-sm text-gray-700 sm:px-4 dark:text-gray-200">
-                      <NumberBadge value={detail.quantity || "0"} variant="brand" />
-                    </td>
-                    <td className="px-3 py-3 sm:px-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        {positions.length > 0 ? (
-                          positions.map((position, positionIndex) => (
-                            <span
-                              key={`${position}-${positionIndex}`}
-                              className="inline-block max-w-full break-all rounded-md bg-amber-100 px-2 py-1 font-mono text-xs font-bold tracking-wide text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
-                            >
-                              {position}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-sm text-gray-400">—</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="break-all px-3 py-3 text-sm font-medium text-gray-800 sm:px-4 dark:text-gray-100">
-                      {detail.code || "—"}
-                    </td>
-                    <td className="break-words px-3 py-3 text-sm text-gray-700 sm:px-4 dark:text-gray-200">
-                      {detail.description || "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {footerAction ? (
+        <div
+          className={[
+            insetClassName,
+            "flex flex-col gap-2 border-t py-2 sm:flex-row sm:items-center sm:justify-between",
+            allPicked
+              ? "border-success-200 bg-success-50 dark:border-success-500/30 dark:bg-success-500/[0.08]"
+              : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-950",
+          ].join(" ")}
+        >
+          <p
+            className={[
+              "text-xs font-semibold",
+              allPicked
+                ? "text-success-700 dark:text-success-400"
+                : "text-gray-600 dark:text-gray-300",
+            ].join(" ")}
+          >
+            {allPicked
+              ? "Όλα τα είδη συλλέχθηκαν"
+              : `Συλλέχθηκαν ${pickedCount} από ${lines.length} είδη`}
+          </p>
+          <div className="sm:w-56 sm:shrink-0">{footerAction}</div>
         </div>
       ) : null}
     </div>
@@ -476,6 +499,21 @@ function PickingListPrintView({
           const retailCustomerName = shouldShowRetailCustomerName(order)
             ? order.retailCustomerName
             : "";
+          const orderTypeLabel = getPickingOrderTypeOption(
+            getPickingOrderType(order)
+          ).label;
+          const printLines = order.details.map((detail, detailIndex) => ({
+            detail,
+            detailKey: getPickingDetailKey(
+              order.findoc,
+              detail.lineNumber,
+              detail.code,
+              detailIndex
+            ),
+          }));
+          const pickedCount = printLines.filter(({ detailKey }) =>
+            pickedDetailKeys.has(detailKey)
+          ).length;
 
           return (
             <article
@@ -502,38 +540,43 @@ function PickingListPrintView({
                         order.submittedAt || order.transactionDate
                       )}
                     </p>
+                    <p>{formatBranchLabel(order.branch)}</p>
                     <p>Πωλητής: {order.submittedBy || "—"}</p>
                   </div>
                 </div>
-                {order.comments || order.remarks ? (
-                  <div className="mt-1.5 text-[10px] leading-4">
-                    {order.comments ? (
-                      <p>Τύπος: {formatPickingOrderComments(order.comments)}</p>
-                    ) : null}
-                    {order.remarks ? <p>Παρατηρήσεις: {order.remarks}</p> : null}
-                  </div>
-                ) : null}
+                <div className="mt-1.5 text-[10px] leading-4">
+                  <p>
+                    <span className="mr-1.5 inline-block border border-black px-1.5 font-bold uppercase">
+                      {orderTypeLabel}
+                    </span>
+                    {order.comments
+                      ? formatPickingOrderComments(order.comments)
+                      : null}
+                  </p>
+                  {order.remarks ? (
+                    <p className="mt-0.5">
+                      <span className="font-bold">ΠΑΡΑΤ.:</span> {order.remarks}
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
               <table className="w-full table-fixed border-collapse text-[10px]">
                 <thead>
                   <tr className="break-inside-avoid border-b border-black">
-                    <th className="w-[7%] px-2 py-1.5 text-center">✓</th>
-                    <th className="w-[10%] px-2 py-1.5 text-right">Ποσότητα</th>
-                    <th className="w-[22%] px-2 py-1.5 text-left">Θέση</th>
-                    <th className="w-[18%] px-2 py-1.5 text-left">Κωδικός</th>
-                    <th className="px-2 py-1.5 text-left">Περιγραφή</th>
+                    <th className="w-[6%] px-2 py-1.5 text-center tabular-nums">
+                      {pickedCount}/{printLines.length}
+                    </th>
+                    <th className="w-[20%] px-2 py-1.5 text-left">ΚΩΔΙΚΟΣ</th>
+                    <th className="w-[8%] px-2 py-1.5 text-right">ΠΟΣ</th>
+                    <th className="w-[22%] px-2 py-1.5 text-left">ΘΕΣΗ</th>
+                    <th className="px-2 py-1.5 text-left">ΠΕΡΙΓΡΑΦΗ</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {order.details.length > 0 ? (
-                    order.details.map((detail, detailIndex) => {
-                      const detailKey = getPickingDetailKey(
-                        order.findoc,
-                        detail.lineNumber,
-                        detail.code,
-                        detailIndex
-                      );
+                  {printLines.length > 0 ? (
+                    printLines.map(({ detail, detailKey }) => {
+                      const picked = pickedDetailKeys.has(detailKey);
                       const positions = getPickingPositionsForBranch(
                         detail,
                         activeBranch
@@ -546,17 +589,22 @@ function PickingListPrintView({
                         >
                           <td className="px-2 py-2 text-center align-top">
                             <span className="inline-flex size-4 items-center justify-center border-2 border-black text-xs font-bold leading-none">
-                              {pickedDetailKeys.has(detailKey) ? "✓" : ""}
+                              {picked ? "✓" : ""}
                             </span>
                           </td>
-                          <td className="px-2 py-2 text-right align-top font-bold">
+                          <td
+                            className={[
+                              "break-all px-2 py-2 align-top font-mono text-[11px] font-bold",
+                              picked ? "line-through" : "",
+                            ].join(" ")}
+                          >
+                            {detail.code || "—"}
+                          </td>
+                          <td className="px-2 py-2 text-right align-top text-[12px] font-bold tabular-nums">
                             {detail.quantity || "0"}
                           </td>
                           <td className="px-2 py-2 align-top font-mono font-bold">
                             {positions.join(" · ") || "—"}
-                          </td>
-                          <td className="break-all px-2 py-2 align-top font-semibold">
-                            {detail.code || "—"}
                           </td>
                           <td className="break-words px-2 py-2 align-top">
                             {detail.description || "—"}
@@ -573,6 +621,13 @@ function PickingListPrintView({
                   )}
                 </tbody>
               </table>
+              {printLines.length > 0 ? (
+                <p className="break-inside-avoid border-t border-black px-3 py-1.5 text-[10px] font-semibold">
+                  {pickedCount === printLines.length
+                    ? "Όλα τα είδη συλλέχθηκαν"
+                    : `Συλλέχθηκαν ${pickedCount} από ${printLines.length} είδη`}
+                </p>
+              ) : null}
             </article>
           );
         })}
@@ -581,7 +636,112 @@ function PickingListPrintView({
   );
 }
 
-type PickingOrderCardProps = PickingOrderRowProps;
+function PickerCommentField({
+  order,
+  updating,
+  onSaveComment,
+}: {
+  order: PickingListOrder;
+  updating: boolean;
+  onSaveComment: (order: PickingListOrder, comment: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(order.pickerComment);
+  const hasChange = draft.trim() !== order.pickerComment;
+  const orderLabel = order.parastatiko || order.fincode || order.findoc;
+  const suggestionListId = `picker-comments-${order.findoc.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+
+  const startEditing = () => {
+    setDraft(order.pickerComment);
+    setEditing(true);
+  };
+  const save = () => {
+    if (!hasChange || updating) return;
+    onSaveComment(order, draft);
+    setEditing(false);
+  };
+
+  // Collapsed: a compact chip, so an empty comment doesn't take a full-width input.
+  if (!editing) {
+    return order.pickerComment ? (
+      <button
+        type="button"
+        onClick={startEditing}
+        disabled={updating}
+        title={`Σχόλιο picker: ${order.pickerComment} (πατήστε για αλλαγή)`}
+        aria-label={`Αλλαγή σχολίου picker για ${orderLabel}`}
+        className="inline-flex h-9 min-w-0 max-w-full items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200 transition hover:bg-amber-100 disabled:opacity-60 sm:max-w-[16rem] dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30 dark:hover:bg-amber-500/20"
+      >
+        <StickyNote aria-hidden="true" className="size-3.5 shrink-0" />
+        <span className="truncate">{order.pickerComment}</span>
+        <Pencil aria-hidden="true" className="size-3 shrink-0 opacity-60" />
+      </button>
+    ) : (
+      <button
+        type="button"
+        onClick={startEditing}
+        disabled={updating}
+        aria-label={`Προσθήκη σχολίου picker για ${orderLabel}`}
+        className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-gray-500 ring-1 ring-inset ring-gray-200 transition hover:bg-gray-50 hover:text-gray-700 disabled:opacity-60 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+      >
+        <Plus aria-hidden="true" className="size-3.5" />
+        Σχόλιο
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex min-w-[12rem] flex-1 items-center gap-1.5">
+      <input
+        type="text"
+        autoFocus
+        list={suggestionListId}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            save();
+          } else if (event.key === "Escape") {
+            setEditing(false);
+          }
+        }}
+        disabled={updating}
+        placeholder="Σχόλιο picker..."
+        aria-label={`Σχόλιο picker για ${orderLabel}`}
+        className="h-9 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+      />
+      <datalist id={suggestionListId}>
+        {PICKER_COMMENT_SUGGESTIONS.map((suggestion) => (
+          <option key={suggestion} value={suggestion} />
+        ))}
+      </datalist>
+      <button
+        type="button"
+        onClick={save}
+        disabled={!hasChange || updating}
+        title="Αποθήκευση σχολίου"
+        aria-label={`Αποθήκευση σχολίου για ${orderLabel}`}
+        className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 text-brand-600 transition hover:bg-brand-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:disabled:border-gray-700 dark:disabled:bg-gray-800 dark:disabled:text-gray-600"
+      >
+        {updating ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Check className="h-4 w-4" />
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => setEditing(false)}
+        title="Ακύρωση"
+        aria-label="Ακύρωση επεξεργασίας σχολίου"
+        className="flex size-9 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
 
 function PickingOrderCard({
   order,
@@ -597,11 +757,8 @@ function PickingOrderCard({
   onSaveComment,
   onAdvanceStatus,
 }: PickingOrderCardProps) {
-  const [draftComment, setDraftComment] = useState(order.pickerComment);
-  const hasCommentChange = draftComment.trim() !== order.pickerComment;
   const safeFindoc = order.findoc.replace(/[^a-zA-Z0-9_-]/g, "-");
-  const suggestionListId = `picker-comments-mobile-${safeFindoc}`;
-  const detailsId = `picking-list-details-mobile-${safeFindoc}`;
+  const detailsId = `picking-list-details-${safeFindoc}`;
   const submittedMinutesAgo = formatMinutesAgoEl(order.submittedAt, nowMs);
   const parastatikoLabel = order.parastatiko || order.fincode;
   const showRetailCustomerName = shouldShowRetailCustomerName(order);
@@ -611,213 +768,27 @@ function PickingOrderCard({
   return (
     <article
       className={[
-        "rounded-2xl border border-l-4 border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900/80",
+        "overflow-hidden rounded-xl border border-l-4 border-gray-200 bg-white shadow-theme-xs transition-shadow dark:border-gray-800 dark:bg-gray-900",
         orderTypeOption.borderTone,
-        expanded ? "ring-2 ring-brand-500/20" : "",
+        expanded
+          ? "shadow-theme-md ring-1 ring-brand-500/25 dark:ring-brand-500/30"
+          : "hover:shadow-theme-sm",
       ].join(" ")}
     >
-      <div className="flex items-start gap-2">
-        <DataTableSelectionCheckbox
-          ariaLabel={`Επιλογή παραγγελίας ${parastatikoLabel || order.findoc}`}
-          checked={selected}
-          onCheckedChange={() => onToggleSelected(order.findoc)}
-          disabled={updating}
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  {order.customerName || "—"}
-                </p>
-                {showRetailCustomerName ? (
-                  <span className="inline-flex max-w-full rounded-full bg-brand-100 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-inset ring-brand-200 dark:bg-brand-500/15 dark:text-brand-300 dark:ring-brand-500/25">
-                    {order.retailCustomerName}
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Κωδικός: {order.customerCode || "—"} · ΑΦΜ: {order.afm || "—"}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onToggleExpanded(order, !expanded)}
-              aria-expanded={expanded}
-              aria-controls={detailsId}
-              aria-label={`${expanded ? "Σύμπτυξη" : "Ανάπτυξη"} ειδών παραγγελίας`}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-            >
-              <ChevronDown
-                strokeWidth={2.25}
-                className={`h-5 w-5 transition-transform ${expanded ? "rotate-180" : ""}`}
-              />
-            </button>
-          </div>
-
-          <div className="mt-3 space-y-1.5 text-sm text-gray-600 dark:text-gray-300">
-            <ElapsedTimeBadge label={submittedMinutesAgo} />
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-              {formatDateTimeEl(order.submittedAt || order.transactionDate)}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {formatBranchLabel(order.branch)}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Πωλητής: {order.submittedBy || "—"}
-            </p>
-          </div>
-
-          <div className="mt-3">
-            <PickingOrderTypeBadge order={order} />
-          </div>
-
-          {order.comments ? (
-            <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-gray-950 dark:text-gray-300">
-              {displayedComments}
-            </p>
-          ) : null}
-
-          {order.remarks ? (
-            <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-950">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                Παρατηρήσεις
-              </p>
-              <p className="mt-1 break-words text-sm text-gray-600 dark:text-gray-300">
-                {order.remarks}
-              </p>
-            </div>
-          ) : null}
-
-          <div className="mt-3 flex items-center gap-2">
-            <input
-              type="text"
-              list={suggestionListId}
-              value={draftComment}
-              onChange={(event) => setDraftComment(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && hasCommentChange && !updating) {
-                  event.preventDefault();
-                  onSaveComment(order, draftComment);
-                }
-              }}
-              disabled={updating}
-              placeholder="Σχόλιο picker..."
-              aria-label={`Σχόλιο picker για ${parastatikoLabel || order.findoc}`}
-              className="h-10 min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-            />
-            <datalist id={suggestionListId}>
-              {PICKER_COMMENT_SUGGESTIONS.map((suggestion) => (
-                <option key={suggestion} value={suggestion} />
-              ))}
-            </datalist>
-            <button
-              type="button"
-              onClick={() => onSaveComment(order, draftComment)}
-              disabled={!hasCommentChange || updating}
-              title="Αποθήκευση σχολίου"
-              aria-label={`Αποθήκευση σχολίου για ${parastatikoLabel || order.findoc}`}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 text-brand-600 transition hover:bg-brand-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300"
-            >
-              {updating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-
-          <div className="mt-3">
-            <PickingCompletionButton
-              order={order}
-              updating={updating}
-              onComplete={() => onAdvanceStatus(order)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {expanded ? (
-        <div id={detailsId} className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800">
-          <PickingOrderDetailsPanel
-            order={order}
-            activeBranch={activeBranch}
-            pickedDetailKeys={pickedDetailKeys}
-            onToggleDetailPicked={onToggleDetailPicked}
-          />
-        </div>
-      ) : null}
-    </article>
-  );
-}
-
-function PickingOrderRow({
-  order,
-  activeBranch,
-  expanded,
-  selected,
-  pickedDetailKeys,
-  updating,
-  nowMs,
-  onToggleExpanded,
-  onToggleSelected,
-  onToggleDetailPicked,
-  onSaveComment,
-  onAdvanceStatus,
-}: PickingOrderRowProps) {
-  const [draftComment, setDraftComment] = useState(order.pickerComment);
-  const hasCommentChange = draftComment.trim() !== order.pickerComment;
-  const safeFindoc = order.findoc.replace(/[^a-zA-Z0-9_-]/g, "-");
-  const suggestionListId = `picker-comments-${safeFindoc}`;
-  const detailsId = `picking-list-details-${safeFindoc}`;
-  const submittedMinutesAgo = formatMinutesAgoEl(order.submittedAt, nowMs);
-  const showRetailCustomerName = shouldShowRetailCustomerName(order);
-  const displayedComments = formatPickingOrderComments(order.comments);
-  const orderTypeOption = getPickingOrderTypeOption(getPickingOrderType(order));
-  const pinnedCellBackground = expanded
-    ? "bg-brand-25/60 dark:bg-gray-950"
-    : "bg-white dark:bg-gray-950";
-
-  return (
-    <Fragment>
-      <tr
-        className={[
-          "group transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04]",
-          expanded ? "bg-brand-25/60 dark:bg-brand-500/[0.04]" : "",
-        ].join(" ")}
-      >
-        <td
-          className={`sticky left-0 z-20 border-l-4 px-3 py-3 align-top transition-colors group-hover:bg-gray-50 dark:group-hover:bg-gray-900 ${orderTypeOption.borderTone} ${pinnedCellBackground}`}
-        >
+      {/* Mobile/tablet: stacked. xl+: one row (checkbox · chevron · customer · submission · type · actions). */}
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-3 p-4 xl:grid-cols-[auto_auto_minmax(0,1.1fr)_minmax(0,0.75fr)_minmax(0,1.25fr)_minmax(0,1.6fr)] xl:items-center xl:gap-x-5 xl:py-3">
+        <div className="order-1 pt-0.5 xl:pt-0">
           <DataTableSelectionCheckbox
-            ariaLabel={`Επιλογή παραγγελίας ${order.parastatiko || order.findoc}`}
+            ariaLabel={`Επιλογή παραγγελίας ${parastatikoLabel || order.findoc}`}
             checked={selected}
             onCheckedChange={() => onToggleSelected(order.findoc)}
             disabled={updating}
           />
-        </td>
+        </div>
 
-        <td className="px-2 py-3 align-top">
-          <button
-            type="button"
-            onClick={() => onToggleExpanded(order, !expanded)}
-            aria-expanded={expanded}
-            aria-controls={detailsId}
-            aria-label={`${expanded ? "Σύμπτυξη" : "Ανάπτυξη"} παραγγελίας ${order.parastatiko || order.findoc}`}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-          >
-            <ChevronDown
-              strokeWidth={2.25}
-              className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-            />
-          </button>
-        </td>
-
-        <td
-          className={`sticky left-[48px] z-20 border-r border-gray-200 px-3 py-3 align-top shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] transition-colors group-hover:bg-gray-50 dark:border-gray-700 dark:group-hover:bg-gray-900 ${pinnedCellBackground}`}
-        >
+        <div className="order-2 min-w-0 xl:order-3">
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="break-words text-sm font-medium text-gray-800 dark:text-white/90">
+            <p className="break-words text-base font-semibold text-gray-900 xl:text-sm dark:text-white">
               {order.customerName || "—"}
             </p>
             {showRetailCustomerName ? (
@@ -829,107 +800,103 @@ function PickingOrderRow({
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Κωδικός: {order.customerCode || "—"} · ΑΦΜ: {order.afm || "—"}
           </p>
-        </td>
+        </div>
 
-        <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
-          <ElapsedTimeBadge label={submittedMinutesAgo} />
-          <p className="mt-1.5 text-xs font-medium text-gray-600 dark:text-gray-300">
-            {formatDateTimeEl(order.submittedAt || order.transactionDate)}
-          </p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {formatBranchLabel(order.branch)}
-          </p>
-        </td>
+        <button
+          type="button"
+          onClick={() => onToggleExpanded(order, !expanded)}
+          aria-expanded={expanded}
+          aria-controls={detailsId}
+          aria-label={`${expanded ? "Σύμπτυξη" : "Ανάπτυξη"} ειδών παραγγελίας ${parastatikoLabel || order.findoc}`}
+          className={[
+            "order-3 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 xl:order-2",
+            expanded
+              ? "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300"
+              : "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300",
+          ].join(" ")}
+        >
+          <ChevronDown
+            strokeWidth={2.25}
+            className={`size-5 transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
+        </button>
 
-        <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
-          <p className="break-words font-medium text-gray-700 dark:text-gray-200">
-            {order.submittedBy || "—"}
-          </p>
-        </td>
-
-        <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
-          <div className="flex flex-col items-start gap-2">
-            <PickingOrderTypeBadge order={order} />
-            <p className="line-clamp-3 break-words" title={displayedComments}>
-              {displayedComments || "—"}
+        {/* On xl the wrapper dissolves so both blocks become grid columns. */}
+        <div className="order-4 col-span-full grid gap-3 md:col-span-2 md:col-start-2 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] xl:contents">
+          <div className="space-y-1 xl:order-4">
+            <ElapsedTimeBadge label={submittedMinutesAgo} />
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+              {formatDateTimeEl(order.submittedAt || order.transactionDate)}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {formatBranchLabel(order.branch)}
+            </p>
+            <p className="break-words text-xs text-gray-500 dark:text-gray-400">
+              Πωλητής:{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-200">
+                {order.submittedBy || "—"}
+              </span>
             </p>
           </div>
-        </td>
 
-        <td className="px-3 py-3 align-top text-sm text-gray-600 dark:text-gray-300">
-          <p className="line-clamp-3 break-words" title={order.remarks}>
-            {order.remarks || "—"}
-          </p>
-        </td>
-
-        <td className="px-3 py-3 align-top">
-          <div className="flex min-w-[230px] items-center gap-2">
-            <input
-              type="text"
-              list={suggestionListId}
-              value={draftComment}
-              onChange={(event) => setDraftComment(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && hasCommentChange && !updating) {
-                  event.preventDefault();
-                  onSaveComment(order, draftComment);
-                }
-              }}
-              disabled={updating}
-              placeholder="Σχόλιο picker..."
-              aria-label={`Σχόλιο picker για ${order.parastatiko || order.findoc}`}
-              className="h-9 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-2.5 text-sm text-gray-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-            />
-            <datalist id={suggestionListId}>
-              {PICKER_COMMENT_SUGGESTIONS.map((suggestion) => (
-                <option key={suggestion} value={suggestion} />
-              ))}
-            </datalist>
-            <button
-              type="button"
-              onClick={() => onSaveComment(order, draftComment)}
-              disabled={!hasCommentChange || updating}
-              title="Αποθήκευση σχολίου"
-              aria-label={`Αποθήκευση σχολίου για ${order.parastatiko || order.findoc}`}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 text-brand-600 transition hover:bg-brand-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300 dark:disabled:border-gray-700 dark:disabled:bg-gray-800 dark:disabled:text-gray-600"
-            >
-              {updating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-            </button>
+          <div className="min-w-0 space-y-1.5 xl:order-5">
+            <PickingOrderTypeBadge order={order} />
+            {order.comments ? (
+              <p
+                className="break-words text-sm text-gray-600 dark:text-gray-300"
+              >
+                {displayedComments}
+              </p>
+            ) : null}
+            {order.remarks ? (
+              <p
+                className="break-words rounded-md bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600 xl:line-clamp-2 dark:bg-gray-950 dark:text-gray-300"
+                title={order.remarks}
+              >
+                <span className="font-semibold text-gray-500 dark:text-gray-400">
+                  ΠΑΡΑΤ.:
+                </span>{" "}
+                {order.remarks}
+              </p>
+            ) : null}
           </div>
-        </td>
+        </div>
 
-        <td
-          className={`sticky right-0 z-20 border-l border-gray-200 px-3 py-3 align-top shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] transition-colors group-hover:bg-gray-50 dark:border-gray-700 dark:group-hover:bg-gray-900 ${pinnedCellBackground}`}
-        >
-          <div className="min-w-[170px]">
+        <div className="order-5 col-span-full flex flex-wrap items-center gap-2 md:col-span-2 md:col-start-2 xl:order-6 xl:col-span-1 xl:col-start-auto">
+          <PickerCommentField
+            order={order}
+            updating={updating}
+            onSaveComment={onSaveComment}
+          />
+          <div className="w-full sm:ml-auto sm:w-52 sm:shrink-0">
             <PickingCompletionButton
               order={order}
               updating={updating}
               onComplete={() => onAdvanceStatus(order)}
             />
           </div>
-        </td>
-      </tr>
+        </div>
+      </div>
 
-      {expanded && (
-        <tr id={detailsId} className="bg-gray-50/80 dark:bg-gray-950/60">
-          <td colSpan={9} className="border-t border-brand-100 px-4 py-4 dark:border-brand-500/20">
-            <div className="ml-0 sm:ml-10">
-              <PickingOrderDetailsPanel
+      {expanded ? (
+        <div id={detailsId}>
+          <PickingOrderDetailsPanel
+            insetClassName="px-4"
+            order={order}
+            activeBranch={activeBranch}
+            pickedDetailKeys={pickedDetailKeys}
+            onToggleDetailPicked={onToggleDetailPicked}
+            footerAction={
+              <PickingCompletionButton
                 order={order}
-                activeBranch={activeBranch}
-                pickedDetailKeys={pickedDetailKeys}
-                onToggleDetailPicked={onToggleDetailPicked}
+                updating={updating}
+                onComplete={() => onAdvanceStatus(order)}
               />
-            </div>
-          </td>
-        </tr>
-      )}
-    </Fragment>
+            }
+          />
+        </div>
+      ) : null}
+    </article>
   );
 }
 
@@ -1630,17 +1597,20 @@ export default function PickingListClient() {
           />
         ) : (
           <>
-          <div className="flex flex-col gap-3 p-4 lg:hidden">
-            <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-gray-950">
-              <DataTableSelectionCheckbox
-                ariaLabel="Επιλογή όλων των ορατών παραγγελιών"
-                checked={allVisibleSelected}
-                indeterminate={someVisibleSelected}
-                onCheckedChange={toggleAllVisible}
-              />
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                {selectedVisibleCount} / {visibleOrders.length} επιλεγμένες
-              </span>
+          <div className="flex flex-col gap-3 p-3 sm:p-4 xl:gap-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-950">
+              <div className="flex items-center gap-3">
+                <DataTableSelectionCheckbox
+                  ariaLabel="Επιλογή όλων των ορατών παραγγελιών"
+                  checked={allVisibleSelected}
+                  indeterminate={someVisibleSelected}
+                  onCheckedChange={toggleAllVisible}
+                />
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  {selectedVisibleCount} / {visibleOrders.length} επιλεγμένες
+                </span>
+              </div>
+              <PickingSortControls sort={sort} onSort={handleSort} />
               <button
                 type="button"
                 onClick={toggleAllExpanded}
@@ -1662,7 +1632,7 @@ export default function PickingListClient() {
             </div>
             {visibleOrders.map((order) => (
               <PickingOrderCard
-                key={`mobile-${order.findoc}-${order.pickerComment}`}
+                key={`${order.findoc}-${order.pickerComment}`}
                 order={order}
                 activeBranch={activeBranch}
                 expanded={expandedFindocs.has(order.findoc)}
@@ -1679,110 +1649,6 @@ export default function PickingListClient() {
             ))}
           </div>
 
-          <div className="hidden w-full overflow-x-auto lg:block">
-            <table className="w-full min-w-[1730px] table-fixed divide-y divide-gray-100 dark:divide-gray-800">
-              <colgroup>
-                <col className="w-[48px]" />
-                <col className="w-[48px]" />
-                <col className="w-[270px]" />
-                <col className="w-[180px]" />
-                <col className="w-[190px]" />
-                <col className="w-[250px]" />
-                <col className="w-[220px]" />
-                <col className="w-[280px]" />
-                <col className="w-[190px]" />
-              </colgroup>
-              <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
-                <tr>
-                  <th className="sticky left-0 z-30 bg-gray-50 px-3 py-3 text-left dark:bg-gray-950">
-                    <DataTableSelectionCheckbox
-                      ariaLabel="Επιλογή όλων των ορατών παραγγελιών"
-                      checked={allVisibleSelected}
-                      indeterminate={someVisibleSelected}
-                      onCheckedChange={toggleAllVisible}
-                    />
-                  </th>
-                  <th className="w-14 px-2 py-3 text-center">
-                    <button
-                      type="button"
-                      onClick={toggleAllExpanded}
-                      disabled={visibleOrders.length === 0}
-                      aria-label={
-                        allVisibleExpanded
-                          ? "Κλείσιμο λεπτομερειών"
-                          : "Άνοιγμα λεπτομερειών"
-                      }
-                      title={
-                        allVisibleExpanded
-                          ? "Κλείσιμο λεπτομερειών"
-                          : "Άνοιγμα λεπτομερειών"
-                      }
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
-                    >
-                      {allVisibleExpanded ? (
-                        <ListChevronsDownUp className="h-4 w-4" />
-                      ) : (
-                        <ListChevronsUpDown className="h-4 w-4" />
-                      )}
-                    </button>
-                  </th>
-                  <PickingSortableHeader
-                    label="Πελάτης"
-                    sortKey="customerName"
-                    sort={sort}
-                    onSort={handleSort}
-                    className="sticky left-[48px] z-30 border-r border-gray-200 bg-gray-50 px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] dark:border-gray-700 dark:bg-gray-950"
-                  />
-                  <PickingSortableHeader
-                    label="Υποβολή / Κατάστημα"
-                    sortKey="date"
-                    sort={sort}
-                    onSort={handleSort}
-                    className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500"
-                  />
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Πωλητής
-                  </th>
-                  <PickingSortableHeader
-                    label="Τύπος παραγγελίας"
-                    sortKey="orderType"
-                    sort={sort}
-                    onSort={handleSort}
-                    className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500"
-                  />
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Παρατηρήσεις
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Σχόλιο picker
-                  </th>
-                  <th className="sticky right-0 z-30 border-l border-gray-200 bg-gray-50 px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] dark:border-gray-700 dark:bg-gray-950">
-                    Κατάσταση
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {visibleOrders.map((order) => (
-                  <PickingOrderRow
-                    key={`${order.findoc}-${order.pickerComment}`}
-                    order={order}
-                    activeBranch={activeBranch}
-                    expanded={expandedFindocs.has(order.findoc)}
-                    selected={selectedFindocs.has(order.findoc)}
-                    pickedDetailKeys={pickedDetailKeys}
-                    updating={updatingFindocs.has(order.findoc)}
-                    nowMs={nowMs}
-                    onToggleExpanded={handleToggleExpanded}
-                    onToggleSelected={toggleSelected}
-                    onToggleDetailPicked={toggleDetailPicked}
-                    onSaveComment={handleSaveComment}
-                    onAdvanceStatus={handleAdvanceStatus}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
           </>
         )}
 
