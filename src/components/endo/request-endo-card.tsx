@@ -1,4 +1,4 @@
-import QuantityControl from "@/components/ui/quantity-control";
+import QuantitySelect from "@/components/ui/quantity-select";
 import { Loader2, ShoppingCart } from "@/lib/icons/lucide";
 import { getBranchColor } from "@/lib/branch-colors";
 import { sortEndoBranches } from "@/lib/utils/endo";
@@ -23,12 +23,12 @@ export interface RequestEndoCardProps {
     className?: string;
     branchCardClassName?: string;
     emptyMessage?: string;
+    compact?: boolean;
 }
 
 /**
- * Renders one source row per branch that can actually cover the request.
- * The panel around it owns the heading and the disclosure, so this only
- * draws the rows themselves.
+ * Renders every source branch so the transfer UI remains spatially stable.
+ * Branches without stock stay visible but their controls are disabled.
  */
 export default function RequestEndoCard({
     branches,
@@ -43,10 +43,9 @@ export default function RequestEndoCard({
     className = "grid gap-2",
     branchCardClassName = "rounded-lg border border-gray-200 bg-white p-2.5 shadow-xs dark:border-gray-700 dark:bg-gray-900/40",
     emptyMessage = "Δεν υπάρχει διαθέσιμο άλλο κατάστημα.",
+    compact = false,
 }: RequestEndoCardProps) {
-    const sortedBranches = sortEndoBranches(
-        branches.filter((branch) => branch.stock > 0)
-    );
+    const sortedBranches = sortEndoBranches(branches);
 
     if (sortedBranches.length === 0) {
         return (
@@ -59,33 +58,35 @@ export default function RequestEndoCard({
     return (
         <div className={className}>
             {sortedBranches.map((branch) => {
+                const hasStock = branch.stock > 0;
                 const requestedQty = getRequestedQty(branch.code);
                 const inBasketQty = inBasketQtyByBranch[branch.code] ?? 0;
                 const pendingQty = pendingQtyByBranch?.[branch.code] ?? inBasketQty;
+                const adding = isAdding(branch.code);
                 const disabled =
-                    isAdding(branch.code) ||
+                    adding ||
                     requestedQty <= 0 ||
                     requestedQty > branch.stock ||
-                    branch.stock <= 0;
+                    !hasStock;
 
                 return (
-                    <div key={branch.code} className={branchCardClassName}>
-                        <div className="flex items-center justify-between gap-2">
+                    <div
+                        key={branch.code}
+                        className={branchCardClassName}
+                    >
+                        <div className={`flex min-w-0 items-baseline gap-1.5 ${hasStock ? "" : "opacity-50"}`}>
                             <span
-                                className={`min-w-0 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold ${getBranchColor(branch.code)}`}
+                                className={`min-w-0 truncate rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${getBranchColor(branch.code)}`}
+                                title={branch.label}
                             >
                                 {branch.label}
                             </span>
-
-                            <span className="shrink-0 text-[10px] text-gray-400">
-                                <span className="text-sm font-semibold tabular-nums text-gray-800 dark:text-white/90">
-                                    {branch.stock}
-                                </span>{" "}
-                                τεμ.
+                            <span className="shrink-0 text-sm font-bold tabular-nums text-gray-800 dark:text-white/90">
+                                {branch.stock}
                             </span>
                         </div>
 
-                        {(branch.location || pendingQty > 0) && (
+                        {!compact && (branch.location || pendingQty > 0) && (
                             <div className="mt-1 flex items-center justify-between gap-2">
                                 <span className="min-w-0 truncate text-[10px] text-gray-400">
                                     {branch.location ? `Θέση ${branch.location}` : ""}
@@ -93,26 +94,29 @@ export default function RequestEndoCard({
 
                                 {pendingQty > 0 && (
                                     <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                                        Pending: {pendingQty}
+                                        Σε εκκρεμότητα: {pendingQty}
                                     </span>
                                 )}
                             </div>
                         )}
 
-                        <div className="mt-2 flex items-center gap-2">
-                            <QuantityControl
+                        {compact && pendingQty > 0 && (
+                            <p className="mt-1 text-[8px] font-semibold text-amber-700 dark:text-amber-300">
+                                Σε εκκρεμότητα: {pendingQty}
+                            </p>
+                        )}
+
+                        <div className={compact ? "mt-1.5 flex min-w-0 items-center gap-1" : "mt-2 flex items-center gap-2"}>
+                            <QuantitySelect
                                 value={requestedQty}
                                 onChange={(nextQuantity) =>
                                     onRequestedQtyChange(branch.code, nextQuantity)
                                 }
-                                min={0}
-                                max={branch.stock}
-                                displayZeroAsEmpty
-                                fullWidth
-                                size="sm"
-                                placeholder="0"
-                                decrementLabel="Μείωση ποσότητας ενδοδιακίνησης"
-                                incrementLabel="Αύξηση ποσότητας ενδοδιακίνησης"
+                                max={Math.min(100, branch.stock)}
+                                disabled={!hasStock}
+                                className={compact ? "flex-1" : "w-full"}
+                                placeholder="Ποσ."
+                                ariaLabel={`Ποσότητα ενδοδιακίνησης από ${branch.label}`}
                             />
 
                             <button
@@ -121,12 +125,20 @@ export default function RequestEndoCard({
                                 disabled={disabled}
                                 title={`Προσθήκη στο καλάθι ενδοδιακίνησης από ${branch.label}`}
                                 aria-label={`Προσθήκη στο καλάθι ενδοδιακίνησης από ${branch.label}`}
-                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-500 text-white shadow-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-40"
+                                className={`inline-flex shrink-0 items-center justify-center rounded-md bg-violet-600 font-semibold text-white shadow-xs transition hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:opacity-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-600 ${compact
+                                    ? "h-8 px-1.5 text-[8px]"
+                                    : "h-8 gap-1.5 px-2.5 text-[10px]"
+                                    }`}
                             >
-                                {isAdding(branch.code) ? (
+                                {adding ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
-                                    <ShoppingCart className="h-3.5 w-3.5" />
+                                    <>
+                                        {!compact && (
+                                            <ShoppingCart className="h-3.5 w-3.5" />
+                                        )}
+                                        <span>Προσθήκη</span>
+                                    </>
                                 )}
                             </button>
                         </div>

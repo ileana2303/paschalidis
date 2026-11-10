@@ -8,6 +8,7 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
+import QuantitySelect from "@/components/ui/quantity-select";
 import {
     BadgePercent,
     Check,
@@ -71,16 +72,6 @@ const parsePriceInput = (value: string) => {
 
 const primaryActionClassName =
     "inline-flex h-10 items-center gap-2 rounded-xl bg-brand-500 px-3.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50";
-
-const quantityOptions = Array.from({ length: 100 }, (_, index) => index + 1);
-
-function getQuantityOptions(currentQty: number) {
-    if (quantityOptions.includes(currentQty)) {
-        return quantityOptions;
-    }
-
-    return [...quantityOptions, currentQty].sort((a, b) => a - b);
-}
 
 export default function BasketTable({
     items,
@@ -359,7 +350,6 @@ function BasketTableRow({
     const requestedPrice = getBasketItemRequestedPrice(item);
     const rowTotal = getBasketItemLineTotal(item);
     const qtySelectDisabled = isUpdatingQty || isRemoving || isTableBusy;
-    const rowQuantityOptions = getQuantityOptions(qty);
     const detailsId = `basket-line-details-${itemId}`;
     const approvalStatus = getBasketItemApprovalStatus(item);
     const hasPriceRequest = hasBasketItemPriceRequest(item);
@@ -452,21 +442,12 @@ function BasketTableRow({
                 </td>
 
                 <td className="px-2 py-3 align-middle xl:px-4">
-                    <select
+                    <QuantitySelect
                         value={qty}
-                        onChange={(event) =>
-                            onUpdateQty(itemId, Number(event.target.value))
-                        }
+                        onChange={(nextQuantity) => onUpdateQty(itemId, nextQuantity)}
                         disabled={qtySelectDisabled}
-                        aria-label="Ποσότητα"
-                        className="h-8 w-14 rounded-lg border border-gray-200 bg-white px-1 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500 xl:w-20 xl:px-2"
-                    >
-                        {rowQuantityOptions.map((quantity) => (
-                            <option key={quantity} value={quantity}>
-                                {quantity}
-                            </option>
-                        ))}
-                    </select>
+                        className="w-14 px-1 xl:w-20 xl:px-2"
+                    />
 
                     {isUpdatingQty && (
                         <span className="ml-2 inline-flex items-center gap-1 text-xs text-gray-400">

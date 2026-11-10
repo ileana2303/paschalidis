@@ -153,8 +153,8 @@ export default function CompanyStockOrderSummary({
             loading={loading}
             error={error}
             asideClassName={collapsed
-                ? "xl:!basis-auto xl:!min-w-0"
-                : "xl:!basis-[25%] xl:!min-w-[272px] xl:max-h-full xl:min-h-0 xl:self-stretch"}
+                ? ""
+                : "xl:max-h-full xl:min-h-0 xl:self-stretch"}
             fitContentWhenStacked
             footer={(
                 <div className="space-y-3">

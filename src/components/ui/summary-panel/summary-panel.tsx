@@ -6,6 +6,11 @@ import {
     PanelRightOpen,
 } from "@/lib/icons/lucide";
 
+export const SUMMARY_PANEL_XL_WIDTH_CLASS_NAME =
+    "xl:basis-[25%] xl:min-w-[272px]";
+export const SUMMARY_PANEL_2XL_WIDTH_CLASS_NAME =
+    "2xl:basis-[25%] 2xl:min-w-[272px]";
+
 export interface SummaryPanelProps {
     label: ReactNode;
     title: ReactNode;
@@ -135,8 +140,8 @@ export default function SummaryPanel({
         <aside
             className={[
                 usesExtraWideLayout
-                    ? "min-h-[280px] min-w-0 max-w-full w-full 2xl:min-h-0 2xl:basis-1/3 2xl:min-w-[320px]"
-                    : "min-h-[280px] min-w-0 max-w-full w-full xl:min-h-0 xl:basis-1/3 xl:min-w-[320px]",
+                    ? `min-h-[280px] min-w-0 max-w-full w-full 2xl:min-h-0 ${SUMMARY_PANEL_2XL_WIDTH_CLASS_NAME}`
+                    : `min-h-[280px] min-w-0 max-w-full w-full xl:min-h-0 ${SUMMARY_PANEL_XL_WIDTH_CLASS_NAME}`,
                 asideClassName,
             ].join(" ")}
         >

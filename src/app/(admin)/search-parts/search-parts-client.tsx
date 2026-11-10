@@ -24,6 +24,7 @@ import PartInsightsModal, {
     type InsightSectionState,
 } from "@/components/parts/part-insights-modal";
 import CustomerOrderSummary from "@/components/order-summary/customer-order-summary";
+import { SUMMARY_PANEL_2XL_WIDTH_CLASS_NAME } from "@/components/ui/summary-panel/summary-panel";
 import {
     useFetchCustomerByTrdrMutation,
     useFetchPartCompetitionSalesMutation,
@@ -631,18 +632,12 @@ export default function SearchPartsClient() {
                                 onOpenPartInsights: handleOpenPartInsights,
                             }}
                             endo={{
-                                openEndoItemKeys: resultsController.openEndoItemKeys,
                                 getBranchOptions: resultsController.getEndoBranchOptions,
                                 getEndoRequestedQty: resultsController.getEndoRequestedQty,
                                 getEndoPendingQty: resultsController.getEndoPendingQty,
                                 setEndoRequestedQty: resultsController.setEndoRequestedQty,
                                 onAddToEndoBasket: resultsController.handleAddToEndoBasket,
                                 isAddingToEndoBasket: resultsController.isAddingToEndoBasket,
-                                endoBasketError: resultsController.endoBasketError,
-                                endoBasketSuccess: resultsController.endoBasketSuccess,
-                                onToggleEndoForItem: resultsController.handleToggleEndoForItem,
-                                areAllEndoSourcesOpen: resultsController.areAllEndoSourcesOpen,
-                                onToggleAllEndoSources: resultsController.toggleAllEndoSources,
                             }}
                             basket={{
                                 findBasketItem: basketController.findBasketItem,
@@ -668,7 +663,7 @@ export default function SearchPartsClient() {
                 </div>
 
                 {customer && (
-                    <div className={`order-3 min-w-0 w-full max-w-full 2xl:order-2 2xl:min-h-0 2xl:[&>aside]:h-full ${resultsController.sidebarVisible ? "2xl:basis-1/3 2xl:min-w-[320px]" : "2xl:w-8 2xl:shrink-0"}`}>
+                    <div className={`order-3 min-w-0 w-full max-w-full 2xl:order-2 2xl:min-h-0 2xl:[&>aside]:h-full ${resultsController.sidebarVisible ? SUMMARY_PANEL_2XL_WIDTH_CLASS_NAME : "2xl:w-8 2xl:shrink-0"}`}>
                         <CustomerOrderSummary
                             customer={customer}
                             basket={basketController.basket}

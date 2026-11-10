@@ -7,6 +7,7 @@ import {
 } from "@/lib/icons/lucide";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import RequestPriceBox from "@/components/ui/request-price-box";
+import QuantitySelect from "@/components/ui/quantity-select";
 import {
     getBasketItemApprovalStatus,
     getBasketItemBasePrice,
@@ -39,8 +40,6 @@ const formatPrice = (price: number | null) => {
     if (price == null) return "--";
     return `${price.toFixed(2)} €`;
 };
-
-const quantityOptions = Array.from({ length: 100 }, (_, index) => index + 1);
 
 export default function BasketLines({
     items,
@@ -260,21 +259,15 @@ export default function BasketLines({
                                                     Ποσότητα
                                                 </label>
 
-                                                <select
+                                                <QuantitySelect
                                                     id={`basket-qty-${itemId}`}
                                                     value={Number.isFinite(currentQuantity) ? currentQuantity : 1}
-                                                    onChange={(event) =>
-                                                        onChangeQuantity?.(itemId, Number(event.target.value))
+                                                    onChange={(nextQuantity) =>
+                                                        onChangeQuantity?.(itemId, nextQuantity)
                                                     }
                                                     disabled={!onChangeQuantity}
-                                                    className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
-                                                >
-                                                    {quantityOptions.map((quantity) => (
-                                                        <option key={quantity} value={quantity}>
-                                                            {quantity}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                    className="w-full"
+                                                />
                                             </div>
 
                                             <div className="text-right">

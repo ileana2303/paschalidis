@@ -12,7 +12,6 @@ import PartResults from "@/components/parts/part-card";
 import Checkbox from "@/components/template-components/form/input/Checkbox";
 import ResultsFilterInput from "@/components/search/results-filter-input";
 import SearchResultsScrollArea from "@/components/search/search-results-scroll-area";
-import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { useCan } from "@/hooks/usePermissions";
 import { useMemo, useState, type RefObject, type UIEvent } from "react";
 
@@ -44,7 +43,6 @@ interface PartsResultsStateProps {
 }
 
 interface PartsResultsEndoProps {
-    openEndoItemKeys: Set<string>;
     getBranchOptions: (item: IItem) => EndoBranchOption[];
     getEndoRequestedQty: (mtrl: string | number, sourceBranch: string) => number;
     getEndoPendingQty: (mtrl: string | number, sourceBranch: string) => number;
@@ -58,11 +56,6 @@ interface PartsResultsEndoProps {
         mtrl: string | number,
         sourceBranchCode: string
     ) => boolean;
-    endoBasketError: string;
-    endoBasketSuccess: string;
-    onToggleEndoForItem: (item: IItem) => void;
-    areAllEndoSourcesOpen: boolean;
-    onToggleAllEndoSources: () => void;
 }
 
 interface PartsResultsBasketProps {
@@ -127,18 +120,12 @@ export default function PartsResultsContainer({
     } = results;
 
     const {
-        openEndoItemKeys,
         getBranchOptions: getEndoBranchOptions,
         getEndoRequestedQty,
         getEndoPendingQty,
         setEndoRequestedQty,
         onAddToEndoBasket,
         isAddingToEndoBasket,
-        endoBasketError,
-        endoBasketSuccess,
-        onToggleEndoForItem,
-        areAllEndoSourcesOpen,
-        onToggleAllEndoSources,
     } = endo;
 
     const {
@@ -162,7 +149,6 @@ export default function PartsResultsContainer({
     } = basket;
 
     const [statusFilterSelection, setStatusFilterSelection] = useState<Set<string> | null>(null);
-    const [isResultsActionsOpen, setIsResultsActionsOpen] = useState(false);
 
     const availableStatusLabels = useMemo(() => {
         const labels = new Set<string>();
@@ -260,7 +246,7 @@ export default function PartsResultsContainer({
             }
         >
                 <div className="px-5 pb-2 xl:px-10 xl:pb-2">
-                    <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px]">
+                    <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px] min-[1800px]:max-w-[1500px]">
 
                         {items.length > 0 && (
                             <div className="sticky top-0 z-30 mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">
@@ -311,89 +297,28 @@ export default function PartsResultsContainer({
                                 </div>
 
                                 {can("anatrof-card") && (
-                                <div className="relative flex shrink-0 items-center">
+                                <div className="flex shrink-0 items-center">
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            if (!stockRequestCardsVisible) {
-                                                onToggleStockRequestCardsVisibility();
-                                                setIsResultsActionsOpen(false);
-                                                return;
-                                            }
-
-                                            setIsResultsActionsOpen((isOpen) => !isOpen);
-                                        }}
-                                        aria-haspopup={stockRequestCardsVisible ? "menu" : undefined}
-                                        aria-expanded={stockRequestCardsVisible ? isResultsActionsOpen : undefined}
+                                        onClick={onToggleStockRequestCardsVisibility}
                                         aria-label={
                                             stockRequestCardsVisible
-                                                ? "Επιλογές προβολής αποτελεσμάτων"
-                                                : "Προβολή καρτών ανατροφοδοσίας"
+                                                ? "Απόκρυψη καρτών ενεργειών"
+                                                : "Προβολή καρτών ενεργειών"
                                         }
                                         title={
                                             stockRequestCardsVisible
-                                                ? "Επιλογές προβολής αποτελεσμάτων"
-                                                : "Προβολή καρτών ανατροφοδοσίας"
+                                                ? "Απόκρυψη καρτών ενεργειών"
+                                                : "Προβολή καρτών ενεργειών"
                                         }
                                         className="dropdown-toggle inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
                                     >
                                         {stockRequestCardsVisible ? (
-                                            <>
-                                                <ListChevronsDownUp className="h-4 w-4" />
-
-                                            </>
+                                            <PanelRightClose className="h-3.5 w-3.5" />
                                         ) : (
                                             <PanelRightOpen className="h-3.5 w-3.5" />
                                         )}
                                     </button>
-
-                                    <Dropdown
-                                        isOpen={stockRequestCardsVisible && isResultsActionsOpen}
-                                        onClose={() => setIsResultsActionsOpen(false)}
-                                        className="right-0 top-full z-50 mt-2 w-72 p-1.5"
-                                    >
-                                        <div role="menu" aria-label="Επιλογές προβολής αποτελεσμάτων">
-                                            
-                                            <button
-                                                type="button"
-                                                role="menuitem"
-                                                onClick={() => {
-                                                    onToggleAllEndoSources();
-                                                    setIsResultsActionsOpen(false);
-                                                }}
-                                                className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-gray-100 dark:hover:bg-white/[0.05]"
-                                            >
-                                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                                    <ListChevronsDownUp className="h-4 w-4" />
-                                                </span>
-                                                <span className="min-w-0">
-                                                    <span className="block text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                                        {areAllEndoSourcesOpen
-                                                            ? "Απόκρυψη Ενδοδιακίνησης"
-                                                            : "Εμφάνιση Ενδοδιακίνησης"}
-                                                    </span>
-                                                </span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                role="menuitem"
-                                                onClick={() => {
-                                                    onToggleStockRequestCardsVisibility();
-                                                    setIsResultsActionsOpen(false);
-                                                }}
-                                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-gray-100 dark:hover:bg-white/[0.05]"
-                                            >
-                                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                                    <PanelRightClose className="h-4 w-4" />
-                                                </span>
-                                                <span className="min-w-0">
-                                                    <span className="block text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                                        Απόκρυψη καρτών
-                                                    </span>
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </Dropdown>
                                 </div>
                                 )}
                             </div>
@@ -404,8 +329,6 @@ export default function PartsResultsContainer({
                                 const mtrlKey = String(item.MTRL);
                                 const expandedItemKey = getExpandedItemKey(item);
                                 const isExpanded = expandedItems.has(expandedItemKey);
-                                const isEndoOpen =
-                                    stockRequestCardsVisible && openEndoItemKeys.has(expandedItemKey);
                                 const basketItem = findBasketItem(item);
                                 const qty = getQuantity(
                                     item.ITEM_CODE,
@@ -468,16 +391,12 @@ export default function PartsResultsContainer({
                                         onOpenInsights={() => onOpenPartInsights(item)}
                                         formatPrice={formatPrice}
                                         endoRequest={{
-                                            isOpen: isEndoOpen,
                                             branches: endoBranches,
-                                            error: isEndoOpen ? endoBasketError : "",
-                                            successMessage: isEndoOpen ? endoBasketSuccess : "",
                                             pendingQtyByBranch: pendingEndoQtyByBranch,
                                             getRequestedQty: (branchCode) =>
                                                 getEndoRequestedQty(item.MTRL, branchCode),
                                             onRequestedQtyChange: (branchCode, nextQty) =>
                                                 setEndoRequestedQty(item.MTRL, branchCode, nextQty),
-                                            onToggle: () => onToggleEndoForItem(item),
                                             onAddToBasket: (branchCode) =>
                                                 onAddToEndoBasket(item, branchCode),
                                             isAdding: (branchCode) =>

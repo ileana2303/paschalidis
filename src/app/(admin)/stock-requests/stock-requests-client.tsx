@@ -19,6 +19,7 @@ import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import ItemCodeBadge from "@/components/ui/item-code-badge";
+import QuantitySelect from "@/components/ui/quantity-select";
 import type {
     IStockRequestListRow,
     StockRequestUpdateAction,
@@ -48,22 +49,6 @@ import {
     sortStockRequestRows,
     type StockBranchCode,
 } from "@/lib/utils/stock-requests";
-
-const quantityOptions = Array.from({ length: 100 }, (_, index) => index + 1);
-
-function getQuantityOptions(currentValue: string) {
-    const currentQuantity = Number(currentValue);
-
-    if (
-        !Number.isInteger(currentQuantity) ||
-        currentQuantity <= 0 ||
-        quantityOptions.includes(currentQuantity)
-    ) {
-        return quantityOptions;
-    }
-
-    return [...quantityOptions, currentQuantity].sort((a, b) => a - b);
-}
 
 function TableSkeleton() {
     return (
@@ -981,13 +966,13 @@ export default function StockRequestsClient({
                                                             {rowUpdating && (
                                                                 <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-brand-500" />
                                                             )}
-                                                            <select
-                                                                value={currentRequestedQty}
-                                                                onChange={(event) =>
+                                                            <QuantitySelect
+                                                                value={Number(currentRequestedQty) || 1}
+                                                                onChange={(nextQuantity) =>
                                                                     void handleUpdateAction(
                                                                         row,
                                                                         "UPDATE",
-                                                                        event.target.value
+                                                                        String(nextQuantity)
                                                                     )
                                                                 }
                                                                 disabled={
@@ -995,17 +980,9 @@ export default function StockRequestsClient({
                                                                     deletingSelectedRows ||
                                                                     submittingAnatrof
                                                                 }
-                                                                aria-label={`Ποσότητα αιτήματος ${row.BASKETID}`}
-                                                                className="h-8 w-20 rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
-                                                            >
-                                                                {getQuantityOptions(currentRequestedQty).map(
-                                                                    (quantity) => (
-                                                                        <option key={quantity} value={quantity}>
-                                                                            {quantity}
-                                                                        </option>
-                                                                    )
-                                                                )}
-                                                            </select>
+                                                                ariaLabel={`Ποσότητα αιτήματος ${row.BASKETID}`}
+                                                                className="w-20"
+                                                            />
                                                         </div>
                                                     </td>
 

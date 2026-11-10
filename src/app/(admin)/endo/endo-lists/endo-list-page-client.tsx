@@ -7,6 +7,7 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
+import QuantitySelect from "@/components/ui/quantity-select";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import ItemCodeBadge from "@/components/ui/item-code-badge";
 import QuantityControl from "@/components/ui/quantity-control";
@@ -51,8 +52,6 @@ import {
     parseQtyValue,
     type EndoListScope,
 } from "@/lib/utils/endo-lists";
-
-const quantityOptions = Array.from({ length: 100 }, (_, index) => index + 1);
 
 interface EndoListPageClientProps {
     scope: EndoListScope;
@@ -678,28 +677,22 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                                 className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200"
                                                             >
                                                                 <div className="flex w-24 items-center gap-2">
-                                                                    <select
+                                                                    <QuantitySelect
                                                                         id={`endo-list-requested-qty-${rowKey}`}
                                                                         value={Number.isFinite(currentQuantity) ? currentQuantity : 1}
-                                                                        onChange={(event) =>
+                                                                        onChange={(nextQuantity) =>
                                                                             void handleRequestedQtyChange(
                                                                                 rowKey,
                                                                                 row,
-                                                                                Number(event.target.value)
+                                                                                nextQuantity
                                                                             )
                                                                         }
                                                                         disabled={
                                                                             rowSaving ||
                                                                             !canEditRequestedQty
                                                                         }
-                                                                        className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
-                                                                    >
-                                                                        {quantityOptions.map((quantity) => (
-                                                                            <option key={quantity} value={quantity}>
-                                                                                {quantity}
-                                                                            </option>
-                                                                        ))}
-                                                                    </select>
+                                                                        className="w-full"
+                                                                    />
 
                                                                     {rowSaving && (
                                                                         <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-brand-500" />

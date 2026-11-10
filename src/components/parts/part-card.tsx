@@ -1,6 +1,6 @@
 import { BadgePercent, ChartColumn, ChevronDown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
 import { getBranchColor } from "@/lib/branch-colors";
-import { getStockBranchOrder } from "@/lib/auth/branches";
+import { getStockBranchOrder, resolveBranchName } from "@/lib/auth/branches";
 import {
     getBasketItemApprovalStatus,
     getBasketItemBasePrice,
@@ -50,14 +50,10 @@ const STOCK_BRANCH_META: Record<
 };
 
 interface PartEndoRequestProps {
-    isOpen: boolean;
     branches: EndoBranchOption[];
-    error: string;
-    successMessage: string;
     getRequestedQty: (branchCode: string) => number;
     onRequestedQtyChange: (branchCode: string, nextQuantity: number) => void;
     pendingQtyByBranch?: Record<string, number>;
-    onToggle: () => void;
     onAddToBasket: (branchCode: string) => void;
     isAdding: (branchCode: string) => boolean;
 }
@@ -288,7 +284,7 @@ export default function PartResults({
     );
 
     return (
-        <div className={`grid gap-2 ${showAnatrofCard ? "xl:grid-cols-[minmax(0,1fr)_228px]" : ""}`}>
+        <div className={`grid gap-2 ${showAnatrofCard ? "xl:grid-cols-[minmax(0,1fr)_19rem] min-[1800px]:grid-cols-[minmax(0,1fr)_30rem]" : ""}`}>
 
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition dark:border-gray-800 dark:bg-white/[0.03]">
                 <button
@@ -512,6 +508,8 @@ export default function PartResults({
             {showAnatrofCard && (
                 <PartStockQuantityContainer
                     mtrl={item.MTRL}
+                    branchCode={currentBranchCode}
+                    branchLabel={resolveBranchName(currentBranchCode)}
                     stock={storeStock}
                     quantity={storeOrderQty}
                     onQuantityChange={onStoreOrderQuantityChange}

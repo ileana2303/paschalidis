@@ -12,7 +12,6 @@ import {
 import type { SearchPartsResultsState } from "@/hooks/search-parts/use-search-parts-results-state";
 import {
     getEndoQtyKey,
-    getEndoItemKey,
     mapEndoRequestedRows,
 } from "@/hooks/search-parts/search-parts-endo-utils";
 import type { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
@@ -58,11 +57,8 @@ export function useSearchPartsResultsActions({
         getStoreOrderQuantity,
         hasValidBranch,
         setAddingToEndoBasket,
-        setEndoBasketError,
-        setEndoBasketSuccess,
         setEndoPendingQuantities,
         setEndoRequestedQty,
-        toggleEndoSourcesForItem,
         setStockRequestErrors,
         setStockRequestStatuses,
         setSubmittingStockRequests,
@@ -99,22 +95,6 @@ export function useSearchPartsResultsActions({
         });
     }, [refreshEndoPendingQuantities, setEndoPendingQuantities]);
 
-    const handleToggleEndoForItem = useCallback((item: IItem) => {
-        if (!hasValidBranch) {
-            setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα στο προφίλ χρήστη");
-            return;
-        }
-
-        setEndoBasketSuccess("");
-        setEndoBasketError("");
-        toggleEndoSourcesForItem(getEndoItemKey(item));
-    }, [
-        hasValidBranch,
-        setEndoBasketError,
-        setEndoBasketSuccess,
-        toggleEndoSourcesForItem,
-    ]);
-
     const handleAddToEndoBasket = useCallback(async (item: IItem, sourceBranchCode: string) => {
         const normalizedRequestFromBranch = Number(sourceBranchCode);
         const normalizedRequesterBranch = Number(currentBranchCode);
@@ -124,34 +104,32 @@ export function useSearchPartsResultsActions({
         )?.stock ?? 0;
 
         if (!Number.isFinite(normalizedRequesterBranch) || normalizedRequesterBranch <= 0) {
-            setEndoBasketError("Δεν βρέθηκε ενεργό κατάστημα παραλαβής");
+            toast.error("Δεν βρέθηκε ενεργό κατάστημα παραλαβής");
             return;
         }
 
         if (!Number.isFinite(normalizedRequestFromBranch) || normalizedRequestFromBranch <= 0) {
-            setEndoBasketError("Μη έγκυρο κατάστημα αποστολής");
+            toast.error("Μη έγκυρο κατάστημα αποστολής");
             return;
         }
 
         if (normalizedRequesterBranch === normalizedRequestFromBranch) {
-            setEndoBasketError("Η ενδοδιακίνηση πρέπει να αφορά διαφορετικά καταστήματα");
+            toast.error("Η ενδοδιακίνηση πρέπει να αφορά διαφορετικά καταστήματα");
             return;
         }
 
         if (!Number.isFinite(requestedQty) || requestedQty <= 0) {
-            setEndoBasketError("Η ποσότητα πρέπει να είναι μεγαλύτερη από 0");
+            toast.error("Η ποσότητα πρέπει να είναι μεγαλύτερη από 0");
             return;
         }
 
         if (requestedQty > sourceBranchStock) {
-            setEndoBasketError("Η ζητούμενη ποσότητα υπερβαίνει το διαθέσιμο απόθεμα");
+            toast.error("Η ζητούμενη ποσότητα υπερβαίνει το διαθέσιμο απόθεμα");
             return;
         }
 
         const requestKey = getEndoQtyKey(item.MTRL, sourceBranchCode);
         setAddingToEndoBasket((prev) => new Set(prev).add(requestKey));
-        setEndoBasketError("");
-        setEndoBasketSuccess("");
 
         try {
             const response = await addItemToEndoBasket({
@@ -172,7 +150,6 @@ export function useSearchPartsResultsActions({
             setEndoRequestedQty(item.MTRL, sourceBranchCode, 0);
             const message =
                 response.message ?? "Η γραμμή προστέθηκε στο καλάθι ενδοδιακίνησης";
-            setEndoBasketSuccess(message);
             toast.success(message);
         } catch (error) {
             if (isAxiosError(error)) {
@@ -181,14 +158,12 @@ export function useSearchPartsResultsActions({
                         ? error.response.data.message
                         : undefined;
                 const message = responseMessage ?? error.message;
-                setEndoBasketError(message);
                 toast.error(message);
             } else {
                 const message =
                     error instanceof Error
                         ? error.message
                         : "Αποτυχία προσθήκης στο καλάθι ενδοδιακίνησης";
-                setEndoBasketError(message);
                 toast.error(message);
             }
         } finally {
@@ -204,8 +179,6 @@ export function useSearchPartsResultsActions({
         getEndoBranchOptions,
         getEndoRequestedQty,
         setAddingToEndoBasket,
-        setEndoBasketError,
-        setEndoBasketSuccess,
         setEndoPendingQuantities,
         setEndoRequestedQty,
         user,
@@ -282,7 +255,6 @@ export function useSearchPartsResultsActions({
     ]);
 
     return {
-        handleToggleEndoForItem,
         handleAddToEndoBasket,
         isAddingToEndoBasket,
         handleSubmitStockRequest,

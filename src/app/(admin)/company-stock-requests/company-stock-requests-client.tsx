@@ -7,6 +7,7 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import ItemCodeBadge from "@/components/ui/item-code-badge";
+import QuantitySelect from "@/components/ui/quantity-select";
 import {
     ChevronDown,
     ListChevronsDownUp,
@@ -28,8 +29,6 @@ import { useAuthStore } from "@/stores/authStore";
 import { normalizeBranchCode } from "@/lib/auth/branches";
 import { formatDateTime } from "@/lib/utils/stock-requests";
 import toast from "react-hot-toast";
-
-const QUANTITY_OPTIONS = Array.from({ length: 100 }, (_, index) => index + 1);
 
 type SupplierBasketGroup = {
     key: string;
@@ -53,12 +52,6 @@ function getRequestedQuantity(row: IStockRequestListRow) {
     const quantity = Number(row.QTY_REQUESTED);
 
     return Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
-}
-
-function getQuantityOptions(currentQuantity: number) {
-    if (QUANTITY_OPTIONS.includes(currentQuantity)) return QUANTITY_OPTIONS;
-
-    return [...QUANTITY_OPTIONS, currentQuantity].sort((first, second) => first - second);
 }
 
 function getLocalIsoDate() {
@@ -672,35 +665,21 @@ export default function CompanyStockRequestsClient() {
                                                                 </td>
                                                                 <td className="px-3 py-4 text-center">
                                                                     <div className="flex items-center justify-center gap-2">
-                                                                        <select
+                                                                        <QuantitySelect
                                                                             value={requestedQuantity}
-                                                                            onChange={(event) =>
+                                                                            onChange={(nextQuantity) =>
                                                                                 void handleQuantityChange(
                                                                                     row,
-                                                                                    Number(
-                                                                                        event.target
-                                                                                            .value
-                                                                                    )
+                                                                                    nextQuantity
                                                                                 )
                                                                             }
                                                                             disabled={
                                                                                 isUpdatingQuantity ||
                                                                                 isSupplierSending
                                                                             }
-                                                                            aria-label={`Προτιμώμενη ποσότητα για ${row.ITEM_CODE || row.MTRL}`}
-                                                                            className="h-9 w-20 rounded-lg border border-gray-300 bg-white px-2 text-center text-sm font-semibold tabular-nums text-gray-900 shadow-xs outline-none transition hover:border-gray-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-wait disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:hover:border-gray-600 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
-                                                                        >
-                                                                            {getQuantityOptions(
-                                                                                requestedQuantity
-                                                                            ).map((quantity) => (
-                                                                                <option
-                                                                                    key={quantity}
-                                                                                    value={quantity}
-                                                                                >
-                                                                                    {quantity}
-                                                                                </option>
-                                                                            ))}
-                                                                        </select>
+                                                                            ariaLabel={`Προτιμώμενη ποσότητα για ${row.ITEM_CODE || row.MTRL}`}
+                                                                            className="w-20 text-center"
+                                                                        />
                                                                         {isUpdatingQuantity ? (
                                                                             <Loader2 className="h-4 w-4 shrink-0 animate-spin text-brand-500" />
                                                                         ) : null}

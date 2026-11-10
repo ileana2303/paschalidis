@@ -47,10 +47,10 @@ export const PICKING_ORDER_TYPE_OPTIONS: ReadonlyArray<{
     value: "RETAIL",
     label: "Λιανική",
     tone:
-      "bg-violet-50 text-violet-800 ring-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:ring-violet-500/30",
+      "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/30",
     selectedTone:
-      "bg-violet-600 text-white ring-violet-600 shadow-theme-xs dark:bg-violet-500 dark:ring-violet-500",
-    borderTone: "border-l-violet-500 dark:border-l-violet-500",
+      "bg-emerald-600 text-white ring-emerald-600 shadow-theme-xs dark:bg-emerald-500 dark:ring-emerald-500",
+    borderTone: "border-l-emerald-500 dark:border-l-emerald-500",
   },
   {
     value: "REPLENISHMENT",
@@ -65,10 +65,10 @@ export const PICKING_ORDER_TYPE_OPTIONS: ReadonlyArray<{
     value: "INTERNAL_TRANSFER",
     label: "Ενδοδιακίνηση",
     tone:
-      "bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/30",
+      "bg-violet-50 text-violet-800 ring-violet-200 dark:bg-violet-500/10 dark:text-violet-200 dark:ring-violet-500/30",
     selectedTone:
-      "bg-emerald-600 text-white ring-emerald-600 shadow-theme-xs dark:bg-emerald-500 dark:ring-emerald-500",
-    borderTone: "border-l-emerald-500 dark:border-l-emerald-500",
+      "bg-violet-600 text-white ring-violet-600 shadow-theme-xs dark:bg-violet-500 dark:ring-violet-500",
+    borderTone: "border-l-violet-500 dark:border-l-violet-500",
   },
 ];
 

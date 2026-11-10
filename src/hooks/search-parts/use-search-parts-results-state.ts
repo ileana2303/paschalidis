@@ -17,6 +17,9 @@ import {
     parseStockValue,
 } from "@/hooks/search-parts/search-parts-stock-utils";
 
+// Temporary exclusion until the search SQL responses stop returning branch 1008.
+const HIDDEN_ENDO_BRANCH_CODES = new Set(["1008"]);
+
 interface ResetScopedResultsStateOptions {
     resetScroll?: boolean;
 }
@@ -33,13 +36,10 @@ export interface SearchPartsResultsState {
     stockRequestCardsVisible: boolean;
     hasScrolledResults: boolean;
     isResultsScrollable: boolean | null;
-    openEndoItemKeys: Set<string>;
     expandedItems: Set<string>;
     endoQuantities: Record<string, number>;
     endoPendingQuantities: Record<string, number>;
     addingToEndoBasket: Set<string>;
-    endoBasketError: string;
-    endoBasketSuccess: string;
     currentBranchCode: string;
     currentBranchName: string;
     hasValidBranch: boolean;
@@ -47,7 +47,6 @@ export interface SearchPartsResultsState {
     stockRequestErrors: Record<string, string>;
     submittingStockRequests: Set<string>;
     areAllResultsExpanded: boolean;
-    areAllEndoSourcesOpen: boolean;
     getExpandedItemKey: (item: IItem) => string;
     getStoreStock: (item: IItem) => number;
     getStoreOrderQuantity: (mtrl: string) => number;
@@ -60,18 +59,13 @@ export interface SearchPartsResultsState {
     setEndoRequestedQty: (mtrl: string | number, sourceBranch: string, next: number) => void;
     toggleExpanded: (itemKey: string) => void;
     toggleAllExpanded: () => void;
-    toggleEndoSourcesForItem: (itemKey: string) => void;
-    toggleAllEndoSources: () => void;
     toggleStockRequestCardsVisibility: () => void;
     handleResultsScroll: (event: UIEvent<HTMLDivElement>) => void;
     handleToggleSidebarVisibility: () => void;
     showSidebar: () => void;
-    setOpenEndoItemKeys: Dispatch<SetStateAction<Set<string>>>;
     setExpandedItems: Dispatch<SetStateAction<Set<string>>>;
     setEndoPendingQuantities: Dispatch<SetStateAction<Record<string, number>>>;
     setAddingToEndoBasket: Dispatch<SetStateAction<Set<string>>>;
-    setEndoBasketError: Dispatch<SetStateAction<string>>;
-    setEndoBasketSuccess: Dispatch<SetStateAction<string>>;
     setStockRequestStatuses: Dispatch<SetStateAction<Record<string, StockRequestStatus>>>;
     setStockRequestErrors: Dispatch<SetStateAction<Record<string, string>>>;
     setSubmittingStockRequests: Dispatch<SetStateAction<Set<string>>>;
@@ -87,7 +81,6 @@ export function useSearchPartsResultsState({
     const [isResultsScrollable, setIsResultsScrollable] = useState<boolean | null>(null);
     const [sidebarVisible, setSidebarVisible] = useState(true);
     const [stockRequestCardsVisible, setStockRequestCardsVisible] = useState(true);
-    const [openEndoItemKeys, setOpenEndoItemKeys] = useState<Set<string>>(new Set());
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const [storeOrderQuantities, setStoreOrderQuantities] = useState<Record<string, number>>({});
     const [stockRequestStatuses, setStockRequestStatuses] = useState<Record<string, StockRequestStatus>>({});
@@ -96,8 +89,6 @@ export function useSearchPartsResultsState({
     const [endoQuantities, setEndoQuantities] = useState<Record<string, number>>({});
     const [endoPendingQuantities, setEndoPendingQuantities] = useState<Record<string, number>>({});
     const [addingToEndoBasket, setAddingToEndoBasket] = useState<Set<string>>(new Set());
-    const [endoBasketError, setEndoBasketError] = useState("");
-    const [endoBasketSuccess, setEndoBasketSuccess] = useState("");
 
     const currentBranchCode = useMemo(
         () => normalizeBranchCode(user?.mainBranch),
@@ -131,7 +122,7 @@ export function useSearchPartsResultsState({
         return () => {
             window.removeEventListener("resize", updateScrollability);
         };
-    }, [openEndoItemKeys, hasMounted, items.length, resultsContainerRef]);
+    }, [hasMounted, items.length, resultsContainerRef]);
 
     const getExpandedItemKey = useCallback((item: IItem) => {
         return getEndoItemKey(item);
@@ -165,15 +156,7 @@ export function useSearchPartsResultsState({
     }, [areAllResultsExpanded, getExpandedItemKey, items]);
 
     const toggleStockRequestCardsVisibility = useCallback(() => {
-        setStockRequestCardsVisible((visible) => {
-            if (visible) {
-                setOpenEndoItemKeys(new Set());
-                setEndoBasketError("");
-                setEndoBasketSuccess("");
-            }
-
-            return !visible;
-        });
+        setStockRequestCardsVisible((visible) => !visible);
     }, []);
 
     const handleResultsScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
@@ -247,7 +230,11 @@ export function useSearchPartsResultsState({
 
         return Array.from(branchCodes)
             .sort((a, b) => Number(a) - Number(b))
-            .filter((code) => code !== currentBranchCode)
+            .filter(
+                (code) =>
+                    code !== currentBranchCode &&
+                    !HIDDEN_ENDO_BRANCH_CODES.has(code)
+            )
             .map((code) => {
                 const label = resolveBranchName(code);
                 const location =
@@ -262,58 +249,14 @@ export function useSearchPartsResultsState({
             });
     }, [currentBranchCode]);
 
-    // An item only offers an inter-branch source when another branch can cover it,
-    // so bulk actions ignore the rows where the disclosure is a dead end.
-    const itemKeysWithEndoStock = useMemo(() => {
-        return items
-            .filter((item) =>
-                getEndoBranchOptions(item).some((branch) => branch.stock > 0)
-            )
-            .map((item) => getExpandedItemKey(item));
-    }, [getEndoBranchOptions, getExpandedItemKey, items]);
-
-    const areAllEndoSourcesOpen = useMemo(() => {
-        return (
-            itemKeysWithEndoStock.length > 0 &&
-            itemKeysWithEndoStock.every((itemKey) => openEndoItemKeys.has(itemKey))
-        );
-    }, [itemKeysWithEndoStock, openEndoItemKeys]);
-
-    const toggleEndoSourcesForItem = useCallback((itemKey: string) => {
-        setOpenEndoItemKeys((prev) => {
-            const next = new Set(prev);
-
-            if (next.has(itemKey)) next.delete(itemKey);
-            else next.add(itemKey);
-
-            return next;
-        });
-    }, []);
-
-    const toggleAllEndoSources = useCallback(() => {
-        setOpenEndoItemKeys((prev) => {
-            if (areAllEndoSourcesOpen) {
-                return new Set<string>();
-            }
-
-            const next = new Set(prev);
-            itemKeysWithEndoStock.forEach((itemKey) => next.add(itemKey));
-
-            return next;
-        });
-    }, [areAllEndoSourcesOpen, itemKeysWithEndoStock]);
-
     const resetScopedResultsState = useCallback((
         options?: ResetScopedResultsStateOptions
     ) => {
         const shouldResetScroll = options?.resetScroll ?? false;
 
         setExpandedItems(new Set());
-        setOpenEndoItemKeys(new Set());
         setStockRequestCardsVisible(true);
         setEndoQuantities({});
-        setEndoBasketError("");
-        setEndoBasketSuccess("");
 
         if (shouldResetScroll) {
             setHasScrolledResults(false);
@@ -321,9 +264,6 @@ export function useSearchPartsResultsState({
     }, []);
 
     const prepareForSearch = useCallback(() => {
-        setOpenEndoItemKeys(new Set());
-        setEndoBasketSuccess("");
-        setEndoBasketError("");
         setEndoQuantities({});
     }, []);
 
@@ -332,13 +272,10 @@ export function useSearchPartsResultsState({
         stockRequestCardsVisible,
         hasScrolledResults,
         isResultsScrollable,
-        openEndoItemKeys,
         expandedItems,
         endoQuantities,
         endoPendingQuantities,
         addingToEndoBasket,
-        endoBasketError,
-        endoBasketSuccess,
         currentBranchCode,
         currentBranchName,
         hasValidBranch,
@@ -346,7 +283,6 @@ export function useSearchPartsResultsState({
         stockRequestErrors,
         submittingStockRequests,
         areAllResultsExpanded,
-        areAllEndoSourcesOpen,
         getExpandedItemKey,
         getStoreStock,
         getStoreOrderQuantity,
@@ -359,18 +295,13 @@ export function useSearchPartsResultsState({
         setEndoRequestedQty,
         toggleExpanded,
         toggleAllExpanded,
-        toggleEndoSourcesForItem,
-        toggleAllEndoSources,
         toggleStockRequestCardsVisibility,
         handleResultsScroll,
         handleToggleSidebarVisibility,
         showSidebar,
-        setOpenEndoItemKeys,
         setExpandedItems,
         setEndoPendingQuantities,
         setAddingToEndoBasket,
-        setEndoBasketError,
-        setEndoBasketSuccess,
         setStockRequestStatuses,
         setStockRequestErrors,
         setSubmittingStockRequests,

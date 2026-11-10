@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
+import QuantitySelect from "@/components/ui/quantity-select";
 import { Loader2, Trash2 } from "@/lib/icons/lucide";
 
 interface StockBasketLineProps {
@@ -35,10 +36,6 @@ export default function StockBasketLine({
 }: StockBasketLineProps) {
     const normalizedQuantity =
         Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
-    const quantityOptions = Array.from(
-        { length: Math.max(100, normalizedQuantity) },
-        (_, index) => index + 1
-    );
     const quantitySelectId = `${idPrefix}-qty-${basketId}`;
 
     return (
@@ -94,21 +91,16 @@ export default function StockBasketLine({
                         >
                             Ποσότητα
                         </label>
-                        <select
+                        <QuantitySelect
                             id={quantitySelectId}
                             value={normalizedQuantity}
-                            onChange={(event) =>
-                                onQuantityChange?.(Number(event.target.value))
+                            onChange={(nextQuantity) =>
+                                onQuantityChange?.(nextQuantity)
                             }
+                            max={Math.max(100, normalizedQuantity)}
                             disabled={!onQuantityChange || updating || removing}
-                            className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2 text-sm font-semibold tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
-                        >
-                            {quantityOptions.map((option) => (
-                                <option key={option} value={option}>
-                                    {option}
-                                </option>
-                            ))}
-                        </select>
+                            className="w-full"
+                        />
                     </div>
                 </div>
             </div>
