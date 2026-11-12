@@ -125,20 +125,12 @@ export default function RequestEndoCard({
                                 disabled={disabled}
                                 title={`Προσθήκη στο καλάθι ενδοδιακίνησης από ${branch.label}`}
                                 aria-label={`Προσθήκη στο καλάθι ενδοδιακίνησης από ${branch.label}`}
-                                className={`inline-flex shrink-0 items-center justify-center rounded-md bg-violet-600 font-semibold text-white shadow-xs transition hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:opacity-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-600 ${compact
-                                    ? "h-8 px-1.5 text-[8px]"
-                                    : "h-8 gap-1.5 px-2.5 text-[10px]"
-                                    }`}
+                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-violet-600 text-white shadow-xs transition hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:opacity-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-600"
                             >
                                 {adding ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
-                                    <>
-                                        {!compact && (
-                                            <ShoppingCart className="h-3.5 w-3.5" />
-                                        )}
-                                        <span>Προσθήκη</span>
-                                    </>
+                                    <ShoppingCart className="h-3.5 w-3.5" />
                                 )}
                             </button>
                         </div>

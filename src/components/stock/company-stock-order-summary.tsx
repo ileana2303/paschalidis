@@ -145,7 +145,11 @@ export default function CompanyStockOrderSummary({
     return (
         <SummaryPanel
             label="Σύνοψη Κεντρικού Εφοδιασμού"
-            title="Καλάθι Ανατροφοδοσίας Εταιρίας"
+            title={
+                selectedGroup?.supplierName
+                    ? `ΠΑΡΑΓΓΕΛΙΑ ΠΡΟΣ ΠΡΟΜΗΘΕΥΤΗ: ${selectedGroup.supplierName}`
+                    : "Καλάθι Ανατροφοδοσίας Εταιρίας"
+            }
             collapsible
             collapsed={collapsed}
             onToggleCollapse={onToggleCollapse}
@@ -237,12 +241,12 @@ export default function CompanyStockOrderSummary({
             <section className="mt-5">
                 <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                        Καλάθια ανά Προμηθευτή
+                        Παραγγελίες ανά Προμηθευτή
                     </p>
                     {supplierGroups.length > 0 && (
                         <span className="text-xs text-gray-400">
                             {supplierGroups.length}{" "}
-                            {supplierGroups.length === 1 ? "καλάθι" : "καλάθια"}
+                            {supplierGroups.length === 1 ? "παραγγελία" : "παραγγελίες"}
                         </span>
                     )}
                 </div>
@@ -285,53 +289,53 @@ export default function CompanyStockOrderSummary({
                                             }
                                             className="flex min-w-0 flex-1 items-start gap-3 p-3 text-left"
                                         >
-                                        <span
-                                            className={[
-                                                "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition",
-                                                selected
-                                                    ? "border-brand-500 bg-brand-500 text-white"
-                                                    : "border-gray-300 bg-white text-transparent dark:border-gray-600 dark:bg-gray-900",
-                                            ].join(" ")}
-                                        >
-                                            <Check className="h-3 w-3" />
-                                        </span>
+                                            <span
+                                                className={[
+                                                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition",
+                                                    selected
+                                                        ? "border-brand-500 bg-brand-500 text-white"
+                                                        : "border-gray-300 bg-white text-transparent dark:border-gray-600 dark:bg-gray-900",
+                                                ].join(" ")}
+                                            >
+                                                <Check className="h-3 w-3" />
+                                            </span>
 
-                                        <span className="min-w-0 flex-1">
-                                            <span className="flex min-w-0 items-center gap-1.5">
-                                                <Truck className="h-3.5 w-3.5 shrink-0 text-brand-500" />
-                                                <span className="truncate text-sm font-semibold text-gray-800 dark:text-white/90">
-                                                    {group.supplierName || "Χωρίς όνομα προμηθευτή"}
-                                                </span>
-                                            </span>
-                                            <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">
-                                                TRDR {group.trdr || "—"}
-                                                {group.supplierCode
-                                                    ? ` · Κωδικός ${group.supplierCode}`
-                                                    : ""}
-                                            </span>
-                                            <span className="mt-2 flex flex-wrap gap-1.5">
-                                                <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-gray-600 ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">
-                                                    {group.lines.length}{" "}
-                                                    {group.lines.length === 1 ? "γραμμή" : "γραμμές"}
-                                                </span>
-                                                <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold tabular-nums text-brand-600 ring-1 ring-brand-100 dark:bg-gray-900 dark:text-brand-300 dark:ring-brand-500/20">
-                                                    {group.totalQuantity} τεμ.
-                                                </span>
-                                                {selected && (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-500 px-2 py-1 text-[10px] font-semibold text-white shadow-sm">
-                                                        <Truck className="h-3 w-3" />
-                                                        Επιλεγμένος προμηθευτής
+                                            <span className="min-w-0 flex-1">
+                                                <span className="flex min-w-0 items-center gap-1.5">
+                                                    <Truck className="h-3.5 w-3.5 shrink-0 text-brand-500" />
+                                                    <span className="truncate text-sm font-semibold text-gray-800 dark:text-white/90">
+                                                        {group.supplierName || "Χωρίς όνομα προμηθευτή"}
                                                     </span>
-                                                )}
+                                                </span>
+                                                <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">
+                                                    TRDR {group.trdr || "—"}
+                                                    {group.supplierCode
+                                                        ? ` · Κωδικός ${group.supplierCode}`
+                                                        : ""}
+                                                </span>
+                                                <span className="mt-2 flex flex-wrap gap-1.5">
+                                                    <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-gray-600 ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700">
+                                                        {group.lines.length}{" "}
+                                                        {group.lines.length === 1 ? "γραμμή" : "γραμμές"}
+                                                    </span>
+                                                    <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold tabular-nums text-brand-600 ring-1 ring-brand-100 dark:bg-gray-900 dark:text-brand-300 dark:ring-brand-500/20">
+                                                        {group.totalQuantity} τεμ.
+                                                    </span>
+                                                    {selected && (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-500 px-2 py-1 text-[10px] font-semibold text-white shadow-sm">
+                                                            <Truck className="h-3 w-3" />
+                                                            Επιλεγμένος προμηθευτής
+                                                        </span>
+                                                    )}
+                                                </span>
                                             </span>
-                                        </span>
 
-                                        <ChevronDown
-                                            className={[
-                                                "mt-1 h-4 w-4 shrink-0 text-gray-400 transition-transform",
-                                                selected ? "rotate-180" : "",
-                                            ].join(" ")}
-                                        />
+                                            <ChevronDown
+                                                className={[
+                                                    "mt-1 h-4 w-4 shrink-0 text-gray-400 transition-transform",
+                                                    selected ? "rotate-180" : "",
+                                                ].join(" ")}
+                                            />
                                         </button>
                                         {onRemoveSupplierBasket && (
                                             <button

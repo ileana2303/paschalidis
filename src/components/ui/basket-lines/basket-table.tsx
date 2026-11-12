@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import BasketItemDetails from "@/components/ui/basket-lines/basket-line-details";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableActions from "@/components/ui/data-table/data-table-action";
@@ -9,15 +9,14 @@ import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import NumberBadge from "@/components/ui/data-table/number-badge";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import QuantitySelect from "@/components/ui/quantity-select";
+import RequestPriceBox from "@/components/ui/request-price-box";
 import {
-    BadgePercent,
     Check,
     ChevronDown,
     Clock3,
     ListChevronsDownUp,
     ListChevronsUpDown,
     Loader2,
-    Pencil,
     Plus,
     ShoppingCart,
     Trash2,
@@ -63,11 +62,6 @@ const formatPrice = (price: number | null) => {
     }
 
     return `${price.toFixed(2)} €`;
-};
-
-const parsePriceInput = (value: string) => {
-    const parsed = Number(value.replace(",", "."));
-    return Number.isFinite(parsed) ? parsed : null;
 };
 
 const primaryActionClassName =
@@ -361,20 +355,6 @@ function BasketTableRow({
     const isPendingPriceRequest =
         hasPriceRequest && !isApprovedPriceRequest && !isRejectedPriceRequest;
 
-    const [isEditingPrice, setIsEditingPrice] = useState(false);
-
-    useEffect(() => {
-        if (isSubmittingRequestPrice) {
-            return () => setIsEditingPrice(false);
-        }
-    }, [isSubmittingRequestPrice]);
-
-    const parsedRequestedPriceValue = parsePriceInput(requestedPriceValue);
-    const submitPriceDisabled =
-        isSubmittingRequestPrice ||
-        parsedRequestedPriceValue == null ||
-        parsedRequestedPriceValue <= 0;
-    const showPriceEditor = canRequestPrice && isEditingPrice;
     const rowAccentClassName = isApprovedPriceRequest
         ? "border-l-[3px] border-l-green-400 dark:border-l-green-500/70"
         : isPendingPriceRequest
@@ -498,73 +478,18 @@ function BasketTableRow({
                 </td>
 
                 <td className="px-2 py-3 align-middle xl:px-4">
-                    {canRequestPrice && !isApprovedPriceRequest && (
-                        showPriceEditor ? (
-                            <div className="flex items-center gap-1">
-                                <input
-                                    type="number"
-                                    min={0}
-                                    step="0.01"
-                                    autoFocus
-                                    value={requestedPriceValue}
-                                    onChange={(event) =>
-                                        onRequestedPriceValueChange?.(itemId, event.target.value)
-                                    }
-                                    onKeyDown={(event) => {
-                                        if (event.key === "Enter") {
-                                            void onRequestPrice?.(itemId);
-                                        }
-                                        if (event.key === "Escape") {
-                                            setIsEditingPrice(false);
-                                        }
-                                    }}
-                                    disabled={isSubmittingRequestPrice}
-                                    placeholder="Τιμή..."
-                                    aria-label="Ζητούμενη τιμή"
-                                    className="h-7 w-20 rounded-md border border-gray-200 bg-white px-1.5 text-xs tabular-nums text-gray-800 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => void onRequestPrice?.(itemId)}
-                                    disabled={submitPriceDisabled}
-                                    aria-label="Υποβολή τιμής"
-                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-500 text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    {isSubmittingRequestPrice ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    ) : (
-                                        <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-                                    )}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsEditingPrice(false)}
-                                    disabled={isSubmittingRequestPrice}
-                                    aria-label="Ακύρωση"
-                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                                >
-                                    <X className="h-3.5 w-3.5" />
-                                </button>
-                            </div>
-                        ) : hasPriceRequest ? (
-                            <button
-                                type="button"
-                                onClick={() => setIsEditingPrice(true)}
-                                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-400 transition hover:bg-gray-100 hover:text-brand-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-brand-400"
-                            >
-                                <Pencil className="h-3.5 w-3.5" />
-                                {isPendingPriceRequest ? "Επεξεργασία" : "Νέο αίτημα"}
-                            </button>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => setIsEditingPrice(true)}
-                                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-400 transition hover:bg-gray-100 hover:text-brand-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-brand-400"
-                            >
-                                <BadgePercent className="h-3.5 w-3.5" />
-                                Αίτημα τιμής
-                            </button>
-                        )
+                    {canRequestPrice && (
+                        <RequestPriceBox
+                            status={approvalStatus}
+                            hasPriceRequest={hasPriceRequest}
+                            requestedPrice={requestedPrice}
+                            value={requestedPriceValue}
+                            onChange={(value) =>
+                                onRequestedPriceValueChange?.(itemId, value)
+                            }
+                            onSubmit={() => onRequestPrice?.(itemId)}
+                            submitting={isSubmittingRequestPrice}
+                        />
                     )}
                 </td>
 

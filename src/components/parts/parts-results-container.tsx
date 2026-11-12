@@ -245,8 +245,8 @@ export default function PartsResultsContainer({
                 ) : undefined
             }
         >
-                <div className="px-5 pb-2 xl:px-10 xl:pb-2">
-                    <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px] min-[1800px]:max-w-[1500px]">
+                <div className="px-5 pb-2 xl:px-10 xl:pb-2 min-[1800px]:px-4">
+                    <div className="mx-auto w-full max-w-[820px] text-left xl:max-w-[1120px] 2xl:max-w-[1360px] min-[1800px]:max-w-[1440px] min-[2200px]:max-w-[1520px]">
 
                         {items.length > 0 && (
                             <div className="sticky top-0 z-30 mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-gray-100 bg-white py-2 backdrop-blur dark:border-gray-800 dark:bg-[#0f172a]/95">

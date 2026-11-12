@@ -3,6 +3,7 @@ import RequestEndoCard from "@/components/endo/request-endo-card";
 import type { RequestEndoCardProps } from "@/components/endo/request-endo-card";
 import {
     Loader2,
+    Send,
 } from "@/lib/icons/lucide";
 import { getBranchColor } from "@/lib/branch-colors";
 import type { StockRequestStatus } from "@/lib/interface";
@@ -54,7 +55,7 @@ export default function StockRequest({
     );
 
     return (
-        <div className="grid grid-cols-[minmax(0,45fr)_minmax(0,55fr)] items-stretch gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-stretch gap-2">
             <section className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-amber-200 border-t-4 border-t-amber-500 bg-white shadow-sm dark:border-amber-500/30 dark:border-t-amber-400 dark:bg-white/[0.03]">
                 <div className="border-b border-amber-100 bg-amber-50/80 px-2 py-2 text-center dark:border-amber-500/20 dark:bg-amber-500/10">
                     <h3 className="text-[9px] font-bold uppercase tracking-[0.04em] text-amber-900 dark:text-amber-200">
@@ -99,12 +100,12 @@ export default function StockRequest({
                                 disabled={isSubmittingRequest || quantity <= 0}
                                 title="Καταχώρηση αιτήματος ανατροφοδοσίας"
                                 aria-label="Καταχώρηση αιτήματος ανατροφοδοσίας"
-                                className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-amber-500 px-1.5 text-[8px] font-semibold text-white shadow-xs transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:opacity-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-600"
+                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-500 text-white shadow-xs transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:opacity-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-600"
                             >
                                 {isSubmittingRequest ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
-                                    <span>Αίτημα</span>
+                                    <Send className="h-3.5 w-3.5" />
                                 )}
                             </button>
                         </div>

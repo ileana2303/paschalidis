@@ -1,4 +1,4 @@
-import { BadgePercent, ChartColumn, ChevronDown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
+import { ChevronDown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
 import { getBranchColor } from "@/lib/branch-colors";
 import { getStockBranchOrder, resolveBranchName } from "@/lib/auth/branches";
 import {
@@ -30,20 +30,23 @@ const STOCK_BRANCH_CODES: StockBranchCode[] = ["1000", "1006", "1007"];
 
 const STOCK_BRANCH_META: Record<
     StockBranchCode,
-    { label: string; stockKey: StockKey; locationKey: LocationKey }
+    { label: string; shortLabel: string; stockKey: StockKey; locationKey: LocationKey }
 > = {
     "1000": {
         label: "Κασομούλη",
+        shortLabel: "ΚΑΣ",
         stockKey: "YP1000",
         locationKey: "THESI1000",
     },
     "1006": {
         label: "Λ.Αθηνών",
+        shortLabel: "ΑΘΗ",
         stockKey: "YP1006",
         locationKey: "THESI1006",
     },
     "1007": {
         label: "Λ.Μεσογείων",
+        shortLabel: "ΜΕΣ",
         stockKey: "YP1007",
         locationKey: "THESI1007",
     },
@@ -146,18 +149,6 @@ export default function PartResults({
         Math.abs(requestedPrice - erpPrice) > 0.0001;
     const hasApprovedRequestedPrice =
         requestStatus === "approved" && hasRequestedPrice;
-    const requestStatusLabel =
-        requestStatus === "approved"
-            ? "Accepted"
-            : requestStatus === "rejected"
-                ? "Rejected"
-                : "Pending";
-    const requestStatusClassName =
-        requestStatus === "approved"
-            ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-            : requestStatus === "rejected"
-                ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
     const manufacturerDescription = String(item.MNF_DESCR ?? "").trim();
     const itemDescription = String(item.ITEM_DESCR ?? "").trim();
     const unitListPrice = getCustomerUnitListPrice(item, customer);
@@ -220,7 +211,7 @@ export default function PartResults({
 
     const renderStockSummary = (className: string) => (
         <div
-            className={`min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-left ${className}`}
+            className={`min-w-0 flex-nowrap items-center gap-x-1.5 text-left min-[1500px]:gap-x-2.5 ${className}`}
             aria-label="Απόθεμα ανά κατάστημα"
         >
             {myStockBranchCode && (
@@ -233,7 +224,12 @@ export default function PartResults({
                     <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${getBranchColor(myStockBranchCode)}`}
                     >
-                        {STOCK_BRANCH_META[myStockBranchCode].label}
+                        <span className="min-[1500px]:hidden">
+                            {STOCK_BRANCH_META[myStockBranchCode].shortLabel}
+                        </span>
+                        <span className="hidden min-[1500px]:inline">
+                            {STOCK_BRANCH_META[myStockBranchCode].label}
+                        </span>
                     </span>
 
                     <span
@@ -256,7 +252,7 @@ export default function PartResults({
                 </span>
             )}
 
-            <span className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="flex min-w-0 flex-nowrap items-center gap-1.5 min-[1500px]:gap-2">
                 {otherStockBranchCodes.map((branchCode) => {
                     const branchMeta = STOCK_BRANCH_META[branchCode];
                     const stockValue = item[branchMeta.stockKey];
@@ -271,7 +267,12 @@ export default function PartResults({
                             <span
                                 className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${getBranchColor(branchCode)}`}
                             >
-                                {branchMeta.label}
+                                <span className="min-[1500px]:hidden">
+                                    {branchMeta.shortLabel}
+                                </span>
+                                <span className="hidden min-[1500px]:inline">
+                                    {branchMeta.label}
+                                </span>
                             </span>
                             <span className="text-sm font-bold tabular-nums text-gray-700 dark:text-gray-200">
                                 {stockValue}
@@ -284,30 +285,46 @@ export default function PartResults({
     );
 
     return (
-        <div className={`grid gap-2 ${showAnatrofCard ? "xl:grid-cols-[minmax(0,1fr)_19rem] min-[1800px]:grid-cols-[minmax(0,1fr)_30rem]" : ""}`}>
+        <div className={`grid gap-2 ${showAnatrofCard ? "xl:grid-cols-[minmax(0,1fr)_17rem] min-[1800px]:grid-cols-[minmax(0,1fr)_25rem]" : ""}`}>
 
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition dark:border-gray-800 dark:bg-white/[0.03]">
-                <button
-                    type="button"
-                    onClick={canExpandDetails ? onToggleExpanded : undefined}
-                    disabled={!canExpandDetails}
-                    aria-expanded={canExpandDetails ? isExpanded : undefined}
-                    aria-label={isExpanded ? "Απόκρυψη λεπτομερειών" : "Προβολή λεπτομερειών"}
-                    className={`group flex w-full items-center gap-3 border-b px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/40 ${isInBasket
+                <div
+                    className={`flex w-full items-center gap-2 border-b px-3 py-2 transition-colors ${isInBasket
                         ? "border-gray-100 bg-green-50/80 hover:bg-green-100/70 dark:border-gray-800 dark:bg-green-500/10 dark:hover:bg-green-500/15"
                         : isExpanded
                             ? "border-brand-200 bg-brand-50/70 dark:border-brand-500/30 dark:bg-brand-500/10"
                             : "border-gray-100 bg-gray-50/80 hover:bg-brand-50/60 dark:border-gray-800 dark:bg-white/[0.02] dark:hover:bg-brand-500/5"
                         }`}
                 >
-                    <div className="min-w-0 flex-1 overflow-hidden">
-                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className="shrink-0 text-sm font-bold text-brand-600 dark:text-brand-400">
-                                {item.ITEM_CODE}
-                            </span>
+                    {canSeeStatistics ? (
+                        <button
+                            type="button"
+                            onClick={onOpenInsights}
+                            disabled={!hasCustomer}
+                            title={hasCustomer ? "Στατιστικά και ανταγωνισμός" : "Επιλέξτε πρώτα πελάτη"}
+                            aria-label={`Στατιστικά και ανταγωνισμός για ${item.ITEM_CODE}`}
+                            className="shrink-0 text-sm font-bold text-brand-600 transition hover:text-brand-700 hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 disabled:cursor-not-allowed disabled:text-gray-400 disabled:no-underline dark:text-brand-400 dark:hover:text-brand-300 dark:disabled:text-gray-600"
+                        >
+                            {item.ITEM_CODE}
+                        </button>
+                    ) : (
+                        <span className="shrink-0 text-sm font-bold text-brand-600 dark:text-brand-400">
+                            {item.ITEM_CODE}
+                        </span>
+                    )}
 
+                    <button
+                        type="button"
+                        onClick={canExpandDetails ? onToggleExpanded : undefined}
+                        disabled={!canExpandDetails}
+                        aria-expanded={canExpandDetails ? isExpanded : undefined}
+                        aria-label={isExpanded ? "Απόκρυψη λεπτομερειών" : "Προβολή λεπτομερειών"}
+                        className="group flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-default"
+                    >
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                            <div className="flex min-w-0 flex-nowrap items-center gap-x-2 overflow-hidden">
                             {(itemDescription || manufacturerDescription) && (
-                                <span className="min-w-0 flex-1 truncate text-sm text-gray-700 dark:text-gray-200">
+                                <span className="min-w-0 max-w-full flex-[0_1_auto] truncate text-sm text-gray-700 dark:text-gray-200">
                                     {itemDescription}
                                     {itemDescription && manufacturerDescription ? ", " : ""}
                                     {manufacturerDescription && (
@@ -327,55 +344,47 @@ export default function PartResults({
                             {isInBasket && basketItem && (
                                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold leading-tight text-green-700 dark:bg-green-500/10 dark:text-green-400">
                                     <ShoppingCart className="h-3 w-3" />
-                                    Στο καλάθι: {getBasketItemQty(basketItem)} τεμ.
+                                    <span className="hidden min-[1500px]:inline">Στο καλάθι:</span>
+                                    {getBasketItemQty(basketItem)}
+                                    <span className="hidden sm:inline">τεμ.</span>
                                 </span>
                             )}
 
-                            {basketItem && hasPriceRequest && canSeePrices && (
-                                <span
-                                    title={`Κατάσταση αιτήματος: ${requestStatusLabel}`}
-                                    aria-label={`Αίτημα ${formatPrice(requestedPrice)}, κατάσταση ${requestStatusLabel}`}
-                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${requestStatusClassName}`}
-                                >
-                                    <BadgePercent className="h-3 w-3" />
-                                    Αίτημα: {formatPrice(requestedPrice)}
-                                </span>
-                            )}
+                            {canSeeBranchStock && renderStockSummary("ml-auto flex min-w-0 shrink-0")}
+
+                            </div>
                         </div>
-                    </div>
 
-                    {canExpandDetails && (
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition group-hover:border-brand-300 group-hover:text-brand-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:group-hover:border-brand-500 dark:group-hover:text-brand-400">
-                        <ChevronDown
-                            className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                        />
-                    </span>
-                    )}
-                </button>
+                        {canExpandDetails && (
+                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition group-hover:border-brand-300 group-hover:text-brand-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:group-hover:border-brand-500 dark:group-hover:text-brand-400">
+                                <ChevronDown
+                                    className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                                />
+                            </span>
+                        )}
+                    </button>
+                </div>
 
                 <div className="p-3">
                     <div className="flex min-w-0 flex-col gap-2.5 md:flex-row md:items-start md:justify-between">
-                        <div className="w-full min-w-0 max-w-[300px] md:w-[clamp(9.5rem,24%,18.75rem)] md:max-w-none md:shrink-0">
-                            {canSeeStatistics && (
-                            <button
-                                type="button"
-                                onClick={onOpenInsights}
-                                disabled={!hasCustomer}
-                                title={hasCustomer ? "Προβολή ιστορικού και ανταγωνισμού" : "Επιλέξτε πρώτα πελάτη"}
-                                aria-label="Προβολή ιστορικού αγορών και ανταγωνισμού"
-                                className="group inline-flex h-8 min-w-0 w-full items-center gap-2 rounded-lg border border-gray-200 bg-white p-0.5 pr-3 text-xs font-semibold text-gray-700 shadow-xs transition-all hover:-translate-y-px hover:border-brand-300 hover:text-brand-700 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:shadow-none disabled:hover:translate-y-0 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-brand-500/60 dark:hover:text-brand-300 dark:disabled:border-gray-800 dark:disabled:bg-white/[0.02] dark:disabled:text-gray-600"
-                            >
-                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-100 dark:bg-brand-500/15 dark:text-brand-400 dark:group-hover:bg-brand-500/25 group-disabled:bg-gray-100 group-disabled:text-gray-400 dark:group-disabled:bg-gray-800 dark:group-disabled:text-gray-600">
-                                    <ChartColumn className="h-4 w-4" />
-                                </span>
-                                <span className="min-w-0 truncate">Στατιστικά</span>
-                            </button>
-                            )}
-
+                        <div className="flex w-full min-w-0 max-w-[300px] items-center md:w-[clamp(9.5rem,24%,18.75rem)] md:max-w-none md:shrink-0">
                         </div>
 
                         {hasCustomer && (
                             <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-x-2 sm:gap-x-3 lg:gap-x-4 lg:justify-end">
+                                {basketItem && canRequestPrice && !hasApprovedRequestedPrice && (
+                                    <RequestPriceBox
+                                        status={requestStatus}
+                                        hasPriceRequest={hasPriceRequest}
+                                        requestedPrice={requestedPrice}
+                                        value={requestedPriceValue}
+                                        onChange={onRequestedPriceValueChange}
+                                        onSubmit={onRequestPrice}
+                                        submitting={isSubmittingRequestPrice}
+                                        prominent
+                                    />
+                                )}
+
                                 {canSeePrices && (
                                 <>
                                 <div className="flex shrink-0 flex-col items-end gap-0.5">
@@ -418,6 +427,7 @@ export default function PartResults({
                                             )}
                                         </div>
                                     )}
+
                                 </div>
 
                                 <div className="hidden h-6 w-px bg-gray-200 dark:bg-gray-700 sm:block" />
@@ -473,26 +483,6 @@ export default function PartResults({
                         )}
                     </div>
 
-                    {(canSeeBranchStock || (basketItem && canRequestPrice)) && (
-                    <div className="mt-2 flex min-w-0 flex-col gap-2 border-t border-gray-100 pt-2 dark:border-gray-800 lg:flex-row lg:items-center">
-                        {canSeeBranchStock && renderStockSummary("flex min-w-0 flex-1")}
-
-                        {basketItem && canRequestPrice && (
-                            <RequestPriceBox
-                                status={requestStatus}
-                                hasPriceRequest={hasPriceRequest}
-                                hasRequestedPrice={hasRequestedPrice}
-                                requestedPrice={requestedPrice}
-                                value={requestedPriceValue}
-                                onChange={onRequestedPriceValueChange}
-                                onSubmit={onRequestPrice}
-                                submitting={isSubmittingRequestPrice}
-                                formatPrice={(price) => formatPrice(price)}
-                                className="shrink-0"
-                            />
-                        )}
-                    </div>
-                    )}
                 </div>
 
                 <PartCardDetails

@@ -1,23 +1,19 @@
 "use client";
 
-import { BadgePercent, Loader2, Send } from "@/lib/icons/lucide";
+import { useState } from "react";
+import { BadgePercent, Check, Loader2, Pencil, X } from "@/lib/icons/lucide";
 
 export type RequestPriceStatus = "approved" | "rejected" | "pending" | null;
 
 interface RequestPriceBoxProps {
     status: RequestPriceStatus;
     hasPriceRequest: boolean;
-    hasRequestedPrice?: boolean;
-    showRequestedPrice?: boolean;
-    showRequestLabel?: boolean;
     requestedPrice: number | null;
     value: string;
     onChange: (value: string) => void;
     onSubmit: () => void | Promise<void>;
     submitting?: boolean;
-    formatPrice: (price: number | null) => string;
-    chrome?: "default" | "plain";
-    stableWidth?: boolean;
+    prominent?: boolean;
     className?: string;
 }
 
@@ -26,135 +22,149 @@ const parsePriceInput = (value: string) => {
     return Number.isFinite(parsed) ? parsed : null;
 };
 
+const formatRequestedPrice = (price: number) =>
+    `${price.toLocaleString("el-GR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })} €`;
+
 export default function RequestPriceBox({
     status,
     hasPriceRequest,
-    hasRequestedPrice,
-    showRequestedPrice = true,
-    showRequestLabel = true,
     requestedPrice,
     value,
     onChange,
     onSubmit,
     submitting = false,
-    formatPrice,
-    chrome = "default",
-    stableWidth = false,
+    prominent = false,
     className = "",
 }: RequestPriceBoxProps) {
-    const shouldShowRequestedPrice =
-        hasRequestedPrice ?? (hasPriceRequest && requestedPrice != null && requestedPrice > 0);
-    const displayRequestedPrice = showRequestedPrice && shouldShowRequestedPrice;
-    const requestTone = shouldShowRequestedPrice
-        ? status === "approved"
-            ? "approved"
-            : status === "rejected"
-                ? "rejected"
-                : "pending"
-        : "empty";
+    const [isEditing, setIsEditing] = useState(false);
     const parsedValue = parsePriceInput(value);
-    const submitDisabled = submitting || parsedValue == null || parsedValue <= 0;
-    const boxClassName = requestTone === "approved"
-        ? "border-green-200 bg-green-50 dark:border-green-500/20 dark:bg-green-500/10"
-        : requestTone === "rejected"
-            ? "border-red-200 bg-red-50 dark:border-red-500/20 dark:bg-red-500/10"
-            : requestTone === "pending"
-            ? "border-amber-200 bg-amber-50/90 dark:border-amber-500/20 dark:bg-amber-500/10"
-            : "border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]";
-    const textClassName = requestTone === "approved"
-        ? "text-green-700 dark:text-green-400"
-        : requestTone === "rejected"
-            ? "text-red-700 dark:text-red-400"
-            : "text-amber-700 dark:text-amber-300";
-    const inputClassName = requestTone === "approved"
-        ? "border-green-200 focus:border-green-500 focus:ring-green-500 dark:border-green-500/30"
-        : requestTone === "rejected"
-            ? "border-red-200 focus:border-red-500 focus:ring-red-500 dark:border-red-500/30"
-            : "border-amber-200 focus:border-amber-500 focus:ring-amber-500 dark:border-amber-500/30";
-    const buttonClassName = requestTone === "approved"
-        ? "bg-green-600 hover:bg-green-700"
-        : requestTone === "rejected"
-            ? "bg-red-500 hover:bg-red-600"
-            : "bg-amber-500 hover:bg-amber-600";
-    const rootClassName =
-        chrome === "plain"
-            ? "flex w-full flex-wrap items-center justify-between gap-2"
-            : [
-                stableWidth
-                    ? "flex h-9 w-[300px] max-w-full flex-nowrap items-center gap-1.5 rounded-lg border py-1 pl-2 pr-1"
-                    : "flex min-h-9 w-full flex-wrap items-center justify-between gap-1.5 rounded-lg border p-1.5 lg:w-auto",
-                boxClassName,
-            ].join(" ");
-    const inputWidthClassName = stableWidth ? "w-[4.75rem]" : "w-24";
+    const submitDisabled =
+        submitting || parsedValue == null || parsedValue <= 0;
+    const isApproved = hasPriceRequest && status === "approved";
+    const isPending = hasPriceRequest && status !== "approved" && status !== "rejected";
+    const hasDisplayRequestedPrice =
+        isPending && requestedPrice != null && requestedPrice > 0;
 
-    return (
-        <div className={[
-            rootClassName,
-            className,
-        ].join(" ")}>
-            <div className="flex min-w-0 items-center justify-start gap-1.5 whitespace-nowrap">
-                <div className={`flex min-w-0 items-center gap-1.5 text-xs font-semibold ${textClassName}`}>
-                    <BadgePercent className="h-3.5 w-3.5 shrink-0" />
-                    {(displayRequestedPrice || showRequestLabel) && (
-                        <span className="truncate">
-                            {displayRequestedPrice ? "Ζητ. τιμή" : "Αίτημα τιμής"}
-                        </span>
-                    )}
-                </div>
+    if (isApproved) {
+        return null;
+    }
 
-                {displayRequestedPrice && requestedPrice != null && requestedPrice > 0 && (
-                    <span className={`text-xs font-medium ${textClassName}`}>
-                        {formatPrice(requestedPrice)}
+    const handleSubmit = async () => {
+        if (submitDisabled) {
+            return;
+        }
+
+        await onSubmit();
+        setIsEditing(false);
+    };
+
+    const handleStartEditing = () => {
+        if (hasDisplayRequestedPrice) {
+            onChange(requestedPrice.toFixed(2).replace(".", ","));
+        }
+
+        setIsEditing(true);
+    };
+
+    if (!isEditing) {
+        return (
+            <button
+                type="button"
+                onClick={handleStartEditing}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 transition focus-visible:outline-none focus-visible:ring-2 ${prominent
+                    ? "border border-amber-200 bg-amber-50/90 text-amber-700 hover:bg-amber-100 focus-visible:ring-amber-500/30 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/15"
+                    : "text-xs font-medium text-gray-400 hover:bg-gray-100 hover:text-brand-600 focus-visible:ring-brand-500/30 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-brand-400"
+                    } ${className}`}
+            >
+                {hasPriceRequest ? (
+                    <Pencil className="h-3.5 w-3.5" />
+                ) : (
+                    <BadgePercent className="h-3.5 w-3.5" />
+                )}
+                <span className={prominent ? "text-[10px] font-semibold uppercase tracking-wide" : ""}>
+                    {hasPriceRequest
+                        ? isPending
+                            ? "Αιτούμενη τιμή"
+                            : "Νέο αίτημα"
+                        : "Αίτημα τιμής"}
+                </span>
+                {hasDisplayRequestedPrice && (
+                    <span className={prominent
+                        ? "text-base font-bold tabular-nums text-amber-700 dark:text-amber-300"
+                        : "font-semibold tabular-nums text-gray-700 dark:text-gray-300"}
+                    >
+                        {formatRequestedPrice(requestedPrice)}
                     </span>
                 )}
-            </div>
+            </button>
+        );
+    }
 
-            <div className="ml-auto flex shrink-0 items-center gap-1">
-                <div className="relative">
-                    <input
-                        type="text"
-                        inputMode="decimal"
-                        value={value}
-                        onChange={(event) => {
-                            const nextValue = event.target.value;
-                            if (nextValue === "" || /^\d*(?:[.,]\d{0,2})?$/.test(nextValue)) {
-                                onChange(nextValue);
-                            }
-                        }}
-                        onKeyDown={(event) => {
-                            if (event.key === "Enter" && !submitDisabled) {
-                                event.preventDefault();
-                                void onSubmit();
-                            }
-                        }}
-                        disabled={submitting}
-                        aria-label="Νέα ζητούμενη τιμή"
-                        placeholder="Τιμή"
-                        className={`h-7 ${inputWidthClassName} rounded-md border bg-white py-1 pl-2 pr-5 text-right text-sm text-gray-800 outline-none transition-colors placeholder:text-gray-400 focus:ring-1 disabled:cursor-wait disabled:opacity-60 dark:bg-gray-900 dark:text-white ${inputClassName}`}
-                    />
-                    <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs font-medium text-gray-400"
-                    >
-                        €
-                    </span>
-                </div>
+    return (
+        <div className={`flex min-w-0 items-center gap-1 ${prominent
+            ? "rounded-lg border border-amber-200 bg-amber-50/90 p-1 dark:border-amber-500/20 dark:bg-amber-500/10"
+            : ""
+            } ${className}`}>
+            <input
+                type="text"
+                inputMode="decimal"
+                autoFocus
+                value={value}
+                onChange={(event) => {
+                    const nextValue = event.target.value;
 
-                <button
-                    type="button"
-                    onClick={() => void onSubmit()}
-                    disabled={submitDisabled}
-                    aria-label="Υποβολή αιτήματος τιμής"
-                    title={submitDisabled && !submitting ? "Συμπληρώστε έγκυρη τιμή" : "Αποστολή αιτήματος"}
-                    className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40 ${buttonClassName}`}
-                >
-                    {submitting ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                        <Send className="h-3.5 w-3.5" />
-                    )}
-                </button>
-            </div>
+                    if (nextValue === "" || /^\d*(?:[.,]\d{0,2})?$/.test(nextValue)) {
+                        onChange(nextValue);
+                    }
+                }}
+                onKeyDown={(event) => {
+                    if (event.key === "Enter" && !submitDisabled) {
+                        event.preventDefault();
+                        void handleSubmit();
+                    }
+
+                    if (event.key === "Escape") {
+                        setIsEditing(false);
+                    }
+                }}
+                disabled={submitting}
+                placeholder="Τιμή..."
+                aria-label="Ζητούμενη τιμή"
+                className={`h-7 w-20 rounded-md border bg-white px-1.5 text-xs tabular-nums text-gray-800 outline-none transition placeholder:text-gray-400 focus:ring-2 disabled:opacity-50 dark:bg-gray-900 dark:text-white ${prominent
+                    ? "border-amber-200 focus:border-amber-400 focus:ring-amber-500/10 dark:border-amber-500/30"
+                    : "border-gray-200 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700"
+                    }`}
+            />
+
+            <button
+                type="button"
+                onClick={() => void handleSubmit()}
+                disabled={submitDisabled}
+                aria-label="Υποβολή τιμής"
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40 ${prominent
+                    ? "bg-amber-500 hover:bg-amber-600 focus-visible:ring-amber-500/30"
+                    : "bg-brand-500 hover:bg-brand-600 focus-visible:ring-brand-500/30"
+                    }`}
+            >
+                {submitting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                    <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                )}
+            </button>
+
+            <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                disabled={submitting}
+                aria-label="Ακύρωση"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            >
+                <X className="h-3.5 w-3.5" />
+            </button>
         </div>
     );
 }

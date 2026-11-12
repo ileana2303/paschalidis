@@ -339,7 +339,6 @@ export default function BasketLines({
                                             <RequestPriceBox
                                                 status={approvalStatus}
                                                 hasPriceRequest={hasPriceRequest}
-                                                hasRequestedPrice={hasRequestedPrice}
                                                 requestedPrice={requestedPrice}
                                                 value={requestedPriceValue}
                                                 onChange={(value) =>
@@ -347,7 +346,6 @@ export default function BasketLines({
                                                 }
                                                 onSubmit={() => onRequestPrice?.(itemId)}
                                                 submitting={isSubmittingRequestPrice}
-                                                formatPrice={formatPrice}
                                                 className="mt-2"
                                             />
                                         )}
