@@ -1,20 +1,13 @@
-import type { EndoBranchOption } from "@/components/endo/request-endo-card";
-import QuantityControl from "@/components/ui/quantity-control";
+import RequestEndoCard, {
+    type EndoBranchOption,
+} from "@/components/endo/request-endo-card";
 import {
     ArrowDown,
-    Check,
     ChevronDown,
-    Loader2,
-    MapPin,
     ShoppingCart,
     Warehouse,
 } from "@/lib/icons/lucide";
-import {
-    FALLBACK_BRANCH_ACCENT,
-    getBranchColor,
-} from "@/lib/branch-colors";
 import type { IItem } from "@/lib/interface";
-import { sortEndoBranches } from "@/lib/utils/endo";
 
 function getStatusBadgeClassName(statusNow: string) {
     if (statusNow === "1") {
@@ -28,111 +21,6 @@ function getStatusBadgeClassName(statusNow: string) {
     return "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400";
 }
 
-interface SourceBranchCardProps {
-    branch: EndoBranchOption;
-    requestedQty: number;
-    inBasketQty: number;
-    isAdding: boolean;
-    onRequestedQtyChange: (nextQuantity: number) => void;
-    onAddToBasket: () => void;
-}
-
-function SourceBranchCard({
-    branch,
-    requestedQty,
-    inBasketQty,
-    isAdding,
-    onRequestedQtyChange,
-    onAddToBasket,
-}: SourceBranchCardProps) {
-    const isOutOfStock = branch.stock <= 0;
-    const hasSelectedQty = !isOutOfStock && requestedQty > 0;
-    const isDisabled =
-        isOutOfStock || isAdding || !hasSelectedQty || requestedQty > branch.stock;
-
-    const actionClassName = isOutOfStock
-        ? "border border-gray-200 bg-white text-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-600"
-        : hasSelectedQty
-            ? "bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600 dark:hover:bg-brand-600"
-            : "border border-gray-200 bg-white text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400";
-
-    return (
-        <div
-            className={`flex flex-col rounded-xl border p-3 transition ${isOutOfStock
-                ? "border-dashed border-gray-200 bg-gray-50/60 dark:border-gray-800 dark:bg-white/[0.02]"
-                : hasSelectedQty
-                    ? "border-brand-300 bg-white shadow-theme-xs dark:border-brand-500/40 dark:bg-gray-900/40"
-                    : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/40"
-                }`}
-        >
-            <div className="flex items-center justify-between gap-2">
-                <span
-                    className={`min-w-0 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold ${isOutOfStock ? FALLBACK_BRANCH_ACCENT : getBranchColor(branch.code)}`}
-                >
-                    {branch.label}
-                </span>
-
-                {branch.location && branch.location !== "-" && (
-                    <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-gray-400">
-                        <MapPin className="h-3 w-3" />
-                        {branch.location}
-                    </span>
-                )}
-            </div>
-
-            <div className="mt-2 flex items-baseline gap-1.5">
-                <span
-                    className={`text-2xl font-semibold leading-none tabular-nums ${isOutOfStock ? "text-gray-300 dark:text-gray-600" : "text-gray-800 dark:text-white/90"}`}
-                >
-                    {branch.stock}
-                </span>
-                <span className="text-[10px] uppercase tracking-wide text-gray-400">
-                    {isOutOfStock ? "μη διαθέσιμο" : "τεμ. διαθέσιμα"}
-                </span>
-            </div>
-
-            <div className="mt-3 flex items-center gap-2">
-                <QuantityControl
-                    value={requestedQty}
-                    onChange={onRequestedQtyChange}
-                    min={0}
-                    max={branch.stock}
-                    disabled={isOutOfStock}
-                    displayZeroAsEmpty
-                    fullWidth
-                    size="sm"
-                    placeholder="0"
-                    inputLabel={`Ποσότητα ενδοδιακίνησης από ${branch.label}`}
-                    decrementLabel="Μείωση ποσότητας ενδοδιακίνησης"
-                    incrementLabel="Αύξηση ποσότητας ενδοδιακίνησης"
-                />
-
-                <button
-                    type="button"
-                    onClick={onAddToBasket}
-                    disabled={isDisabled}
-                    title={`Προσθήκη στο καλάθι από ${branch.label}`}
-                    aria-label={`Προσθήκη στο καλάθι από ${branch.label}`}
-                    className={`inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50 ${actionClassName}`}
-                >
-                    {isAdding ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                        <ShoppingCart className="h-3.5 w-3.5" />
-                    )}
-                </button>
-            </div>
-
-            {!isOutOfStock && inBasketQty > 0 && (
-                <p className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 dark:text-green-400">
-                    <Check className="h-3 w-3" />
-                    Στο καλάθι: {inBasketQty} τεμ.
-                </p>
-            )}
-        </div>
-    );
-}
-
 interface EndoPartResultsProps {
     item: IItem;
     currentBranchName: string;
@@ -143,7 +31,9 @@ interface EndoPartResultsProps {
     getRequestedQty: (branchCode: string) => number;
     onRequestedQtyChange: (branchCode: string, nextQuantity: number) => void;
     onAddToBasket: (branchCode: string) => void;
+    onSubmitPriority: (branchCode: string) => void;
     isAdding: (branchCode: string) => boolean;
+    isSubmittingPriority: (branchCode: string) => boolean;
     inBasketQtyByBranch: Record<string, number>;
 }
 
@@ -157,11 +47,12 @@ export default function EndoPartResults({
     getRequestedQty,
     onRequestedQtyChange,
     onAddToBasket,
+    onSubmitPriority,
     isAdding,
+    isSubmittingPriority,
     inBasketQtyByBranch,
 }: EndoPartResultsProps) {
     const detailsId = `endo-part-details-${item.MTRL}`;
-    const sourceBranches = sortEndoBranches(branches);
     const totalInBasket = branches.reduce(
         (total, branch) => total + (inBasketQtyByBranch[branch.code] ?? 0),
         0
@@ -182,7 +73,7 @@ export default function EndoPartResults({
                 onClick={onToggleExpanded}
                 aria-expanded={isExpanded}
                 aria-controls={detailsId}
-                className={`group flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/40 ${isExpanded
+                className={`group flex w-full items-center gap-2 border-b px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/40 ${isExpanded
                     ? "border-brand-200 bg-brand-50/70 dark:border-brand-500/30 dark:bg-brand-500/10"
                     : "border-gray-100 bg-gray-50/80 hover:bg-brand-50/60 dark:border-gray-800 dark:bg-white/[0.02] dark:hover:bg-brand-500/5"
                     }`}
@@ -226,13 +117,10 @@ export default function EndoPartResults({
                     </div>
                 </div>
 
-                <div className="flex shrink-0 flex-col items-center gap-0.5">
-                    <span className="hidden text-[10px] font-medium uppercase tracking-wide text-gray-400 transition-colors group-hover:text-brand-500 dark:group-hover:text-brand-400 sm:block">
-                        {isExpanded ? "Κλείσιμο" : "Λεπτομέρειες"}
-                    </span>
-                    <span className="grid h-8 w-8 place-items-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-theme-xs transition group-hover:border-brand-300 group-hover:text-brand-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:group-hover:border-brand-500 dark:group-hover:text-brand-400">
+                <div className="flex shrink-0 items-center">
+                    <span className="grid h-7 w-7 place-items-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-theme-xs transition group-hover:border-brand-300 group-hover:text-brand-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:group-hover:border-brand-500 dark:group-hover:text-brand-400">
                         <ChevronDown
-                            className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                            className={`h-3.5 w-3.5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
                         />
                     </span>
                 </div>
@@ -275,32 +163,29 @@ export default function EndoPartResults({
                     </div>
                 </div>
 
-                <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-white/[0.02]">
-                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                        Αποστολή από
+                <div className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-violet-200 border-t-3 border-t-violet-500 bg-white shadow-sm dark:border-violet-500/30 dark:border-t-violet-400 dark:bg-white/[0.03]">
+                    <div className="border-b border-violet-100 bg-violet-50/80 px-3 py-2 text-center dark:border-violet-500/20 dark:bg-violet-500/10">
+                        <h3 className="text-[10px] font-bold uppercase tracking-[0.06em] text-violet-900 dark:text-violet-200">
+                            ΕΝΔΟΔΙΑΚΙΝΗΣΗ
+                        </h3>
                     </div>
 
-                    {sourceBranches.length > 0 ? (
-                        <div className="grid gap-2 sm:grid-cols-2">
-                            {sourceBranches.map((branch) => (
-                                <SourceBranchCard
-                                    key={branch.code}
-                                    branch={branch}
-                                    requestedQty={getRequestedQty(branch.code)}
-                                    inBasketQty={inBasketQtyByBranch[branch.code] ?? 0}
-                                    isAdding={isAdding(branch.code)}
-                                    onRequestedQtyChange={(nextQuantity) =>
-                                        onRequestedQtyChange(branch.code, nextQuantity)
-                                    }
-                                    onAddToBasket={() => onAddToBasket(branch.code)}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="rounded-lg border border-dashed border-gray-300 bg-white px-3 py-4 text-center text-xs font-medium text-gray-500 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400">
-                            Δεν υπάρχει άλλο κατάστημα για ενδοδιακίνηση.
-                        </p>
-                    )}
+                    <div className="p-3">
+                        <RequestEndoCard
+                            branches={branches}
+                            getRequestedQty={getRequestedQty}
+                            onRequestedQtyChange={onRequestedQtyChange}
+                            onAddToBasket={onAddToBasket}
+                            onSubmitPriority={onSubmitPriority}
+                            isAdding={isAdding}
+                            isSubmittingPriority={isSubmittingPriority}
+                            inBasketQtyByBranch={inBasketQtyByBranch}
+                            className="grid gap-2 sm:grid-cols-2"
+                            branchCardClassName="rounded-md border border-violet-100 bg-violet-50/60 p-2 dark:border-violet-500/20 dark:bg-violet-500/[0.08]"
+                            emptyMessage="Δεν υπάρχει άλλο κατάστημα για ενδοδιακίνηση."
+                            compact
+                        />
+                    </div>
                 </div>
             </div>
 

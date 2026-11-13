@@ -13,6 +13,7 @@ import type {
     CustomerByTrdrRoutePayload,
     EndoBasketAddRoutePayload,
     EndoBasketSubmitRoutePayload,
+    EndoPrioritySubmitRoutePayload,
     EndoListRoutePayload,
     EndoListUpdateQtyRoutePayload,
     ItemEditUpdatePayload,
@@ -41,6 +42,7 @@ import {
     addItemToEndoBasket,
     fetchEndoLists,
     submitEndoBasketOrder,
+    submitEndoPriorityOrder,
     updateEndoListQty,
 } from "@/lib/api-client/endo";
 import { fetchCustomerByTrdr, searchCustomers } from "@/lib/api-client/customers";
@@ -233,6 +235,12 @@ export const useSubmitEndoBasketOrderMutation = () =>
     useMutation({
         mutationFn: (payload: EndoBasketSubmitRoutePayload) =>
             submitEndoBasketOrder(payload),
+    });
+
+export const useSubmitEndoPriorityOrderMutation = () =>
+    useMutation({
+        mutationFn: (payload: EndoPrioritySubmitRoutePayload) =>
+            submitEndoPriorityOrder(payload),
     });
 
 export const useFetchEndoListsMutation = () =>

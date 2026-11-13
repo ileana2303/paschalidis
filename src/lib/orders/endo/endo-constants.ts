@@ -24,3 +24,4 @@ export const ENDO_TRDR = 8674;
 
 export const ENDO_TABLE_ACTION = "ENDO" as const;
 export const ENDO_LOG_LABEL = "[orders/endo]";
+export const ENDO_PRIORITY_LOG_LABEL = "[orders/endo/priority]";

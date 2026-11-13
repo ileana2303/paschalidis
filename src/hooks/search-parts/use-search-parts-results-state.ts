@@ -40,6 +40,7 @@ export interface SearchPartsResultsState {
     endoQuantities: Record<string, number>;
     endoPendingQuantities: Record<string, number>;
     addingToEndoBasket: Set<string>;
+    submittingEndoPriority: Set<string>;
     currentBranchCode: string;
     currentBranchName: string;
     hasValidBranch: boolean;
@@ -66,6 +67,7 @@ export interface SearchPartsResultsState {
     setExpandedItems: Dispatch<SetStateAction<Set<string>>>;
     setEndoPendingQuantities: Dispatch<SetStateAction<Record<string, number>>>;
     setAddingToEndoBasket: Dispatch<SetStateAction<Set<string>>>;
+    setSubmittingEndoPriority: Dispatch<SetStateAction<Set<string>>>;
     setStockRequestStatuses: Dispatch<SetStateAction<Record<string, StockRequestStatus>>>;
     setStockRequestErrors: Dispatch<SetStateAction<Record<string, string>>>;
     setSubmittingStockRequests: Dispatch<SetStateAction<Set<string>>>;
@@ -89,6 +91,7 @@ export function useSearchPartsResultsState({
     const [endoQuantities, setEndoQuantities] = useState<Record<string, number>>({});
     const [endoPendingQuantities, setEndoPendingQuantities] = useState<Record<string, number>>({});
     const [addingToEndoBasket, setAddingToEndoBasket] = useState<Set<string>>(new Set());
+    const [submittingEndoPriority, setSubmittingEndoPriority] = useState<Set<string>>(new Set());
 
     const currentBranchCode = useMemo(
         () => normalizeBranchCode(user?.mainBranch),
@@ -276,6 +279,7 @@ export function useSearchPartsResultsState({
         endoQuantities,
         endoPendingQuantities,
         addingToEndoBasket,
+        submittingEndoPriority,
         currentBranchCode,
         currentBranchName,
         hasValidBranch,
@@ -302,6 +306,7 @@ export function useSearchPartsResultsState({
         setExpandedItems,
         setEndoPendingQuantities,
         setAddingToEndoBasket,
+        setSubmittingEndoPriority,
         setStockRequestStatuses,
         setStockRequestErrors,
         setSubmittingStockRequests,

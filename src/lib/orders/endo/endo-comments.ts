@@ -19,3 +19,18 @@ export function buildEndoComments({
 
     return `ΠΑΡΑΣΤΑΤΙΚΟ Νο${basketId} ΑΠΟ ${from} ΣΕ ${to} ${supplyingBranch}-->${requestingBranch}`;
 }
+
+type BuildEndoPriorityCommentsParams = Omit<
+    BuildEndoCommentsParams,
+    "basketId"
+>;
+
+export function buildEndoPriorityComments({
+    supplyingBranch,
+    requestingBranch,
+}: BuildEndoPriorityCommentsParams) {
+    const from = getEndoBranchLabel(supplyingBranch);
+    const to = getEndoBranchLabel(requestingBranch);
+
+    return `ΠΑΡΑΣΤΑΤΙΚΟ PRIORITY ΑΠΟ ${from} ΣΕ ${to} ${supplyingBranch}-->${requestingBranch}`;
+}

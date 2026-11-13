@@ -6,6 +6,7 @@ import type {
     EndoListUpdateQtyRoutePayload,
     EndoListsResponse,
     EndoBasketSubmitRoutePayload,
+    EndoPrioritySubmitRoutePayload,
 } from "@/lib/interface";
 import type { EndoOrderRequestBody } from "@/lib/orders/endo/submit-endo-order";
 
@@ -48,6 +49,26 @@ export async function submitEndoBasketOrder(
 
     if (!data.success) {
         throw new Error(data.message ?? 'Αποτυχία υποβολής ενδοκίνησης.');
+    }
+
+    return data;
+}
+
+export async function submitEndoPriorityOrder(
+    payload: EndoPrioritySubmitRoutePayload
+): Promise<EndoBasketActionResponse> {
+    const { data } = await httpClient.post<EndoBasketActionResponse>(
+        "/api/orders/endo/priority",
+        {
+            appUserId: String(payload.appUserId ?? "").trim(),
+            deliveryDate: payload.deliveryDate,
+            notes: payload.notes,
+            items: payload.items,
+        }
+    );
+
+    if (!data.success) {
+        throw new Error(data.message ?? "Αποτυχία υποβολής Priority ενδοδιακίνησης.");
     }
 
     return data;

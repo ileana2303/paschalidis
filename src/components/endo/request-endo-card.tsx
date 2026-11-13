@@ -1,5 +1,5 @@
 import QuantitySelect from "@/components/ui/quantity-select";
-import { Loader2, ShoppingCart } from "@/lib/icons/lucide";
+import { Crown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
 import { getBranchColor } from "@/lib/branch-colors";
 import { sortEndoBranches } from "@/lib/utils/endo";
 
@@ -15,7 +15,9 @@ export interface RequestEndoCardProps {
     getRequestedQty: (branchCode: string) => number;
     onRequestedQtyChange: (branchCode: string, nextQuantity: number) => void;
     onAddToBasket: (branchCode: string) => void;
+    onSubmitPriority: (branchCode: string) => void;
     isAdding: (branchCode: string) => boolean;
+    isSubmittingPriority: (branchCode: string) => boolean;
     inBasketQtyByBranch?: Record<string, number>;
     pendingQtyByBranch?: Record<string, number>;
     error?: string;
@@ -35,7 +37,9 @@ export default function RequestEndoCard({
     getRequestedQty,
     onRequestedQtyChange,
     onAddToBasket,
+    onSubmitPriority,
     isAdding,
+    isSubmittingPriority,
     inBasketQtyByBranch = {},
     pendingQtyByBranch,
     error = "",
@@ -63,8 +67,10 @@ export default function RequestEndoCard({
                 const inBasketQty = inBasketQtyByBranch[branch.code] ?? 0;
                 const pendingQty = pendingQtyByBranch?.[branch.code] ?? inBasketQty;
                 const adding = isAdding(branch.code);
+                const submittingPriority = isSubmittingPriority(branch.code);
                 const disabled =
                     adding ||
+                    submittingPriority ||
                     requestedQty <= 0 ||
                     requestedQty > branch.stock ||
                     !hasStock;
@@ -134,6 +140,22 @@ export default function RequestEndoCard({
                                 )}
                             </button>
                         </div>
+
+                        <button
+                            type="button"
+                            onClick={() => onSubmitPriority(branch.code)}
+                            disabled={disabled}
+                            title={`Άμεση Priority ενδοδιακίνηση από ${branch.label}`}
+                            aria-label={`Άμεση Priority ενδοδιακίνηση από ${branch.label}`}
+                            className="mt-1.5 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md bg-amber-500 px-2 text-[10px] font-bold text-white shadow-xs transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:opacity-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-600"
+                        >
+                            {submittingPriority ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                                <Crown className="h-3.5 w-3.5" />
+                            )}
+                            <span>Priority</span>
+                        </button>
 
                         {inBasketQty > 0 && pendingQty <= 0 && (
                             <p className="mt-1.5 text-[10px] font-medium text-green-600 dark:text-green-400">

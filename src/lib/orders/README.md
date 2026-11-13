@@ -6,6 +6,7 @@ setData envelope, the POST helper and MASS_DELETE.
 | Flow | Route | Folder | S1 route env | TABLE_ACTION | Documents |
 |---|---|---|---|---|---|
 | Ενδοδιακίνηση Ανταλλακτικών | `POST /api/orders/endo` | `endo/` | `S1_ENDO_ENDPOINT` | `ENDO` | one **per basket line** |
+| Priority Ενδοδιακίνηση | `POST /api/orders/endo/priority` | `endo/` | `S1_ENDO_ENDPOINT` | — | one **per submitted line**, without an ENDO basket row |
 | Καλάθι Πελάτη | `POST /api/orders/basket` | `customer-basket/` | `S1_BASKET_ENDPOINT` | `USRCUST` | one per basket |
 | Αιτήματα Αποθέματος | `POST /api/orders/anatrof` | `anatrof/` | `S1_ANATROF_ENDPOINT` | `ANATROF` | one per request list |
 | Καλάθια Προμηθευτών | `POST /api/orders/supplier-basket` | `supplier-basket/` | `S1_SUPPLIER_BASKET_ENDPOINT` | `COMPANY STOCK` | one PURDOC per supplier basket |
@@ -83,6 +84,15 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
   `COMMENTS ... ΑΠΟ Πάροδος Λ.Αθηνών 65 ΣΕ Κασομούλη 1006-->1000`.
 - `TRDR` is `8674` (ΠΑΣΧΑΛΙΔΗΣ) for every document.
 - `CCCEXTUSER` = username of the logged-in user.
+
+### Priority ENDO
+
+- Creates the SoftOne document directly; it does not call `NOW_ENDO_INSERT`,
+  create incoming/outgoing requests, or run `MASS_DELETE` / `LINK_S1`.
+- `SALDOC.BRANCH`, `MTRDOC.BRANCHSEC`, `WHOUSESEC`, and `WHOUSE` all use the
+  **requesting** branch, as does the branch-specific setData clientID.
+- The supplying branch is retained in `COMMENTS` to identify where the selected
+  stock is coming from.
 
 ## ANATROF specifics
 

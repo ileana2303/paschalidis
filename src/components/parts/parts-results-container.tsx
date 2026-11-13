@@ -56,6 +56,11 @@ interface PartsResultsEndoProps {
         mtrl: string | number,
         sourceBranchCode: string
     ) => boolean;
+    onSubmitEndoPriority: (item: IItem, sourceBranchCode: string) => Promise<void> | void;
+    isSubmittingEndoPriority: (
+        mtrl: string | number,
+        sourceBranchCode: string
+    ) => boolean;
 }
 
 interface PartsResultsBasketProps {
@@ -126,6 +131,8 @@ export default function PartsResultsContainer({
         setEndoRequestedQty,
         onAddToEndoBasket,
         isAddingToEndoBasket,
+        onSubmitEndoPriority,
+        isSubmittingEndoPriority,
     } = endo;
 
     const {
@@ -399,8 +406,12 @@ export default function PartsResultsContainer({
                                                 setEndoRequestedQty(item.MTRL, branchCode, nextQty),
                                             onAddToBasket: (branchCode) =>
                                                 onAddToEndoBasket(item, branchCode),
+                                            onSubmitPriority: (branchCode) =>
+                                                onSubmitEndoPriority(item, branchCode),
                                             isAdding: (branchCode) =>
                                                 isAddingToEndoBasket(item.MTRL, branchCode),
+                                            isSubmittingPriority: (branchCode) =>
+                                                isSubmittingEndoPriority(item.MTRL, branchCode),
                                         }}
                                     />
                                 );

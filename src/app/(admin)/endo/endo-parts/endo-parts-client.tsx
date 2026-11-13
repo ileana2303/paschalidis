@@ -39,6 +39,7 @@ import {
     useDeleteBasketItemsMutation,
     useFetchEndoListsMutation,
     useSearchItemsMutation,
+    useSubmitEndoPriorityOrderMutation,
     useUpdateEndoListQtyMutation,
 } from "@/hooks/queries/useApiMutations";
 import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
@@ -60,6 +61,7 @@ export default function EndoPartsClient() {
     const [basketItems, setBasketItems] = useState<EndoBasketUiItem[]>([]);
     const [selectedBasketItemIds, setSelectedBasketItemIds] = useState<Set<string>>(new Set());
     const [addingToBasket, setAddingToBasket] = useState<Set<string>>(new Set());
+    const [submittingPriority, setSubmittingPriority] = useState<Set<string>>(new Set());
     const [removingSelectedBasketItems, setRemovingSelectedBasketItems] = useState(false);
     const [updatingBasketItemIds, setUpdatingBasketItemIds] = useState<Set<string>>(new Set());
     const [summaryLoading, setSummaryLoading] = useState(true);
@@ -91,6 +93,7 @@ export default function EndoPartsClient() {
     const basketSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const { mutateAsync: searchItems } = useSearchItemsMutation();
     const { mutateAsync: addItemToEndoBasket } = useAddItemToEndoBasketMutation();
+    const { mutateAsync: submitEndoPriorityOrder } = useSubmitEndoPriorityOrderMutation();
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
     const { mutateAsync: updateEndoListQty } = useUpdateEndoListQtyMutation();
@@ -582,7 +585,7 @@ export default function EndoPartsClient() {
 
         return Array.from(branchCodes)
             .sort((a, b) => Number(a) - Number(b))
-            .filter((code) => code !== currentBranchCode)
+            .filter((code) => code !== currentBranchCode && code !== "1008")
             .map((code) => {
                 const label = resolveBranchName(code);
                 const location = getItemLocationForBranch(item, code) || "-";
@@ -680,6 +683,90 @@ export default function EndoPartsClient() {
             }
         } finally {
             setAddingToBasket((prev) => {
+                const next = new Set(prev);
+                next.delete(requestKey);
+                return next;
+            });
+        }
+    };
+
+    const handleSubmitPriority = async (item: IItem, sourceBranchCode: string) => {
+        const supplyingBranch = Number(sourceBranchCode);
+        const requestingBranch = Number(currentBranchCode);
+        const requestedQty = getRequestedQty(item.MTRL, sourceBranchCode);
+        const sourceBranchStock = getBranchOptions(item).find(
+            (branch) => branch.code === sourceBranchCode
+        )?.stock ?? 0;
+
+        if (!Number.isFinite(requestingBranch) || requestingBranch <= 0) {
+            setBasketError("Δεν βρέθηκε ενεργό κατάστημα παραλαβής");
+            return;
+        }
+
+        if (!Number.isFinite(supplyingBranch) || supplyingBranch <= 0) {
+            setBasketError("Μη έγκυρο κατάστημα αποστολής");
+            return;
+        }
+
+        if (requestingBranch === supplyingBranch) {
+            setBasketError("Η ενδοδιακίνηση πρέπει να αφορά διαφορετικά καταστήματα");
+            return;
+        }
+
+        if (!Number.isFinite(requestedQty) || requestedQty <= 0) {
+            setBasketError("Η ποσότητα πρέπει να είναι μεγαλύτερη από 0");
+            return;
+        }
+
+        if (requestedQty > sourceBranchStock) {
+            setBasketError("Η ζητούμενη ποσότητα υπερβαίνει το διαθέσιμο απόθεμα");
+            return;
+        }
+
+        if (!window.confirm(
+            `Να δημιουργηθεί άμεσα Priority παραστατικό για ${requestedQty} τεμ.; Δεν θα δημιουργηθεί αίτημα ενδοδιακίνησης.`
+        )) {
+            return;
+        }
+
+        const requestKey = getEndoQtyKey(item.MTRL, sourceBranchCode);
+        setSubmittingPriority((prev) => new Set(prev).add(requestKey));
+        setBasketError("");
+        resetBasketSuccess();
+
+        try {
+            const response = await submitEndoPriorityOrder({
+                appUserId: user?.username,
+                items: [
+                    {
+                        mtrl: Number(item.MTRL),
+                        qty: requestedQty,
+                        supplyingBranch,
+                        requestingBranch,
+                    },
+                ],
+            });
+
+            setRequestedQty(item.MTRL, sourceBranchCode, 0);
+            showBasketSuccess(
+                response.message ?? "Η Priority ενδοδιακίνηση δημιουργήθηκε επιτυχώς"
+            );
+        } catch (error) {
+            if (isAxiosError(error)) {
+                const responseMessage =
+                    typeof error.response?.data?.message === "string"
+                        ? error.response.data.message
+                        : undefined;
+                setBasketError(responseMessage ?? error.message);
+            } else {
+                setBasketError(
+                    error instanceof Error
+                        ? error.message
+                        : "Αποτυχία δημιουργίας Priority ενδοδιακίνησης"
+                );
+            }
+        } finally {
+            setSubmittingPriority((prev) => {
                 const next = new Set(prev);
                 next.delete(requestKey);
                 return next;
@@ -836,8 +923,14 @@ export default function EndoPartsClient() {
                                                         onAddToBasket={(branchCode) =>
                                                             handleAddToBasket(item, branchCode)
                                                         }
+                                                        onSubmitPriority={(branchCode) =>
+                                                            handleSubmitPriority(item, branchCode)
+                                                        }
                                                         isAdding={(branchCode) =>
                                                             addingToBasket.has(getEndoQtyKey(item.MTRL, branchCode))
+                                                        }
+                                                        isSubmittingPriority={(branchCode) =>
+                                                            submittingPriority.has(getEndoQtyKey(item.MTRL, branchCode))
                                                         }
                                                         inBasketQtyByBranch={inBasketQtyByBranch}
                                                         onToggleExpanded={() => toggleExpanded(itemKey)}

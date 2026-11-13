@@ -58,7 +58,9 @@ interface PartEndoRequestProps {
     onRequestedQtyChange: (branchCode: string, nextQuantity: number) => void;
     pendingQtyByBranch?: Record<string, number>;
     onAddToBasket: (branchCode: string) => void;
+    onSubmitPriority: (branchCode: string) => void;
     isAdding: (branchCode: string) => boolean;
+    isSubmittingPriority: (branchCode: string) => boolean;
 }
 
 interface PartResultsProps {

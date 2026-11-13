@@ -148,7 +148,9 @@ export default function StockRequest({
                             getRequestedQty={endoRequest.getRequestedQty}
                             onRequestedQtyChange={endoRequest.onRequestedQtyChange}
                             onAddToBasket={endoRequest.onAddToBasket}
+                            onSubmitPriority={endoRequest.onSubmitPriority}
                             isAdding={endoRequest.isAdding}
+                            isSubmittingPriority={endoRequest.isSubmittingPriority}
                             inBasketQtyByBranch={endoRequest.inBasketQtyByBranch}
                             pendingQtyByBranch={endoRequest.pendingQtyByBranch}
                             className="grid gap-1.5 min-[1800px]:grid-cols-2"

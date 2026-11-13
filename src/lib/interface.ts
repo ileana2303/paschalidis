@@ -767,6 +767,22 @@ export interface EndoBasketSubmitRoutePayload {
     notes?: string;
 }
 
+export interface EndoPrioritySubmitLineRoutePayload {
+    mtrl: number;
+    qty: number;
+    /** Branch where the selected stock is physically available. */
+    supplyingBranch: number;
+    /** Logged-in branch that creates and owns the Priority document. */
+    requestingBranch: number;
+}
+
+export interface EndoPrioritySubmitRoutePayload {
+    items: EndoPrioritySubmitLineRoutePayload[];
+    appUserId?: string;
+    deliveryDate?: string;
+    notes?: string;
+}
+
 export interface IEndoListRow {
     [key: string]: string;
 }

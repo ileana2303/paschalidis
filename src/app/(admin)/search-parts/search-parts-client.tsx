@@ -638,6 +638,8 @@ export default function SearchPartsClient() {
                                 setEndoRequestedQty: resultsController.setEndoRequestedQty,
                                 onAddToEndoBasket: resultsController.handleAddToEndoBasket,
                                 isAddingToEndoBasket: resultsController.isAddingToEndoBasket,
+                                onSubmitEndoPriority: resultsController.handleSubmitEndoPriority,
+                                isSubmittingEndoPriority: resultsController.isSubmittingEndoPriority,
                             }}
                             basket={{
                                 findBasketItem: basketController.findBasketItem,

@@ -8,6 +8,7 @@ import {
     useAddItemToEndoBasketMutation,
     useFetchEndoListsMutation,
     useRequestStockQuantityMutation,
+    useSubmitEndoPriorityOrderMutation,
 } from "@/hooks/queries/useApiMutations";
 import type { SearchPartsResultsState } from "@/hooks/search-parts/use-search-parts-results-state";
 import {
@@ -48,15 +49,18 @@ export function useSearchPartsResultsActions({
 }: UseSearchPartsResultsActionsParams) {
     const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
     const { mutateAsync: addItemToEndoBasket } = useAddItemToEndoBasketMutation();
+    const { mutateAsync: submitEndoPriorityOrder } = useSubmitEndoPriorityOrderMutation();
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
     const {
         addingToEndoBasket,
+        submittingEndoPriority,
         currentBranchCode,
         getEndoBranchOptions,
         getEndoRequestedQty,
         getStoreOrderQuantity,
         hasValidBranch,
         setAddingToEndoBasket,
+        setSubmittingEndoPriority,
         setEndoPendingQuantities,
         setEndoRequestedQty,
         setStockRequestErrors,
@@ -191,6 +195,104 @@ export function useSearchPartsResultsActions({
         return addingToEndoBasket.has(getEndoQtyKey(mtrl, sourceBranchCode));
     }, [addingToEndoBasket]);
 
+    const handleSubmitEndoPriority = useCallback(async (
+        item: IItem,
+        sourceBranchCode: string
+    ) => {
+        const supplyingBranch = Number(sourceBranchCode);
+        const requestingBranch = Number(currentBranchCode);
+        const requestedQty = getEndoRequestedQty(item.MTRL, sourceBranchCode);
+        const sourceBranchStock = getEndoBranchOptions(item).find(
+            (branch) => branch.code === sourceBranchCode
+        )?.stock ?? 0;
+
+        if (!Number.isFinite(requestingBranch) || requestingBranch <= 0) {
+            toast.error("Δεν βρέθηκε ενεργό κατάστημα παραλαβής");
+            return;
+        }
+
+        if (!Number.isFinite(supplyingBranch) || supplyingBranch <= 0) {
+            toast.error("Μη έγκυρο κατάστημα αποστολής");
+            return;
+        }
+
+        if (requestingBranch === supplyingBranch) {
+            toast.error("Η ενδοδιακίνηση πρέπει να αφορά διαφορετικά καταστήματα");
+            return;
+        }
+
+        if (!Number.isFinite(requestedQty) || requestedQty <= 0) {
+            toast.error("Η ποσότητα πρέπει να είναι μεγαλύτερη από 0");
+            return;
+        }
+
+        if (requestedQty > sourceBranchStock) {
+            toast.error("Η ζητούμενη ποσότητα υπερβαίνει το διαθέσιμο απόθεμα");
+            return;
+        }
+
+        if (!window.confirm(
+            `Να δημιουργηθεί άμεσα Priority παραστατικό για ${requestedQty} τεμ.; Δεν θα δημιουργηθεί αίτημα ενδοδιακίνησης.`
+        )) {
+            return;
+        }
+
+        const requestKey = getEndoQtyKey(item.MTRL, sourceBranchCode);
+        setSubmittingEndoPriority((prev) => new Set(prev).add(requestKey));
+
+        try {
+            const response = await submitEndoPriorityOrder({
+                appUserId: user?.username,
+                items: [
+                    {
+                        mtrl: Number(item.MTRL),
+                        qty: requestedQty,
+                        supplyingBranch,
+                        requestingBranch,
+                    },
+                ],
+            });
+
+            setEndoRequestedQty(item.MTRL, sourceBranchCode, 0);
+            toast.success(
+                response.message ?? "Η Priority ενδοδιακίνηση δημιουργήθηκε επιτυχώς"
+            );
+        } catch (error) {
+            const responseMessage = isAxiosError(error)
+                ? typeof error.response?.data?.message === "string"
+                    ? error.response.data.message
+                    : undefined
+                : undefined;
+            toast.error(
+                responseMessage ??
+                    (error instanceof Error
+                        ? error.message
+                        : "Αποτυχία δημιουργίας Priority ενδοδιακίνησης")
+            );
+        } finally {
+            setSubmittingEndoPriority((prev) => {
+                const next = new Set(prev);
+                next.delete(requestKey);
+                return next;
+            });
+        }
+    }, [
+        currentBranchCode,
+        getEndoBranchOptions,
+        getEndoRequestedQty,
+        setEndoRequestedQty,
+        setSubmittingEndoPriority,
+        submitEndoPriorityOrder,
+        user,
+    ]);
+
+    const isSubmittingEndoPriority = useCallback((
+        mtrl: string | number,
+        sourceBranchCode: string
+    ) => {
+        return submittingEndoPriority.has(getEndoQtyKey(mtrl, sourceBranchCode));
+    }, [submittingEndoPriority]);
+
     const handleSubmitStockRequest = useCallback(async (item: IItem) => {
         const mtrlKey = String(item.MTRL);
         const qty = getStoreOrderQuantity(mtrlKey);
@@ -257,6 +359,8 @@ export function useSearchPartsResultsActions({
     return {
         handleAddToEndoBasket,
         isAddingToEndoBasket,
+        handleSubmitEndoPriority,
+        isSubmittingEndoPriority,
         handleSubmitStockRequest,
     };
 }
