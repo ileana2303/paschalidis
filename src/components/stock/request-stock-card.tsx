@@ -56,7 +56,7 @@ export default function StockRequest({
 
     return (
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-stretch gap-2">
-            <section className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-amber-200 border-t-4 border-t-amber-500 bg-white shadow-sm dark:border-amber-500/30 dark:border-t-amber-400 dark:bg-white/[0.03]">
+            <section className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-amber-200 border-t-[3px] border-t-amber-500 bg-white shadow-sm dark:border-amber-500/30 dark:border-t-amber-400 dark:bg-white/[0.03]">
                 <div className="border-b border-amber-100 bg-amber-50/80 px-2 py-2 text-center dark:border-amber-500/20 dark:bg-amber-500/10">
                     <h3 className="text-[9px] font-bold uppercase tracking-[0.04em] text-amber-900 dark:text-amber-200">
                         Ανατροφοδοσία
@@ -120,7 +120,7 @@ export default function StockRequest({
             </section>
 
             <section
-                className={`flex min-w-0 flex-col overflow-hidden rounded-xl border border-t-4 shadow-sm ${hasRequestableEndoStock
+                className={`flex min-w-0 flex-col overflow-hidden rounded-xl border border-t-[3px] shadow-sm ${hasRequestableEndoStock
                     ? "border-violet-200 border-t-violet-500 bg-white dark:border-violet-500/30 dark:border-t-violet-400 dark:bg-white/[0.03]"
                     : "border-gray-100 border-t-gray-200 bg-white dark:border-gray-800 dark:border-t-gray-700 dark:bg-white/[0.01]"
                     }`}

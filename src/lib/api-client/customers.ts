@@ -19,7 +19,26 @@ export async function searchCustomers(
         throw new Error(data.message ?? 'Αποτυχία αναζήτησης πελατών.');
     }
 
-    return data;
+    // BCUSTOMERS can return the same customer more than once. TRDR is the
+    // customer identity used by selection, routing, and basket operations, so
+    // keep the first row for each TRDR before exposing the search results.
+    const customersByTrdr = new Map<string, ICustomerInfo>();
+
+    for (const customer of data.rows) {
+        const trdr = String(customer.TRDR).trim();
+
+        if (!customersByTrdr.has(trdr)) {
+            customersByTrdr.set(trdr, customer);
+        }
+    }
+
+    const rows = Array.from(customersByTrdr.values());
+
+    return {
+        ...data,
+        totalcount: rows.length,
+        rows,
+    };
 }
 
 // Fetches the complete customer record for a TRDR. The name is only a hint that

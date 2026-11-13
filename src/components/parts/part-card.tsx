@@ -287,7 +287,12 @@ export default function PartResults({
     return (
         <div className={`grid gap-2 ${showAnatrofCard ? "xl:grid-cols-[minmax(0,1fr)_17rem] min-[1800px]:grid-cols-[minmax(0,1fr)_25rem]" : ""}`}>
 
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition dark:border-gray-800 dark:bg-white/[0.03]">
+            <div
+                className={`overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition dark:border-gray-800 dark:bg-white/[0.03] ${isInBasket
+                    ? "border-t-3 border-t-green-500 dark:border-t-green-400"
+                    : ""
+                    }`}
+            >
                 <div
                     className={`flex w-full items-center gap-2 border-b px-3 py-2 transition-colors ${isInBasket
                         ? "border-gray-100 bg-green-50/80 hover:bg-green-100/70 dark:border-gray-800 dark:bg-green-500/10 dark:hover:bg-green-500/15"
@@ -349,8 +354,6 @@ export default function PartResults({
                                     <span className="hidden sm:inline">τεμ.</span>
                                 </span>
                             )}
-
-                            {canSeeBranchStock && renderStockSummary("ml-auto flex min-w-0 shrink-0")}
 
                             </div>
                         </div>
@@ -482,6 +485,12 @@ export default function PartResults({
                             </div>
                         )}
                     </div>
+
+                    {canSeeBranchStock && (
+                        <div className="mt-1.5 min-w-0 overflow-hidden border-t border-gray-100 pt-1.5 dark:border-gray-800">
+                            {renderStockSummary("flex min-w-0")}
+                        </div>
+                    )}
 
                 </div>
 
