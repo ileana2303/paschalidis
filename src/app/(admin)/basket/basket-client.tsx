@@ -25,8 +25,22 @@ import toast from "react-hot-toast";
 import { useSessionState } from "@/hooks/useSessionState";
 import { useCan } from "@/hooks/usePermissions";
 import { parseSoftOneNumber } from "@/lib/utils/number";
+import { executeAutomaticPriceTiers } from "@/lib/api-client/price-tiers";
 
 type ReceiptType = "receipt" | "invoice";
+
+const configuredTierRefreshMinutes = Number(
+    process.env.NEXT_PUBLIC_TIER_AUTO_EXEC_INTERVAL_MINUTES
+);
+const TIER_AUTO_EXEC_INTERVAL_MS =
+    Number.isFinite(configuredTierRefreshMinutes) && configuredTierRefreshMinutes > 0
+        ? configuredTierRefreshMinutes * 60_000
+        : 5 * 60_000;
+
+interface LoadBasketOptions {
+    background?: boolean;
+    preserveSelection?: boolean;
+}
 
 export default function BasketClient() {
     const canRequestPrice = useCan()("request-price");
@@ -62,7 +76,10 @@ export default function BasketClient() {
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
     const { mutateAsync: requestPrice } = useRequestPriceMutation();
 
-    const loadBasket = useCallback(async (trdr: string) => {
+    const loadBasket = useCallback(async (
+        trdr: string,
+        { background = false, preserveSelection = false }: LoadBasketOptions = {}
+    ) => {
         const normalizedTrdr = String(trdr ?? "").trim();
         if (!normalizedTrdr) {
             return;
@@ -76,8 +93,10 @@ export default function BasketClient() {
         }
 
         const requestId = ++basketRequestIdRef.current;
-        setLoading(true);
-        setError("");
+        if (!background) {
+            setLoading(true);
+            setError("");
+        }
 
         const requestPromise = (async () => {
             try {
@@ -89,21 +108,40 @@ export default function BasketClient() {
 
                 const nextBasket = normalizeBasket(data);
                 setBasket(nextBasket);
-                setSelectedItems(new Set(nextBasket.items.map((item) => getBasketItemId(item))));
+                setSelectedItems((current) => {
+                    const nextItemIds = nextBasket.items.map((item) =>
+                        getBasketItemId(item)
+                    );
+
+                    if (!preserveSelection) {
+                        return new Set(nextItemIds);
+                    }
+
+                    const availableIds = new Set(nextItemIds);
+                    return new Set(
+                        Array.from(current).filter((itemId) =>
+                            availableIds.has(itemId)
+                        )
+                    );
+                });
             } catch (err) {
                 if (basketRequestIdRef.current !== requestId) {
                     return;
                 }
 
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : "Αποτυχία φόρτωσης καλαθιού"
-                );
-                setBasket(null);
-                setSelectedItems(new Set());
+                if (background) {
+                    console.error("[basket:tier-refresh] Basket reload failed", err);
+                } else {
+                    setError(
+                        err instanceof Error
+                            ? err.message
+                            : "Αποτυχία φόρτωσης καλαθιού"
+                    );
+                    setBasket(null);
+                    setSelectedItems(new Set());
+                }
             } finally {
-                if (basketRequestIdRef.current === requestId) {
+                if (!background && basketRequestIdRef.current === requestId) {
                     setLoading(false);
                 }
 
@@ -121,6 +159,24 @@ export default function BasketClient() {
 
         return requestPromise;
     }, [fetchBasketItems]);
+
+    const syncAutomaticTiers = useCallback(async (
+        trdr: string,
+        options: LoadBasketOptions = {}
+    ) => {
+        if (!options.background) {
+            setLoading(true);
+            setError("");
+        }
+
+        try {
+            await executeAutomaticPriceTiers();
+        } catch (tierError) {
+            console.error("[basket:tier-refresh] TIER_AUTO_EXEC failed", tierError);
+        }
+
+        return loadBasket(trdr, options);
+    }, [loadBasket]);
 
     useEffect(() => {
         let cancelled = false;
@@ -158,13 +214,28 @@ export default function BasketClient() {
 
             setRequestedPrices({});
             setSubmittingRequestedPrices(new Set());
-            void loadBasket(urlTrdr);
+            void syncAutomaticTiers(urlTrdr);
         });
 
         return () => {
             cancelled = true;
         };
-    }, [clearCustomer, customer, loadBasket, urlTrdr]);
+    }, [clearCustomer, customer, syncAutomaticTiers, urlTrdr]);
+
+    useEffect(() => {
+        if (!urlTrdr) {
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            void syncAutomaticTiers(urlTrdr, {
+                background: true,
+                preserveSelection: true,
+            });
+        }, TIER_AUTO_EXEC_INTERVAL_MS);
+
+        return () => window.clearInterval(intervalId);
+    }, [syncAutomaticTiers, urlTrdr]);
 
     const refreshBasket = useCallback(() => {
         if (!urlTrdr) {

@@ -3,14 +3,13 @@ import { httpClient } from "@/lib/http/client";
 import type {
     PriceTierAssignResponse,
     PriceTierAssignRoutePayload,
+    PriceTierAutoExecResponse,
     PriceTierGridResponse,
     PriceTierGroupsResponse,
     PriceTierSaveResponse,
     PriceTierSaveRoutePayload,
 } from "@/lib/price-tiers/types";
 
-// Failures carry the ERP's Greek message in the body, also on non-2xx
-// responses, and it must reach the user unchanged.
 function getPriceTierError(error: unknown, fallbackMessage: string): Error {
     if (axios.isAxiosError(error)) {
         const message = (error.response?.data as { message?: unknown } | undefined)
@@ -71,5 +70,13 @@ export function assignCustomerPriceGroup(payload: PriceTierAssignRoutePayload) {
         "/api/price-tiers/assign",
         payload,
         "Η ανάθεση ομάδας απέτυχε."
+    );
+}
+
+export function executeAutomaticPriceTiers() {
+    return postPriceTiers<PriceTierAutoExecResponse>(
+        "/api/price-tiers/auto-exec",
+        {},
+        "Αποτυχία ανανέωσης των αυτόματων βαθμίδων τιμών."
     );
 }

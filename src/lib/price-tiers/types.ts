@@ -56,3 +56,8 @@ export interface PriceTierAssignResponse {
     trdr?: string;
     trdpGroup?: string;
 }
+
+export interface PriceTierAutoExecResponse {
+    success: boolean;
+    message?: string;
+}
