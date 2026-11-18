@@ -10,13 +10,21 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import PermissionCatalogFormModal from "@/components/users/permission-catalog-form-modal";
+import PermissionParentPicker, {
+    type PermissionParentOption,
+} from "@/components/users/permission-parent-picker";
+import { getPermissionGroupVisual } from "@/components/users/permission-group-visuals";
 import {
     useDeletePermissionCatalogMutation,
     usePermissionCatalogQuery,
     useSavePermissionCatalogMutation,
 } from "@/hooks/queries/useUserQueries";
 import { useCan } from "@/hooks/usePermissions";
-import { MODULE_GROUP_LABELS } from "@/lib/auth/permissions";
+import {
+    MODULE_GROUP_LABELS,
+    MODULE_GROUP_SIDEBAR_ORDER,
+    MODULE_SIDEBAR_ORDER,
+} from "@/lib/auth/permissions";
 import {
     ChevronLeft,
     Loader2,
@@ -45,6 +53,75 @@ const TAB_LABELS: Record<PermissionCatalogType, string> = {
 
 type FormState = { type: PermissionCatalogType; entry?: PermissionCatalogEntry };
 
+const moduleGroupOrder = new Map(
+    MODULE_GROUP_SIDEBAR_ORDER.map((code, index) => [code, index])
+);
+const moduleOrder = new Map(
+    MODULE_SIDEBAR_ORDER.map((code, index) => [code, index])
+);
+
+function compareByKnownOrder(
+    first: string,
+    second: string,
+    order: ReadonlyMap<string, number>
+) {
+    const firstIndex = order.get(first);
+    const secondIndex = order.get(second);
+
+    if (firstIndex == null && secondIndex == null) return 0;
+    if (firstIndex == null) return 1;
+    if (secondIndex == null) return -1;
+    return firstIndex - secondIndex;
+}
+
+function getParentOptions(
+    catalog: PermissionCatalog,
+    type: PermissionCatalogType
+): PermissionParentOption[] {
+    const entries = catalog[CATALOG_KEYS[type]];
+    const counts = entries.reduce((result, entry) => {
+        result.set(entry.parent, (result.get(entry.parent) ?? 0) + 1);
+        return result;
+    }, new Map<string, number>());
+
+    if (type === "FEATURE") {
+        const modulesByCode = new Map(
+            catalog.modules.map((module) => [module.code, module])
+        );
+
+        return Array.from(counts.keys(), (code) => {
+            const catalogModule = modulesByCode.get(code);
+
+            return {
+                code,
+                label: catalogModule?.descr || code,
+                count: counts.get(code)!,
+                groupCode: catalogModule?.parent,
+            };
+        }).sort((first, second) =>
+            compareByKnownOrder(first.code, second.code, moduleOrder)
+        );
+    }
+
+    const options = Array.from(counts.keys(), (code) => ({
+        code,
+        label:
+            type === "MODULE"
+                ? MODULE_GROUP_LABELS[code] ?? code
+                : code === "branches"
+                    ? "Καταστήματα"
+                    : code,
+        count: counts.get(code)!,
+        groupCode: type === "MODULE" ? code : undefined,
+    }));
+
+    return type === "MODULE"
+        ? options.sort((first, second) =>
+            compareByKnownOrder(first.code, second.code, moduleGroupOrder)
+        )
+        : options;
+}
+
 function getParentLabel(
     catalog: PermissionCatalog,
     type: PermissionCatalogType,
@@ -57,10 +134,23 @@ function getParentLabel(
     return parent;
 }
 
+function getEntryGroupCode(
+    catalog: PermissionCatalog,
+    type: PermissionCatalogType,
+    entry: PermissionCatalogEntry
+) {
+    if (type === "MODULE") return entry.parent;
+    if (type === "FEATURE") {
+        return catalog.modules.find((module) => module.code === entry.parent)?.parent;
+    }
+    return undefined;
+}
+
 export default function PermissionCatalogClient() {
     const router = useRouter();
     const canManage = useCan()("manage-perms");
     const [activeType, setActiveType] = useState<PermissionCatalogType>("MODULE");
+    const [selectedParent, setSelectedParent] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [form, setForm] = useState<FormState | null>(null);
     const [busyCode, setBusyCode] = useState("");
@@ -73,18 +163,46 @@ export default function PermissionCatalogClient() {
         if (!canManage) router.replace("/users-list");
     }, [canManage, router]);
 
+    const parentOptions = useMemo(
+        () => catalog ? getParentOptions(catalog, activeType) : [],
+        [activeType, catalog]
+    );
+    const activeParent = selectedParent && parentOptions.some(
+        (option) => option.code === selectedParent
+    )
+        ? selectedParent
+        : null;
+
     const entries = useMemo(() => {
         const items = catalog?.[CATALOG_KEYS[activeType]] ?? [];
-        const query = searchTerm.trim().toLocaleLowerCase("el");
-        if (!query) return items;
+        const parentItems = activeParent
+            ? items.filter((item) => item.parent === activeParent)
+            : items;
+        const orderedItems = !activeParent && activeType !== "BRANCH"
+            ? [...parentItems].sort((first, second) => {
+                const parentComparison = compareByKnownOrder(
+                    first.parent,
+                    second.parent,
+                    activeType === "MODULE" ? moduleGroupOrder : moduleOrder
+                );
 
-        return items.filter((item) =>
+                if (parentComparison !== 0 || activeType !== "MODULE") {
+                    return parentComparison;
+                }
+
+                return compareByKnownOrder(first.code, second.code, moduleOrder);
+            })
+            : parentItems;
+        const query = searchTerm.trim().toLocaleLowerCase("el");
+        if (!query) return orderedItems;
+
+        return orderedItems.filter((item) =>
             [item.code, item.parent, item.descr]
                 .join(" ")
                 .toLocaleLowerCase("el")
                 .includes(query)
         );
-    }, [activeType, catalog, searchTerm]);
+    }, [activeParent, activeType, catalog, searchTerm]);
 
     const toggleActive = async (entry: PermissionCatalogEntry) => {
         if (busyCode) return;
@@ -186,7 +304,10 @@ export default function PermissionCatalogClient() {
                         <button
                             key={type}
                             type="button"
-                            onClick={() => setActiveType(type)}
+                            onClick={() => {
+                                setActiveType(type);
+                                setSelectedParent(null);
+                            }}
                             className={`-mb-px shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition ${activeType === type
                                 ? "border-brand-500 text-brand-700 dark:text-brand-300"
                                 : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
@@ -198,6 +319,14 @@ export default function PermissionCatalogClient() {
                         </button>
                     ))}
                 </div>
+
+                {catalog && (
+                    <PermissionParentPicker
+                        options={parentOptions}
+                        selectedParent={activeParent}
+                        onSelect={setSelectedParent}
+                    />
+                )}
 
                 {catalogQuery.isPending ? (
                     <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-sm text-gray-500">
@@ -211,8 +340,8 @@ export default function PermissionCatalogClient() {
                         description={
                             catalogQuery.error instanceof Error
                                 ? catalogQuery.error.message
-                                : searchTerm
-                                    ? "Δεν υπάρχει δικαίωμα που να ταιριάζει στην αναζήτηση."
+                                : searchTerm || selectedParent
+                                    ? "Δεν υπάρχει δικαίωμα που να ταιριάζει στα επιλεγμένα φίλτρα."
                                     : "Ο κατάλογος είναι κενός."
                         }
                     />
@@ -233,13 +362,21 @@ export default function PermissionCatalogClient() {
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                 {entries.map((entry) => {
                                     const busy = busyCode === entry.code;
+                                    const groupVisual = getPermissionGroupVisual(
+                                        getEntryGroupCode(catalog, activeType, entry)
+                                    );
 
                                     return (
                                         <tr
                                             key={entry.code}
                                             className="group text-sm text-gray-700 hover:bg-gray-50/70 dark:text-gray-300 dark:hover:bg-white/[0.02]"
                                         >
-                                            <td className="px-4 py-3 font-mono font-semibold text-gray-900 dark:text-white">
+                                            <td
+                                                className={[
+                                                    "border-l-[4px] px-4 py-3 font-mono font-semibold text-gray-900 dark:text-white",
+                                                    groupVisual.rowBorder,
+                                                ].join(" ")}
+                                            >
                                                 {entry.code}
                                             </td>
                                             <td className="px-4 py-3">{entry.descr || "—"}</td>

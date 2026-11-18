@@ -43,7 +43,39 @@ export const MODULE_GROUP_LABELS: Record<string, string> = {
   "company-management": "Διαχείριση",
 };
 
-/** Feature code → the module (page) it lives in. */
+export const MODULE_GROUP_SIDEBAR_ORDER = [
+  "menu",
+  "warehouse-management",
+  "anatrofodosia",
+  "endodiakinisi",
+  "company-management",
+] as const;
+
+export const MODULE_SIDEBAR_ORDER = [
+  "search-customer",
+  "search-parts",
+  "all-baskets",
+  "picking-list",
+  "set-similar",
+  "edit-items",
+  "suffix-management",
+  "group-management",
+  "b2b-management",
+  "suppliers-list",
+  "stock-feedback",
+  "stock-list",
+  "endo-parts",
+  "endo-lists-received",
+  "endo-lists-requested",
+  "company-stock",
+  "company-stock-requests",
+  "stock-requests",
+  "price-requests",
+  "supplier-price-catalog-upload",
+  "base-price-pur",
+  "price-tiers",
+] as const;
+
 const FEATURE_PARENTS: Record<string, string> = {
   "edit-b2b": "b2b-management",
   "edit-group": "group-management",
@@ -62,10 +94,6 @@ const FEATURE_PARENTS: Record<string, string> = {
 
 type PermissionCodes = Pick<AuthPermissions, "modules" | "features">;
 
-/**
- * True when the code is one of the user's modules, or one of their features
- * whose parent module they also have.
- */
 export function hasPermission(
   permissions: PermissionCodes | null | undefined,
   code: string
