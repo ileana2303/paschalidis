@@ -16,6 +16,8 @@ import {
 } from "@/lib/supplier-price-catalog/prefix-selection";
 import type { SuffixRow } from "@/lib/suffix-management/types";
 
+const EMPTY_SUFFIXES: readonly string[] = [];
+
 const selectClassName =
   "h-10 min-w-0 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200";
 
@@ -116,8 +118,10 @@ export default function CatalogPrefixSuffixPicker({
     [fordSuffixes, fordSearch]
   );
 
-  const selectedOtherSuffixes = value.mode === "other" ? value.sosufix : [];
-  const selectedFordSuffixes = value.mode === "ford" ? value.sosufix : [];
+  const selectedOtherSuffixes =
+    value.mode === "other" ? value.sosufix : EMPTY_SUFFIXES;
+  const selectedFordSuffixes =
+    value.mode === "ford" ? value.sosufix : EMPTY_SUFFIXES;
   const otherSelectedSet = useMemo(
     () => new Set(selectedOtherSuffixes),
     [selectedOtherSuffixes]

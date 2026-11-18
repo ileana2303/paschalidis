@@ -136,11 +136,6 @@ const navItems: NavItem[] = [
     path: "/all-baskets",
   },
   {
-    icon: Upload,
-    name: "Ανέβασμα Τιμοκαταλόγου",
-    path: "/supplier-price-catalog-upload",
-  },
-  {
     icon: ListTodo,
     name: "Picking List",
     path: "/picking-list",
@@ -168,6 +163,11 @@ const navItems: NavItem[] = [
         name: "Αιτήματα Τιμών",
         path: "/price-requests",
         icon: BadgePercent,
+      },
+      {
+        name: "Ανέβασμα Τιμοκαταλόγου",
+        path: "/supplier-price-catalog-upload",
+        icon: Upload,
       },
       {
         name: "Διαμόρφωση Τιμών",
