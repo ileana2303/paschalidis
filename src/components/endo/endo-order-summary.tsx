@@ -2,6 +2,7 @@
 
 import {
     Loader2,
+    RefreshCw,
     Send,
     ShoppingCart,
     Trash2,
@@ -50,6 +51,7 @@ interface EndoOrderSummaryProps {
     updatingItems?: Set<string>;
     onSendOrder?: () => void;
     onClearSelection?: () => void;
+    onRefresh?: () => void;
     clearButtonLabel?: string;
     collapsible?: boolean;
     collapsed?: boolean;
@@ -81,6 +83,7 @@ export default function EndoOrderSummary({
     updatingItems,
     onSendOrder,
     onClearSelection,
+    onRefresh,
     clearButtonLabel = "Καθαρισμός",
     collapsible = false,
     collapsed = false,
@@ -124,6 +127,20 @@ export default function EndoOrderSummary({
             collapsible={collapsible}
             collapsed={collapsed}
             href="/endo/endo-lists-requested"
+            actions={
+                onRefresh ? (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={loading}
+                        title="Ανανέωση"
+                        aria-label="Ανανέωση καλαθιού ενδοδιακίνησης"
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                    </button>
+                ) : undefined
+            }
             onToggleCollapse={onToggleCollapse}
             collapseTitle="Απόκρυψη καλαθιού"
             fitContentWhenStacked={fitContentWhenStacked}

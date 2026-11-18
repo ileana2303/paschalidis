@@ -1089,6 +1089,7 @@ export default function CompanyStockClient() {
           loading={supplierBasketsLoading}
           error={supplierBasketsError}
           isSubmitting={submittingSupplierTrdr != null}
+          onRefresh={() => void loadSupplierBaskets()}
           collapsed={!summaryVisible}
           onToggleCollapse={() => setSummaryVisible((visible) => !visible)}
         />

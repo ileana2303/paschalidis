@@ -88,6 +88,7 @@ export default function StockRequestsClient({
 
     const [rows, setRows] = useState<IStockRequestListRow[]>([]);
     const [loading, setLoading] = useState(true);
+    const [summaryVisible, setSummaryVisible] = useState(true);
 
     const [updatingId, setUpdatingId] = useState("");
     const [submittingAnatrof, setSubmittingAnatrof] = useState(false);
@@ -1077,6 +1078,11 @@ export default function StockRequestsClient({
                         onSendOrder={() => void handleSubmitAnatrofOrder()}
                         notes={notes}
                         onNotesChange={setNotes}
+                        collapsible
+                        collapsed={!summaryVisible}
+                        onToggleCollapse={() =>
+                            setSummaryVisible((visible) => !visible)
+                        }
                     />
                 )}
             </div>

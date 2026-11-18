@@ -964,6 +964,7 @@ export default function EndoPartsClient() {
                     loading={summaryLoading}
                     error={basketError}
                     successMessage={basketSuccess}
+                    onRefresh={() => void loadRequestedEndoLines()}
                     onToggleItem={handleToggleBasketItem}
                     onRemoveItem={(uid) => void handleRemoveBasketItems([uid])}
                     onRemoveSelectedItems={() =>

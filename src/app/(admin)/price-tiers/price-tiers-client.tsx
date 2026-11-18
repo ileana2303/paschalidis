@@ -35,6 +35,7 @@ export default function PriceTiersClient() {
         useState<PriceTierGridOrientation>("items-as-rows");
     const [selectedCustomerGroupId, setSelectedCustomerGroupId] =
         useState<string | null>(null);
+    const [assignmentVisible, setAssignmentVisible] = useState(true);
 
     const grid = useMemo(() => buildPriceTierGrid(data?.cells ?? []), [data?.cells]);
     const availableGroupIds = useMemo(
@@ -80,7 +81,14 @@ export default function PriceTiersClient() {
         <div>
             <PageBreadcrumb pageTitle="Βαθμίδες Τιμών" />
 
-            <div className="grid items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <div
+                className={[
+                    "grid items-start gap-6",
+                    assignmentVisible
+                        ? "2xl:grid-cols-[minmax(0,1fr)_22rem]"
+                        : "2xl:grid-cols-[minmax(0,1fr)_2rem]",
+                ].join(" ")}
+            >
                 <DataTable className="min-w-0">
                     <DataTableHeader
                         title="Πλέγμα βαθμίδων"
@@ -216,7 +224,12 @@ export default function PriceTiersClient() {
                 </DataTable>
 
                 <div className="w-full max-w-2xl 2xl:max-w-none">
-                    <CustomerGroupForm />
+                    <CustomerGroupForm
+                        collapsed={!assignmentVisible}
+                        onToggleCollapse={() =>
+                            setAssignmentVisible((visible) => !visible)
+                        }
+                    />
                 </div>
             </div>
         </div>

@@ -13,6 +13,7 @@ import {
     ChevronDown,
     Loader2,
     Package,
+    RefreshCw,
     Send,
     Trash2,
     Truck,
@@ -49,6 +50,7 @@ interface CompanyStockOrderSummaryProps {
     isSubmitting?: boolean;
     collapsed?: boolean;
     onToggleCollapse?: () => void;
+    onRefresh?: () => void;
 }
 
 interface SupplierBasketGroup {
@@ -132,6 +134,7 @@ export default function CompanyStockOrderSummary({
     isSubmitting = false,
     collapsed = false,
     onToggleCollapse,
+    onRefresh,
 }: CompanyStockOrderSummaryProps) {
     const supplierGroups = useMemo(() => groupBasketLines(lines), [lines]);
     const totalQuantity = lines.reduce(
@@ -154,6 +157,20 @@ export default function CompanyStockOrderSummary({
             collapsed={collapsed}
             onToggleCollapse={onToggleCollapse}
             collapseTitle="Απόκρυψη καλαθιού"
+            actions={
+                onRefresh ? (
+                    <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={loading}
+                        title="Ανανέωση"
+                        aria-label="Ανανέωση καλαθιών κεντρικού εφοδιασμού"
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                    </button>
+                ) : undefined
+            }
             loading={loading}
             error={error}
             asideClassName={collapsed

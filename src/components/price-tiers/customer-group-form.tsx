@@ -9,7 +9,15 @@ import {
     usePriceTierGroupsQuery,
 } from "@/hooks/queries/usePriceTierQueries";
 import { useModal } from "@/hooks/useModal";
-import { Check, Loader2, RefreshCw, UserSearch, X } from "@/lib/icons/lucide";
+import {
+    Check,
+    Loader2,
+    PanelRightClose,
+    PanelRightOpen,
+    RefreshCw,
+    UserSearch,
+    X,
+} from "@/lib/icons/lucide";
 import type { ICustomerInfo } from "@/lib/interface";
 import type { PriceTierCustomerGroup } from "@/lib/price-tiers/types";
 
@@ -17,7 +25,15 @@ function formatGroup(group: PriceTierCustomerGroup) {
     return group.name ? `${group.code} — ${group.name}` : group.code;
 }
 
-export default function CustomerGroupForm() {
+interface CustomerGroupFormProps {
+    collapsed?: boolean;
+    onToggleCollapse?: () => void;
+}
+
+export default function CustomerGroupForm({
+    collapsed = false,
+    onToggleCollapse,
+}: CustomerGroupFormProps) {
     const groupsQuery = usePriceTierGroupsQuery();
     const assignMutation = useAssignCustomerPriceGroupMutation();
     const { mutateAsync: searchCustomers } = useSearchCustomersMutation();
@@ -108,12 +124,40 @@ export default function CustomerGroupForm() {
 
     const canAssign = Boolean(customer && trdpGroup) && !assignMutation.isPending;
 
+    if (collapsed) {
+        return (
+            <aside className="hidden min-w-0 shrink-0 2xl:flex">
+                <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    aria-label="Εμφάνιση ανάθεσης ομάδας σε πελάτη"
+                    className="mt-6 flex h-8 w-8 items-center justify-center self-start rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                >
+                    <PanelRightOpen className="h-4 w-4" />
+                </button>
+            </aside>
+        );
+    }
+
     return (
         <section className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                    Ανάθεση ομάδας σε πελάτη
-                </h2>
+                <div className="flex items-start justify-between gap-3">
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                        Ανάθεση ομάδας σε πελάτη
+                    </h2>
+                    {onToggleCollapse && (
+                        <button
+                            type="button"
+                            onClick={onToggleCollapse}
+                            title="Απόκρυψη ανάθεσης ομάδας"
+                            aria-label="Απόκρυψη ανάθεσης ομάδας σε πελάτη"
+                            className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200 2xl:flex"
+                        >
+                            <PanelRightClose className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     Η ομάδα του πελάτη καθορίζει ποια στήλη του πλέγματος ισχύει γι’ αυτόν.
                 </p>
