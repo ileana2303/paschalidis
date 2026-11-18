@@ -63,5 +63,8 @@
       "react": "^16.8.0 || ^17 || ^18 || ^19",
       "react-dom": "^16.8.0 || ^17 || ^18 || ^19"
     }
+  },
+  "allowScripts": {
+    "unrs-resolver@1.11.1": true
   }
 }
