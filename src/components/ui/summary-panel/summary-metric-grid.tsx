@@ -14,6 +14,7 @@ interface SummaryMetricGridProps {
     metrics: SummaryMetric[];
     columns?: 1 | 2;
     className?: string;
+    compact?: boolean;
 }
 
 function getValueClassName(tone: SummaryMetricTone) {
@@ -36,15 +37,30 @@ function getValueClassName(tone: SummaryMetricTone) {
     return "text-gray-800 dark:text-white/90";
 }
 
-function SummaryMetricCard({ metric }: { metric: SummaryMetric }) {
+function SummaryMetricCard({
+    metric,
+    compact,
+}: {
+    metric: SummaryMetric;
+    compact: boolean;
+}) {
     return (
-        <div className="min-w-0 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40">
-            <p className="truncate text-xs uppercase tracking-[0.18em] text-gray-500">
+        <div
+            className={[
+                "min-w-0 border border-gray-200 dark:border-gray-800",
+                compact
+                    ? "rounded-xl bg-white px-3 py-2.5 dark:bg-gray-900/40"
+                    : "rounded-2xl bg-gray-50 p-4 dark:bg-gray-900/40",
+            ].join(" ")}
+        >
+            <p className={`${compact ? "text-[10px] tracking-[0.14em]" : "text-xs tracking-[0.18em]"} truncate uppercase text-gray-500`}>
                 {metric.label}
             </p>
             <p
                 className={[
-                    "mt-2 break-words text-2xl font-semibold tabular-nums",
+                    compact
+                        ? "mt-1 break-words text-lg font-semibold tabular-nums 2xl:text-xl"
+                        : "mt-2 break-words text-2xl font-semibold tabular-nums",
                     getValueClassName(metric.tone ?? "default"),
                 ].join(" ")}
             >
@@ -63,6 +79,7 @@ export default function SummaryMetricGrid({
     metrics,
     columns = 2,
     className = "",
+    compact = false,
 }: SummaryMetricGridProps) {
     if (metrics.length === 0) {
         return null;
@@ -71,13 +88,13 @@ export default function SummaryMetricGrid({
     return (
         <div
             className={[
-                "mt-5 grid min-w-0 gap-3",
+                compact ? "mt-3 grid min-w-0 gap-2" : "mt-5 grid min-w-0 gap-3",
                 columns === 1 ? "grid-cols-1" : "grid-cols-2",
                 className,
             ].join(" ")}
         >
             {metrics.map((metric) => (
-                <SummaryMetricCard key={metric.id} metric={metric} />
+                <SummaryMetricCard key={metric.id} metric={metric} compact={compact} />
             ))}
         </div>
     );

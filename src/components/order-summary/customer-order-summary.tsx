@@ -85,7 +85,7 @@ function SegmentedControl<T extends string>({
     onChange?: (value: T) => void;
 }) {
     return (
-        <div className="flex min-w-0 gap-2">
+        <div className="flex min-w-0 gap-1 rounded-xl border border-gray-200 bg-gray-100/80 p-1 dark:border-gray-700 dark:bg-gray-900/80">
             {options.map((option) => {
                 const selected = option.value === value;
 
@@ -96,10 +96,10 @@ function SegmentedControl<T extends string>({
                         onClick={() => onChange?.(option.value)}
                         aria-pressed={selected}
                         className={[
-                            "min-w-0 flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition",
+                            "min-w-0 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition",
                             selected
-                                ? "border-brand-200 bg-brand-50 text-brand-600 dark:border-brand-500 dark:bg-brand-500/10 dark:text-brand-400"
-                                : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700",
+                                ? "bg-white text-brand-600 shadow-theme-xs dark:bg-gray-800 dark:text-brand-300"
+                                : "text-gray-500 hover:bg-white/70 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200",
                         ].join(" ")}
                     >
                         {option.label}
@@ -191,7 +191,19 @@ export default function CustomerOrderSummary({
     return (
         <SummaryPanel
             label="Σύνοψη Παραγγελίας"
-            title="Καλάθι Πελάτη"
+            title={(
+                <span className="flex min-w-0 items-baseline gap-2">
+                    <span className="shrink-0">Καλάθι Πελάτη</span>
+                    {customer?.NAME && (
+                        <span
+                            title={customer.NAME}
+                            className="min-w-0 truncate text-sm font-medium text-gray-500 dark:text-gray-400"
+                        >
+                            · {customer.NAME}
+                        </span>
+                    )}
+                </span>
+            )}
             href={isOnBasketPage ? undefined : basketHref}
             actions={
                 customer ? (
@@ -211,7 +223,8 @@ export default function CustomerOrderSummary({
             collapsed={collapsed}
             onToggleCollapse={onToggleCollapse}
             collapseTitle="Απόκρυψη καλαθιού"
-            panelClassName="bg-[#FCFDFE]"
+            panelClassName="bg-white shadow-theme-xs"
+            contentClassName="bg-gray-50/50 dark:bg-transparent"
             fitContentWhenStacked={fitContentWhenStacked}
             wideLayoutBreakpoint={wideLayoutBreakpoint}
             footer={
@@ -237,6 +250,7 @@ export default function CustomerOrderSummary({
                 <SummaryInfoCard
                     label="Επιλεγμένος Πελάτης"
                     title={customer?.NAME ?? "Δεν έχει επιλεγεί πελάτης"}
+                    compact
                     description={
                         customer
                             ? `ΑΦΜ: ${customer.AFM}`
@@ -246,6 +260,7 @@ export default function CustomerOrderSummary({
             )}
 
             <SummaryMetricGrid
+                compact
                 metrics={[
                     {
                         id: "products",
@@ -286,10 +301,10 @@ export default function CustomerOrderSummary({
                     removingSelectedItems={removingSelectedItems}
                     onOpenItem={handleOpenBasketLineItem}
                     onChangeQuantity={onChangeQuantity}
-                    requestedPriceValues={isOnBasketPage ? undefined : requestedPriceValues}
-                    onRequestedPriceValueChange={isOnBasketPage ? undefined : onRequestedPriceValueChange}
-                    onRequestPrice={isOnBasketPage ? undefined : onRequestPrice}
-                    submittingRequestedPrices={isOnBasketPage ? undefined : submittingRequestedPrices}
+                    requestedPriceValues={requestedPriceValues}
+                    onRequestedPriceValueChange={onRequestedPriceValueChange}
+                    onRequestPrice={onRequestPrice}
+                    submittingRequestedPrices={submittingRequestedPrices}
                 />
             )}
 

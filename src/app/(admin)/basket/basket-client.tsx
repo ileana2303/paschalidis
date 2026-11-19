@@ -602,6 +602,10 @@ export default function BasketClient() {
                     }
                     removingSelectedItems={removingSelectedItems}
                     onChangeQuantity={handleUpdateQty}
+                    requestedPriceValues={requestedPrices}
+                    onRequestedPriceValueChange={setRequestedPriceValue}
+                    onRequestPrice={canRequestPrice ? handleRequestPrice : undefined}
+                    submittingRequestedPrices={submittingRequestedPrices}
                     fitContentWhenStacked
                 />
             </div>

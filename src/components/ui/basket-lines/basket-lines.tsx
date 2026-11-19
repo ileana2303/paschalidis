@@ -146,7 +146,7 @@ export default function BasketLines({
                     <p className="mt-3 text-sm text-gray-400">{emptyStateLabel}</p>
                 </div>
             ) : (
-                <div className="mt-4 min-w-0 max-w-full space-y-2.5">
+                <div className="mt-3 min-w-0 max-w-full divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900/40">
                     {items.map((item) => {
                         const itemId = getBasketItemId(item);
                         const selected = selectedItems?.has(itemId) ?? true;
@@ -158,14 +158,12 @@ export default function BasketLines({
                         const requestedPrice = hasPriceRequest
                             ? getBasketItemRequestedPrice(item)
                             : null;
-                        const hasRequestedPrice =
-                            requestedPrice != null &&
-                            requestedPrice > 0 &&
-                            Math.abs(requestedPrice - erpPrice) > 0.0001;
-
                         const lineTotal = getBasketItemLineTotal(item);
 
-                        const isApprovedRequest = approvalStatus === "approved" && hasPriceRequest;
+                        const isApprovedRequest =
+                            approvalStatus === "approved" &&
+                            hasPriceRequest &&
+                            (requestedPrice ?? 0) > 0;
 
                         const requestStatusLabel =
                             approvalStatus === "approved"
@@ -174,12 +172,12 @@ export default function BasketLines({
                                     ? "Απορρίφθηκε"
                                     : "Σε αναμονή";
 
-                        const requestStatusClassName =
+                        const requestStatusDotClassName =
                             approvalStatus === "approved"
-                                ? "border-green-200 bg-green-50 text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400"
+                                ? "bg-green-500"
                                 : approvalStatus === "rejected"
-                                    ? "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
-                                    : "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-500/20 dark:bg-yellow-500/10 dark:text-yellow-400";
+                                    ? "bg-red-500"
+                                    : "bg-amber-500";
 
                         const currentQuantity = Number(item.QTY ?? 1);
                         const requestedPriceValue = requestedPriceValues?.[itemId] ?? "";
@@ -192,73 +190,79 @@ export default function BasketLines({
                             <article
                                 key={itemId}
                                 className={[
-                                    "group min-w-0 max-w-full overflow-hidden rounded-2xl border bg-white p-3 shadow-xs transition-all dark:bg-gray-900/50",
+                                    "group min-w-0 max-w-full px-2.5 py-2 transition-colors",
                                     selected
-                                        ? "border-gray-200 hover:border-brand-200 hover:shadow-sm dark:border-gray-800 dark:hover:border-brand-500/30"
-                                        : "border-gray-200 opacity-60 dark:border-gray-800",
+                                        ? "hover:bg-gray-50/80 dark:hover:bg-white/[0.025]"
+                                        : "bg-gray-50/60 opacity-60 dark:bg-white/[0.015]",
                                 ].join(" ")}
                             >
-                                <div className="grid grid-cols-1 gap-3">
-                                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                        <div className="flex min-w-0 items-start gap-3">
-                                            <div className="flex shrink-0 flex-col items-center gap-2 pt-1">
-                                                {onToggleItem && (
-                                                    <DataTableSelectionCheckbox
-                                                        checked={selected}
-                                                        onCheckedChange={() => onToggleItem(itemId)}
-                                                        ariaLabel={selected ? "Αποεπιλογή" : "Επιλογή"}
-                                                    />
-                                                )}
+                                <div className="flex min-w-0 items-start gap-2.5">
+                                    {onToggleItem && (
+                                        <DataTableSelectionCheckbox
+                                            checked={selected}
+                                            onCheckedChange={() => onToggleItem(itemId)}
+                                            ariaLabel={selected ? "Αποεπιλογή" : "Επιλογή"}
+                                            className="mt-0.5"
+                                        />
+                                    )}
 
-                                                {onRemoveItem && (
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex min-w-0 items-center justify-between gap-2">
+                                            <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                                                {onOpenItem ? (
                                                     <button
                                                         type="button"
-                                                        onClick={() => onRemoveItem(itemId)}
-                                                        disabled={removingItems?.has(itemId)}
-                                                        aria-label="Αφαίρεση"
-                                                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                                        onClick={() => onOpenItem(item)}
+                                                        className="max-w-[45%] shrink-0 truncate text-left font-mono text-xs font-bold tracking-wide text-gray-900 transition hover:text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 2xl:text-sm dark:text-white dark:hover:text-brand-400"
                                                     >
-                                                        {removingItems?.has(itemId) ? (
-                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                        ) : (
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        )}
+                                                        {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
                                                     </button>
+                                                ) : (
+                                                    <p className="truncate font-mono text-xs font-bold tracking-wide text-gray-900 2xl:text-sm dark:text-white">
+                                                        {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
+                                                    </p>
                                                 )}
-                                            </div>
 
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    {onOpenItem ? (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => onOpenItem(item)}
-                                                            className="truncate text-left text-sm font-semibold text-gray-800 transition hover:text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 dark:text-white/90 dark:hover:text-brand-400"
-                                                        >
-                                                            {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
-                                                        </button>
-                                                    ) : (
-                                                        <p className="truncate text-sm font-semibold text-gray-800 dark:text-white/90">
-                                                            {item.ITEM_CODE || item.CODE2 || item.CODE || "-"}
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                                                <p
+                                                    className="min-w-0 flex-1 truncate text-[11px] font-medium text-gray-500 2xl:text-xs dark:text-gray-400"
+                                                    title={item.ITEM_DESCR || item.NAME || "-"}
+                                                >
                                                     {item.ITEM_DESCR || item.NAME || "-"}
                                                 </p>
                                             </div>
+
+                                            {onRemoveItem && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onRemoveItem(itemId)}
+                                                    disabled={removingItems?.has(itemId)}
+                                                    aria-label="Αφαίρεση"
+                                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                                >
+                                                    {removingItems?.has(itemId) ? (
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    ) : (
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    )}
+                                                </button>
+                                            )}
                                         </div>
 
-                                        <div className="grid min-w-0 w-full grid-cols-[minmax(4rem,1fr)_minmax(7rem,auto)] items-end gap-3 sm:w-auto sm:shrink-0">
+                                        <div
+                                            className={[
+                                                "mt-1.5 grid items-start gap-1.5 border-t border-gray-100 pt-1.5 dark:border-gray-800",
+                                                hasPriceRequest || canRequestPrice
+                                                    ? "grid-cols-[3.25rem_0.75rem_minmax(0,1fr)_minmax(0,1.15fr)_auto]"
+                                                    : "grid-cols-[3.25rem_0.75rem_minmax(0,1fr)_auto]",
+                                            ].join(" ")}
+                                        >
                                             <div>
                                                 <label
                                                     htmlFor={`basket-qty-${itemId}`}
-                                                    className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400"
+                                                    className="mb-1 flex h-4 items-center text-[9px] font-semibold uppercase leading-none tracking-[0.12em] text-gray-400 2xl:text-[10px]"
                                                 >
-                                                    Ποσότητα
+                                                    Ποσ.
                                                 </label>
-
                                                 <QuantitySelect
                                                     id={`basket-qty-${itemId}`}
                                                     value={Number.isFinite(currentQuantity) ? currentQuantity : 1}
@@ -266,91 +270,85 @@ export default function BasketLines({
                                                         onChangeQuantity?.(itemId, nextQuantity)
                                                     }
                                                     disabled={!onChangeQuantity}
+                                                    compact
                                                     className="w-full"
                                                 />
                                             </div>
 
-                                            <div className="text-right">
-                                                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+                                            <div aria-hidden="true" />
+
+                                            <div className="min-w-0">
+                                                <p className="mb-1 flex h-4 items-center text-[9px] font-semibold uppercase leading-none tracking-[0.12em] text-gray-400 2xl:text-[10px]">
+                                                    Τιμή ERP
+                                                </p>
+                                                <p
+                                                    className={[
+                                                        "truncate text-xs font-semibold leading-7 tabular-nums text-gray-700 2xl:text-sm dark:text-gray-200",
+                                                        isApprovedRequest ? "line-through opacity-55" : "",
+                                                    ].join(" ")}
+                                                >
+                                                    {formatPrice(erpPrice)}
+                                                </p>
+                                            </div>
+
+                                            {(hasPriceRequest || canRequestPrice) && (
+                                                <div className="min-w-0">
+                                                    <div className="mb-1 flex h-4 min-w-0 items-center">
+                                                        <p className="min-w-0 flex-1 truncate text-[9px] font-semibold uppercase leading-none tracking-[0.12em] text-gray-400 2xl:text-[10px]">
+                                                            Αιτ. τιμή
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex h-7 min-w-0 items-center gap-1">
+                                                        {hasPriceRequest && (
+                                                            <span
+                                                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${requestStatusDotClassName}`}
+                                                                title={requestStatusLabel}
+                                                                aria-label={requestStatusLabel}
+                                                            />
+                                                        )}
+
+                                                        {canRequestPrice && !isApprovedRequest ? (
+                                                            <RequestPriceBox
+                                                                status={approvalStatus}
+                                                                hasPriceRequest={hasPriceRequest}
+                                                                requestedPrice={requestedPrice}
+                                                                value={requestedPriceValue}
+                                                                onChange={(value) =>
+                                                                    onRequestedPriceValueChange?.(itemId, value)
+                                                                }
+                                                                onSubmit={() => onRequestPrice?.(itemId)}
+                                                                submitting={isSubmittingRequestPrice}
+                                                                prominent
+                                                                valueSlot
+                                                                className="w-fit min-w-0 max-w-full"
+                                                            />
+                                                        ) : hasPriceRequest ? (
+                                                            <span
+                                                                className={[
+                                                                    "min-w-0 truncate text-[11px] font-semibold tabular-nums 2xl:text-sm",
+                                                                    isApprovedRequest
+                                                                        ? "text-green-700 dark:text-green-400"
+                                                                        : "text-gray-700 dark:text-gray-200",
+                                                                ].join(" ")}
+                                                            >
+                                                                {formatPrice(requestedPrice)}
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="min-w-0 text-right">
+                                                <p className="mb-1 flex h-4 items-center justify-end text-[9px] font-semibold uppercase leading-none tracking-[0.12em] text-gray-400 2xl:text-[10px]">
                                                     Σύνολο
                                                 </p>
-
-                                                <p className="inline-flex h-8 max-w-full items-center truncate rounded-full border border-brand-200 bg-brand-50 px-3 text-sm font-bold tabular-nums text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
+                                                <p className="truncate text-sm font-bold leading-7 tabular-nums text-brand-600 2xl:text-base dark:text-brand-300">
                                                     {formatPrice(lineTotal)}
                                                 </p>
                                             </div>
                                         </div>
+
                                     </div>
-
-                                    <div className="min-w-0 rounded-xl border border-gray-100 bg-gray-50 px-2.5 py-2 dark:border-gray-800 dark:bg-white/[0.03]">
-                                        <div className="mb-2 flex items-center justify-between gap-2">
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
-                                                Τιμές
-                                            </p>
-
-                                            {hasPriceRequest && (
-                                                <span
-                                                    className={`inline-flex max-w-full shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${requestStatusClassName}`}
-                                                >
-                                                    {requestStatusLabel}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                    ERP
-                                                </span>
-
-                                                <span
-                                                    className={[
-                                                        "inline-flex rounded-lg px-2 py-1 text-xs font-semibold tabular-nums",
-                                                        isApprovedRequest
-                                                            ? "border border-gray-200 bg-white text-gray-400 line-through dark:border-gray-700 dark:bg-gray-900 dark:text-gray-500"
-                                                            : "text-gray-700 dark:text-white/90",
-                                                    ].join(" ")}
-                                                >
-                                                    {formatPrice(erpPrice)}
-                                                </span>
-                                            </div>
-
-                                            {hasPriceRequest && (
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                        Ζητούμενη
-                                                    </span>
-
-                                                    <span
-                                                        className={[
-                                                            "inline-flex rounded-lg px-2 py-1 text-xs font-semibold tabular-nums",
-                                                            isApprovedRequest
-                                                                ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                                                                : "text-gray-700 dark:text-white/90",
-                                                        ].join(" ")}
-                                                    >
-                                                        {formatPrice(requestedPrice)}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {canRequestPrice && (
-                                            <RequestPriceBox
-                                                status={approvalStatus}
-                                                hasPriceRequest={hasPriceRequest}
-                                                requestedPrice={requestedPrice}
-                                                value={requestedPriceValue}
-                                                onChange={(value) =>
-                                                    onRequestedPriceValueChange?.(itemId, value)
-                                                }
-                                                onSubmit={() => onRequestPrice?.(itemId)}
-                                                submitting={isSubmittingRequestPrice}
-                                                className="mt-2"
-                                            />
-                                        )}
-                                    </div>
-
                                 </div>
                             </article>
                         );

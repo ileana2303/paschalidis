@@ -9,6 +9,7 @@ interface SummaryInfoCardProps {
     icon?: ReactNode;
     variant?: SummaryInfoCardVariant;
     className?: string;
+    compact?: boolean;
 }
 
 function getCardClassName(variant: SummaryInfoCardVariant) {
@@ -42,11 +43,12 @@ export default function SummaryInfoCard({
     icon,
     variant = "brand",
     className = "",
+    compact = false,
 }: SummaryInfoCardProps) {
     return (
         <div
             className={[
-                "rounded-2xl border p-4",
+                compact ? "rounded-xl border px-3 py-2.5" : "rounded-2xl border p-4",
                 getCardClassName(variant),
                 className,
             ].join(" ")}
@@ -56,17 +58,19 @@ export default function SummaryInfoCard({
                 <div className="min-w-0">
                     <p
                         className={[
-                            "text-xs font-medium uppercase tracking-[0.2em]",
+                            compact
+                                ? "text-[10px] font-semibold uppercase tracking-[0.16em]"
+                                : "text-xs font-medium uppercase tracking-[0.2em]",
                             getLabelClassName(variant),
                         ].join(" ")}
                     >
                         {label}
                     </p>
-                    <p className="mt-2 font-semibold text-gray-800 dark:text-white/90">
+                    <p className={`${compact ? "mt-1 text-sm" : "mt-2"} truncate font-semibold text-gray-800 dark:text-white/90`}>
                         {title}
                     </p>
                     {description && (
-                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        <p className={`${compact ? "text-xs" : "text-sm"} mt-1 text-gray-500 dark:text-gray-400`}>
                             {description}
                         </p>
                     )}

@@ -129,7 +129,7 @@ export default function SummaryPanel({
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-500">
                 {label}
             </p>
-            <h3 className="mt-2 text-lg font-semibold text-gray-800 transition group-hover/link:text-brand-500 dark:text-white/90 dark:group-hover/link:text-brand-400">
+            <h3 className="mt-2 min-w-0 text-lg font-semibold text-gray-800 transition group-hover/link:text-brand-500 dark:text-white/90 dark:group-hover/link:text-brand-400">
                 {title}
             </h3>
         </>

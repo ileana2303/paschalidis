@@ -14,6 +14,8 @@ interface RequestPriceBoxProps {
     onSubmit: () => void | Promise<void>;
     submitting?: boolean;
     prominent?: boolean;
+    compact?: boolean;
+    valueSlot?: boolean;
     className?: string;
 }
 
@@ -37,6 +39,8 @@ export default function RequestPriceBox({
     onSubmit,
     submitting = false,
     prominent = false,
+    compact = false,
+    valueSlot = false,
     className = "",
 }: RequestPriceBoxProps) {
     const [isEditing, setIsEditing] = useState(false);
@@ -70,28 +74,46 @@ export default function RequestPriceBox({
     };
 
     if (!isEditing) {
+        const buttonLabel = hasPriceRequest
+            ? isPending
+                ? "Επεξεργασία αιτούμενης τιμής"
+                : "Νέο αίτημα τιμής"
+            : "Αίτημα τιμής";
+
         return (
             <button
                 type="button"
                 onClick={handleStartEditing}
-                className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 transition focus-visible:outline-none focus-visible:ring-2 ${prominent
+                title={compact ? buttonLabel : undefined}
+                aria-label={compact ? buttonLabel : undefined}
+                className={`inline-flex items-center rounded-md transition focus-visible:outline-none focus-visible:ring-2 ${valueSlot ? "h-7 gap-1 px-1.5 py-0.5" : "gap-1.5 px-2 py-1"} ${prominent
                     ? "border border-amber-200 bg-amber-50/90 text-amber-700 hover:bg-amber-100 focus-visible:ring-amber-500/30 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/15"
-                    : "text-xs font-medium text-gray-400 hover:bg-gray-100 hover:text-brand-600 focus-visible:ring-brand-500/30 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-brand-400"
+                    : compact
+                        ? "h-5 w-5 justify-center p-0 text-gray-500 hover:bg-brand-50 hover:text-brand-600 focus-visible:ring-brand-500/30 dark:text-gray-400 dark:hover:bg-brand-500/10 dark:hover:text-brand-300"
+                        : "text-xs font-medium text-gray-400 hover:bg-gray-100 hover:text-brand-600 focus-visible:ring-brand-500/30 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-brand-400"
                     } ${className}`}
             >
                 {hasPriceRequest ? (
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Pencil className="h-3.5 w-3.5 shrink-0" />
                 ) : (
-                    <BadgePercent className="h-3.5 w-3.5" />
+                    <BadgePercent className="h-3.5 w-3.5 shrink-0" />
                 )}
-                <span className={prominent ? "text-[10px] font-semibold uppercase tracking-wide" : ""}>
-                    {hasPriceRequest
-                        ? isPending
-                            ? "Αιτούμενη τιμή"
-                            : "Νέο αίτημα"
-                        : "Αίτημα τιμής"}
-                </span>
-                {hasDisplayRequestedPrice && (
+                {valueSlot ? (
+                    <span className="min-w-0 truncate text-[10px] font-semibold tabular-nums 2xl:text-xs">
+                        {hasPriceRequest && requestedPrice != null && requestedPrice > 0
+                            ? formatRequestedPrice(requestedPrice)
+                            : "Αίτημα"}
+                    </span>
+                ) : !compact && (
+                    <span className={prominent ? "text-[10px] font-semibold uppercase tracking-wide" : ""}>
+                        {hasPriceRequest
+                            ? isPending
+                                ? "Αιτούμενη τιμή"
+                                : "Νέο αίτημα"
+                            : "Αίτημα τιμής"}
+                    </span>
+                )}
+                {!valueSlot && !compact && hasDisplayRequestedPrice && (
                     <span className={prominent
                         ? "text-base font-bold tabular-nums text-amber-700 dark:text-amber-300"
                         : "font-semibold tabular-nums text-gray-700 dark:text-gray-300"}
@@ -104,7 +126,7 @@ export default function RequestPriceBox({
     }
 
     return (
-        <div className={`flex min-w-0 items-center gap-1 ${prominent
+        <div className={`flex min-w-0 flex-wrap items-center gap-1 ${prominent
             ? "rounded-lg border border-amber-200 bg-amber-50/90 p-1 dark:border-amber-500/20 dark:bg-amber-500/10"
             : ""
             } ${className}`}>
@@ -133,7 +155,7 @@ export default function RequestPriceBox({
                 disabled={submitting}
                 placeholder="Τιμή..."
                 aria-label="Ζητούμενη τιμή"
-                className={`h-7 w-20 rounded-md border bg-white px-1.5 text-xs tabular-nums text-gray-800 outline-none transition placeholder:text-gray-400 focus:ring-2 disabled:opacity-50 dark:bg-gray-900 dark:text-white ${prominent
+                className={`h-7 ${compact ? "w-16" : "w-20"} rounded-md border bg-white px-1.5 text-xs tabular-nums text-gray-800 outline-none transition placeholder:text-gray-400 focus:ring-2 disabled:opacity-50 dark:bg-gray-900 dark:text-white ${prominent
                     ? "border-amber-200 focus:border-amber-400 focus:ring-amber-500/10 dark:border-amber-500/30"
                     : "border-gray-200 focus:border-brand-300 focus:ring-brand-500/10 dark:border-gray-700"
                     }`}

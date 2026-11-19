@@ -8,6 +8,7 @@ interface QuantitySelectProps {
     ariaLabel?: string;
     title?: string;
     className?: string;
+    compact?: boolean;
 }
 
 const DEFAULT_MAX_QUANTITY = 100;
@@ -37,6 +38,7 @@ export default function QuantitySelect({
     ariaLabel = "Ποσότητα",
     title,
     className = "",
+    compact = false,
 }: QuantitySelectProps) {
     const normalizedValue = Math.max(0, Math.floor(value));
     const options = getQuantityOptions(normalizedValue, max);
@@ -50,7 +52,7 @@ export default function QuantitySelect({
             disabled={disabled}
             aria-label={ariaLabel}
             title={title}
-            className={`h-8 min-w-0 rounded-lg border border-gray-200 bg-white px-2 text-sm tabular-nums shadow-xs outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500 ${isShowingPlaceholder ? "font-normal text-gray-400 dark:text-gray-400" : "font-semibold text-gray-800 dark:text-white/90"} ${className}`}
+            className={`${compact ? "h-7 rounded-md px-1.5 text-xs 2xl:text-sm" : "h-8 rounded-lg px-2 text-sm"} min-w-0 border border-gray-200 bg-white tabular-nums shadow-xs outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-500/40 dark:disabled:bg-gray-800 dark:disabled:text-gray-500 ${isShowingPlaceholder ? "font-normal text-gray-400 dark:text-gray-400" : "font-semibold text-gray-800 dark:text-white/90"} ${className}`}
         >
             {placeholder != null && <option value={0}>{placeholder}</option>}
             {options.map((quantity) => (
