@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     assignCustomerPriceGroup,
+    fetchPriceTierGroupCustomers,
     fetchPriceTierGrid,
     fetchPriceTierGroups,
     savePriceTier,
@@ -15,6 +16,8 @@ import type {
 
 export const priceTierGridQueryKey = ["price-tiers", "grid"] as const;
 export const priceTierGroupsQueryKey = ["price-tiers", "groups"] as const;
+export const priceTierGroupCustomersQueryKey = (trdpGroup: string) =>
+    ["price-tiers", "customers", trdpGroup] as const;
 
 // Every opening of the screen reads fresh data: nothing is kept once it
 // unmounts, and failed calls are never retried automatically.
@@ -38,6 +41,15 @@ export function usePriceTierGroupsQuery() {
     return useQuery({
         queryKey: priceTierGroupsQueryKey,
         queryFn: fetchPriceTierGroups,
+        ...freshOnlyOptions,
+    });
+}
+
+export function usePriceTierGroupCustomersQuery(trdpGroup: string | null) {
+    return useQuery({
+        queryKey: priceTierGroupCustomersQueryKey(trdpGroup ?? ""),
+        queryFn: () => fetchPriceTierGroupCustomers({ trdpGroup: trdpGroup! }),
+        enabled: Boolean(trdpGroup),
         ...freshOnlyOptions,
     });
 }
@@ -71,8 +83,14 @@ export function useSavePriceTierMutation() {
 }
 
 export function useAssignCustomerPriceGroupMutation() {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: (payload: PriceTierAssignRoutePayload) =>
             assignCustomerPriceGroup(payload),
+        onSuccess: (_response, payload) =>
+            queryClient.invalidateQueries({
+                queryKey: priceTierGroupCustomersQueryKey(payload.trdpGroup),
+            }),
     });
 }

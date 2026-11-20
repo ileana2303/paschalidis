@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import CustomerGroupForm from "@/components/price-tiers/customer-group-form";
+import CustomerGroupCustomers from "@/components/price-tiers/customer-group-customers";
 import CustomerGroupPicker from "@/components/price-tiers/customer-group-picker";
 import PriceTierGrid, {
     PRICE_TIER_AXIS_LABELS,
@@ -14,6 +15,7 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import {
     usePriceTierGridQuery,
+    usePriceTierGroupCustomersQuery,
     usePriceTierGroupsQuery,
 } from "@/hooks/queries/usePriceTierQueries";
 import { Loader2, RefreshCw, Table2 } from "@/lib/icons/lucide";
@@ -60,12 +62,14 @@ export default function PriceTiersClient() {
     const activeCustomerGroupId = selectedCustomerGroup
         ? selectedCustomerGroupId
         : null;
+    const groupCustomersQuery = usePriceTierGroupCustomersQuery(activeCustomerGroupId);
 
     const handleSelectCustomerGroup = (groupId: string | null) => {
         setSelectedCustomerGroupId(groupId);
         if (groupId) setOrientation("items-as-rows");
     };
-    const isRefreshing = isFetching || groupsQuery.isFetching;
+    const isRefreshing =
+        isFetching || groupsQuery.isFetching || groupCustomersQuery.isFetching;
 
     const itemsCount = `${grid.rows.length} ομάδες ειδών`;
     const customersCount = `${grid.columns.length} ομάδες πελατών`;
@@ -140,6 +144,9 @@ export default function PriceTiersClient() {
                                     onClick={() => {
                                         void refetch();
                                         void groupsQuery.refetch();
+                                        if (activeCustomerGroupId) {
+                                            void groupCustomersQuery.refetch();
+                                        }
                                     }}
                                     disabled={isRefreshing}
                                     className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 transition hover:bg-gray-50 disabled:opacity-60 dark:text-gray-300 dark:ring-gray-700 dark:hover:bg-white/[0.03]"
@@ -168,6 +175,21 @@ export default function PriceTiersClient() {
                         onSelect={handleSelectCustomerGroup}
                         onRetry={() => void groupsQuery.refetch()}
                     />
+
+                    {activeCustomerGroupId && (
+                        <CustomerGroupCustomers
+                            customers={groupCustomersQuery.data?.customers ?? []}
+                            totalCount={groupCustomersQuery.data?.totalCount ?? 0}
+                            isLoading={groupCustomersQuery.isLoading}
+                            isFetching={groupCustomersQuery.isFetching}
+                            error={groupCustomersQuery.isError
+                                ? groupCustomersQuery.error instanceof Error
+                                    ? groupCustomersQuery.error
+                                    : new Error("Αποτυχία φόρτωσης των πελατών της ομάδας.")
+                                : null}
+                            onRetry={() => void groupCustomersQuery.refetch()}
+                        />
+                    )}
 
                     <div
                         className="flex flex-wrap items-center gap-1.5 border-b border-gray-100 px-3 py-2.5 sm:px-5 dark:border-gray-800"

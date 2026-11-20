@@ -10,6 +10,7 @@ import {
 const S1_APP_ID = "1305";
 
 export type TierSqlName =
+    | "BCUSTOMERS_BY_GROUP"
     | "TIER_AUTO_EXEC"
     | "TIER_LIST_ALL"
     | "TIER_TRDPGROUP"

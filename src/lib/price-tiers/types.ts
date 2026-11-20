@@ -32,6 +32,35 @@ export interface PriceTierGroupsResponse {
     groups: PriceTierCustomerGroup[];
 }
 
+/** A customer currently assigned to a customer group (BCUSTOMERS_BY_GROUP). */
+export interface PriceTierGroupCustomer {
+    trdr: string;
+    code: string;
+    name: string;
+    email: string;
+    phone: string;
+    taxId: string;
+    address: string;
+    zip: string;
+    city: string;
+    priceTier: string;
+    branchCount: string;
+    trdpGroup: string;
+    groupCode: string;
+    groupName: string;
+}
+
+export interface PriceTierGroupCustomersRoutePayload {
+    trdpGroup: string;
+}
+
+export interface PriceTierGroupCustomersResponse {
+    success: boolean;
+    message?: string;
+    totalCount: number;
+    customers: PriceTierGroupCustomer[];
+}
+
 export interface PriceTierSaveRoutePayload {
     autoId: string;
     tier: string;

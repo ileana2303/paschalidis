@@ -5,6 +5,8 @@ import type {
     PriceTierAssignRoutePayload,
     PriceTierAutoExecResponse,
     PriceTierGridResponse,
+    PriceTierGroupCustomersResponse,
+    PriceTierGroupCustomersRoutePayload,
     PriceTierGroupsResponse,
     PriceTierSaveResponse,
     PriceTierSaveRoutePayload,
@@ -54,6 +56,16 @@ export function fetchPriceTierGroups() {
         "/api/price-tiers/groups",
         {},
         "Αποτυχία φόρτωσης των ομάδων πελατών."
+    );
+}
+
+export function fetchPriceTierGroupCustomers(
+    payload: PriceTierGroupCustomersRoutePayload
+) {
+    return postPriceTiers<PriceTierGroupCustomersResponse>(
+        "/api/price-tiers/customers",
+        payload,
+        "Αποτυχία φόρτωσης των πελατών της ομάδας."
     );
 }
 

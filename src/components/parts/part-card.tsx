@@ -288,7 +288,7 @@ export default function PartResults({
     );
 
     return (
-        <div className={`grid gap-2 ${showAnatrofCard ? "xl:grid-cols-[minmax(0,1fr)_17rem] min-[1800px]:grid-cols-[minmax(0,1fr)_25rem]" : ""}`}>
+        <div className={`grid gap-2 ${showAnatrofCard ? "xl:grid-cols-[minmax(0,1fr)_26rem] min-[1800px]:grid-cols-[minmax(0,1fr)_32rem]" : ""}`}>
 
             <div
                 className={`overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition dark:border-gray-800 dark:bg-white/[0.03] ${isInBasket
@@ -384,12 +384,9 @@ export default function PartResults({
                 </div>
 
                 <div className="p-3">
-                    <div className="flex min-w-0 flex-col gap-2.5 md:flex-row md:items-start md:justify-between">
-                        <div className="flex w-full min-w-0 max-w-[300px] items-center md:w-[clamp(9.5rem,24%,18.75rem)] md:max-w-none md:shrink-0">
-                        </div>
-
+                    <div className="flex min-w-0 flex-col gap-2.5 md:flex-row md:items-start md:justify-end">
                         {hasCustomer && (
-                            <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-x-2 sm:gap-x-3 lg:gap-x-4 lg:justify-end">
+                            <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-2 sm:gap-x-3 lg:gap-x-4">
                                 {basketItem && canRequestPrice && !hasApprovedRequestedPrice && (
                                     <RequestPriceBox
                                         status={requestStatus}
