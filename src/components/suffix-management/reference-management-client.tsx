@@ -60,7 +60,9 @@ export default function ReferenceManagementClient({
   const query = useSuffixListQuery({});
   const { mutateAsync: saveRows } = useSaveSuffixMutation();
   const isGroup = kind === "groups";
-  const canEdit = useCan()(isGroup ? "edit-group" : "edit-b2b");
+  const canEdit = useCan()(
+    isGroup ? "group-management" : "b2b-management"
+  );
   const title = isGroup ? "Διαχείριση Group" : "Διαχείριση B2B";
   const idLabel = isGroup ? "ZGROUP_ID" : "ZB2B_ID";
   const codeLabel = isGroup ? "ZGROUP_CODE" : "ZB2B_CODE";

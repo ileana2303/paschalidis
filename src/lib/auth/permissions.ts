@@ -77,8 +77,6 @@ export const MODULE_SIDEBAR_ORDER = [
 ] as const;
 
 const FEATURE_PARENTS: Record<string, string> = {
-  "edit-b2b": "b2b-management",
-  "edit-group": "group-management",
   "picked-it-up": "picking-list",
   "anatrof-card": "search-parts",
   "expand-details": "search-parts",
@@ -86,7 +84,6 @@ const FEATURE_PARENTS: Record<string, string> = {
   "request-price": "search-parts",
   statistics: "search-parts",
   "stock-branch-meta": "search-parts",
-  "edit-suffix": "suffix-management",
   "create-user": "users-list",
   "edit-user": "users-list",
   "manage-perms": "users-list",

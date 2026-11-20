@@ -95,7 +95,7 @@ function TableSkeleton() {
 }
 
 export default function SuffixManagementClient() {
-  const canEdit = useCan()("edit-suffix");
+  const canEdit = useCan()("suffix-management");
   const [searchInput, setSearchInput] = useState("");
   const [groupCode, setGroupCode] = useState("");
   const [b2bCode, setB2bCode] = useState("");
