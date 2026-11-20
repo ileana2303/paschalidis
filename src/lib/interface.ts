@@ -47,6 +47,11 @@ export interface IItem {
     ITEM_DESCR: string;
     MNF_DESCR: string;
 
+    // Item group - returned by SEARCH_PARTS_PER_TRDR (drives the tier for the selected TRDR).
+    GROUP_NAME?: string;
+    GROUP_CODE?: string;
+    MTRGROUP?: string;
+
     SUFIX: string;
     SUFIX_NAME: string;
     ZGROUP_CODE: string;
@@ -118,6 +123,10 @@ export interface IItem {
 
 // SEARCH_PARTS_PER_TRDR :: Search items with selected customer - includes basket info.
 export interface IItemTRDR extends IItem {
+    TRDR?: string;
+    GROUP_NAME?: string;
+    GROUP_CODE?: string;
+    MTRGROUP?: string;
     FINAL_CUSTOMER_PRICE_BASED_ON_TIER?: string;
     LOCATED_TIER?: string;
     BasketReserved: string;

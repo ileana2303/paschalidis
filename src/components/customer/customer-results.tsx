@@ -1,4 +1,5 @@
 import type { ICustomerInfo } from "@/lib/interface";
+import CustomerGroupBadge from "@/components/customer/customer-group-badge";
 
 interface CustomerResultsProps {
     customers: ICustomerInfo[];
@@ -28,9 +29,7 @@ export default function CustomerResults({
                             </span>
                         </span>
 
-                        <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold tabular-nums text-amber-800 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/25">
-                            Tier {customer.PRICE_TIER}
-                        </span>
+                        <CustomerGroupBadge customer={customer} className="max-w-[55%]" />
                     </span>
 
                     <span className="mt-3 grid gap-x-4 gap-y-1.5 text-xs sm:grid-cols-2">

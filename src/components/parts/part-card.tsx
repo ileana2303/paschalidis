@@ -1,4 +1,5 @@
-import { ChevronDown, Loader2, ShoppingCart } from "@/lib/icons/lucide";
+import { ChevronDown, Layers2, Loader2, ShoppingCart } from "@/lib/icons/lucide";
+import GroupBadge from "@/components/ui/group-badge";
 import { getBranchColor } from "@/lib/branch-colors";
 import { getStockBranchOrder, resolveBranchName } from "@/lib/auth/branches";
 import {
@@ -347,6 +348,18 @@ export default function PartResults({
                             >
                                 {item.STATUS_LABEL}
                             </span>
+
+                            {hasCustomer && (
+                                <GroupBadge
+                                    code={item.GROUP_CODE}
+                                    name={item.GROUP_NAME}
+                                    icon={Layers2}
+                                    tone="amber"
+                                    size="xs"
+                                    collapseNameOnMobile
+                                    className="max-w-[45%]"
+                                />
+                            )}
 
                             {isInBasket && basketItem && (
                                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold leading-tight text-green-700 dark:bg-green-500/10 dark:text-green-400">

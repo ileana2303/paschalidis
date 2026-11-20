@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { ChevronDown, Plus, X } from "@/lib/icons/lucide";
 import type { ICustomerInfo } from "@/lib/interface";
+import CustomerGroupBadge from "@/components/customer/customer-group-badge";
+
+
+// Shown first (with Greek labels) in the expanded details, so skip them in the raw dump.
+const PINNED_INFO_KEYS = new Set(["AFM", "CODE"]);
 
 interface CustomerInfoContainerProps {
     hasMounted: boolean;
@@ -43,27 +48,12 @@ export default function CustomerInfoContainer({
                             className="group flex min-w-0 flex-1 items-center gap-3 text-left"
                         >
                             <span className="min-w-0 flex-1">
-                                <span className="flex min-w-0 items-center gap-2">
-                                    <span className="truncate text-sm font-semibold tracking-tight text-gray-900 dark:text-white/90 sm:text-base">
-                                        {customer.NAME}
-                                    </span>
-                                    {customer.TRDR && (
-                                        <span className="hidden max-w-40 shrink-0 truncate rounded-md bg-brand-100/80 px-2 py-0.5 text-[11px] font-semibold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300 xsm:inline-block">
-                                            {customer.TRDR}
-                                        </span>
-                                    )}
-                                    <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold tabular-nums text-amber-800 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/25">
-                                        Tier {customer.PRICE_TIER}
-                                    </span>
+                                <span className="block truncate text-sm font-semibold tracking-tight text-gray-900 dark:text-white/90 sm:text-base">
+                                    {customer.NAME}
                                 </span>
 
-                                <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                    <span>
-                                        ΑΦΜ <span className="font-medium tabular-nums text-gray-700 dark:text-gray-300">{customer.AFM}</span>
-                                    </span>
-                                    <span>
-                                        Κωδικός <span className="font-medium tabular-nums text-gray-700 dark:text-gray-300">{customer.CODE}</span>
-                                    </span>
+                                <span className="mt-1 flex min-w-0">
+                                    <CustomerGroupBadge customer={customer} />
                                 </span>
                             </span>
 
@@ -94,9 +84,13 @@ export default function CustomerInfoContainer({
                     >
                         <div className="overflow-hidden">
                             <div className="grid grid-cols-1 gap-x-4 gap-y-3 border-t border-brand-100 px-4 py-3 sm:grid-cols-2 dark:border-brand-500/20">
-                                {Object.entries(customer).map(([key, value]) => (
-                                    <InfoItem key={key} label={key} value={value} />
-                                ))}
+                                <InfoItem label="ΑΦΜ" value={customer.AFM} />
+                                <InfoItem label="Κωδικός" value={customer.CODE} />
+                                {Object.entries(customer)
+                                    .filter(([key]) => !PINNED_INFO_KEYS.has(key))
+                                    .map(([key, value]) => (
+                                        <InfoItem key={key} label={key} value={value} />
+                                    ))}
                             </div>
                         </div>
                     </div>
