@@ -17,7 +17,7 @@ function hasSession(req: NextRequest) {
 
 function normalizeDays(value: unknown) {
     const parsed = Number(value);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 10) {
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 31) {
         return null;
     }
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 {
                     success: false,
-                    message: 'Οι ημέρες πρέπει να είναι ακέραιος από 1 έως 10.',
+                    message: 'Οι ημέρες πρέπει να είναι ακέραιος από 1 έως 31.',
                     totalcount: 0,
                     rows: [],
                 },
