@@ -1,8 +1,8 @@
 /**
  * Καλάθι Πελάτη - fixed SALDOC values.
  *
- * SERIES is NOT here: it depends on the branch that sends the order
- * (1000 -> 7002, 1006 -> 17002, 1007 -> 27002, see lib/auth/branches.ts).
+ * SERIES is NOT here: it depends on the branch and whether the order is an
+ * invoice or retail receipt (see lib/auth/branches.ts).
  */
 
 /** Customer baskets have their own S1 route; falls back to S1_ENDPOINT when unset. */

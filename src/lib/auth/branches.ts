@@ -46,10 +46,22 @@ const ENDO_BRANCH_LABEL_BY_CODE: Partial<Record<KnownBranchCode, string>> = {
   "1007": "Λ.Μεσογείων 573",
 } as const;
 
-const SaldocSeriesByBranchCode: Partial<Record<KnownBranchCode, string>> = {
-  "1000": "7002",
-  "1006": "17002",
-  "1007": "27002",
+export type SaldocDocumentType = "invoice" | "receipt";
+
+const SaldocSeriesByDocumentType: Record<
+  SaldocDocumentType,
+  Partial<Record<KnownBranchCode, string>>
+> = {
+  invoice: {
+    "1000": "7002",
+    "1006": "17002",
+    "1007": "27002",
+  },
+  receipt: {
+    "1000": "7003",
+    "1006": "17003",
+    "1007": "27003",
+  },
 } as const;
 
 const StorageThesiByBranchCode: Partial<
@@ -102,10 +114,11 @@ export function getTrdBranchByBranchCode(
 }
 
 export function getSaldocSeriesByBranchCode(
-  branchCode: string | number | null | undefined
+  branchCode: string | number | null | undefined,
+  documentType: SaldocDocumentType = "invoice"
 ) {
   const code = normalizeBranchCode(branchCode) as KnownBranchCode;
-  return SaldocSeriesByBranchCode[code];
+  return SaldocSeriesByDocumentType[documentType][code];
 }
 
 export function getStorageThesiByBranchCode(

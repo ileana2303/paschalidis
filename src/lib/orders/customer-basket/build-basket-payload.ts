@@ -42,7 +42,7 @@ export type BasketSetDataPayload = SetDataEnvelope<{
 export type BuildBasketPayloadParams = {
     /** setData clientID of the branch that sends the order. */
     clientID: string;
-    /** Per-branch SALDOC series (7002 / 17002 / 27002). */
+    /** Per-branch and document-type SALDOC series. */
     series: string;
     /** The real selected customer's TRDR, including for retail comments. */
     customerTrdr: number;

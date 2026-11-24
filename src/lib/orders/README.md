@@ -42,11 +42,11 @@ under the flow's log label, e.g.:
 Branch code `1000` is Κασομούλη (there is no `1001`; the SoftOne stock columns
 are still named `YP1000` / `THESI1000`).
 
-| Branch | TRDBRANCH | SALDOC SERIES | ENDO comment label |
-|---|---|---|---|
-| 1000 Κασομούλη | 15 | 7002 | Κασομούλη |
-| 1006 Λ. Αθηνών | 13 | 17002 | Πάροδος Λ.Αθηνών 65 |
-| 1007 Λ. Μεσογείων | 14 | 27002 | Λ.Μεσογείων 573 |
+| Branch | TRDBRANCH | Invoice SERIES | Retail receipt SERIES | ENDO comment label |
+|---|---|---|---|---|
+| 1000 Κασομούλη | 15 | 7002 | 7003 | Κασομούλη |
+| 1006 Λ. Αθηνών | 13 | 17002 | 17003 | Πάροδος Λ.Αθηνών 65 |
+| 1007 Λ. Μεσογείων | 14 | 27002 | 27003 | Λ.Μεσογείων 573 |
 
 ENDO ignores the SERIES column: it always sends the fixed `7004|πΔ` + `TAXSERIES πΔ`.
 

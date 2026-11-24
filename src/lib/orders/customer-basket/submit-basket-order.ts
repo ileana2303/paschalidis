@@ -120,7 +120,9 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         throw new Error('Λείπει το υποκατάστημα υποβολής της παραγγελίας.');
     }
 
-    const series = getSaldocSeriesByBranchCode(branch);
+    const receiptType: BasketReceiptType =
+        body.receiptType === "receipt" ? "receipt" : "invoice";
+    const series = getSaldocSeriesByBranchCode(branch, receiptType);
 
     if (!series) {
         throw new Error(
@@ -144,9 +146,6 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         nonNegativeNumber(body.trdBranch) ??
         firstItemNonNegativeNumber(rawItems, ["trdBranch", "TRD_BRANCH"]) ??
         0;
-
-    const receiptType: BasketReceiptType =
-        body.receiptType === "receipt" ? "receipt" : "invoice";
 
     const payload = buildBasketPayload({
         clientID,
