@@ -93,7 +93,7 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
             deliveryDate,
             comments: buildEndoPriorityComments(line),
             remarks,
-            requestingBranch: line.requestingBranch,
+            supplyingBranch: line.supplyingBranch,
             cccExtUser: appUserId,
             lines: [{ MTRL: line.mtrl, QTY1: line.qty }],
         });

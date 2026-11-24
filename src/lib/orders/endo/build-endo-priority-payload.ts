@@ -52,15 +52,16 @@ type BuildEndoPriorityPayloadParams = {
     deliveryDate: string;
     comments: string;
     remarks: string;
-    requestingBranch: number;
+    /** Branch that supplies and sends the items -> BRANCHSEC / WHOUSESEC / WHOUSE. */
+    supplyingBranch: number;
     cccExtUser: string;
     lines: SetDataIteLine[];
 };
 
 /**
- * Builds a direct Priority ENDO document. Unlike the request-based ENDO flow,
- * every document/warehouse branch belongs to the requesting branch because it
- * is the branch creating the SoftOne document.
+ * Builds a direct Priority ENDO document. Same branch wiring as ENDO:
+ * SALDOC.BRANCH and MTRDOC BRANCHSEC / WHOUSESEC / WHOUSE are the supplying
+ * branch, TRDBRANCH is the requesting branch.
  */
 export function buildEndoPriorityPayload({
     clientID,
@@ -69,7 +70,7 @@ export function buildEndoPriorityPayload({
     deliveryDate,
     comments,
     remarks,
-    requestingBranch,
+    supplyingBranch,
     cccExtUser,
     lines,
 }: BuildEndoPriorityPayloadParams): EndoPrioritySetDataPayload {
@@ -78,7 +79,7 @@ export function buildEndoPriorityPayload({
             {
                 SERIES: ENDO_SERIES,
                 TAXSERIES: ENDO_TAXSERIES,
-                BRANCH: requestingBranch,
+                BRANCH: supplyingBranch, // supplying branch: picks the items (picking list filters on it)
                 TRDR: trdr,
                 TRDBRANCH: trdBranch,
                 PAYMENT: ENDO_PAYMENT,
@@ -98,9 +99,9 @@ export function buildEndoPriorityPayload({
                 DELIVDATE: deliveryDate,
                 DEPTRDR_CUSTOMER_CODE: "",
                 BILLTRDR_CUSTOMER_CODE: "",
-                BRANCHSEC: requestingBranch,
-                WHOUSESEC: requestingBranch,
-                WHOUSE: requestingBranch,
+                BRANCHSEC: supplyingBranch, // supplying branch: sends the items
+                WHOUSESEC: supplyingBranch, // same as BRANCHSEC
+                WHOUSE: supplyingBranch, // supplying branch warehouse
             },
         ],
         ITELINES: lines,
