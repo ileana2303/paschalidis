@@ -55,6 +55,29 @@ export async function linkBasketRowsToDocument({
         `${logLabel} MASS_DELETE LINK_S1 ok basketIds=${basketIds.join(",")} S1_KEY=${documentId}`
     );
 
+    const deleteResult = await deleteBasketRows({
+        sqlClientID,
+        basketIds,
+        tableAction,
+        logLabel,
+    });
+
+    return {
+        link: linkResult,
+        delete: deleteResult,
+    };
+}
+
+/** MASS_DELETE / DELETE of basket rows without linking them to a document. */
+export async function deleteBasketRows({
+    sqlClientID,
+    basketIds,
+    tableAction,
+    logLabel,
+}: Pick<
+    LinkBasketRowsToDocumentParams,
+    "sqlClientID" | "basketIds" | "tableAction" | "logLabel"
+>) {
     console.info(
         `${logLabel} MASS_DELETE DELETE ${tableAction} basketIds=${basketIds.join(",")}`
     );
@@ -73,8 +96,5 @@ export async function linkBasketRowsToDocument({
         `${logLabel} MASS_DELETE DELETE ok basketIds=${basketIds.join(",")}`
     );
 
-    return {
-        link: linkResult,
-        delete: deleteResult,
-    };
+    return deleteResult;
 }

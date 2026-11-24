@@ -1,5 +1,9 @@
 import { getTrdBranchByBranchCode } from "@/lib/auth/branches";
-import { getSoftOneSetDataClientID } from "@/lib/softone";
+import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
+import {
+    deleteBasketRows,
+    linkBasketRowsToDocument,
+} from "../shared/link-basket-to-document";
 import { requireAppUserId, requireLines } from "../shared/lines";
 import { postSetDataDocument } from "../shared/post-setdata";
 import { jsonSafeNumber, resolveIsoDate } from "../validation";
@@ -8,8 +12,10 @@ import { buildEndoPriorityComments } from "./endo-comments";
 import {
     ENDO_ENDPOINT_ENV_KEY,
     ENDO_PRIORITY_LOG_LABEL,
+    ENDO_TABLE_ACTION,
     ENDO_TRDR,
 } from "./endo-constants";
+import { insertEndoBasketRow } from "./insert-endo-basket-row";
 
 export type RawEndoPriorityItem = {
     mtrl?: unknown;
@@ -59,13 +65,55 @@ function normalizePriorityLines(items: unknown): EndoPriorityLine[] {
     );
 }
 
-/** Creates Priority ENDO documents directly, without inserting or linking ENDO basket rows. */
+/**
+ * Reserves a BASKETID through NOW_ENDO_INSERT. Priority ENDO has no basket of
+ * its own, but it needs a SERIESNUM from the same counter as ENDO: series 7004
+ * holds ENDO documents numbered by BASKETID, so SoftOne's auto-number collides
+ * with them ("Το πεδίο Αριθμός υπάρχει ήδη").
+ */
+async function reservePriorityBasketId(
+    line: EndoPriorityLine,
+    sqlClientID: string,
+    appUserId: string
+) {
+    const inserted = await insertEndoBasketRow({
+        clientID: sqlClientID,
+        mtrl: line.mtrl,
+        qty: line.qty,
+        supplyingBranch: line.supplyingBranch,
+        requestingBranch: line.requestingBranch,
+        appUserId,
+        logLabel: ENDO_PRIORITY_LOG_LABEL,
+    });
+
+    if (!inserted.ok) {
+        throw new Error(
+            `Αποτυχία δέσμευσης αριθμού για την Priority ενδοδιακίνηση: ${inserted.message}`
+        );
+    }
+
+    if (!inserted.basketId) {
+        throw new Error(
+            "Η δέσμευση αριθμού για την Priority ενδοδιακίνηση δεν επέστρεψε BASKETID"
+        );
+    }
+
+    return inserted.basketId;
+}
+
+/**
+ * Creates Priority ENDO documents directly, one per line:
+ * NOW_ENDO_INSERT (reserve BASKETID) -> setData (SERIESNUM = BASKETID) ->
+ * MASS_DELETE LINK_S1 + DELETE. If setData fails the reserved row is deleted,
+ * so it never lingers in the ENDO lists.
+ */
 export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody) {
     const appUserId = requireAppUserId(body.appUserId);
     const lines = normalizePriorityLines(body.items);
     const deliveryDate = resolveIsoDate(body.deliveryDate);
     const remarks = String(body.notes ?? "").trim();
     const documentIds: string[] = [];
+    const basketIds: string[] = [];
 
     for (const line of lines) {
         const clientID = getSoftOneSetDataClientID(line.requestingBranch, {
@@ -78,6 +126,13 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
             );
         }
 
+        // Same SQL clientID choice as the ENDO add-item route (source branch).
+        const sqlClientID = getSoftOneClientID(line.supplyingBranch);
+
+        if (!sqlClientID) {
+            throw new Error('Δεν έχει ρυθμιστεί ο SQL πελάτης SoftOne.');
+        }
+
         const trdBranch = getTrdBranchByBranchCode(line.requestingBranch);
 
         if (!trdBranch) {
@@ -86,10 +141,17 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
             );
         }
 
+        const basketId = await reservePriorityBasketId(line, sqlClientID, appUserId);
+
+        console.info(
+            `${ENDO_PRIORITY_LOG_LABEL} reserved BASKETID ${basketId}: ${line.supplyingBranch} sends -> ${line.requestingBranch} asked`
+        );
+
         const payload = buildEndoPriorityPayload({
             clientID,
             trdr: ENDO_TRDR,
             trdBranch,
+            basketId,
             deliveryDate,
             comments: buildEndoPriorityComments(line),
             remarks,
@@ -98,22 +160,53 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
             lines: [{ MTRL: line.mtrl, QTY1: line.qty }],
         });
 
-        const documentId = await postSetDataDocument({
-            payload,
-            endpointEnvKey: ENDO_ENDPOINT_ENV_KEY,
+        let documentId: string;
+
+        try {
+            documentId = await postSetDataDocument({
+                payload,
+                endpointEnvKey: ENDO_ENDPOINT_ENV_KEY,
+                logLabel: ENDO_PRIORITY_LOG_LABEL,
+                failureMessage: "Αποτυχία υποβολής Priority ενδοδιακίνησης",
+                missingIdMessage:
+                    "Η Priority ενδοδιακίνηση υποβλήθηκε αλλά λείπει το αναγνωριστικό από την απάντηση",
+            });
+        } catch (error) {
+            // Best effort: drop the reserved row so it does not show up as an
+            // open ENDO request. The setData error is what the user must see.
+            await deleteBasketRows({
+                sqlClientID,
+                basketIds: [basketId],
+                tableAction: ENDO_TABLE_ACTION,
+                logLabel: ENDO_PRIORITY_LOG_LABEL,
+            }).catch((cleanupError) => {
+                console.error(
+                    `${ENDO_PRIORITY_LOG_LABEL} cleanup of BASKETID ${basketId} failed`,
+                    cleanupError
+                );
+            });
+
+            throw error;
+        }
+
+        await linkBasketRowsToDocument({
+            sqlClientID,
+            basketIds: [basketId],
+            tableAction: ENDO_TABLE_ACTION,
+            submitType: "endo",
+            documentId,
+            appUserId,
             logLabel: ENDO_PRIORITY_LOG_LABEL,
-            failureMessage: "Αποτυχία υποβολής Priority ενδοδιακίνησης",
-            missingIdMessage:
-                "Η Priority ενδοδιακίνηση υποβλήθηκε αλλά λείπει το αναγνωριστικό από την απάντηση",
         });
 
         documentIds.push(documentId);
+        basketIds.push(basketId);
     }
 
     return {
         success: true as const,
         id: documentIds[0],
         orderIds: documentIds,
-        basketIds: [],
+        basketIds,
     };
 }

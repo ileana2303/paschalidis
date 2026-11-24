@@ -19,6 +19,7 @@ type EndoPrioritySaldoc = {
     TRDR: number;
     TRDBRANCH: number;
     PAYMENT: number;
+    SERIESNUM: string;
     TRUCKS: number;
     DELIVDATE: string;
     COMMENTS: string;
@@ -49,6 +50,11 @@ type BuildEndoPriorityPayloadParams = {
     clientID: string;
     trdr: number;
     trdBranch: number;
+    /**
+     * BASKETID reserved via NOW_ENDO_INSERT -> SERIESNUM. Shares the ENDO
+     * counter, so it never collides with ENDO numbers in series 7004.
+     */
+    basketId: string;
     deliveryDate: string;
     comments: string;
     remarks: string;
@@ -67,6 +73,7 @@ export function buildEndoPriorityPayload({
     clientID,
     trdr,
     trdBranch,
+    basketId,
     deliveryDate,
     comments,
     remarks,
@@ -83,6 +90,7 @@ export function buildEndoPriorityPayload({
                 TRDR: trdr,
                 TRDBRANCH: trdBranch,
                 PAYMENT: ENDO_PAYMENT,
+                SERIESNUM: basketId, // reserved BASKETID - avoids auto-number clashes
                 TRUCKS: ENDO_TRUCKS,
                 DELIVDATE: deliveryDate,
                 COMMENTS: comments,

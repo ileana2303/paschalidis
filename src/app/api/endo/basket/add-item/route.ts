@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
-import {
-    getSoftOneClientID,
-    parseJsonWithEncodingFallback,
-    postSoftOne,
-} from "@/lib/softone";
+import { getSoftOneClientID } from "@/lib/softone";
+import { insertEndoBasketRow } from "@/lib/orders/endo/insert-endo-basket-row";
 import type {
     EndoBasketActionResponse,
-    EndoBasketAddPayload,
     EndoBasketAddRoutePayload,
 } from "@/lib/interface";
-
-const ZERO_GUID = "00000000-0000-0000-0000-000000000000";
-
-function extractBasketId(message: string) {
-    const match = message.match(/ID\s*:\s*(\d+)/i);
-    return match?.[1] ?? "";
-}
 
 export async function POST(req: NextRequest) {
     try {
@@ -33,7 +22,7 @@ export async function POST(req: NextRequest) {
         const normalizedQty = Number(body.QTY);
         const normalizedBranch = Number(body.BRANCH);
         const normalizedToBranch = Number(body.TO_BRANCH);
-        const normalizedAppUserId = String(body.APPUSER_ID ?? "").trim() || ZERO_GUID;
+        const normalizedAppUserId = String(body.APPUSER_ID ?? "").trim();
         const clientID = getSoftOneClientID(normalizedBranch);
 
         if (!clientID) {
@@ -78,70 +67,27 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const payload: EndoBasketAddPayload = {
-            service: "SqlData",
+        const inserted = await insertEndoBasketRow({
             clientID,
-            appId: "1305",
-            SqlName: "NOW_ENDO_INSERT",
-            // NOW_ENDO_INSERT convention:
-            // BRANCH = source branch (where we request stock from),
-            // TO_BRANCH = destination/requester branch (logged-in branch).
-            MTRL: normalizedMtrl,
-            QTY: normalizedQty,
-            BRANCH: normalizedBranch,
-            TO_BRANCH: normalizedToBranch,
-            APPUSER_ID: normalizedAppUserId,
-        };
+            mtrl: normalizedMtrl,
+            qty: normalizedQty,
+            supplyingBranch: normalizedBranch,
+            requestingBranch: normalizedToBranch,
+            appUserId: normalizedAppUserId,
+            logLabel: "[endo/basket/add-item]",
+        });
 
-        const response = await postSoftOne(payload);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("[endo/basket/add-item] Upstream error body:", errorText);
-
+        if (!inserted.ok) {
             return NextResponse.json(
-                { success: false, message: 'Αποτυχία επικοινωνίας με το ERP.' },
-                { status: response.status }
+                { success: false, message: inserted.message },
+                { status: inserted.status }
             );
         }
-
-        const upstreamData = await parseJsonWithEncodingFallback(response) as {
-            success?: boolean;
-            message?: string;
-            rows?: Array<{
-                MESSAGE_TO_CALLER?: string;
-                NEW_ID?: string | number;
-                BASKETID?: string | number;
-                ID?: string | number;
-            }>;
-        };
-
-        if (upstreamData?.success === false) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: upstreamData.message ?? 'Αποτυχία προσθήκης στη λίστα ενδοκινήσεων.',
-                },
-                { status: 502 }
-            );
-        }
-
-        const callerMessage =
-            upstreamData?.rows?.[0]?.MESSAGE_TO_CALLER ??
-            upstreamData?.message ??
-            'Το είδος προστέθηκε στη λίστα ενδοκινήσεων.';
-        const basketId =
-            String(
-                upstreamData?.rows?.[0]?.NEW_ID ??
-                upstreamData?.rows?.[0]?.BASKETID ??
-                upstreamData?.rows?.[0]?.ID ??
-                extractBasketId(callerMessage)
-            ).trim();
 
         const data: EndoBasketActionResponse = {
             success: true,
-            message: callerMessage,
-            basketId: basketId || undefined,
+            message: inserted.message,
+            basketId: inserted.basketId || undefined,
         };
 
         return NextResponse.json(data);
