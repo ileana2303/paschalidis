@@ -23,14 +23,18 @@ export function buildEndoComments({
 type BuildEndoPriorityCommentsParams = Omit<
     BuildEndoCommentsParams,
     "basketId"
->;
+> & {
+    customerName?: string;
+};
 
 export function buildEndoPriorityComments({
     supplyingBranch,
     requestingBranch,
+    customerName,
 }: BuildEndoPriorityCommentsParams) {
     const from = getEndoBranchLabel(supplyingBranch);
     const to = getEndoBranchLabel(requestingBranch);
+    const customer = String(customerName ?? "").trim();
 
-    return `ΠΑΡΑΣΤΑΤΙΚΟ PRIORITY ΑΠΟ ${from} ΣΕ ${to} ${supplyingBranch}-->${requestingBranch}`;
+    return `ΠΑΡΑΣΤΑΤΙΚΟ PRIORITY ΑΠΟ ${from} ΣΕ ${to} - ${supplyingBranch}->${requestingBranch}${customer ? ` ΓΙΑ ${customer}` : ""}`;
 }

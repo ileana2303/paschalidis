@@ -61,6 +61,9 @@ export async function submitEndoPriorityOrder(
         "/api/orders/endo/priority",
         {
             appUserId: String(payload.appUserId ?? "").trim(),
+            customerTrdr: payload.customerTrdr,
+            customerName: payload.customerName,
+            customerTrdBranch: payload.customerTrdBranch,
             deliveryDate: payload.deliveryDate,
             notes: payload.notes,
             items: payload.items,

@@ -483,12 +483,12 @@ export function useSearchPartsBasketController({
         return submittedSuccessfully;
     }, [basket, currentBranchCode, customer, loadBasket, notes, receiptType, selectedItems.size, submitBasketOrder, userId]);
 
-    const handleRefreshBasket = useCallback(() => {
+    const handleRefreshBasket = useCallback(async () => {
         if (!customer) {
             return;
         }
 
-        void loadBasket(customer.TRDR);
+        await loadBasket(customer.TRDR);
     }, [customer, loadBasket]);
 
     const handleToggleSelectedItem = useCallback((uid: string) => {

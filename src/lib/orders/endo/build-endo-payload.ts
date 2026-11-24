@@ -38,6 +38,7 @@ export type EndoMtrdoc = {
     BILLTRDR_CUSTOMER_CODE: "";
     BRANCHSEC: number;
     WHOUSESEC: number;
+    WHOUSE: number;
 };
 
 export type EndoSetDataPayload = SetDataEnvelope<{
@@ -60,7 +61,7 @@ export type BuildEndoPayloadParams = {
     comments: string;
     /** Free-text notes typed by the user. */
     remarks: string;
-    /** Branch that supplies and sends the items -> BRANCHSEC / WHOUSESEC. */
+    /** Branch that supplies and sends the items -> BRANCHSEC / WHOUSESEC / WHOUSE. */
     supplyingBranch: number;
     /** Username of the logged-in user. */
     cccExtUser: string;
@@ -117,6 +118,7 @@ export function buildEndoPayload({
                 BILLTRDR_CUSTOMER_CODE: "", // fixed
                 BRANCHSEC: supplyingBranch, // supplying branch: sends the items
                 WHOUSESEC: supplyingBranch, // same as BRANCHSEC
+                WHOUSE: supplyingBranch, // supplying branch warehouse
             },
         ],
         ITELINES: lines,

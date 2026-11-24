@@ -40,6 +40,7 @@ import type {
     LastOrdersResponse,
 } from "@/lib/part-insights";
 import { ArrowRight, UserSearch } from "@/lib/icons/lucide";
+import { normalizeBranchCode } from "@/lib/auth/branches";
 
 export default function SearchPartsClient() {
     const canRequestPrice = useCan()("request-price");
@@ -127,8 +128,16 @@ export default function SearchPartsClient() {
         handleCustomerModalSearch,
     } = pageController;
 
+    const basketController = useSearchPartsBasketController({
+        customer,
+        currentBranchCode: normalizeBranchCode(user?.mainBranch),
+        userId: user?.username,
+        searchItems: items,
+    });
     const resultsController = useSearchPartsResultsController({
         user,
+        customer,
+        onCustomerBasketChanged: basketController.handleRefreshBasket,
         items,
         hasMounted,
         resultsContainerRef,
@@ -149,12 +158,6 @@ export default function SearchPartsClient() {
         };
     }, [showSidebar]);
 
-    const basketController = useSearchPartsBasketController({
-        customer,
-        currentBranchCode: resultsController.currentBranchCode,
-        userId: user?.username,
-        searchItems: items,
-    });
     const handleUpdateQty = basketController.handleUpdateQty;
 
     const handleOpenPartInsights = useCallback((item: IItem) => {

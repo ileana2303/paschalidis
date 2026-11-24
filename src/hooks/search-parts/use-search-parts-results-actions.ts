@@ -3,7 +3,7 @@
 import { isAxiosError } from "axios";
 import { useCallback, useEffect } from "react";
 import type { AuthUser } from "@/lib/auth/types";
-import type { IItem } from "@/lib/interface";
+import type { ICustomerInfo, IItem } from "@/lib/interface";
 import {
     useAddItemToEndoBasketMutation,
     useFetchEndoListsMutation,
@@ -17,9 +17,12 @@ import {
 } from "@/hooks/search-parts/search-parts-endo-utils";
 import type { EndoBasketUiItem } from "@/components/endo/endo-order-summary";
 import toast from "react-hot-toast";
+import { getCustomerBasketUnitPrice } from "@/lib/utils/customer-price-tier";
 
 interface UseSearchPartsResultsActionsParams {
     user: AuthUser | null;
+    customer: ICustomerInfo | null;
+    onCustomerBasketChanged?: () => void | Promise<void>;
     state: SearchPartsResultsState;
 }
 
@@ -45,6 +48,8 @@ function buildEndoPendingQuantities(
 
 export function useSearchPartsResultsActions({
     user,
+    customer,
+    onCustomerBasketChanged,
     state,
 }: UseSearchPartsResultsActionsParams) {
     const { mutateAsync: requestStockQuantity } = useRequestStockQuantityMutation();
@@ -243,16 +248,23 @@ export function useSearchPartsResultsActions({
         try {
             const response = await submitEndoPriorityOrder({
                 appUserId: user?.username,
+                customerTrdr: customer?.TRDR,
+                customerName: customer?.NAME,
+                customerTrdBranch: customer?.TRDBRANCH,
                 items: [
                     {
                         mtrl: Number(item.MTRL),
                         qty: requestedQty,
+                        priceErp: customer
+                            ? getCustomerBasketUnitPrice(item, customer)
+                            : undefined,
                         supplyingBranch,
                         requestingBranch,
                     },
                 ],
             });
 
+            await onCustomerBasketChanged?.();
             setEndoRequestedQty(item.MTRL, sourceBranchCode, 0);
             toast.success(
                 response.message ?? "Η Priority ενδοδιακίνηση δημιουργήθηκε επιτυχώς"
@@ -278,8 +290,10 @@ export function useSearchPartsResultsActions({
         }
     }, [
         currentBranchCode,
+        customer,
         getEndoBranchOptions,
         getEndoRequestedQty,
+        onCustomerBasketChanged,
         setEndoRequestedQty,
         setSubmittingEndoPriority,
         submitEndoPriorityOrder,

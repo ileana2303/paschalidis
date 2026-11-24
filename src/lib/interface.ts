@@ -779,6 +779,8 @@ export interface EndoBasketSubmitRoutePayload {
 export interface EndoPrioritySubmitLineRoutePayload {
     mtrl: number;
     qty: number;
+    /** Customer-specific ERP unit price used for the customer basket row. */
+    priceErp?: number;
     /** Branch where the selected stock is physically available. */
     supplyingBranch: number;
     /** Logged-in branch that creates and owns the Priority document. */
@@ -787,6 +789,9 @@ export interface EndoPrioritySubmitLineRoutePayload {
 
 export interface EndoPrioritySubmitRoutePayload {
     items: EndoPrioritySubmitLineRoutePayload[];
+    customerTrdr?: string | number;
+    customerName?: string;
+    customerTrdBranch?: string | number;
     appUserId?: string;
     deliveryDate?: string;
     notes?: string;
