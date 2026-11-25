@@ -1,16 +1,11 @@
-// Clears a stale service worker registration on localhost (e.g. from another app).
+// Clears a stale service worker registration (e.g. from another app).
 self.addEventListener("install", () => {
     self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-    event.waitUntil(
-        self.registration.unregister().then(() =>
-            self.clients.matchAll().then((clients) => {
-                for (const client of clients) {
-                    client.navigate(client.url);
-                }
-            })
-        )
-    );
+    // Do not navigate controlled clients here. Reloading from inside activation
+    // can install/activate this worker again before unregistering has settled,
+    // creating an endless page-refresh loop.
+    event.waitUntil(self.registration.unregister());
 });
