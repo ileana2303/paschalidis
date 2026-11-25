@@ -38,8 +38,8 @@ function extractBasketId(message: string) {
 
 /**
  * Inserts one ENDO basket row via NOW_ENDO_INSERT and returns its BASKETID.
- * Used by the ENDO basket (add-item route) and by Priority ENDO, which needs a
- * BASKETID only as a unique SERIESNUM from the same counter as ENDO.
+ * Used by the ENDO basket (add-item route) and by Priority ENDO, which reserves
+ * a BASKETID for its COMMENTS ("Νο...") and LINK_S1.
  */
 export async function insertEndoBasketRow({
     clientID,

@@ -68,9 +68,9 @@ function normalizePriorityLines(items: unknown): EndoPriorityLine[] {
 
 /**
  * Reserves a BASKETID through NOW_ENDO_INSERT. Priority ENDO has no basket of
- * its own, but it needs a SERIESNUM from the same counter as ENDO: series 7004
- * holds ENDO documents numbered by BASKETID, so SoftOne's auto-number collides
- * with them ("Το πεδίο Αριθμός υπάρχει ήδη").
+ * its own; the BASKETID gives it the same "Νο<basketId>" in COMMENTS and the
+ * same LINK_S1 traceability as ENDO. It is NOT sent as SERIESNUM: SoftOne
+ * auto-numbers series 7004 for ENDO, Priority and ANATROF alike.
  */
 async function reservePriorityBasketId(
     line: EndoPriorityLine,
@@ -104,7 +104,7 @@ async function reservePriorityBasketId(
 
 /**
  * Creates Priority ENDO documents directly, one per line:
- * NOW_ENDO_INSERT (reserve BASKETID) -> setData (SERIESNUM = BASKETID) ->
+ * NOW_ENDO_INSERT (reserve BASKETID) -> setData (SoftOne auto-numbers) ->
  * MASS_DELETE LINK_S1 + DELETE. If setData fails the reserved row is deleted,
  * so it never lingers in the ENDO lists.
  */
@@ -155,7 +155,6 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
             clientID,
             trdr: ENDO_TRDR,
             trdBranch,
-            basketId,
             deliveryDate,
             comments: buildEndoPriorityComments({
                 basketId,

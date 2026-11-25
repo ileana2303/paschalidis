@@ -20,7 +20,6 @@ export type EndoSaldoc = {
     TRDR: number;
     TRDBRANCH: number;
     PAYMENT: number;
-    SERIESNUM: string;
     TRUCKS: number;
     DELIVDATE: string;
     COMMENTS: string;
@@ -54,8 +53,6 @@ export type BuildEndoPayloadParams = {
     trdr: number;
     /** TRDBRANCH of the requesting branch - the one that asked for the items. */
     trdBranch: number;
-    /** BASKETID of the ENDO row -> SERIESNUM. */
-    basketId: string;
     deliveryDate: string;
     /** `ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο... ΑΠΟ ... (1007) ΠΡΟΣ ... (1006)`, see endo-comments.ts. */
     comments: string;
@@ -79,7 +76,6 @@ export function buildEndoPayload({
     clientID,
     trdr,
     trdBranch,
-    basketId,
     deliveryDate,
     comments,
     remarks,
@@ -99,7 +95,6 @@ export function buildEndoPayload({
                 TRDR: trdr,
                 TRDBRANCH: trdBranch, // requesting branch: asked for the items
                 PAYMENT: ENDO_PAYMENT, // fixed
-                SERIESNUM: basketId, // BASKETID
                 TRUCKS: ENDO_TRUCKS, // fixed
                 DELIVDATE: deliveryDate,
                 COMMENTS: comments, // ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο<basketId> ΑΠΟ ... ΠΡΟΣ ...

@@ -93,7 +93,6 @@ export async function submitEndoOrder(body: EndoOrderRequestBody) {
             clientID: header.clientID,
             trdr: ENDO_TRDR,
             trdBranch: header.trdBranch,
-            basketId: line.basketId,
             deliveryDate,
             comments: buildEndoComments({
                 basketId: line.basketId,

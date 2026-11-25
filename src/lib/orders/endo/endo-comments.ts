@@ -30,7 +30,7 @@ export function buildEndoComments({ basketId, ...route }: BuildEndoCommentsParam
     return `ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο${basketId} ${describeEndoRoute(route)}`;
 }
 
-/** Priority also has a BASKETID: the one reserved via NOW_ENDO_INSERT (= SERIESNUM). */
+/** Priority also has a BASKETID: the one reserved via NOW_ENDO_INSERT. */
 export function buildEndoPriorityComments({ basketId, ...route }: BuildEndoCommentsParams) {
     return `PRIORITY ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο${basketId} ${describeEndoRoute(route)}`;
 }

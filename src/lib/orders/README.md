@@ -70,7 +70,8 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
 
 - `SERIES 7004|πΔ`, `TAXSERIES πΔ`, `PAYMENT 1011`, `TRUCKS 2`, `SHIPKIND 1007`,
   `SOCASH 3800` are fixed for every document (`endo-constants.ts`).
-- `SERIESNUM` = BASKETID of the line.
+- `SERIESNUM` is never sent: SoftOne auto-numbers series 7004 for ENDO, Priority and
+  ANATROF. Writing our own numbers into it collides with the auto-number.
 - `COMMENTS` = `ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο<basketId> ΑΠΟ <source label> (<source>) ΠΡΟΣ <dest label> (<dest>)[ ΓΙΑ ΠΕΛΑΤΗ <name>]`; Priority uses `PRIORITY ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο<reserved basketId> ...` and ANATROF `ΑΝΑΤΡΟΦΟΔΟΣΙΑ Νο<basketId> ΑΠΟ ... (<source>) ΠΡΟΣ ... (<dest>)`
   (`endo-comments.ts`).
 - Each line carries two branches, straight from the ENDO row:
