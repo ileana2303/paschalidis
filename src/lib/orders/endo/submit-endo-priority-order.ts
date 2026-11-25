@@ -1,5 +1,5 @@
 import { getTrdBranchByBranchCode } from "@/lib/auth/branches";
-import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
+import { getSoftOneClientID } from "@/lib/softone";
 import {
     deleteBasketRows,
     linkBasketRowsToDocument,
@@ -120,21 +120,12 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
         // SoftOne stores SALDOC.BRANCH as the clientID's login branch and ignores
         // the BRANCH we send, so the clientID must be the supplying branch's -
         // otherwise the document lands in the requester's picking list.
-        const clientID = getSoftOneSetDataClientID(line.supplyingBranch, {
-            endo: true,
-        });
+        const clientID = getSoftOneClientID(line.supplyingBranch);
 
         if (!clientID) {
             throw new Error(
                 `Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne για την Priority ενδοδιακίνηση (${line.supplyingBranch})`
             );
-        }
-
-        // Same SQL clientID choice as the ENDO add-item route (source branch).
-        const sqlClientID = getSoftOneClientID(line.supplyingBranch);
-
-        if (!sqlClientID) {
-            throw new Error('Δεν έχει ρυθμιστεί ο SQL πελάτης SoftOne.');
         }
 
         const trdBranch = getTrdBranchByBranchCode(line.requestingBranch);
@@ -145,7 +136,7 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
             );
         }
 
-        const basketId = await reservePriorityBasketId(line, sqlClientID, appUserId);
+        const basketId = await reservePriorityBasketId(line, clientID, appUserId);
 
         console.info(
             `${ENDO_PRIORITY_LOG_LABEL} reserved BASKETID ${basketId}: ${line.supplyingBranch} sends -> ${line.requestingBranch} asked`
@@ -183,7 +174,7 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
             // Best effort: drop the reserved row so it does not show up as an
             // open ENDO request. The setData error is what the user must see.
             await deleteBasketRows({
-                sqlClientID,
+                sqlClientID: clientID,
                 basketIds: [basketId],
                 tableAction: ENDO_TABLE_ACTION,
                 logLabel: ENDO_PRIORITY_LOG_LABEL,
@@ -198,7 +189,7 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
         }
 
         await linkBasketRowsToDocument({
-            sqlClientID,
+            sqlClientID: clientID,
             basketIds: [basketId],
             tableAction: ENDO_TABLE_ACTION,
             submitType: "endo",

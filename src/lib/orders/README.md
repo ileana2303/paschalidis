@@ -118,16 +118,13 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
 - After SoftOne returns the PURDOC id, the submitted rows are linked and cleared
   with `MASS_DELETE / LINK_S1` and `TABLE_ACTION COMPANY STOCK`.
 
-## setData clientID resolution
+## SoftOne clientID configuration
 
-`getSoftOneSetDataClientID(branch, { endo, anatrof })` in `lib/softone.ts`, first hit wins:
+Configure one server-side client ID per branch with
+`S1_CLIENT_ID_1000`, `S1_CLIENT_ID_1006`, and `S1_CLIENT_ID_1007`.
+`S1_CLIENT_ID` is the fallback and the default for calls without a branch.
+Use branch credentials authorized for the SoftOne operations that branch performs.
 
-1. `S1_ENDO_SETDATA_CLIENT_ID_<branch>` (ENDO only)
-2. `S1_ANATROF_SETDATA_CLIENT_ID_<branch>` (ANATROF only), then the matching
-   `S1_ENDO_SETDATA_CLIENT_ID_<branch>` as the shared transfer-client fallback
-3. `S1_SETDATA_CLIENT_ID_<branch>`
-4. `S1_SETDATA_CLIENT_ID`
-5. `S1_CLIENT_ID_<branch>`
-6. `S1_CLIENT_ID`
-
-MASS_DELETE always uses the SQL clientID (`S1_CLIENT_ID`), never the setData one.
+`getSoftOneClientID(branch)` in `src/lib/softone.ts` uses the same configuration
+for `SqlData`, `getData`, and `setData`. Basket history uses the Athens credential
+for `ALL_BASKET_HISTORY`, which reads all branches.

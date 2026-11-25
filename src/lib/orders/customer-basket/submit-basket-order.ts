@@ -1,7 +1,7 @@
 import { getSaldocSeriesByBranchCode } from "@/lib/auth/branches";
 import { hasInvoiceAfm } from "@/lib/customers/afm";
 import { findCustomerByTrdr } from "@/lib/customers/find-customer-by-trdr";
-import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
+import { getSoftOneClientID } from "@/lib/softone";
 import { linkBasketRowsToDocument } from "../shared/link-basket-to-document";
 import {
     normalizeOrderLines,
@@ -133,7 +133,7 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         );
     }
 
-    const clientID = getSoftOneSetDataClientID(branch);
+    const clientID = getSoftOneClientID(branch);
 
     if (!clientID) {
         throw new Error('Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne.');

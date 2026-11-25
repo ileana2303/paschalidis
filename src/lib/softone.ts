@@ -69,52 +69,13 @@ export function getSoftOneEndpoint({
     return endpoint;
 }
 
-export function getSoftOneClientID(
-    branch?: string | number,
-    envKey = "S1_CLIENT_ID"
-): string {
+export function getSoftOneClientID(branch?: string | number): string {
     const normalizedBranch = String(branch ?? "").trim();
     const branchClientID = normalizedBranch
-        ? getEnvString(`${envKey}_${normalizedBranch}`)
-        : "";
-
-    return branchClientID || getEnvString(envKey);
-}
-
-export function getSoftOneSetDataClientID(
-    branch?: string | number,
-    {
-        endo = false,
-        anatrof = false,
-    }: { endo?: boolean; anatrof?: boolean } = {}
-): string {
-    const normalizedBranch = String(branch ?? "").trim();
-    const endoBranchClientID =
-        endo && normalizedBranch
-            ? getEnvString(`S1_ENDO_SETDATA_CLIENT_ID_${normalizedBranch}`)
-            : "";
-    const anatrofBranchClientID =
-        anatrof && normalizedBranch
-            ? getEnvString(`S1_ANATROF_SETDATA_CLIENT_ID_${normalizedBranch}`) ||
-              getEnvString(`S1_ENDO_SETDATA_CLIENT_ID_${normalizedBranch}`)
-            : "";
-    const setDataBranchClientID = normalizedBranch
-        ? getEnvString(`S1_SETDATA_CLIENT_ID_${normalizedBranch}`)
-        : "";
-    const setDataClientID = getEnvString("S1_SETDATA_CLIENT_ID");
-    const sqlBranchClientID = normalizedBranch
         ? getEnvString(`S1_CLIENT_ID_${normalizedBranch}`)
         : "";
-    const sqlClientID = getSoftOneClientID();
 
-    return (
-        endoBranchClientID ||
-        anatrofBranchClientID ||
-        setDataBranchClientID ||
-        setDataClientID ||
-        sqlBranchClientID ||
-        sqlClientID
-    );
+    return branchClientID || getEnvString("S1_CLIENT_ID");
 }
 
 function getCharset(contentType: string | null) {

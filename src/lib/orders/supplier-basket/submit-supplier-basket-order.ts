@@ -1,4 +1,4 @@
-import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
+import { getSoftOneClientID } from "@/lib/softone";
 import { linkBasketRowsToDocument } from "../shared/link-basket-to-document";
 import {
     normalizeOrderLines,
@@ -48,7 +48,7 @@ export async function submitSupplierBasketOrder(
         throw new Error("Λείπει ο προμηθευτής (TRDR) του καλαθιού.");
     }
 
-    const clientID = getSoftOneSetDataClientID(branch);
+    const clientID = getSoftOneClientID(branch);
 
     if (!clientID) {
         throw new Error("Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne.");

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import {
     getSoftOneClientID,
-    getSoftOneSetDataClientID,
     parseJsonWithEncodingFallback,
     postSoftOne,
 } from "@/lib/softone";
@@ -234,7 +233,7 @@ export async function PATCH(req: NextRequest) {
         const itemExtra = body.itemExtra
             ? normalizeFields(body.itemExtra, ITEEXTRA_EDITABLE_FIELD_NAMES)
             : null;
-        const clientID = getSoftOneSetDataClientID();
+        const clientID = getSoftOneClientID();
 
         if (!key) {
             return NextResponse.json(

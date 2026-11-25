@@ -36,10 +36,8 @@ export async function GET(request: NextRequest) {
     return failure("Δεν έχετε πρόσβαση στο ιστορικό καλαθιών.", 403);
   }
 
-  const clientID =
-    getSoftOneClientID(undefined, "S1_BASKET_HISTORY_CLIENT_ID") ||
-    // The history query currently shares the Athens SoftOne credential.
-    getSoftOneClientID("1006", "S1_ENDO_SETDATA_CLIENT_ID");
+  // ALL_BASKET_HISTORY uses the Athens credential to read all branches.
+  const clientID = getSoftOneClientID("1006");
   if (!clientID) {
     return failure("Δεν έχει ρυθμιστεί ο πελάτης SoftOne.", 500);
   }

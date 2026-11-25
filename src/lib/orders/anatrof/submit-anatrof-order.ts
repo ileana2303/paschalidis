@@ -2,7 +2,7 @@ import {
     getKnownBranchName,
     getTrdBranchByBranchCode,
 } from "@/lib/auth/branches";
-import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
+import { getSoftOneClientID } from "@/lib/softone";
 import { linkBasketRowsToDocument } from "../shared/link-basket-to-document";
 import {
     normalizeOrderLines,
@@ -86,9 +86,7 @@ export async function submitAnatrofOrder(body: AnatrofOrderRequestBody) {
         );
     }
 
-    const clientID = getSoftOneSetDataClientID(supplyingBranch, {
-        anatrof: true,
-    });
+    const clientID = getSoftOneClientID(supplyingBranch);
 
     if (!clientID) {
         throw new Error(

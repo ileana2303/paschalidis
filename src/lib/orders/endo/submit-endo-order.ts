@@ -1,5 +1,5 @@
 import { getTrdBranchByBranchCode } from "@/lib/auth/branches";
-import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
+import { getSoftOneClientID } from "@/lib/softone";
 import { linkBasketRowsToDocument } from "../shared/link-basket-to-document";
 import {
     requireAppUserId,
@@ -37,7 +37,7 @@ function resolveEndoLineHeader(line: EndoLine) {
 
     // The branch that sends the items owns the document, so it also owns the
     // setData clientID it is submitted with.
-    const clientID = getSoftOneSetDataClientID(supplyingBranch, { endo: true });
+    const clientID = getSoftOneClientID(supplyingBranch);
 
     if (!clientID) {
         throw new Error(

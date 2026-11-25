@@ -3,7 +3,6 @@ import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import {
   getSoftOneClientID,
   getSoftOneData,
-  getSoftOneSetDataClientID,
   parseJsonWithEncodingFallback,
   postSoftOne,
   SoftOneServiceError,
@@ -225,7 +224,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const clientID = getSoftOneSetDataClientID(branch);
+    const clientID = getSoftOneClientID(branch);
 
     if (!clientID) {
       return NextResponse.json(
@@ -375,7 +374,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const clientID = getSoftOneSetDataClientID(branch);
+    const clientID = getSoftOneClientID(branch);
 
     if (!clientID) {
       return NextResponse.json(

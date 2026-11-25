@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import {
-    getSoftOneSetDataClientID,
+    getSoftOneClientID,
     parseJsonWithEncodingFallback,
     postSoftOne,
 } from "@/lib/softone";
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         const code1 = asRequiredString(body.code1);
         const code2 = asRequiredString(body.code2);
         const apvCode = asRequiredString(body.apvCode);
-        const clientID = getSoftOneSetDataClientID();
+        const clientID = getSoftOneClientID();
 
         if (!mtrl || !code || !name || !code1) {
             return NextResponse.json(
