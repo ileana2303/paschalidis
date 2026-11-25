@@ -10,7 +10,7 @@ function parseDateValue(value: unknown) {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function formatDateTimeEl(value?: string) {
+export function formatDateTimeEl(value?: string, includeSeconds = false) {
     if (!value) return "—";
 
     const parsed = parseDateValue(value);
@@ -25,6 +25,7 @@ export function formatDateTimeEl(value?: string) {
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
+        second: includeSeconds ? "2-digit" : undefined,
     });
 }
 

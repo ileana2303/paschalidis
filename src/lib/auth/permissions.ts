@@ -24,6 +24,7 @@ const MODULE_ROUTES: ReadonlyArray<{ path: string; modules: string[] }> = [
     modules: ["endo-lists-received", "endo-lists-requested"],
   },
   { path: "/all-baskets", modules: ["all-baskets"] },
+  { path: "/basket-history", modules: ["all-baskets"] },
   { path: "/supplier-price-catalog-upload", modules: ["supplier-price-catalog-upload"] },
   { path: "/picking-list", modules: ["picking-list"] },
   { path: "/company-stock", modules: ["company-stock"] },

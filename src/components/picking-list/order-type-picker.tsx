@@ -27,43 +27,80 @@ export default function OrderTypePicker({
   );
 
   return (
+    <OrderTypeFilterPicker
+      selectedType={selectedType === "ALL" ? null : selectedType}
+      options={options.map((option) => ({
+        ...option,
+        count: counts[option.value],
+      }))}
+      totalCount={totalCount}
+      onSelect={(type) => onSelect(type ?? "ALL")}
+    />
+  );
+}
+
+type FilterOption<T extends string> = {
+  value: T;
+  label: string;
+  tone: string;
+  selectedTone: string;
+  count: number;
+};
+
+export function OrderTypeFilterPicker<T extends string>({
+  selectedType,
+  options,
+  totalCount,
+  onSelect,
+  title = "Τύπος παραγγελίας",
+  description = "Φιλτράρετε τις παραγγελίες ανά τύπο παραγγελίας.",
+}: {
+  selectedType: T | null;
+  options: readonly FilterOption<T>[];
+  totalCount: number;
+  onSelect: (type: T | null) => void;
+  title?: string;
+  description?: string;
+}) {
+  const allSelected = selectedType === null;
+
+  return (
     <section className="border-b border-gray-100 bg-gray-50/60 px-3 py-4 sm:px-5 dark:border-gray-800 dark:bg-white/[0.015]">
       <div className="mb-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
           <Layers2 aria-hidden="true" className="size-4 text-brand-500" />
-          Τύπος παραγγελίας
+          {title}
         </h3>
         <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-400">
-          Φιλτράρετε τις παραγγελίες ανά τύπο παραγγελίας.
+          {description}
         </p>
       </div>
 
       <div
         role="radiogroup"
-        aria-label="Φίλτρο τύπου παραγγελίας"
+        aria-label={title}
         className="flex flex-wrap gap-2"
       >
         <button
           type="button"
           role="radio"
-          aria-checked={selectedType === "ALL"}
-          onClick={() => onSelect("ALL")}
+          aria-checked={allSelected}
+          onClick={() => onSelect(null)}
           className={[
             "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset transition",
-            selectedType === "ALL"
+            allSelected
               ? "bg-gray-900 text-white ring-gray-900 shadow-theme-xs dark:bg-white dark:text-gray-900 dark:ring-white"
               : "bg-white text-gray-600 ring-gray-300 hover:bg-gray-100 hover:text-gray-900 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700 dark:hover:bg-gray-800 dark:hover:text-white",
           ].join(" ")}
         >
           Όλες
-          <span className={selectedType === "ALL" ? "text-white/75 dark:text-gray-600" : "text-gray-400"}>
+          <span className={allSelected ? "text-white/75 dark:text-gray-600" : "text-gray-400"}>
             {totalCount}
           </span>
         </button>
 
         {options.map((option) => {
           const selected = selectedType === option.value;
-          const count = counts[option.value];
 
           return (
             <button
@@ -79,7 +116,7 @@ export default function OrderTypePicker({
             >
               {option.label}
               <span className={selected ? "text-white/75" : "opacity-65"}>
-                {count}
+                {option.count}
               </span>
             </button>
           );

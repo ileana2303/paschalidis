@@ -28,7 +28,7 @@ import {
   UsersRound,
 } from "@/lib/icons/lucide";
 import { useSidebar } from "../context/SidebarContext";
-import { ListTodo, Receipt, ShoppingBasket, Warehouse } from "lucide-react";
+import { History, ListTodo, Receipt, ShoppingBasket, Warehouse } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { canAccessPath } from "@/lib/auth/permissions";
 import type { AuthPermissions } from "@/lib/auth/types";
@@ -141,6 +141,11 @@ const navItems: NavItem[] = [
     path: "/picking-list",
   },
   {
+    icon: History,
+    name: "Ιστορικό Παραγγελιών",
+    path: "/basket-history",
+  },
+  {
     icon: Settings,
     name: "Διαχείριση",
     subItems: [
@@ -188,6 +193,11 @@ const mobileNavItems: NavItem[] = [
     icon: ListTodo,
     name: "Picking List",
     path: "/picking-list",
+  },
+  {
+    icon: History,
+    name: "Ιστορικό Παραγγελιών",
+    path: "/basket-history",
   },
   {
     icon: BadgePercent,
