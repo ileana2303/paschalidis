@@ -117,13 +117,16 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
     const basketIds: string[] = [];
 
     for (const line of lines) {
-        const clientID = getSoftOneSetDataClientID(line.requestingBranch, {
+        // SoftOne stores SALDOC.BRANCH as the clientID's login branch and ignores
+        // the BRANCH we send, so the clientID must be the supplying branch's -
+        // otherwise the document lands in the requester's picking list.
+        const clientID = getSoftOneSetDataClientID(line.supplyingBranch, {
             endo: true,
         });
 
         if (!clientID) {
             throw new Error(
-                `Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne για την Priority ενδοδιακίνηση (${line.requestingBranch})`
+                `Δεν έχει ρυθμιστεί ο πελάτης setData SoftOne για την Priority ενδοδιακίνηση (${line.supplyingBranch})`
             );
         }
 
@@ -155,6 +158,7 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
             basketId,
             deliveryDate,
             comments: buildEndoPriorityComments({
+                basketId,
                 supplyingBranch: line.supplyingBranch,
                 requestingBranch: line.requestingBranch,
                 customerName: body.customerName,

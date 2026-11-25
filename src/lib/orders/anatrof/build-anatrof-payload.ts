@@ -91,7 +91,7 @@ export function buildAnatrofPayload({
                 PAYMENT: payment,
                 TRUCKS: trucks,
                 DELIVDATE: deliveryDate,
-                COMMENTS: `ΠΑΡΑΓΓΕΛΙΑ ΑΝΑΤΡΟΦΟΔΟΣΙΑΣ Νο${basketId} ΑΠΟ ${supplyingBranchName} ΠΡΟΣ ${requestingBranchName} :: ${supplyingBranch}->${requestingBranchCode}`,
+                COMMENTS: `ΑΝΑΤΡΟΦΟΔΟΣΙΑ Νο${basketId} ΑΠΟ ${supplyingBranchName} (${supplyingBranch}) ΠΡΟΣ ${requestingBranchName} (${requestingBranchCode})`,
                 REMARKS: remarks,
                 SHIPKIND: shipKind,
                 SOCASH: socash,

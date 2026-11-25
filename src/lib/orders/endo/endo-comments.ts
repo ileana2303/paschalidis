@@ -1,40 +1,36 @@
 import { getEndoBranchLabel } from "@/lib/auth/branches";
 
-type BuildEndoCommentsParams = {
-    /** BASKETID of the ENDO row - appears as "Νο<basketId>" in the comment. */
-    basketId: string;
+type EndoRouteParams = {
     /** Branch that holds and sends the items. */
     supplyingBranch: number;
     /** Branch that asked for the items. */
     requestingBranch: number;
-};
-
-export function buildEndoComments({
-    basketId,
-    supplyingBranch,
-    requestingBranch,
-}: BuildEndoCommentsParams) {
-    const from = getEndoBranchLabel(supplyingBranch);
-    const to = getEndoBranchLabel(requestingBranch);
-
-    return `ΠΑΡΑΣΤΑΤΙΚΟ Νο${basketId} ΑΠΟ ${from} ΣΕ ${to} ${supplyingBranch}-->${requestingBranch}`;
-}
-
-type BuildEndoPriorityCommentsParams = Omit<
-    BuildEndoCommentsParams,
-    "basketId"
-> & {
     customerName?: string;
 };
 
-export function buildEndoPriorityComments({
+/** `ΑΠΟ <label> (<code>) ΠΡΟΣ <label> (<code>)[ ΓΙΑ ΠΕΛΑΤΗ <name>]` - shared by ENDO and Priority. */
+function describeEndoRoute({
     supplyingBranch,
     requestingBranch,
     customerName,
-}: BuildEndoPriorityCommentsParams) {
+}: EndoRouteParams) {
     const from = `${getEndoBranchLabel(supplyingBranch)} (${supplyingBranch})`;
     const to = `${getEndoBranchLabel(requestingBranch)} (${requestingBranch})`;
     const customer = String(customerName ?? "").trim();
 
-    return `ΠΑΡΑΣΤΑΤΙΚΟ PRIORITY ΑΠΟ ${from} ΠΡΟΣ ${to}${customer ? ` ΓΙΑ ΠΕΛΑΤΗ ${customer}` : ""}`;
+    return `ΑΠΟ ${from} ΠΡΟΣ ${to}${customer ? ` ΓΙΑ ΠΕΛΑΤΗ ${customer}` : ""}`;
+}
+
+type BuildEndoCommentsParams = EndoRouteParams & {
+    /** BASKETID of the ENDO row - appears as "Νο<basketId>" in the comment. */
+    basketId: string;
+};
+
+export function buildEndoComments({ basketId, ...route }: BuildEndoCommentsParams) {
+    return `ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο${basketId} ${describeEndoRoute(route)}`;
+}
+
+/** Priority also has a BASKETID: the one reserved via NOW_ENDO_INSERT (= SERIESNUM). */
+export function buildEndoPriorityComments({ basketId, ...route }: BuildEndoCommentsParams) {
+    return `PRIORITY ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο${basketId} ${describeEndoRoute(route)}`;
 }

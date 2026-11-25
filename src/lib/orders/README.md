@@ -71,7 +71,7 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
 - `SERIES 7004|πΔ`, `TAXSERIES πΔ`, `PAYMENT 1011`, `TRUCKS 2`, `SHIPKIND 1007`,
   `SOCASH 3800` are fixed for every document (`endo-constants.ts`).
 - `SERIESNUM` = BASKETID of the line.
-- `COMMENTS` = `ΠΑΡΑΣΤΑΤΙΚΟ Νο<basketId> ΑΠΟ <source label> ΣΕ <dest label> <source>--><dest>`
+- `COMMENTS` = `ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο<basketId> ΑΠΟ <source label> (<source>) ΠΡΟΣ <dest label> (<dest>)[ ΓΙΑ ΠΕΛΑΤΗ <name>]`; Priority uses `PRIORITY ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο<reserved basketId> ...` and ANATROF `ΑΝΑΤΡΟΦΟΔΟΣΙΑ Νο<basketId> ΑΠΟ ... (<source>) ΠΡΟΣ ... (<dest>)`
   (`endo-comments.ts`).
 - Each line carries two branches, straight from the ENDO row:
   `supplyingBranch` (row `BRANCH`, holds and sends the items) and

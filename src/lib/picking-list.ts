@@ -18,6 +18,7 @@ export const PICKING_ORDER_TYPES = [
   "RETAIL",
   "REPLENISHMENT",
   "INTERNAL_TRANSFER",
+  "PRIORITY",
 ] as const;
 
 export type PickingOrderType =
@@ -69,6 +70,15 @@ export const PICKING_ORDER_TYPE_OPTIONS: ReadonlyArray<{
     selectedTone:
       "bg-violet-600 text-white ring-violet-600 shadow-theme-xs dark:bg-violet-500 dark:ring-violet-500",
     borderTone: "border-l-violet-500 dark:border-l-violet-500",
+  },
+  {
+    value: "PRIORITY",
+    label: "Priority",
+    tone:
+      "bg-rose-50 text-rose-800 ring-rose-200 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/30",
+    selectedTone:
+      "bg-rose-600 text-white ring-rose-600 shadow-theme-xs dark:bg-rose-500 dark:ring-rose-500",
+    borderTone: "border-l-rose-500 dark:border-l-rose-500",
   },
 ];
 
@@ -285,9 +295,16 @@ export function getPickingOrderType(
   const comments = order.comments.toLocaleUpperCase("el-GR");
 
   if (comments.includes("ΑΝΑΤΡΟΦΟΔΟΣ")) return "REPLENISHMENT";
+  // Priority ENDO: current "PRIORITY ΕΝΔΟΔΙΑΚΙΝΗΣΗ ..." and older
+  // "ΠΑΡΑΣΤΑΤΙΚΟ PRIORITY ...". Checked before the ENDO rule, which would
+  // otherwise also match it.
+  if (/^(ΠΑΡΑΣΤΑΤΙΚΟ )?PRIORITY\b/u.test(comments.trim())) return "PRIORITY";
+  // ENDO: current "ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο..." and older "ΠΑΡΑΣΤΑΤΙΚΟ Νο..." comments
+  // ("... 1000-->1006" or "ΑΠΟ <branch> (1000) ΠΡΟΣ <branch> (1006)").
   if (
     comments.includes("ΕΝΔΟΔΙΑΚ") ||
-    (comments.includes("ΠΑΡΑΣΤΑΤΙΚΟ") && /-{1,2}>/u.test(comments))
+    (comments.includes("ΠΑΡΑΣΤΑΤΙΚΟ") &&
+      (/-{1,2}>/u.test(comments) || /ΑΠΟ .+ ΠΡΟΣ /u.test(comments)))
   ) {
     return "INTERNAL_TRANSFER";
   }
@@ -313,7 +330,8 @@ const PICKING_ORDER_TYPE_RANK: Record<PickingOrderType, number> = {
   RETAIL: 1,
   REPLENISHMENT: 2,
   INTERNAL_TRANSFER: 3,
-  OTHER: 4,
+  PRIORITY: 4,
+  OTHER: 5,
 };
 
 export function sortPickingOrders(

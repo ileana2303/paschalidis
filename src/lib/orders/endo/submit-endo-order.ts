@@ -99,6 +99,7 @@ export async function submitEndoOrder(body: EndoOrderRequestBody) {
                 basketId: line.basketId,
                 supplyingBranch: line.supplyingBranch,
                 requestingBranch: line.requestingBranch,
+                customerName: line.customerName,
             }),
             remarks,
             supplyingBranch: header.supplyingBranch,

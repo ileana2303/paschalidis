@@ -57,7 +57,7 @@ export type BuildEndoPayloadParams = {
     /** BASKETID of the ENDO row -> SERIESNUM. */
     basketId: string;
     deliveryDate: string;
-    /** `ΠΑΡΑΣΤΑΤΙΚΟ Νο... ΑΠΟ ... ΣΕ ... 1007-->1006`, see endo-comments.ts. */
+    /** `ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο... ΑΠΟ ... (1007) ΠΡΟΣ ... (1006)`, see endo-comments.ts. */
     comments: string;
     /** Free-text notes typed by the user. */
     remarks: string;
@@ -102,7 +102,7 @@ export function buildEndoPayload({
                 SERIESNUM: basketId, // BASKETID
                 TRUCKS: ENDO_TRUCKS, // fixed
                 DELIVDATE: deliveryDate,
-                COMMENTS: comments, // ΠΑΡΑΣΤΑΤΙΚΟ Νο<basketId> ΑΠΟ ... ΣΕ ...
+                COMMENTS: comments, // ΕΝΔΟΔΙΑΚΙΝΗΣΗ Νο<basketId> ΑΠΟ ... ΠΡΟΣ ...
                 REMARKS: remarks, // user notes
                 SHIPKIND: ENDO_SHIPKIND, // fixed
                 SOCASH: ENDO_SOCASH, // fixed

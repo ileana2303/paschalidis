@@ -1034,6 +1034,7 @@ export default function PickingListClient() {
       RETAIL: 0,
       REPLENISHMENT: 0,
       INTERNAL_TRANSFER: 0,
+      PRIORITY: 0,
       OTHER: 0,
     };
 

@@ -13,11 +13,14 @@ export type EndoLine = {
     supplyingBranch: number;
     /** Branch that asked for the items -> SALDOC TRDBRANCH. */
     requestingBranch: number;
+    /** Customer the request was made for -> "ΓΙΑ ΠΕΛΑΤΗ ..." in COMMENTS. */
+    customerName?: string;
 };
 
 export type RawEndoItem = RawOrderItem & {
     supplyingBranch?: unknown;
     requestingBranch?: unknown;
+    customerName?: unknown;
 };
 
 function normalizeEndoLine(rawItem: RawEndoItem): EndoLine | null {
@@ -39,7 +42,9 @@ function normalizeEndoLine(rawItem: RawEndoItem): EndoLine | null {
         return null;
     }
 
-    return { ...base, supplyingBranch, requestingBranch };
+    const customerName = String(rawItem.customerName ?? "").trim() || undefined;
+
+    return { ...base, supplyingBranch, requestingBranch, customerName };
 }
 
 export function normalizeEndoLines(rawItems: RawEndoItem[]) {
