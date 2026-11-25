@@ -90,6 +90,13 @@ export function getBasketItemLineTotal(item: IBasketItem): number {
     return getBasketItemEffectivePrice(item) * getBasketItemQty(item);
 }
 
+export function hasUnpricedBasketItem(items: IBasketItem[]): boolean {
+    return items.some((item) => getBasketItemEffectivePrice(item) <= 0);
+}
+
+export const UNPRICED_BASKET_NOTICE =
+    "Αφαιρέστε ή αποεπιλέξτε τα είδη με μηδενική τιμή για να μπορέσετε να στείλετε την παραγγελία του πελάτη.";
+
 export function getBasketItemApprovalStatus(
     item: IBasketItem
 ): "approved" | "rejected" | "pending" | null {

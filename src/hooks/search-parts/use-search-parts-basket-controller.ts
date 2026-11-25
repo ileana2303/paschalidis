@@ -7,7 +7,9 @@ import {
     getBasketItemId,
     getBasketItemLineTotal,
     getBasketItemQty,
+    hasUnpricedBasketItem,
     normalizeBasket,
+    UNPRICED_BASKET_NOTICE,
 } from "@/lib/utils/basket-helpers";
 import type { IBasket, IBasketItem, ICustomerInfo, IItem } from "@/lib/interface";
 import { hasInvoiceAfm } from "@/lib/customers/afm";
@@ -256,6 +258,12 @@ export function useSearchPartsBasketController({
         }
 
         const basketItem = findBasketItem(item);
+        const basketUnitPrice = getCustomerBasketUnitPrice(item, customer);
+        if (!basketItem && basketUnitPrice <= 0) {
+            toast.error("Το είδος δεν έχει διαθέσιμη τιμή για τον πελάτη.");
+            return;
+        }
+
         const basketQtyFallback = basketItem ? Math.max(1, getBasketItemQty(basketItem)) : 1;
         const requestedQty = Math.max(1, getQuantity(item.ITEM_CODE, basketQtyFallback));
 
@@ -283,8 +291,6 @@ export function useSearchPartsBasketController({
                     QTY: requestedQty,
                 });
             } else {
-                const basketUnitPrice = getCustomerBasketUnitPrice(item, customer);
-
                 await addItemToBasket({
                     TRDR: customer.TRDR,
                     MTRL: Number(item.MTRL),
@@ -444,7 +450,11 @@ export function useSearchPartsBasketController({
 
     /** Resolves `true` when the order was submitted successfully. */
     const handleSendOrder = useCallback(async (): Promise<boolean> => {
-        if (!customer || !basket || basket.items.length === 0 || selectedItems.size === 0) {
+        if (!customer || selectedItemsList.length === 0) {
+            return false;
+        }
+        if (hasUnpricedBasketItem(selectedItemsList)) {
+            toast.error(UNPRICED_BASKET_NOTICE);
             return false;
         }
 
@@ -461,7 +471,7 @@ export function useSearchPartsBasketController({
                 CUSTOMER_NAME: customer.NAME,
                 NOTES: notes,
                 APPUSER_ID: userId,
-                items: basket.items,
+                items: selectedItemsList,
             });
             submittedSuccessfully = true;
             setOrderSubmittedSuccess(true);
@@ -483,7 +493,7 @@ export function useSearchPartsBasketController({
         }
 
         return submittedSuccessfully;
-    }, [basket, currentBranchCode, customer, loadBasket, notes, receiptType, selectedItems.size, submitBasketOrder, userId]);
+    }, [currentBranchCode, customer, loadBasket, notes, receiptType, selectedItemsList, submitBasketOrder, userId]);
 
     const handleRefreshBasket = useCallback(async () => {
         if (!customer) {

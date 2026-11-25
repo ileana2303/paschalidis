@@ -22,6 +22,8 @@ import SummaryTextareaField from "@/components/ui/summary-panel/summary-textarea
 import {
     getBasketItemId,
     getBasketItemLineTotal,
+    hasUnpricedBasketItem,
+    UNPRICED_BASKET_NOTICE,
 } from "@/lib/utils/basket-helpers";
 import type { IBasket, IBasketItem, ICustomerInfo } from "@/lib/interface";
 import { hasInvoiceAfm } from "@/lib/customers/afm";
@@ -163,9 +165,8 @@ export default function CustomerOrderSummary({
             ? selectedTotal
             : getBasketItemsTotal(selectedBasketItems);
 
-    const sendDisabled =
-        sendingOrder ||
-        (selectedItems ? selectedItems.size === 0 : (basket?.items.length ?? 0) === 0);
+    const hasUnpricedSelection = hasUnpricedBasketItem(selectedBasketItems);
+    const sendDisabled = sendingOrder || selectedBasketItems.length === 0 || hasUnpricedSelection;
 
     const handleOpenBasketLineItem = (item: IBasketItem) => {
         const partSearch = String(
@@ -232,13 +233,20 @@ export default function CustomerOrderSummary({
             wideLayoutBreakpoint={wideLayoutBreakpoint}
             footer={
                 onSendOrder ? (
-                    <SummaryPrimaryAction
-                        label="Αποστολή Παραγγελίας"
-                        loading={sendingOrder}
-                        disabled={sendDisabled}
-                        icon={<Send className="h-4 w-4" />}
-                        onClick={onSendOrder}
-                    />
+                    <div className="space-y-3">
+                        {hasUnpricedSelection && (
+                            <SummaryPanelMessage tone="warning" className="!mt-0">
+                                <p role="status">{UNPRICED_BASKET_NOTICE}</p>
+                            </SummaryPanelMessage>
+                        )}
+                        <SummaryPrimaryAction
+                            label="Αποστολή Παραγγελίας"
+                            loading={sendingOrder}
+                            disabled={sendDisabled}
+                            icon={<Send className="h-4 w-4" />}
+                            onClick={onSendOrder}
+                        />
+                    </div>
                 ) : undefined
             }
         >

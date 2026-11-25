@@ -165,7 +165,8 @@ export default function PartResults({
     const isOutOfStock = availableStock <= 0;
     const hasUnsavedBasketQuantity = basketQuantity != null && qty !== basketQuantity;
     const isBasketActionMuted = basketItem != null && !hasUnsavedBasketQuantity;
-    const isBasketActionDisabled = isAdding || isBasketActionMuted || isOutOfStock;
+    const hasNoBasketPrice = basketItem == null && erpPrice <= 0;
+    const isBasketActionDisabled = isAdding || isBasketActionMuted || isOutOfStock || hasNoBasketPrice;
     const basketActionLabel = isAdding
         ? basketItem != null
             ? "Ενημέρωση..."
@@ -174,9 +175,11 @@ export default function PartResults({
             ? "Στο καλάθι"
             : isOutOfStock
                 ? "Χωρίς απόθεμα"
-                : basketItem != null
-                    ? "Ενημέρωση"
-                    : "Προσθήκη";
+                : hasNoBasketPrice
+                    ? "Χωρίς τιμή"
+                    : basketItem != null
+                        ? "Ενημέρωση"
+                        : "Προσθήκη";
 
     const basketActionClassName = isBasketActionMuted
         ? "group inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-green-200 bg-green-50 px-3.5 text-xs font-semibold text-green-700 transition disabled:cursor-not-allowed disabled:opacity-70 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-300"

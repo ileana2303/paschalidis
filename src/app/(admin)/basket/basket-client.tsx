@@ -11,7 +11,9 @@ import {
     getBasketItemId,
     getBasketItemLineTotal,
     getBasketItemQty,
+    hasUnpricedBasketItem,
     normalizeBasket,
+    UNPRICED_BASKET_NOTICE,
 } from "@/lib/utils/basket-helpers";
 import {
     useDeleteBasketItemsMutation,
@@ -409,7 +411,11 @@ export default function BasketClient() {
     };
 
     const handleSendOrder = async () => {
-        if (!urlTrdr || !basket || basket.items.length === 0 || selectedItems.size === 0) return;
+        if (!urlTrdr || selectedItemsList.length === 0) return;
+        if (hasUnpricedBasketItem(selectedItemsList)) {
+            toast.error(UNPRICED_BASKET_NOTICE);
+            return;
+        }
 
         setSendingOrder(true);
         setError("");
