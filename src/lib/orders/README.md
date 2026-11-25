@@ -45,8 +45,8 @@ are still named `YP1000` / `THESI1000`).
 | Branch | TRDBRANCH | Invoice SERIES | Retail receipt SERIES | ENDO comment label |
 |---|---|---|---|---|
 | 1000 Κασομούλη | 15 | 7002 | 7003 | Κασομούλη |
-| 1006 Λ. Αθηνών | 13 | 17002 | 17003 | Πάροδος Λ.Αθηνών 65 |
-| 1007 Λ. Μεσογείων | 14 | 27002 | 27003 | Λ.Μεσογείων 573 |
+| 1006 Λ. Αθηνών | 13 | 17002 | 17003 | Λ.Αθηνών |
+| 1007 Λ. Μεσογείων | 14 | 27002 | 27003 | Λ.Μεσογείων |
 
 ENDO ignores the SERIES column: it always sends the fixed `7004|πΔ` + `TAXSERIES πΔ`.
 
@@ -81,7 +81,7 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
   setData clientID is used too.
 - Example - 1000 is logged in and asks 5 pieces from 1006:
   `TRDBRANCH 15` (=1000), `BRANCHSEC 1006`, `WHOUSESEC 1006`,
-  `COMMENTS ... ΑΠΟ Πάροδος Λ.Αθηνών 65 ΣΕ Κασομούλη 1006-->1000`.
+  `COMMENTS ... ΑΠΟ Λ.Αθηνών ΣΕ Κασομούλη 1006-->1000`.
 - `TRDR` is `8674` (ΠΑΣΧΑΛΙΔΗΣ) for every document.
 - `CCCEXTUSER` = username of the logged-in user.
 

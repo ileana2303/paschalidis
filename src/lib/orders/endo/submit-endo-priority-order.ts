@@ -35,6 +35,7 @@ export type EndoPriorityOrderRequestBody = {
     appUserId: string;
     deliveryDate?: string;
     notes?: string;
+    customerName?: string;
     items: RawEndoPriorityItem[];
 };
 
@@ -153,7 +154,11 @@ export async function submitEndoPriorityOrder(body: EndoPriorityOrderRequestBody
             trdBranch,
             basketId,
             deliveryDate,
-            comments: buildEndoPriorityComments(line),
+            comments: buildEndoPriorityComments({
+                supplyingBranch: line.supplyingBranch,
+                requestingBranch: line.requestingBranch,
+                customerName: body.customerName,
+            }),
             remarks,
             supplyingBranch: line.supplyingBranch,
             cccExtUser: appUserId,

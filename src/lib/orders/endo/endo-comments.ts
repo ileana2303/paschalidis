@@ -32,9 +32,9 @@ export function buildEndoPriorityComments({
     requestingBranch,
     customerName,
 }: BuildEndoPriorityCommentsParams) {
-    const from = getEndoBranchLabel(supplyingBranch);
-    const to = getEndoBranchLabel(requestingBranch);
+    const from = `${getEndoBranchLabel(supplyingBranch)} (${supplyingBranch})`;
+    const to = `${getEndoBranchLabel(requestingBranch)} (${requestingBranch})`;
     const customer = String(customerName ?? "").trim();
 
-    return `ΠΑΡΑΣΤΑΤΙΚΟ PRIORITY ΑΠΟ ${from} ΣΕ ${to} - ${supplyingBranch}->${requestingBranch}${customer ? ` ΓΙΑ ${customer}` : ""}`;
+    return `ΠΑΡΑΣΤΑΤΙΚΟ PRIORITY ΑΠΟ ${from} ΠΡΟΣ ${to}${customer ? ` ΓΙΑ ΠΕΛΑΤΗ ${customer}` : ""}`;
 }

@@ -42,8 +42,8 @@ const TRDBranchByBranchCode: Partial<Record<KnownBranchCode, number>> = {
 
 const ENDO_BRANCH_LABEL_BY_CODE: Partial<Record<KnownBranchCode, string>> = {
   "1000": "Κασομούλη",
-  "1006": "Πάροδος Λ.Αθηνών 65",
-  "1007": "Λ.Μεσογείων 573",
+  "1006": "Λ.Αθηνών",
+  "1007": "Λ.Μεσογείων",
 } as const;
 
 export type SaldocDocumentType = "invoice" | "receipt";
