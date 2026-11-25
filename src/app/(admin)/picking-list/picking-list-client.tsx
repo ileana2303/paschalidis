@@ -45,7 +45,6 @@ import { useCan } from "@/hooks/usePermissions";
 import { useAuthStore } from "@/stores/authStore";
 import {
   formatBranchLabel,
-  getUserBranchOptions,
   normalizeBranchCode,
 } from "@/lib/auth/branches";
 import { formatDateTimeEl, formatMinutesAgoEl } from "@/lib/utils/date";
@@ -97,10 +96,10 @@ const PICKING_SORT_OPTIONS: ReadonlyArray<{
   key: PickingOrderSortKey;
   label: string;
 }> = [
-  { key: "date", label: "ΗΜΕΡΟΜΗΝΙΑ" },
-  { key: "customerName", label: "ΠΕΛΑΤΗΣ" },
-  { key: "orderType", label: "ΤΥΠΟΣ" },
-];
+    { key: "date", label: "ΗΜΕΡΟΜΗΝΙΑ" },
+    { key: "customerName", label: "ΠΕΛΑΤΗΣ" },
+    { key: "orderType", label: "ΤΥΠΟΣ" },
+  ];
 
 function PickingSortControls({
   sort,
@@ -901,11 +900,8 @@ function PickingOrderCard({
 }
 
 export default function PickingListClient() {
-  const user = useAuthStore((state) => state.user);
+  const activeBranch = useAuthStore((state) => normalizeBranchCode(state.user?.mainBranch));
   const can = useCan();
-  const permissions = useAuthStore((state) => state.permissions);
-  const setAuth = useAuthStore((state) => state.setAuth);
-  const [selectedBranch, setSelectedBranch] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<PickingStatusFilter>("ALL");
   const [orderTypeFilter, setOrderTypeFilter] =
@@ -947,11 +943,12 @@ export default function PickingListClient() {
   const inFlightFindocs = useRef(new Set<string>());
   const automaticLoadAttemptedFindocs = useRef(new Set<string>());
 
-  const currentBranch = useMemo(
-    () => normalizeBranchCode(user?.mainBranch),
-    [user?.mainBranch]
-  );
-  const syncedTopbarBranchRef = useRef<string | null>(null);
+  const [selectionBranch, setSelectionBranch] = useState(activeBranch);
+  if (selectionBranch !== activeBranch) {
+    setSelectionBranch(activeBranch);
+    setSelectedFindocs(new Set());
+    setExpandedFindocs(new Set());
+  }
 
   const handleRefresh = useCallback(() => {
     automaticLoadAttemptedFindocs.current.clear();
@@ -974,24 +971,6 @@ export default function PickingListClient() {
     );
   }, [error, isError]);
 
-  const branchOptions = useMemo(
-    () => getUserBranchOptions(user, permissions),
-    [permissions, user]
-  );
-  const activeBranch = useMemo(() => {
-    const validCodes = new Set(branchOptions.map((branch) => branch.code));
-
-    if (selectedBranch && validCodes.has(selectedBranch)) {
-      return selectedBranch;
-    }
-
-    if (currentBranch && validCodes.has(currentBranch)) {
-      return currentBranch;
-    }
-
-    return branchOptions[0]?.code ?? "";
-  }, [branchOptions, currentBranch, selectedBranch]);
-
   usePickingListIntervalNotifications({
     branch: activeBranch,
     enabled: !isLoading && Boolean(activeBranch),
@@ -1007,20 +986,11 @@ export default function PickingListClient() {
     return () => window.clearInterval(intervalId);
   }, []);
 
-  useEffect(() => {
-    if (!currentBranch) return;
-    if (syncedTopbarBranchRef.current === currentBranch) return;
-
-    syncedTopbarBranchRef.current = currentBranch;
-    setSelectedBranch(currentBranch);
-    setSelectedFindocs(new Set());
-    setExpandedFindocs(new Set());
-  }, [currentBranch]);
-
   const ordersBeforeTypeFilter = useMemo(
     () =>
       orders.filter(
         (order) =>
+          Boolean(activeBranch) &&
           order.branch === activeBranch &&
           (statusFilter === "ALL" || order.status === statusFilter) &&
           matchesPickingOrderSearch(order, searchTerm)
@@ -1049,8 +1019,8 @@ export default function PickingListClient() {
     const filteredOrders = orderTypeFilter === "ALL"
       ? ordersBeforeTypeFilter
       : ordersBeforeTypeFilter.filter(
-          (order) => getPickingOrderType(order) === orderTypeFilter
-        );
+        (order) => getPickingOrderType(order) === orderTypeFilter
+      );
 
     return sortPickingOrders(filteredOrders, sort.key, sort.direction);
   }, [orderTypeFilter, ordersBeforeTypeFilter, sort]);
@@ -1430,238 +1400,200 @@ export default function PickingListClient() {
       <div className="flex min-h-0 flex-col print:hidden md:block">
         <PageBreadcrumb pageTitle="Picking List" />
 
-      <DataTable className="mt-4 flex min-h-0 flex-1 flex-col md:block">
-        <DataTableHeader
-          title="Picking List"
-          description="Παραγγελίες που έχουν αποσταλεί στο SoftOne, ανά κατάστημα και κατάσταση συλλογής."
-          count={visibleOrders.length}
-          action={
-            <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
-              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => void handleDeleteSelectedOrders()}
-                  disabled={
-                    selectedVisibleCount === 0 ||
-                    deletingSelected ||
-                    bulkUpdating ||
-                    isLoading
-                  }
-                  title={
-                    selectedVisibleCount === 0
-                      ? "Επιλέξτε παραγγελίες για διαγραφή."
-                      : "Διαγραφή των επιλεγμένων παραγγελιών από το SoftOne"
-                  }
-                  className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 sm:w-auto dark:border-red-500/30 dark:bg-gray-900 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
-                >
-                  {deletingSelected ? (
-                    <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-                  ) : (
-                    <Trash2 aria-hidden="true" className="size-4" />
-                  )}
-                  Διαγραφή
-                  {selectedVisibleCount > 0 ? ` (${selectedVisibleCount})` : ""}
-                </button>
-
-                {can("picked-it-up") && (
-                <button
-                  type="button"
-                  onClick={() => void handleCompleteSelectedOrders()}
-                  disabled={!canCompleteSelectedOrders || bulkUpdating}
-                  title={
-                    selectedVisibleCount === 0
-                      ? "Επιλέξτε παραγγελίες για ολοκλήρωση."
-                      : canCompleteSelectedOrders
-                        ? "Σήμανση των επιλεγμένων παραγγελιών ως PICKED IT UP"
-                        : "Μία ή περισσότερες επιλεγμένες παραγγελίες δεν είναι ακόμη έτοιμες για ολοκλήρωση."
-                  }
-                  className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-3 text-xs font-semibold text-white shadow-theme-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none sm:w-auto dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
-                >
-                  {bulkUpdating ? (
-                    <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-                  ) : (
-                    <Check aria-hidden="true" className="size-4" />
-                  )}
-                  PICKED IT UP
-                  {selectedVisibleCount > 0 ? ` (${selectedVisibleCount})` : ""}
-                </button>
-                )}
-
-                <label className="flex h-10 min-w-0 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                  Status
-                  <select
-                    value={statusFilter}
-                    onChange={(event) => {
-                      setStatusFilter(event.target.value as PickingStatusFilter);
-                      setSelectedFindocs(new Set());
-                      setExpandedFindocs(new Set());
-                    }}
-                    disabled={isLoading}
-                    className="min-w-0 flex-1 border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-[120px] sm:flex-none dark:text-gray-200"
+        <DataTable className="mt-4 flex min-h-0 flex-1 flex-col md:block">
+          <DataTableHeader
+            title="Picking List"
+            description="Παραγγελίες που έχουν αποσταλεί στο SoftOne, για το κατάστημα και κατάσταση συλλογής."
+            count={visibleOrders.length}
+            action={
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
+                <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteSelectedOrders()}
+                    disabled={
+                      selectedVisibleCount === 0 ||
+                      deletingSelected ||
+                      bulkUpdating ||
+                      isLoading
+                    }
+                    title={
+                      selectedVisibleCount === 0
+                        ? "Επιλέξτε παραγγελίες για διαγραφή."
+                        : "Διαγραφή των επιλεγμένων παραγγελιών από το SoftOne"
+                    }
+                    className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-300 sm:w-auto dark:border-red-500/30 dark:bg-gray-900 dark:text-red-400 dark:hover:bg-red-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
                   >
-                    {PICKING_STATUS_FILTERS.map((status) => (
-                      <option key={status.value} value={status.value}>
-                        {status.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    {deletingSelected ? (
+                      <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 aria-hidden="true" className="size-4" />
+                    )}
+                    Διαγραφή
+                    {selectedVisibleCount > 0 ? ` (${selectedVisibleCount})` : ""}
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleExportPdf}
-                  disabled={visibleOrders.length === 0 || isLoading}
-                  title="Εκτύπωση ή αποθήκευση του Picking List ως PDF"
-                  className="col-span-2 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:border-brand-300 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
-                >
-                  <FileText aria-hidden="true" className="size-4" />
-                  Εξαγωγή PDF
-                </button>
-              </div>
+                  {can("picked-it-up") && (
+                    <button
+                      type="button"
+                      onClick={() => void handleCompleteSelectedOrders()}
+                      disabled={!canCompleteSelectedOrders || bulkUpdating}
+                      title={
+                        selectedVisibleCount === 0
+                          ? "Επιλέξτε παραγγελίες για ολοκλήρωση."
+                          : canCompleteSelectedOrders
+                            ? "Σήμανση των επιλεγμένων παραγγελιών ως PICKED IT UP"
+                            : "Μία ή περισσότερες επιλεγμένες παραγγελίες δεν είναι ακόμη έτοιμες για ολοκλήρωση."
+                      }
+                      className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-3 text-xs font-semibold text-white shadow-theme-xs transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none sm:w-auto dark:disabled:bg-gray-800 dark:disabled:text-gray-500"
+                    >
+                      {bulkUpdating ? (
+                        <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                      ) : (
+                        <Check aria-hidden="true" className="size-4" />
+                      )}
+                      PICKED IT UP
+                      {selectedVisibleCount > 0 ? ` (${selectedVisibleCount})` : ""}
+                    </button>
+                  )}
 
-              <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                Κατάστημα
-                {branchOptions.length <= 1 ? (
-                  <span
-                    className="min-w-0 flex-1 truncate text-xs font-semibold normal-case text-gray-700 sm:min-w-[140px] sm:flex-none dark:text-gray-200"
-                    title={formatBranchLabel(activeBranch)}
-                  >
-                    {formatBranchLabel(activeBranch)}
-                  </span>
-                ) : (
-                  <label className="min-w-0 flex-1 sm:min-w-[140px] sm:flex-none">
-                    <span className="sr-only">Επιλογή καταστήματος</span>
+                  <label className="flex h-10 min-w-0 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                    Status
                     <select
-                      value={activeBranch}
+                      value={statusFilter}
                       onChange={(event) => {
-                        const nextBranch = normalizeBranchCode(
-                          event.target.value
-                        );
-                        setSelectedBranch(nextBranch);
+                        setStatusFilter(event.target.value as PickingStatusFilter);
                         setSelectedFindocs(new Set());
                         setExpandedFindocs(new Set());
-
-                        if (
-                          user &&
-                          permissions &&
-                          nextBranch &&
-                          nextBranch !== currentBranch
-                        ) {
-                          syncedTopbarBranchRef.current = nextBranch;
-                          setAuth(
-                            { ...user, mainBranch: nextBranch },
-                            permissions
-                          );
-                        }
                       }}
                       disabled={isLoading}
-                      className="w-full border-0 bg-transparent text-xs font-semibold normal-case text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"
+                      className="min-w-0 flex-1 border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-[120px] sm:flex-none dark:text-gray-200"
                     >
-                      {branchOptions.map((branch) => (
-                        <option key={branch.code} value={branch.code}>
-                          {branch.label}
+                      {PICKING_STATUS_FILTERS.map((status) => (
+                        <option key={status.value} value={status.value}>
+                          {status.label}
                         </option>
                       ))}
                     </select>
                   </label>
-                )}
-              </div>
 
-              <DataTableSearchBar
-                value={searchTerm}
-                onChange={setSearchTerm}
-                onRefresh={handleRefresh}
-                isRefreshing={isFetching}
-                refreshDisabled={isFetching}
-                placeholder="Παραστατικό, πελάτης, κωδικός..."
-              />
-            </div>
-          }
-        />
+                  <button
+                    type="button"
+                    onClick={handleExportPdf}
+                    disabled={visibleOrders.length === 0 || isLoading}
+                    title="Εκτύπωση ή αποθήκευση του Picking List ως PDF"
+                    className="col-span-2 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:border-brand-300 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                  >
+                    <FileText aria-hidden="true" className="size-4" />
+                    Εξαγωγή PDF
+                  </button>
+                </div>
 
-        <OrderTypePicker
-          selectedType={orderTypeFilter}
-          counts={orderTypeCounts}
-          onSelect={handleSelectOrderType}
-        />
+                <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                  Κατάστημα
+                  <span
+                    className="min-w-0 truncate text-xs font-semibold normal-case text-gray-700 dark:text-gray-200"
+                    title={formatBranchLabel(activeBranch)}
+                  >
+                    {formatBranchLabel(activeBranch)}
+                  </span>
+                </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center px-5 py-16 text-gray-500 dark:text-gray-400">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Φόρτωση Picking List...
-          </div>
-        ) : visibleOrders.length === 0 ? (
-          <DataTableEmptyState
-            icon={<ClipboardList className="h-7 w-7" />}
-            title="Δεν βρέθηκαν παραγγελίες"
-            description="Δεν υπάρχουν παραγγελίες για το επιλεγμένο κατάστημα, status και κριτήριο αναζήτησης."
-          />
-        ) : (
-          <>
-          <div className="flex flex-col gap-3 p-3 sm:p-4 xl:gap-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-950">
-              <div className="flex items-center gap-3">
-                <DataTableSelectionCheckbox
-                  ariaLabel="Επιλογή όλων των ορατών παραγγελιών"
-                  checked={allVisibleSelected}
-                  indeterminate={someVisibleSelected}
-                  onCheckedChange={toggleAllVisible}
+                <DataTableSearchBar
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  onRefresh={handleRefresh}
+                  isRefreshing={isFetching}
+                  refreshDisabled={isFetching}
+                  placeholder="Παραστατικό, πελάτης, κωδικός..."
                 />
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {selectedVisibleCount} / {visibleOrders.length} επιλεγμένες
-                </span>
               </div>
-              <PickingSortControls sort={sort} onSort={handleSort} />
-              <button
-                type="button"
-                onClick={toggleAllExpanded}
-                disabled={visibleOrders.length === 0}
-                aria-label={
-                  allVisibleExpanded
-                    ? "Κλείσιμο λεπτομερειών"
-                    : "Άνοιγμα λεπτομερειών"
-                }
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-              >
-                {allVisibleExpanded ? (
-                  <ListChevronsDownUp className="h-3.5 w-3.5" />
-                ) : (
-                  <ListChevronsUpDown className="h-3.5 w-3.5" />
-                )}
-                Είδη
-              </button>
+            }
+          />
+
+          <OrderTypePicker
+            selectedType={orderTypeFilter}
+            counts={orderTypeCounts}
+            onSelect={handleSelectOrderType}
+          />
+
+          {isLoading ? (
+            <div className="flex items-center justify-center px-5 py-16 text-gray-500 dark:text-gray-400">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Φόρτωση Picking List...
             </div>
-            {visibleOrders.map((order) => (
-              <PickingOrderCard
-                key={`${order.findoc}-${order.pickerComment}`}
-                order={order}
-                activeBranch={activeBranch}
-                expanded={expandedFindocs.has(order.findoc)}
-                selected={selectedFindocs.has(order.findoc)}
-                pickedDetailKeys={pickedDetailKeys}
-                updating={updatingFindocs.has(order.findoc)}
-                nowMs={nowMs}
-                onToggleExpanded={handleToggleExpanded}
-                onToggleSelected={toggleSelected}
-                onToggleDetailPicked={toggleDetailPicked}
-                onSaveComment={handleSaveComment}
-                onAdvanceStatus={handleAdvanceStatus}
-              />
-            ))}
-          </div>
+          ) : visibleOrders.length === 0 ? (
+            <DataTableEmptyState
+              icon={<ClipboardList className="h-7 w-7" />}
+              title="Δεν βρέθηκαν παραγγελίες"
+              description="Δεν υπάρχουν παραγγελίες για το επιλεγμένο κατάστημα, status και κριτήριο αναζήτησης."
+            />
+          ) : (
+            <>
+              <div className="flex flex-col gap-3 p-3 sm:p-4 xl:gap-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-950">
+                  <div className="flex items-center gap-3">
+                    <DataTableSelectionCheckbox
+                      ariaLabel="Επιλογή όλων των ορατών παραγγελιών"
+                      checked={allVisibleSelected}
+                      indeterminate={someVisibleSelected}
+                      onCheckedChange={toggleAllVisible}
+                    />
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {selectedVisibleCount} / {visibleOrders.length} επιλεγμένες
+                    </span>
+                  </div>
+                  <PickingSortControls sort={sort} onSort={handleSort} />
+                  <button
+                    type="button"
+                    onClick={toggleAllExpanded}
+                    disabled={visibleOrders.length === 0}
+                    aria-label={
+                      allVisibleExpanded
+                        ? "Κλείσιμο λεπτομερειών"
+                        : "Άνοιγμα λεπτομερειών"
+                    }
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                  >
+                    {allVisibleExpanded ? (
+                      <ListChevronsDownUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ListChevronsUpDown className="h-3.5 w-3.5" />
+                    )}
+                    Είδη
+                  </button>
+                </div>
+                {visibleOrders.map((order) => (
+                  <PickingOrderCard
+                    key={`${order.findoc}-${order.pickerComment}`}
+                    order={order}
+                    activeBranch={activeBranch}
+                    expanded={expandedFindocs.has(order.findoc)}
+                    selected={selectedFindocs.has(order.findoc)}
+                    pickedDetailKeys={pickedDetailKeys}
+                    updating={updatingFindocs.has(order.findoc)}
+                    nowMs={nowMs}
+                    onToggleExpanded={handleToggleExpanded}
+                    onToggleSelected={toggleSelected}
+                    onToggleDetailPicked={toggleDetailPicked}
+                    onSaveComment={handleSaveComment}
+                    onAdvanceStatus={handleAdvanceStatus}
+                  />
+                ))}
+              </div>
 
-          </>
-        )}
+            </>
+          )}
 
-        {!isLoading && visibleOrders.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 px-5 py-3 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
-            <span>
-              {visibleOrders.length} παραγγελίες · {selectedVisibleCount} επιλεγμένες
-            </span>
-            <span>{formatBranchLabel(activeBranch)}</span>
-          </div>
-        )}
-      </DataTable>
+          {!isLoading && visibleOrders.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 px-5 py-3 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+              <span>
+                {visibleOrders.length} παραγγελίες · {selectedVisibleCount} επιλεγμένες
+              </span>
+              <span>{formatBranchLabel(activeBranch)}</span>
+            </div>
+          )}
+        </DataTable>
       </div>
       <PickingListPrintView
         orders={visibleOrders}
