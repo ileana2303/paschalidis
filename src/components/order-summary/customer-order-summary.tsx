@@ -24,6 +24,7 @@ import {
     getBasketItemLineTotal,
 } from "@/lib/utils/basket-helpers";
 import type { IBasket, IBasketItem, ICustomerInfo } from "@/lib/interface";
+import { hasInvoiceAfm } from "@/lib/customers/afm";
 
 export type ReceiptType = "receipt" | "invoice";
 
@@ -81,7 +82,7 @@ function SegmentedControl<T extends string>({
     onChange,
 }: {
     value: T;
-    options: Array<{ value: T; label: ReactNode }>;
+    options: Array<{ value: T; label: ReactNode; disabled?: boolean }>;
     onChange?: (value: T) => void;
 }) {
     return (
@@ -94,12 +95,13 @@ function SegmentedControl<T extends string>({
                         key={option.value}
                         type="button"
                         onClick={() => onChange?.(option.value)}
+                        disabled={option.disabled}
                         aria-pressed={selected}
                         className={[
-                            "min-w-0 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition",
+                            "min-w-0 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
                             selected
                                 ? "bg-white text-brand-600 shadow-theme-xs dark:bg-gray-800 dark:text-brand-300"
-                                : "text-gray-500 hover:bg-white/70 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200",
+                                : "text-gray-500 enabled:hover:bg-white/70 enabled:hover:text-gray-800 dark:text-gray-400 dark:enabled:hover:bg-white/5 dark:enabled:hover:text-gray-200",
                         ].join(" ")}
                     >
                         {option.label}
@@ -147,6 +149,7 @@ export default function CustomerOrderSummary({
     const pathname = usePathname();
     const router = useRouter();
     const isOnBasketPage = pathname === "/basket";
+    const canInvoice = hasInvoiceAfm(customer?.AFM);
     const basketHref = customer?.TRDR
         ? `/basket?trdr=${customer.TRDR}`
         : "/basket";
@@ -322,10 +325,18 @@ export default function CustomerOrderSummary({
                 className="mt-5"
             >
                 <SegmentedControl
-                    value={receiptType}
+                    value={canInvoice ? receiptType : "receipt"}
                     onChange={onReceiptTypeChange}
-                    options={receiptOptions}
+                    options={receiptOptions.map((option) => ({
+                        ...option,
+                        disabled: option.value === "invoice" && !canInvoice,
+                    }))}
                 />
+                {customer && !canInvoice && (
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Για την έκδοση τιμολογίου απαιτείται έγκυρο ΑΦΜ.
+                    </p>
+                )}
             </SummaryFormField>
 
             <SummaryTextareaField

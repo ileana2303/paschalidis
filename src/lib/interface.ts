@@ -393,6 +393,7 @@ export interface BasketMassDeletePayload {
 
 export interface BasketSubmitRoutePayload {
     TRDR: string;
+    CUSTOMER_NAME?: string;
     /** Active branch that submits and will pick the order. */
     BRANCH?: string | number;
     RECEIPT_TYPE?: "receipt" | "invoice";

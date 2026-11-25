@@ -212,6 +212,7 @@ export async function submitBasketOrder(
         deliveryDate: params.DELIVDATE,
         notes: params.NOTES,
         receiptType: params.RECEIPT_TYPE,
+        customerName: params.CUSTOMER_NAME || firstItem?.CUST_NAME,
         trdr: asPositiveNumber(params.TRDR),
         trdBranch: asNonNegativeNumber(firstItem?.TRD_BRANCH) ?? 0,
         branch:

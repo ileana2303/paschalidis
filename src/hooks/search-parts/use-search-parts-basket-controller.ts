@@ -10,6 +10,7 @@ import {
     normalizeBasket,
 } from "@/lib/utils/basket-helpers";
 import type { IBasket, IBasketItem, ICustomerInfo, IItem } from "@/lib/interface";
+import { hasInvoiceAfm } from "@/lib/customers/afm";
 import {
     useAddItemToBasketMutation,
     useDeleteBasketItemsMutation,
@@ -456,7 +457,8 @@ export function useSearchPartsBasketController({
             await submitBasketOrder({
                 TRDR: customer.TRDR,
                 BRANCH: currentBranchCode,
-                RECEIPT_TYPE: receiptType,
+                RECEIPT_TYPE: hasInvoiceAfm(customer.AFM) ? receiptType : "receipt",
+                CUSTOMER_NAME: customer.NAME,
                 NOTES: notes,
                 APPUSER_ID: userId,
                 items: basket.items,

@@ -1,4 +1,6 @@
 import { getSaldocSeriesByBranchCode } from "@/lib/auth/branches";
+import { hasInvoiceAfm } from "@/lib/customers/afm";
+import { findCustomerByTrdr } from "@/lib/customers/find-customer-by-trdr";
 import { getSoftOneClientID, getSoftOneSetDataClientID } from "@/lib/softone";
 import { linkBasketRowsToDocument } from "../shared/link-basket-to-document";
 import {
@@ -36,6 +38,7 @@ export type BasketOrderRequestBody = {
     deliveryDate?: string;
     notes?: string;
     receiptType?: BasketReceiptType;
+    customerName?: string;
     trdr?: number;
     trdBranch?: number;
     branch?: number;
@@ -140,6 +143,13 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
 
     if (!customerTrdr) {
         throw new Error('Λείπει ο πελάτης (TRDR) της παραγγελίας.');
+    }
+
+    if (receiptType === "invoice") {
+        const customer = await findCustomerByTrdr(sqlClientID, String(customerTrdr), body.customerName);
+        if (!hasInvoiceAfm(customer?.AFM)) {
+            throw new Error("Για έκδοση τιμολογίου απαιτείται επιβεβαιωμένο ΑΦΜ 9 ψηφίων διαφορετικό από 000000000. Επιλέξτε Απόδειξη.");
+        }
     }
 
     const trdBranch =

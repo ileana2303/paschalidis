@@ -4,6 +4,7 @@ import PageBreadcrumb from "@/components/template-components/common/PageBreadCru
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomerStore } from "@/stores/customerStore";
+import { hasInvoiceAfm } from "@/lib/customers/afm";
 import { IBasket } from "@/lib/interface";
 import { useAuthStore } from "@/stores/authStore";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/lib/utils/basket-helpers";
 import {
     useDeleteBasketItemsMutation,
+    useFetchCustomerByTrdrMutation,
     useFetchBasketItemsMutation,
     useRequestPriceMutation,
     useSubmitBasketOrderMutation,
@@ -48,7 +50,9 @@ export default function BasketClient() {
     const searchParams = useSearchParams();
     const urlTrdr = String(searchParams.get("trdr") ?? "").trim();
     const customer = useCustomerStore((state) => state.customer);
+    const setCustomer = useCustomerStore((state) => state.setCustomer);
     const clearCustomer = useCustomerStore((state) => state.clearCustomer);
+    const selectedCustomer = String(customer?.TRDR ?? "").trim() === urlTrdr ? customer : null;
     const user = useAuthStore((state) => state.user);
     const [basket, setBasket] = useState<IBasket | null>(null);
     const [loading, setLoading] = useState(false);
@@ -71,10 +75,27 @@ export default function BasketClient() {
     const basketLoadInFlightIdRef = useRef<number | null>(null);
     const basketRequestIdRef = useRef(0);
     const { mutateAsync: fetchBasketItems } = useFetchBasketItemsMutation();
+    const { mutateAsync: fetchCustomerByTrdr } = useFetchCustomerByTrdrMutation();
     const { mutateAsync: submitBasketOrder } = useSubmitBasketOrderMutation();
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
     const { mutateAsync: updateBasketItemQty } = useUpdateBasketItemQtyMutation();
     const { mutateAsync: requestPrice } = useRequestPriceMutation();
+    const basketCustomerName = basket?.items[0]?.CUST_NAME;
+
+    useEffect(() => {
+        if (!urlTrdr || selectedCustomer || !basketCustomerName) return;
+
+        let cancelled = false;
+        void fetchCustomerByTrdr({ trdr: urlTrdr, name: basketCustomerName })
+            .then((resolvedCustomer) => {
+                if (!cancelled) setCustomer(resolvedCustomer);
+            })
+            .catch(() => { /* Retail stays available when customer details cannot be loaded. */ });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [basketCustomerName, fetchCustomerByTrdr, selectedCustomer, setCustomer, urlTrdr]);
 
     const loadBasket = useCallback(async (
         trdr: string,
@@ -398,7 +419,8 @@ export default function BasketClient() {
             await submitBasketOrder({
                 TRDR: urlTrdr,
                 BRANCH: user?.mainBranch,
-                RECEIPT_TYPE: receiptType,
+                RECEIPT_TYPE: hasInvoiceAfm(selectedCustomer?.AFM) ? receiptType : "receipt",
+                CUSTOMER_NAME: selectedCustomer?.NAME ?? basketCustomerName,
                 NOTES: notes,
                 APPUSER_ID: user?.username,
                 items: selectedItemsList,
@@ -522,10 +544,6 @@ export default function BasketClient() {
         router.push(urlTrdr ? `/search-parts?trdr=${urlTrdr}` : "/search-parts");
     };
 
-    const customerMatchesUrl = Boolean(
-        customer?.TRDR && String(customer.TRDR).trim() === urlTrdr
-    );
-    const selectedCustomer = customerMatchesUrl ? customer : null;
     const customerName = selectedCustomer?.NAME ?? (urlTrdr ? `TRDR ${urlTrdr}` : "—");
 
     return (
