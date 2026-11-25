@@ -218,8 +218,7 @@ const collapsibleGroupNames = navItems
   .map((item) => item.name);
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobile, isMobileOpen, isHovered, setIsHovered } =
-    useSidebar();
+  const { isExpanded, isMobile, isMobileOpen } = useSidebar();
   const pathname = usePathname();
   const permissions = useAuthStore((state) => state.permissions);
   const visibleNavItems = React.useMemo(
@@ -227,7 +226,7 @@ const AppSidebar: React.FC = () => {
     [isMobile, permissions]
   );
   const isActive = (path: string) => path === pathname;
-  const isSidebarExpanded = isExpanded || isHovered || isMobileOpen;
+  const isSidebarExpanded = isExpanded || isMobileOpen;
   const [expandedGroups, setExpandedGroups] = React.useState<
     Record<string, boolean>
   >(() =>
@@ -534,8 +533,6 @@ const AppSidebar: React.FC = () => {
         ${isSidebarExpanded ? "w-[290px]" : "w-[90px]"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-[calc(100%+1rem)]"}
         lg:translate-x-0`}
-      onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div
         className={`py-8 flex  ${isSidebarExpanded ? "justify-start" : "lg:justify-center"

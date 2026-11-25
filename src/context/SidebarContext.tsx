@@ -5,10 +5,8 @@ type SidebarContextType = {
   isExpanded: boolean;
   isMobile: boolean;
   isMobileOpen: boolean;
-  isHovered: boolean;
   toggleSidebar: () => void;
   toggleMobileSidebar: () => void;
-  setIsHovered: (isHovered: boolean) => void;
 };
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
@@ -27,33 +25,19 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
-    let previousViewport: "mobile" | "laptop" | "desktop" | null = null;
+    let initializedDesktopState = false;
 
     const handleResize = () => {
-      const viewportWidth = window.innerWidth;
-      const mobile = viewportWidth < 1024;
-      const isLaptopDisplay = window.screen.width <= 2056;
-      const laptop =
-        viewportWidth >= 1024 &&
-        (viewportWidth < 1920 || isLaptopDisplay);
-      const viewport = mobile ? "mobile" : laptop ? "laptop" : "desktop";
-
+      const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
 
-      if (viewport === "laptop") {
-        setIsExpanded(false);
-      } else if (viewport === "desktop" && viewport !== previousViewport) {
-        setIsExpanded(true);
-      }
-
-      if (viewport !== previousViewport) {
-        previousViewport = viewport;
-      }
-
       if (!mobile) {
+        if (!initializedDesktopState) {
+          setIsExpanded(window.innerWidth >= 1920 && window.screen.width > 2056);
+          initializedDesktopState = true;
+        }
         setIsMobileOpen(false);
       }
     };
@@ -80,10 +64,8 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
         isExpanded: isMobile ? false : isExpanded,
         isMobile,
         isMobileOpen,
-        isHovered,
         toggleSidebar,
         toggleMobileSidebar,
-        setIsHovered,
       }}
     >
       {children}

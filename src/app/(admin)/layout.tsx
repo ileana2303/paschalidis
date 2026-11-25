@@ -14,7 +14,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+  const { isExpanded, isMobileOpen } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
   const permissions = useAuthStore((state) => state.permissions);
@@ -25,7 +25,7 @@ export default function AdminLayout({
     }
   }, [pathname, permissions, router]);
 
-  const sidebarOffsetClass = isExpanded || isHovered ? "lg:ml-[306px]" : "lg:ml-[106px]";
+  const sidebarOffsetClass = isExpanded ? "lg:ml-[306px]" : "lg:ml-[106px]";
 
   const mainContentMargin = isMobileOpen
     ? "ml-0"
