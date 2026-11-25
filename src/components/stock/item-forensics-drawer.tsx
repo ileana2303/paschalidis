@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ApexOptions } from "apexcharts";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
 import { useFetchItemForensicsMutation } from "@/hooks/queries/useApiMutations";
@@ -9,6 +9,7 @@ import type { IItemForensicsRow } from "@/lib/interface";
 import {
   AlertCircle,
   ChartColumn,
+  ChevronDown,
   Loader2,
   PackageSearch,
   RefreshCw,
@@ -21,6 +22,8 @@ import {
 import { getAthensMonthName } from "@/lib/utils/athens-date";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+
+const DAY_OPTIONS = [1, 3, 7, 10] as const;
 
 const SALES_HISTORY_FIELDS = [
   { sales: "Y0", monthlyRate: "M0" },
@@ -119,16 +122,17 @@ function ChartCard({
 
 function ItemForensicsContent({
   rows,
+  selected,
   days,
   branch,
 }: {
   rows: IItemForensicsRow[];
+  selected: IItemForensicsRow;
   days: number;
   branch: string;
 }) {
   const currentYear = new Date().getFullYear();
   const currentMonth = getAthensMonthName();
-  const selected = rows.find((row) => row.SCOPE === "ΕΙΔΟΣ") ?? rows[0];
   const branchLabel = branch === "ALL" ? "Εταιρεία" : `Κατάστημα ${branch}`;
 
   const annualOptions = useMemo<ApexOptions>(() => ({
@@ -166,21 +170,8 @@ function ItemForensicsContent({
     yaxis: { min: 0, labels: { formatter: (value: number) => formatElNumber(value) } },
   }), [rows]);
 
-  if (!selected) return null;
-
   return (
     <div className="space-y-5 p-4 sm:p-6">
-      <section aria-label="Σύνοψη forensics">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-          <KpiCard label={`Πωλήσεις ${salesPeriodLabel(days)}`} value={formatElNumber(selected.QTY_WIN)} />
-          <KpiCard label={`${currentYear} ποσότητα`} value={formatElNumber(selected.Y0)} />
-          <KpiCard label="Ρυθμός μήνα" value={formatElNumber(selected.RYTHMOS_MINA)} />
-          <KpiCard label="Διαθέσιμα" value={formatElNumber(selected.AVAIL)} />
-          <KpiCard label="Ongoing" value={formatElNumber(selected.ONGOING)} />
-          <KpiCard label="Ελεύθερα" value={formatElNumber(selected.FREE_AVAIL)} />
-        </div>
-      </section>
-
       <div className="grid gap-5 lg:grid-cols-2">
         <ChartCard
           title="Ετήσια πορεία επιλεγμένου είδους"
@@ -394,12 +385,7 @@ function ItemForensicsContent({
 
 function DrawerLoading() {
   return (
-    <div className="space-y-5 p-4 sm:p-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="h-20 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
-        ))}
-      </div>
+    <div className="p-4 sm:p-6">
       <div className="flex h-72 items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
           <Loader2 className="h-5 w-5 animate-spin text-brand-500" />
@@ -412,17 +398,24 @@ function DrawerLoading() {
 
 export default function ItemForensicsDrawer({
   item,
-  days,
+  days: initialDays,
   branch,
   onClose,
 }: ItemForensicsDrawerProps) {
+  const [days, setDays] = useState(initialDays);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const {
     data,
     error,
     isPending,
     mutate,
+    variables,
   } = useFetchItemForensicsMutation();
+  const isLoading =
+    isPending ||
+    variables?.days !== days ||
+    variables?.mtrl !== item.MTRL ||
+    variables?.branch !== branch;
 
   useEffect(() => {
     mutate({ mtrl: item.MTRL, days, branch });
@@ -453,6 +446,7 @@ export default function ItemForensicsDrawer({
   );
 
   const retry = () => mutate({ mtrl: item.MTRL, days, branch });
+  const selected = rows.find((row) => row.SCOPE === "ΕΙΔΟΣ") ?? rows[0];
   const errorMessage = error instanceof Error ? error.message : "Αποτυχία φόρτωσης ιστορικού πωλήσεων.";
 
   return (
@@ -495,32 +489,67 @@ export default function ItemForensicsDrawer({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {isPending ? (
-            <DrawerLoading />
-          ) : error ? (
-            <div className="p-4 sm:p-6">
-              <div className="flex items-start gap-3 rounded-2xl border border-error-200 bg-error-50 p-5 text-sm text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-                <div>
-                  <p className="font-semibold">Δεν ήταν δυνατή η φόρτωση</p>
-                  <p className="mt-1">{errorMessage}</p>
-                  <button type="button" onClick={retry} className="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-error-600 px-3 font-semibold text-white transition hover:bg-error-700">
-                    <RefreshCw className="h-4 w-4" />
-                    Νέα προσπάθεια
-                  </button>
+          <section aria-label="Σύνοψη πωλήσεων" className="grid grid-cols-2 gap-3 px-4 pt-4 sm:grid-cols-4 sm:px-6 sm:pt-6 xl:grid-cols-7">
+            <label className="cursor-pointer rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-brand-800 transition hover:border-brand-400 dark:border-brand-500/40 dark:bg-brand-500/15 dark:text-brand-200">
+              <span className="block text-[10px] font-semibold uppercase tracking-wide">Περίοδος πωλήσεων</span>
+              <span className="relative mt-1 block">
+                <select
+                  value={days}
+                  onChange={(event) => setDays(Number(event.currentTarget.value))}
+                  className="w-full cursor-pointer appearance-none rounded-md border border-brand-200 bg-white py-1.5 pl-2 pr-7 text-sm font-semibold outline-none focus-visible:border-brand-500 dark:border-brand-500/40 dark:bg-gray-900 dark:focus-visible:border-brand-400"
+                >
+                  {DAY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option === 1 ? "1 ημέρα" : `${option} ημέρες`}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2" />
+              </span>
+            </label>
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} aria-hidden="true" className="min-h-20 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+              ))
+            ) : !error && selected ? (
+              <>
+                <KpiCard label={`Πωλήσεις ${salesPeriodLabel(days)}`} value={formatElNumber(selected.QTY_WIN)} />
+                <KpiCard label={`${new Date().getFullYear()} ποσότητα`} value={formatElNumber(selected.Y0)} />
+                <KpiCard label="Ρυθμός μήνα" value={formatElNumber(selected.RYTHMOS_MINA)} />
+                <KpiCard label="Διαθέσιμα" value={formatElNumber(selected.AVAIL)} />
+                <KpiCard label="Ongoing" value={formatElNumber(selected.ONGOING)} />
+                <KpiCard label="Ελεύθερα" value={formatElNumber(selected.FREE_AVAIL)} />
+              </>
+            ) : null}
+          </section>
+          <div aria-busy={isLoading}>
+            {isLoading ? (
+              <DrawerLoading />
+            ) : error ? (
+              <div className="p-4 sm:p-6">
+                <div className="flex items-start gap-3 rounded-2xl border border-error-200 bg-error-50 p-5 text-sm text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                  <div>
+                    <p className="font-semibold">Δεν ήταν δυνατή η φόρτωση</p>
+                    <p className="mt-1">{errorMessage}</p>
+                    <button type="button" onClick={retry} className="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-error-600 px-3 font-semibold text-white transition hover:bg-error-700">
+                      <RefreshCw className="h-4 w-4" />
+                      Νέα προσπάθεια
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : rows.length === 0 ? (
-            <DataTableEmptyState
-              className="min-h-[420px]"
-              icon={<PackageSearch className="h-7 w-7" />}
-              title="Δεν υπάρχουν δεδομένα forensics"
-              description="Η υπηρεσία δεν επέστρεψε αναγνωρίσιμα δεδομένα για το επιλεγμένο είδος."
-            />
-          ) : (
-            <ItemForensicsContent rows={rows} days={days} branch={branch} />
-          )}
+            ) : !selected ? (
+              <DataTableEmptyState
+                className="min-h-[420px]"
+                icon={<PackageSearch className="h-7 w-7" />}
+                title="Δεν υπάρχουν δεδομένα forensics"
+                description="Η υπηρεσία δεν επέστρεψε αναγνωρίσιμα δεδομένα για το επιλεγμένο είδος."
+              />
+            ) : (
+              <ItemForensicsContent rows={rows} selected={selected} days={days} branch={branch} />
+            )}
+          </div>
         </div>
       </aside>
     </div>

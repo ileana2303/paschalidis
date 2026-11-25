@@ -2,6 +2,8 @@
 
 import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
+import ItemForensicsButton from "@/components/stock/item-forensics-button";
+import ItemForensicsDrawer from "@/components/stock/item-forensics-drawer";
 import StockOrderSummary from "@/components/stock/stock-order-summary";
 import {
     Check,
@@ -87,6 +89,9 @@ export default function StockRequestsClient({
     const { mutateAsync: submitAnatrofOrder } = useSubmitAnatrofOrderMutation();
 
     const [rows, setRows] = useState<IStockRequestListRow[]>([]);
+    const [selectedForensicsItem, setSelectedForensicsItem] =
+        useState<IStockRequestListRow | null>(null);
+    const closeForensicsDrawer = useCallback(() => setSelectedForensicsItem(null), []);
     const [loading, setLoading] = useState(true);
     const [summaryVisible, setSummaryVisible] = useState(true);
 
@@ -770,20 +775,11 @@ export default function StockRequestsClient({
                             className="flex-1"
                         />
                     ) : (
-                        <div className="min-h-0 min-w-0 w-full max-w-full flex-1 overflow-x-auto overflow-y-auto">
+                        <div className="@container min-h-0 min-w-0 w-full max-w-full flex-1 overflow-auto overscroll-contain">
                             <table className="w-full min-w-[1280px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
-                                <colgroup>
-                                    <col className="w-[4%]" />
-                                    <col className="w-[15%]" />
-                                    <col className="w-[19%]" />
-                                    <col className="w-[27%]" />
-                                    <col className="w-[13%]" />
-                                    <col className="w-[9%]" />
-                                    <col className="w-[13%]" />
-                                </colgroup>
-                                <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
+                                <thead className="bg-gray-50 shadow-sm dark:bg-gray-900 [&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-gray-50 dark:[&_th]:bg-gray-900">
                                     <tr>
-                                        <th className="px-3 py-3 text-left">
+                                        <th className="!sticky !left-0 !z-30 w-11 px-3 py-3 text-left">
                                             <DataTableSelectionCheckbox
                                                 ariaLabel="Επιλογή όλων των ορατών γραμμών"
                                                 checked={allVisibleRowsSelected}
@@ -792,7 +788,7 @@ export default function StockRequestsClient({
                                                 disabled={deletingSelectedRows}
                                             />
                                         </th>
-                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                        <th className="!sticky !left-11 !z-30 w-32 border-r border-gray-200 px-2 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] @md:w-48 @md:px-3 dark:border-gray-700 dark:text-gray-400">
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     type="button"
@@ -812,7 +808,7 @@ export default function StockRequestsClient({
                                             </div>
                                         </th>
 
-                                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                        <th className="w-60 px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                             Είδος
                                         </th>
 
@@ -820,15 +816,15 @@ export default function StockRequestsClient({
                                             Διαθεσιμότητα
                                         </th>
 
-                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                        <th className="w-42 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                             Δεσμεύσεις
                                         </th>
 
-                                        <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                        <th className="w-32 whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                             Ποσότητα
                                         </th>
 
-                                        <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                        <th className="!sticky !right-0 !z-30 w-22 whitespace-nowrap border-l border-gray-200 px-1.5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] @md:w-40 @md:px-4 dark:border-gray-700 dark:text-gray-400">
                                             Ενέργειες
                                         </th>
                                     </tr>
@@ -846,8 +842,8 @@ export default function StockRequestsClient({
 
                                         return (
                                             <Fragment key={row.BASKETID}>
-                                                <tr className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]">
-                                                    <td className="px-3 py-3 align-middle">
+                                                <tr className="group transition hover:bg-gray-50 dark:hover:bg-white/[0.04]">
+                                                    <td className="sticky left-0 z-10 bg-white px-3 py-3 align-middle transition group-hover:bg-gray-50 dark:bg-gray-950 dark:group-hover:bg-gray-900">
                                                         <DataTableSelectionCheckbox
                                                             ariaLabel={`Επιλογή αιτήματος ${row.BASKETID}`}
                                                             checked={selectedTableBasketIds.has(
@@ -864,7 +860,7 @@ export default function StockRequestsClient({
                                                             }
                                                         />
                                                     </td>
-                                                    <td className="px-3 py-2 align-middle">
+                                                    <td className="sticky left-11 z-10 border-r border-gray-200 bg-white px-2 py-2 align-middle shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] transition group-hover:bg-gray-50 @md:px-3 dark:border-gray-700 dark:bg-gray-950 dark:group-hover:bg-gray-900">
                                                         <div className="flex min-w-0 items-center gap-2">
                                                             <button
                                                                 type="button"
@@ -879,7 +875,14 @@ export default function StockRequestsClient({
                                                                     className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                                                                 />
                                                             </button>
-                                                            <ItemCodeBadge code={row.ITEM_CODE} />
+                                                            {isStockList ? (
+                                                                <ItemCodeBadge code={row.ITEM_CODE} className="min-w-0" />
+                                                            ) : (
+                                                                <ItemForensicsButton
+                                                                    code={row.ITEM_CODE}
+                                                                    onClick={() => setSelectedForensicsItem(row)}
+                                                                />
+                                                            )}
                                                         </div>
                                                     </td>
 
@@ -987,7 +990,7 @@ export default function StockRequestsClient({
                                                         </div>
                                                     </td>
 
-                                                    <td className="px-4 py-3 text-right align-middle">
+                                                    <td className="sticky right-0 z-10 border-l border-gray-200 bg-white px-1.5 py-3 text-right align-middle shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] transition group-hover:bg-gray-50 @md:px-4 dark:border-gray-700 dark:bg-gray-950 dark:group-hover:bg-gray-900">
                                                         <RowActionGroup
                                                             loading={rowUpdating}
                                                             disabled={
@@ -1086,6 +1089,19 @@ export default function StockRequestsClient({
                     />
                 )}
             </div>
+            {selectedForensicsItem && (
+                <ItemForensicsDrawer
+                    key={`${selectedForensicsItem.MTRL}-${selectedBranchCode}`}
+                    item={{
+                        MTRL: selectedForensicsItem.MTRL,
+                        CODE: selectedForensicsItem.ITEM_CODE,
+                        NAME: selectedForensicsItem.ITEM_NAME,
+                    }}
+                    days={1}
+                    branch={selectedBranchCode}
+                    onClose={closeForensicsDrawer}
+                />
+            )}
         </div>
     );
 }

@@ -4,11 +4,11 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import ItemForensicsDrawer from "@/components/stock/item-forensics-drawer";
+import ItemForensicsButton from "@/components/stock/item-forensics-button";
 import StockOrderSummary from "@/components/stock/stock-order-summary";
 import QuantityControl from "@/components/ui/quantity-control";
 import {
   AlertCircle,
-  ChartColumn,
   ExternalLink,
   Loader2,
   Package,
@@ -19,7 +19,6 @@ import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-sta
 import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import NumberBadge from "@/components/ui/data-table/number-badge";
-import ItemCodeBadge from "@/components/ui/item-code-badge";
 import type {
   IStockFeedbackRow,
   IStockRequestListRow,
@@ -679,27 +678,17 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                         className="group transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
                       >
                         <td className="sticky left-0 z-10 bg-white px-1 py-2 align-middle transition group-hover:bg-gray-50 @md:px-3 dark:bg-gray-950 dark:group-hover:bg-gray-900">
-                          <button
-                            type="button"
+                          <ItemForensicsButton
+                            code={row.CODE}
                             onClick={() => setSelectedForensicsItem(row)}
-                            className="group/item inline-flex max-w-full flex-col items-start gap-1.5 rounded-xl px-2 py-2 text-left transition hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:hover:bg-brand-500/10"
-                            aria-label={`Προβολή ιστορικού πωλήσεων για τον κωδικό ${row.CODE || "—"}`}
-                            title="Προβολή ιστορικού πωλήσεων"
                           >
-                            <span className="inline-flex max-w-full items-center gap-1 @md:gap-2">
-                              <ItemCodeBadge
-                                code={row.CODE}
-                                className="min-w-0 transition group-hover/item:border-brand-300 group-hover/item:bg-white dark:group-hover/item:border-brand-400 dark:group-hover/item:bg-gray-900"
-                              />
-                              <ChartColumn className="h-4 w-4 shrink-0 text-gray-300 transition group-hover/item:text-brand-500 dark:text-gray-600" />
-                            </span>
                             {isItemSearchResult ? (
                               <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-[10px] font-medium leading-tight text-gray-500 shadow-xs transition group-hover/item:border-gray-300 group-hover/item:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:group-hover/item:border-gray-600 dark:group-hover/item:bg-gray-800">
                                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" aria-hidden="true" />
                                 Αποτέλεσμα αναζήτησης ERP
                               </span>
                             ) : null}
-                          </button>
+                          </ItemForensicsButton>
                         </td>
 
                         <td className="sticky left-[104px] z-10 border-r border-gray-200 bg-white px-1 py-4 text-center align-middle font-semibold whitespace-nowrap text-gray-900 tabular-nums shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] transition group-hover:bg-gray-50 @md:left-[176px] dark:border-gray-700 dark:bg-gray-950 dark:text-white dark:group-hover:bg-gray-900">
