@@ -634,40 +634,30 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
               description="Δεν υπάρχουν δεδομένα για τα επιλεγμένα φίλτρα. Πατήστε «Αναζήτηση ERP» για είδη εκτός της λίστας πωλήσεων."
             />
           ) : (
-            <div className="min-h-0 w-full flex-1 overflow-auto">
+            <div className="@container min-h-0 w-full flex-1 overflow-auto overscroll-contain">
               <table className="w-full min-w-[1500px] table-fixed divide-y divide-gray-100 text-sm dark:divide-gray-800">
-                <colgroup>
-                  <col className="w-[12%]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[6%]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[5%]" />
-                  <col className="w-[20%]" />
-                  <col className="w-[17%]" />
-                </colgroup>
-
-                <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-950">
+                <thead className="bg-gray-50 shadow-sm dark:bg-gray-900 [&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-gray-50 dark:[&_th]:bg-gray-900">
                   <tr>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="!sticky !left-0 !z-30 w-[104px] bg-gray-50 px-2 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 @md:w-[176px] @md:px-5 dark:bg-gray-900 dark:text-gray-400">
                       Κωδικός
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Είδος
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="!sticky !left-[104px] !z-30 w-[52px] border-r border-gray-200 bg-gray-50 py-3 text-center text-[9px] font-semibold uppercase text-gray-500 shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] @md:!left-[176px] @md:w-[90px] @md:text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
                       Πωλήσεις
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="w-60 px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Είδος
+                    </th>
+                    <th className="w-90 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                       Ιστορικό πωλήσεων
                     </th>
-                    <th className="px-1 py-3 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="w-20 px-1 py-3 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                       Σε Εξέλιξη
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                       Διαθεσιμότητα
                     </th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Αίτημα
+                    <th className="!sticky !right-0 !z-30 w-[96px] border-l border-gray-200 bg-gray-50 px-1 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] @md:w-48 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+                      Ενέργειες
                     </th>
                   </tr>
                 </thead>
@@ -686,9 +676,9 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                     return (
                       <tr
                         key={`${row.MTRL}-${row.CODE}-${index}`}
-                        className="transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                        className="group transition hover:bg-gray-50 dark:hover:bg-white/[0.04]"
                       >
-                        <td className="px-3 py-2 align-middle">
+                        <td className="sticky left-0 z-10 bg-white px-1 py-2 align-middle transition group-hover:bg-gray-50 @md:px-3 dark:bg-gray-950 dark:group-hover:bg-gray-900">
                           <button
                             type="button"
                             onClick={() => setSelectedForensicsItem(row)}
@@ -696,10 +686,10 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                             aria-label={`Προβολή ιστορικού πωλήσεων για τον κωδικό ${row.CODE || "—"}`}
                             title="Προβολή ιστορικού πωλήσεων"
                           >
-                            <span className="inline-flex max-w-full items-center gap-2">
+                            <span className="inline-flex max-w-full items-center gap-1 @md:gap-2">
                               <ItemCodeBadge
                                 code={row.CODE}
-                                className="transition group-hover/item:border-brand-300 group-hover/item:bg-white dark:group-hover/item:border-brand-400 dark:group-hover/item:bg-gray-900"
+                                className="min-w-0 transition group-hover/item:border-brand-300 group-hover/item:bg-white dark:group-hover/item:border-brand-400 dark:group-hover/item:bg-gray-900"
                               />
                               <ChartColumn className="h-4 w-4 shrink-0 text-gray-300 transition group-hover/item:text-brand-500 dark:text-gray-600" />
                             </span>
@@ -711,6 +701,11 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                             ) : null}
                           </button>
                         </td>
+
+                        <td className="sticky left-[104px] z-10 border-r border-gray-200 bg-white px-1 py-4 text-center align-middle font-semibold whitespace-nowrap text-gray-900 tabular-nums shadow-[8px_0_12px_-12px_rgba(16,24,40,0.45)] transition group-hover:bg-gray-50 @md:left-[176px] dark:border-gray-700 dark:bg-gray-950 dark:text-white dark:group-hover:bg-gray-900">
+                          {formatNumber(qtySold)}
+                        </td>
+
                         <td className="px-5 py-4 align-middle">
                           <p className="break-words font-medium leading-5 text-gray-900 dark:text-white">
                             {row.NAME || "—"}
@@ -721,10 +716,6 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                             <span>GROUP: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.ZGROUP_CODE || "—"}</strong></span>
                             <span>B2B: <strong className="font-medium text-gray-700 dark:text-gray-300">{row.ZB2B_CODE || "—"}</strong></span>
                           </span>
-                        </td>
-
-                        <td className="whitespace-nowrap px-4 py-4 text-center align-middle tabular-nums font-semibold text-gray-900 dark:text-white">
-                          {formatNumber(qtySold)}
                         </td>
 
                         <td className="px-4 py-4 align-middle">
@@ -818,7 +809,7 @@ export default function StockFeedbackClient({ embedded = false }: { embedded?: b
                           </div>
                         </td>
 
-                        <td className="px-2 py-3 align-middle">
+                        <td className="sticky right-0 z-10 border-l border-gray-200 bg-white px-1 py-3 align-middle shadow-[-8px_0_12px_-12px_rgba(16,24,40,0.45)] transition group-hover:bg-gray-50 @md:px-2 dark:border-gray-700 dark:bg-gray-950 dark:group-hover:bg-gray-900">
                           <div className="flex min-w-0 flex-col items-stretch justify-center gap-2">
                             <QuantityControl
                               value={requestQty}
