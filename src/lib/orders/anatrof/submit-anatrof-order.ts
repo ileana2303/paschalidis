@@ -20,6 +20,7 @@ import {
     ANATROF_SERIES,
     ANATROF_SHIPKIND,
     ANATROF_SOCASH,
+    ANATROF_SUPPLYING_BRANCH,
     ANATROF_TABLE_ACTION,
     ANATROF_TAXSERIES,
     ANATROF_TRDR,
@@ -39,16 +40,14 @@ export type AnatrofOrderRequestBody = {
     deliveryDate?: string;
     notes?: string;
     requestingBranch: number | string;
-    supplyingBranch: number | string;
     items: RawAnatrofItem[];
 };
 
-function requireBranch(value: unknown, role: "requesting" | "supplying") {
+function requireRequestingBranch(value: unknown) {
     const branch = jsonSafeNumber(value);
 
     if (!branch) {
-        const label = role === "requesting" ? "αίτησης" : "τροφοδοσίας";
-        throw new Error(`Λείπει το υποκατάστημα ${label}.`);
+        throw new Error("Λείπει το υποκατάστημα αίτησης.");
     }
 
     return branch;
@@ -65,8 +64,8 @@ export async function submitAnatrofOrder(body: AnatrofOrderRequestBody) {
     const rawItems = requireRawItems(body.items) as RawAnatrofItem[];
     const lines = requireLines(normalizeOrderLines(rawItems));
 
-    const requestingBranch = requireBranch(body.requestingBranch, "requesting");
-    const supplyingBranch = requireBranch(body.supplyingBranch, "supplying");
+    const requestingBranch = requireRequestingBranch(body.requestingBranch);
+    const supplyingBranch = ANATROF_SUPPLYING_BRANCH;
     const invalidItemBranch = rawItems.find((item) => {
         const itemBranch = jsonSafeNumber(item.requestingBranch ?? item.BRANCH);
 
@@ -115,12 +114,9 @@ export async function submitAnatrofOrder(body: AnatrofOrderRequestBody) {
         requestingBranchCode: requestingBranch,
         requestingBranchName:
             getKnownBranchName(requestingBranch) ?? String(requestingBranch),
-        supplyingBranchName:
-            getKnownBranchName(supplyingBranch) ?? String(supplyingBranch),
         remarks: String(body.notes ?? "").trim(),
         shipKind: ANATROF_SHIPKIND,
         socash: ANATROF_SOCASH,
-        supplyingBranch,
         cccExtUser: appUserId,
         lines: lines.map((line) => ({ MTRL: line.mtrl, QTY1: line.qty })),
     });

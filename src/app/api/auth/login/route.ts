@@ -97,7 +97,10 @@ export async function POST(req: NextRequest) {
             result: true,
             message: "Επιτυχής σύνδεση",
             type: "success",
-            redirectlink: getFirstAllowedPath(permissions),
+            redirectlink: getFirstAllowedPath(
+                permissions,
+                upstreamData.user.mainBranch ?? null
+            ),
             user: upstreamData.user,
             permissions,
         };

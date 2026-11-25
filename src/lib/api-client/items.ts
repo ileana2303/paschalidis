@@ -426,7 +426,6 @@ export async function submitAnatrofOrder(
         deliveryDate: payload.deliveryDate,
         notes: payload.notes,
         requestingBranch: payload.requestingBranch,
-        supplyingBranch: payload.supplyingBranch,
         items: payload.items.map((item) => ({
             basketId: item.BASKETID,
             mtrl: item.MTRL,

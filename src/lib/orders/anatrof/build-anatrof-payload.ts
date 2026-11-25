@@ -3,6 +3,10 @@ import {
     type SetDataEnvelope,
     type SetDataIteLine,
 } from "../shared/setdata-envelope";
+import {
+    ANATROF_SUPPLYING_BRANCH,
+    ANATROF_SUPPLYING_BRANCH_NAME,
+} from "./anatrof-constants";
 
 export type AnatrofSaldoc = {
     SERIES: string;
@@ -49,12 +53,10 @@ export type BuildAnatrofPayloadParams = {
     basketId: string;
     requestingBranchCode: number;
     requestingBranchName: string;
-    supplyingBranchName: string;
     /** Free-text notes typed by the user. */
     remarks: string;
     shipKind: number;
     socash: number;
-    supplyingBranch: number;
     /** Username of the logged-in user. */
     cccExtUser: string;
     lines: SetDataIteLine[];
@@ -72,11 +74,9 @@ export function buildAnatrofPayload({
     basketId,
     requestingBranchCode,
     requestingBranchName,
-    supplyingBranchName,
     remarks,
     shipKind,
     socash,
-    supplyingBranch,
     cccExtUser,
     lines,
 }: BuildAnatrofPayloadParams): AnatrofSetDataPayload {
@@ -85,13 +85,13 @@ export function buildAnatrofPayload({
             {
                 SERIES: series,
                 TAXSERIES: taxSeries,
-                BRANCH: supplyingBranch,
+                BRANCH: ANATROF_SUPPLYING_BRANCH,
                 TRDR: trdr,
                 TRDBRANCH: trdBranch, // requesting branch
                 PAYMENT: payment,
                 TRUCKS: trucks,
                 DELIVDATE: deliveryDate,
-                COMMENTS: `ΑΝΑΤΡΟΦΟΔΟΣΙΑ Νο${basketId} ΑΠΟ ${supplyingBranchName} (${supplyingBranch}) ΠΡΟΣ ${requestingBranchName} (${requestingBranchCode})`,
+                COMMENTS: `ΑΝΑΤΡΟΦΟΔΟΣΙΑ Νο${basketId} ΑΠΟ ${ANATROF_SUPPLYING_BRANCH_NAME} (${ANATROF_SUPPLYING_BRANCH}) ΠΡΟΣ ${requestingBranchName} (${requestingBranchCode})`,
                 REMARKS: remarks,
                 SHIPKIND: shipKind,
                 SOCASH: socash,
@@ -105,9 +105,9 @@ export function buildAnatrofPayload({
                 DELIVDATE: deliveryDate,
                 DEPTRDR_CUSTOMER_CODE: "", // fixed
                 BILLTRDR_CUSTOMER_CODE: "", // fixed
-                BRANCHSEC: supplyingBranch, // supplying branch
-                WHOUSESEC: supplyingBranch, // supplying branch
-                WHOUSE: supplyingBranch, // supplying branch warehouse
+                BRANCHSEC: ANATROF_SUPPLYING_BRANCH,
+                WHOUSESEC: ANATROF_SUPPLYING_BRANCH,
+                WHOUSE: ANATROF_SUPPLYING_BRANCH,
             },
         ],
         ITELINES: lines,

@@ -98,11 +98,11 @@ For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚ�
 ## ANATROF specifics
 
 - `TRDBRANCH` = TRDBRANCH of the **requesting** branch.
-- `BRANCHSEC` / `WHOUSESEC` / `WHOUSE` = the **supplying** branch (the
-  logged-in branch sending the basket to SoftOne).
-- The supplying branch selects the setData clientID. The document always uses
+- `SALDOC.BRANCH`, `BRANCHSEC`, `WHOUSESEC`, and `WHOUSE` are fixed to `1006`
+  (L. Athinon), which is the sole supplying branch for replenishment.
+- Branch `1006` selects the setData clientID. The document always uses
   `SERIES 7004|πΔ`, `TAXSERIES πΔ`, and `SOCASH 1005`.
-- `COMMENTS` identifies the supplying and requesting branches dynamically.
+- `COMMENTS` identifies fixed supplying branch `1006` and the requesting branch.
 - `REMARKS` = free-text notes entered in the replenishment summary.
 - `CCCEXTUSER` = username of the logged-in user.
 

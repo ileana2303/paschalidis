@@ -4,7 +4,11 @@ import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
-import { canAccessPath, getFirstAllowedPath } from "@/lib/auth/permissions";
+import {
+  canAccessPath,
+  getFirstAllowedPath,
+  isPathAvailableForBranch,
+} from "@/lib/auth/permissions";
 import { useAuthStore } from "@/stores/authStore";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect } from "react";
@@ -18,12 +22,13 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const permissions = useAuthStore((state) => state.permissions);
+  const activeBranch = useAuthStore((state) => state.user?.mainBranch ?? null);
 
   useEffect(() => {
-    if (permissions && !canAccessPath(permissions, pathname)) {
-      router.replace(getFirstAllowedPath(permissions));
+    if (permissions && !canAccessPath(permissions, pathname, activeBranch)) {
+      router.replace(getFirstAllowedPath(permissions, activeBranch));
     }
-  }, [pathname, permissions, router]);
+  }, [activeBranch, pathname, permissions, router]);
 
   const sidebarOffsetClass = isExpanded ? "lg:ml-[306px]" : "lg:ml-[106px]";
 
@@ -46,7 +51,7 @@ export default function AdminLayout({
           <AppHeader />
         </div>
         <div className="mx-auto min-w-0 w-full max-w-[1800px] p-4 print:max-w-none print:p-0 md:p-6 xl:max-w-none xl:px-8 2xl:px-10">
-          {children}
+          {isPathAvailableForBranch(pathname, activeBranch) ? children : null}
         </div>
       </div>
     </div>

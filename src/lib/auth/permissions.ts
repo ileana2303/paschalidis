@@ -1,4 +1,6 @@
 import type { AuthPermissions } from "@/lib/auth/types";
+import { normalizeBranchCode } from "@/lib/auth/branches";
+import { ANATROF_SUPPLYING_BRANCH } from "@/lib/orders/anatrof/anatrof-constants";
 
 export const NO_ACCESS_PATH = "/no-access";
 
@@ -103,11 +105,27 @@ export function hasPermission(
   return !parent || permissions.modules.includes(parent);
 }
 
-/** Pages not listed in MODULE_ROUTES (home, account, no-access) are not gated. */
+export function isPathAvailableForBranch(
+  pathname: string,
+  activeBranch: string | null
+): boolean {
+  const isStockRequests =
+    pathname === "/stock-requests" || pathname.startsWith("/stock-requests/");
+
+  return !isStockRequests ||
+    normalizeBranchCode(activeBranch) === String(ANATROF_SUPPLYING_BRANCH);
+}
+
+/** The server proxy checks modules. The UI also supplies the active branch. */
 export function canAccessPath(
   permissions: PermissionCodes | null | undefined,
-  pathname: string
+  pathname: string,
+  activeBranch?: string | null
 ): boolean {
+  if (activeBranch !== undefined && !isPathAvailableForBranch(pathname, activeBranch)) {
+    return false;
+  }
+
   const route = MODULE_ROUTES.find(
     ({ path }) => pathname === path || pathname.startsWith(`${path}/`)
   );
@@ -117,10 +135,11 @@ export function canAccessPath(
 }
 
 export function getFirstAllowedPath(
-  permissions: PermissionCodes | null | undefined
+  permissions: PermissionCodes | null | undefined,
+  activeBranch?: string | null
 ): string {
-  const route = MODULE_ROUTES.find(({ modules }) =>
-    modules.some((code) => permissions?.modules.includes(code))
+  const route = MODULE_ROUTES.find(({ path }) =>
+    canAccessPath(permissions, path, activeBranch)
   );
 
   return route?.path ?? NO_ACCESS_PATH;

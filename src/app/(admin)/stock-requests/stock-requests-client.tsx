@@ -607,7 +607,6 @@ export default function StockRequestsClient({
             const data = await submitAnatrofOrder({
                 appUserId: user?.username,
                 requestingBranch: selectedBranchCode,
-                supplyingBranch: currentBranchCode,
                 notes,
                 items: approvedRows,
             });
@@ -647,7 +646,6 @@ export default function StockRequestsClient({
         }
     }, [
         approvedRows,
-        currentBranchCode,
         notes,
         selectedBranchCode,
         setNotes,
@@ -708,7 +706,7 @@ export default function StockRequestsClient({
                                 </button>
 
                                 <label className="flex h-10 items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-                                    Κατάστημα
+                                    {isStockList ? "Κατάστημα" : "Κατάστημα αιτήματος"}
                                     <select
                                         value={selectedBranchCode}
                                         onChange={(event) => {
@@ -723,6 +721,7 @@ export default function StockRequestsClient({
                                         disabled={
                                             loading ||
                                             deletingSelectedRows ||
+                                            submittingAnatrof ||
                                             Boolean(updatingId)
                                         }
                                         className="min-w-[140px] border-0 bg-transparent text-xs font-semibold text-gray-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-200"

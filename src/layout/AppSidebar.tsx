@@ -199,15 +199,16 @@ const mobileNavItems: NavItem[] = [
 /** Keeps the pages the user may open and drops groups left without any. */
 function filterNavItems(
   items: NavItem[],
-  permissions: AuthPermissions | null
+  permissions: AuthPermissions | null,
+  activeBranch: string | null
 ): NavItem[] {
   return items.flatMap((item) => {
     if (!item.subItems) {
-      return item.path && canAccessPath(permissions, item.path) ? [item] : [];
+      return item.path && canAccessPath(permissions, item.path, activeBranch) ? [item] : [];
     }
 
     const subItems = item.subItems.filter((subItem) =>
-      canAccessPath(permissions, subItem.path)
+      canAccessPath(permissions, subItem.path, activeBranch)
     );
     return subItems.length > 0 ? [{ ...item, subItems }] : [];
   });
@@ -221,9 +222,10 @@ const AppSidebar: React.FC = () => {
   const { isExpanded, isMobile, isMobileOpen } = useSidebar();
   const pathname = usePathname();
   const permissions = useAuthStore((state) => state.permissions);
+  const activeBranch = useAuthStore((state) => state.user?.mainBranch ?? null);
   const visibleNavItems = React.useMemo(
-    () => filterNavItems(isMobile ? mobileNavItems : navItems, permissions),
-    [isMobile, permissions]
+    () => filterNavItems(isMobile ? mobileNavItems : navItems, permissions, activeBranch),
+    [activeBranch, isMobile, permissions]
   );
   const isActive = (path: string) => path === pathname;
   const isSidebarExpanded = isExpanded || isMobileOpen;
