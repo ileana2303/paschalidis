@@ -17,6 +17,7 @@ import DataTableHeader from "@/components/ui/data-table/data-table-header";
 import DataTableSearchBar from "@/components/ui/data-table/data-table-search-bar";
 import DataTableSelectionCheckbox from "@/components/ui/data-table/data-table-selection-checkbox";
 import NumberBadge from "@/components/ui/data-table/number-badge";
+import StatusBadge from "@/components/ui/data-table/status-badge";
 import {
   ArrowDown,
   ArrowUp,
@@ -71,7 +72,7 @@ import {
 
 const EMPTY_PICKING_ORDERS: PickingListOrder[] = [];
 
-type PickingOrderSort = {
+export type PickingOrderSort = {
   key: PickingOrderSortKey;
   direction: PickingOrderSortDirection;
 };
@@ -100,7 +101,7 @@ const PICKING_SORT_OPTIONS: ReadonlyArray<{
     { key: "orderType", label: "ΤΥΠΟΣ" },
   ];
 
-function PickingSortControls({
+export function PickingSortControls({
   sort,
   onSort,
 }: {
@@ -156,17 +157,19 @@ function PickingSortControls({
 
 type PickingOrderCardProps = {
   order: PickingListOrder;
-  activeBranch: string;
   expanded: boolean;
-  selected: boolean;
-  pickedDetailKeys: ReadonlySet<string>;
-  updating: boolean;
   nowMs: number;
   onToggleExpanded: (order: PickingListOrder, expanded: boolean) => void;
-  onToggleSelected: (findoc: string) => void;
-  onToggleDetailPicked: (detailKey: string) => void;
-  onSaveComment: (order: PickingListOrder, comment: string) => void;
-  onAdvanceStatus: (order: PickingListOrder) => void;
+  picking?: {
+    activeBranch: string;
+    selected: boolean;
+    pickedDetailKeys: ReadonlySet<string>;
+    updating: boolean;
+    onToggleSelected: (findoc: string) => void;
+    onToggleDetailPicked: (detailKey: string) => void;
+    onSaveComment: (order: PickingListOrder, comment: string) => void;
+    onAdvanceStatus: (order: PickingListOrder) => void;
+  };
 };
 
 type PickingCompletionButtonProps = {
@@ -293,8 +296,8 @@ function PickingOrderDetailsPanel({
 }: {
   order: PickingListOrder;
   activeBranch: string;
-  pickedDetailKeys: ReadonlySet<string>;
-  onToggleDetailPicked: (detailKey: string) => void;
+  pickedDetailKeys?: ReadonlySet<string>;
+  onToggleDetailPicked?: (detailKey: string) => void;
   footerAction?: ReactNode;
   /** Horizontal padding for every band, so backgrounds run edge to edge. */
   insetClassName?: string;
@@ -320,7 +323,7 @@ function PickingOrderDetailsPanel({
     ),
   }));
   const pickedCount = lines.filter(({ detailKey }) =>
-    pickedDetailKeys.has(detailKey)
+    pickedDetailKeys?.has(detailKey)
   ).length;
   const progressLabel = `${pickedCount}/${lines.length}`;
   const allPicked = pickedCount === lines.length;
@@ -332,9 +335,9 @@ function PickingOrderDetailsPanel({
       >
         <span
           className="text-center tabular-nums text-gray-700 dark:text-gray-200"
-          title="Συλλεγμένες / σύνολο γραμμών"
+          title={onToggleDetailPicked ? "Συλλεγμένες / σύνολο γραμμών" : "Αριθμός γραμμής"}
         >
-          {progressLabel}
+          {onToggleDetailPicked ? progressLabel : "#"}
         </span>
         <span className="hidden sm:block">ΚΩΔΙΚΟΣ</span>
         <span className="hidden text-right sm:block">ΠΟΣ</span>
@@ -348,31 +351,36 @@ function PickingOrderDetailsPanel({
       <ul className="divide-y divide-gray-100 dark:divide-gray-800">
         {lines.map(({ detail, index, detailKey }) => {
           const positions = getPickingPositionsForBranch(detail, activeBranch);
-          const picked = pickedDetailKeys.has(detailKey);
+          const picked = pickedDetailKeys?.has(detailKey);
           const detailLabel =
             detail.description || detail.code || `${index + 1}`;
 
           return (
             <li
               key={`${detail.lineNumber}-${detail.code}-${index}`}
-              onClick={() => {
+              onClick={onToggleDetailPicked && (() => {
                 if (window.getSelection()?.toString()) return;
                 onToggleDetailPicked(detailKey);
-              }}
+              })}
               className={[
                 PICKING_DETAIL_GRID,
                 insetClassName,
-                "cursor-pointer gap-y-1 py-2 transition-colors",
+                "gap-y-1 py-2 transition-colors",
+                onToggleDetailPicked ? "cursor-pointer" : "",
                 picked
                   ? "bg-success-25 dark:bg-success-500/[0.06]"
                   : "hover:bg-gray-50 dark:hover:bg-white/[0.03]",
               ].join(" ")}
             >
-              <PickingLineCheckbox
-                checked={picked}
-                ariaLabel={`Σήμανση είδους ${detailLabel} ως συλλεγμένο`}
-                onToggle={() => onToggleDetailPicked(detailKey)}
-              />
+              {onToggleDetailPicked ? (
+                <PickingLineCheckbox
+                  checked={Boolean(picked)}
+                  ariaLabel={`Σήμανση είδους ${detailLabel} ως συλλεγμένο`}
+                  onToggle={() => onToggleDetailPicked(detailKey)}
+                />
+              ) : (
+                <span className="text-center text-xs tabular-nums text-gray-500 dark:text-gray-400">{index + 1}</span>
+              )}
 
               <span
                 className={[
@@ -460,15 +468,15 @@ function PickingOrderDetailsPanel({
   );
 }
 
-function PickingListPrintView({
+export function PickingListPrintView({
   orders,
   activeBranch,
   pickedDetailKeys,
   nowMs,
 }: {
   orders: PickingListOrder[];
-  activeBranch: string;
-  pickedDetailKeys: ReadonlySet<string>;
+  activeBranch?: string;
+  pickedDetailKeys?: ReadonlySet<string>;
   nowMs: number;
 }) {
   return (
@@ -478,9 +486,9 @@ function PickingListPrintView({
       <header className="mb-5 border-b-2 border-black pb-3">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Picking List</h1>
+            <h1 className="text-2xl font-bold">{pickedDetailKeys ? "Picking List" : "Κατάσταση Picking List"}</h1>
             <p className="mt-1 text-sm font-semibold">
-              {formatBranchLabel(activeBranch)}
+              {activeBranch ? formatBranchLabel(activeBranch) : "Όλα τα καταστήματα"}
             </p>
           </div>
           <div className="text-right text-xs">
@@ -510,7 +518,7 @@ function PickingListPrintView({
             ),
           }));
           const pickedCount = printLines.filter(({ detailKey }) =>
-            pickedDetailKeys.has(detailKey)
+            pickedDetailKeys?.has(detailKey)
           ).length;
 
           return (
@@ -540,6 +548,7 @@ function PickingListPrintView({
                     </p>
                     <p>{formatBranchLabel(order.branch)}</p>
                     <p>Πωλητής: {order.submittedBy || "—"}</p>
+                    {!pickedDetailKeys && <p>Κατάσταση: {order.status}</p>}
                   </div>
                 </div>
                 <div className="mt-1.5 text-[10px] leading-4">
@@ -563,7 +572,7 @@ function PickingListPrintView({
                 <thead>
                   <tr className="break-inside-avoid border-b border-black">
                     <th className="w-[6%] px-2 py-1.5 text-center tabular-nums">
-                      {pickedCount}/{printLines.length}
+                      {pickedDetailKeys ? `${pickedCount}/${printLines.length}` : "#"}
                     </th>
                     <th className="w-[20%] px-2 py-1.5 text-left">ΚΩΔΙΚΟΣ</th>
                     <th className="w-[8%] px-2 py-1.5 text-right">ΠΟΣ</th>
@@ -573,11 +582,11 @@ function PickingListPrintView({
                 </thead>
                 <tbody>
                   {printLines.length > 0 ? (
-                    printLines.map(({ detail, detailKey }) => {
-                      const picked = pickedDetailKeys.has(detailKey);
+                    printLines.map(({ detail, detailKey }, index) => {
+                      const picked = pickedDetailKeys?.has(detailKey);
                       const positions = getPickingPositionsForBranch(
                         detail,
-                        activeBranch
+                        pickedDetailKeys ? (activeBranch ?? order.branch) : order.branch
                       );
 
                       return (
@@ -586,9 +595,11 @@ function PickingListPrintView({
                           className="break-inside-avoid border-b border-gray-400 last:border-b-0"
                         >
                           <td className="px-2 py-2 text-center align-top">
-                            <span className="inline-flex size-4 items-center justify-center border-2 border-black text-xs font-bold leading-none">
-                              {picked ? "✓" : ""}
-                            </span>
+                            {pickedDetailKeys ? (
+                              <span className="inline-flex size-4 items-center justify-center border-2 border-black text-xs font-bold leading-none">
+                                {picked ? "✓" : ""}
+                              </span>
+                            ) : index + 1}
                           </td>
                           <td
                             className={[
@@ -619,7 +630,7 @@ function PickingListPrintView({
                   )}
                 </tbody>
               </table>
-              {printLines.length > 0 ? (
+              {pickedDetailKeys && printLines.length > 0 ? (
                 <p className="break-inside-avoid border-t border-black px-3 py-1.5 text-[10px] font-semibold">
                   {pickedCount === printLines.length
                     ? "Όλα τα είδη συλλέχθηκαν"
@@ -741,19 +752,12 @@ function PickerCommentField({
   );
 }
 
-function PickingOrderCard({
+export function PickingOrderCard({
   order,
-  activeBranch,
   expanded,
-  selected,
-  pickedDetailKeys,
-  updating,
   nowMs,
   onToggleExpanded,
-  onToggleSelected,
-  onToggleDetailPicked,
-  onSaveComment,
-  onAdvanceStatus,
+  picking,
 }: PickingOrderCardProps) {
   const safeFindoc = order.findoc.replace(/[^a-zA-Z0-9_-]/g, "-");
   const detailsId = `picking-list-details-${safeFindoc}`;
@@ -774,15 +778,20 @@ function PickingOrderCard({
       ].join(" ")}
     >
       {/* Mobile/tablet: stacked. xl+: one row (checkbox · chevron · customer · submission · type · actions). */}
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-3 p-4 xl:grid-cols-[auto_auto_minmax(0,1.1fr)_minmax(0,0.75fr)_minmax(0,1.25fr)_minmax(0,1.6fr)] xl:items-center xl:gap-x-5 xl:py-3">
-        <div className="order-1 pt-0.5 xl:pt-0">
-          <DataTableSelectionCheckbox
-            ariaLabel={`Επιλογή παραγγελίας ${parastatikoLabel || order.findoc}`}
-            checked={selected}
-            onCheckedChange={() => onToggleSelected(order.findoc)}
-            disabled={updating}
-          />
-        </div>
+      <div className={`grid items-start gap-x-3 gap-y-3 p-4 xl:items-center xl:gap-x-5 xl:py-3 ${picking
+        ? "grid-cols-[auto_minmax(0,1fr)_auto] xl:grid-cols-[auto_auto_minmax(0,1.1fr)_minmax(0,0.75fr)_minmax(0,1.25fr)_minmax(0,1.6fr)]"
+        : "grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[auto_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.5fr)]"
+      }`}>
+        {picking && (
+          <div className="order-1 pt-0.5 xl:pt-0">
+            <DataTableSelectionCheckbox
+              ariaLabel={`Επιλογή παραγγελίας ${parastatikoLabel || order.findoc}`}
+              checked={picking.selected}
+              onCheckedChange={() => picking.onToggleSelected(order.findoc)}
+              disabled={picking.updating}
+            />
+          </div>
+        )}
 
         <div className="order-2 min-w-0 xl:order-3">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -798,6 +807,11 @@ function PickingOrderCard({
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Κωδικός: {order.customerCode || "—"} · ΑΦΜ: {order.afm || "—"}
           </p>
+          {!picking && (
+            <p className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+              Παραστατικό: {parastatikoLabel || order.findoc}
+            </p>
+          )}
         </div>
 
         <button
@@ -820,7 +834,7 @@ function PickingOrderCard({
         </button>
 
         {/* On xl the wrapper dissolves so both blocks become grid columns. */}
-        <div className="order-4 col-span-full grid gap-3 md:col-span-2 md:col-start-2 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] xl:contents">
+        <div className={`order-4 col-span-full grid gap-3 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] xl:contents ${picking ? "md:col-span-2 md:col-start-2" : ""}`}>
           <div className="space-y-1 xl:order-4">
             <ElapsedTimeBadge label={submittedMinutesAgo} />
             <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
@@ -838,7 +852,10 @@ function PickingOrderCard({
           </div>
 
           <div className="min-w-0 space-y-1.5 xl:order-5">
-            <PickingOrderTypeBadge order={order} />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <PickingOrderTypeBadge order={order} />
+              {!picking && <StatusBadge status={order.status} className="py-1.5 text-xs" />}
+            </div>
             {order.comments ? (
               <p
                 className="break-words text-sm text-gray-600 dark:text-gray-300"
@@ -857,23 +874,30 @@ function PickingOrderCard({
                 {order.remarks}
               </p>
             ) : null}
+            {!picking && order.pickerComment && (
+              <p className="break-words text-xs text-gray-500 dark:text-gray-400">
+                Σχόλιο picker: {order.pickerComment}
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="order-5 col-span-full flex flex-wrap items-center gap-2 md:col-span-2 md:col-start-2 xl:order-6 xl:col-span-1 xl:col-start-auto">
-          <PickerCommentField
-            order={order}
-            updating={updating}
-            onSaveComment={onSaveComment}
-          />
-          <div className="w-full sm:ml-auto sm:w-52 sm:shrink-0">
-            <PickingCompletionButton
+        {picking && (
+          <div className="order-5 col-span-full flex flex-wrap items-center gap-2 md:col-span-2 md:col-start-2 xl:order-6 xl:col-span-1 xl:col-start-auto">
+            <PickerCommentField
               order={order}
-              updating={updating}
-              onComplete={() => onAdvanceStatus(order)}
+              updating={picking.updating}
+              onSaveComment={picking.onSaveComment}
             />
+            <div className="w-full sm:ml-auto sm:w-52 sm:shrink-0">
+              <PickingCompletionButton
+                order={order}
+                updating={picking.updating}
+                onComplete={() => picking.onAdvanceStatus(order)}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {expanded ? (
@@ -881,14 +905,14 @@ function PickingOrderCard({
           <PickingOrderDetailsPanel
             insetClassName="px-4"
             order={order}
-            activeBranch={activeBranch}
-            pickedDetailKeys={pickedDetailKeys}
-            onToggleDetailPicked={onToggleDetailPicked}
+            activeBranch={picking?.activeBranch ?? order.branch}
+            pickedDetailKeys={picking?.pickedDetailKeys}
+            onToggleDetailPicked={picking?.onToggleDetailPicked}
             footerAction={
-              <PickingCompletionButton
+              picking && <PickingCompletionButton
                 order={order}
-                updating={updating}
-                onComplete={() => onAdvanceStatus(order)}
+                updating={picking.updating}
+                onComplete={() => picking.onAdvanceStatus(order)}
               />
             }
           />
@@ -1559,17 +1583,19 @@ export default function PickingListClient() {
                   <PickingOrderCard
                     key={`${order.findoc}-${order.pickerComment}`}
                     order={order}
-                    activeBranch={activeBranch}
                     expanded={expandedFindocs.has(order.findoc)}
-                    selected={selectedFindocs.has(order.findoc)}
-                    pickedDetailKeys={pickedDetailKeys}
-                    updating={updatingFindocs.has(order.findoc)}
                     nowMs={nowMs}
                     onToggleExpanded={handleToggleExpanded}
-                    onToggleSelected={toggleSelected}
-                    onToggleDetailPicked={toggleDetailPicked}
-                    onSaveComment={handleSaveComment}
-                    onAdvanceStatus={handleAdvanceStatus}
+                    picking={{
+                      activeBranch,
+                      selected: selectedFindocs.has(order.findoc),
+                      pickedDetailKeys,
+                      updating: updatingFindocs.has(order.findoc),
+                      onToggleSelected: toggleSelected,
+                      onToggleDetailPicked: toggleDetailPicked,
+                      onSaveComment: handleSaveComment,
+                      onAdvanceStatus: handleAdvanceStatus,
+                    }}
                   />
                 ))}
               </div>

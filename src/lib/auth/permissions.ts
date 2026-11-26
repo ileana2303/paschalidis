@@ -3,6 +3,7 @@ import { normalizeBranchCode } from "@/lib/auth/branches";
 import { ANATROF_SUPPLYING_BRANCH } from "@/lib/orders/anatrof/anatrof-constants";
 
 export const NO_ACCESS_PATH = "/no-access";
+export const PICKING_LIST_STATUS_PATH = "/picking-list-status";
 
 const MODULE_ROUTES: ReadonlyArray<{ path: string; modules: string[] }> = [
   { path: "/search-customer", modules: ["search-customer"] },
@@ -27,6 +28,7 @@ const MODULE_ROUTES: ReadonlyArray<{ path: string; modules: string[] }> = [
   { path: "/basket-history", modules: ["all-baskets"] },
   { path: "/supplier-price-catalog-upload", modules: ["supplier-price-catalog-upload"] },
   { path: "/picking-list", modules: ["picking-list"] },
+  { path: PICKING_LIST_STATUS_PATH, modules: ["picking-list-status"] },
   { path: "/company-stock", modules: ["company-stock"] },
   { path: "/company-stock-requests", modules: ["company-stock-requests"] },
   { path: "/stock-requests", modules: ["stock-requests"] },
@@ -59,6 +61,7 @@ export const MODULE_SIDEBAR_ORDER = [
   "search-parts",
   "all-baskets",
   "picking-list",
+  "picking-list-status",
   "set-similar",
   "edit-items",
   "suffix-management",

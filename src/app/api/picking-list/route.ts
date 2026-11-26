@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import { canAccessPath, PICKING_LIST_STATUS_PATH } from "@/lib/auth/permissions";
+import { verifySessionToken } from "@/lib/auth/session-token";
 import {
   getSoftOneClientID,
   getSoftOneData,
@@ -22,18 +24,15 @@ const S1_APP_ID = "1305";
 const DEFAULT_SQL_NAME = "PICKING_LIST_TO_DO";
 const FILTERED_SQL_NAME = "PICKING_W_FILTER";
 
-function hasSession(req: NextRequest) {
-  return Boolean(req.cookies.get(SESSION_COOKIE_NAME)?.value?.trim());
-}
-
-function unauthorizedResponse() {
-  return NextResponse.json(
-    {
-      success: false,
-      message: "Απαιτείται σύνδεση.",
-    },
-    { status: 401 }
-  );
+async function getAccessError(req: NextRequest, read = false) {
+  const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE_NAME)?.value);
+  if (!session) {
+    return NextResponse.json({ success: false, message: "Απαιτείται σύνδεση." }, { status: 401 });
+  }
+  if (canAccessPath(session, "/picking-list") || (read && canAccessPath(session, PICKING_LIST_STATUS_PATH))) {
+    return null;
+  }
+  return NextResponse.json({ success: false, message: "Δεν έχετε πρόσβαση στο Picking List." }, { status: 403 });
 }
 
 function getUpstreamMessage(data: unknown, fallback: string) {
@@ -71,6 +70,8 @@ function normalizeRow(row: Record<string, unknown>): PickingListLine {
     PARASTATIKO: read("PARASTATIKO"),
     InsDate: read("INSDATE"),
     TrnDate: read("TRNDATE"),
+    STATUS_ORDER: read("STATUSORDER"),
+    VARCHAR02: read("VARCHAR02"),
     CCCEXTUSER: read("CCCEXTUSER"),
     LPELATIS: read("LPELATIS"),
   };
@@ -78,7 +79,8 @@ function normalizeRow(row: Record<string, unknown>): PickingListLine {
 
 export async function POST(req: NextRequest) {
   try {
-    if (!hasSession(req)) return unauthorizedResponse();
+    const accessError = await getAccessError(req, true);
+    if (accessError) return accessError;
 
     const body = (await req.json().catch(() => ({}))) as { status?: unknown };
     const rawStatus = String(body.status ?? "").trim().toUpperCase();
@@ -198,7 +200,8 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    if (!hasSession(req)) return unauthorizedResponse();
+    const accessError = await getAccessError(req);
+    if (accessError) return accessError;
 
     const body = (await req.json().catch(() => ({}))) as PickingListUpdatePayload;
     const findoc = String(body.findoc ?? "").trim();
@@ -362,7 +365,8 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    if (!hasSession(req)) return unauthorizedResponse();
+    const accessError = await getAccessError(req);
+    if (accessError) return accessError;
 
     const body = (await req.json().catch(() => ({}))) as PickingListDeletePayload;
     const findoc = String(body.findoc ?? "").trim();

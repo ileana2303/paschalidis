@@ -29,7 +29,7 @@ function getRequestedStatus(statusFilter: PickingStatusFilter) {
 }
 
 export function isPickingListUnauthorized(error: unknown) {
-  return isAxiosError(error) && error.response?.status === 401;
+  return isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403);
 }
 
 export function usePickingListQuery(
@@ -56,6 +56,32 @@ export function usePickingListQuery(
         data.rows ?? [],
         requestedStatus ?? "S1"
       );
+    },
+  });
+}
+
+export function usePickingListStatusQuery(enabled: boolean) {
+  const username = useAuthStore((state) => state.user?.username);
+
+  return useQuery<PickingListOrder[]>({
+    queryKey: ["picking-list-status", username],
+    enabled: enabled && Boolean(username),
+    refetchInterval: (query) =>
+      isPickingListUnauthorized(query.state.error) ? false : 30_000,
+    refetchOnWindowFocus: true,
+    retry: (failureCount, error) => failureCount < 1 && !isPickingListUnauthorized(error),
+    queryFn: async ({ signal }) => {
+      const [active, pickedUp] = await Promise.all([
+        fetchPickingList(undefined, signal),
+        fetchPickingList("PICKED_IT_UP", signal),
+      ]);
+      const orders = new Map(
+        groupPickingListRows(active.rows ?? []).map((order) => [order.findoc, order])
+      );
+      for (const order of groupPickingListRows(pickedUp.rows ?? [], "PICKED_IT_UP")) {
+        orders.set(order.findoc, order);
+      }
+      return Array.from(orders.values());
     },
   });
 }

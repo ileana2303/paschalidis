@@ -30,7 +30,7 @@ import {
 import { useSidebar } from "../context/SidebarContext";
 import { History, ListTodo, Receipt, ShoppingBasket, Warehouse } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
-import { canAccessPath } from "@/lib/auth/permissions";
+import { canAccessPath, PICKING_LIST_STATUS_PATH } from "@/lib/auth/permissions";
 import { ENDO_RECEIVED_PATH, PICKING_LIST_PATH, PRICE_REQUESTS_PATH, STOCK_REQUESTS_PATH } from "@/lib/notifications";
 import type { AuthPermissions } from "@/lib/auth/types";
 
@@ -142,6 +142,11 @@ const navItems: NavItem[] = [
     path: PICKING_LIST_PATH,
   },
   {
+    icon: ClipboardList,
+    name: "Κατάσταση Picking List",
+    path: PICKING_LIST_STATUS_PATH,
+  },
+  {
     icon: History,
     name: "Ιστορικό Παραγγελιών",
     path: "/basket-history",
@@ -194,6 +199,11 @@ const mobileNavItems: NavItem[] = [
     icon: ListTodo,
     name: "Picking List",
     path: PICKING_LIST_PATH,
+  },
+  {
+    icon: ClipboardList,
+    name: "Κατάσταση Picking List",
+    path: PICKING_LIST_STATUS_PATH,
   },
   {
     icon: History,
