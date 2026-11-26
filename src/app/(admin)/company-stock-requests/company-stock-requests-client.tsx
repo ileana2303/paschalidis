@@ -484,7 +484,7 @@ export default function CompanyStockRequestsClient() {
                             className="flex-1"
                         />
                     ) : (
-                        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-gray-50/60 px-4 pb-4 dark:bg-gray-950/30 sm:px-5 sm:pb-5">
+                        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-5">
                             {supplierGroups.map((group) => {
                                 const isSupplierExpanded = expandedSupplierKeys.has(
                                     group.key
@@ -496,61 +496,63 @@ export default function CompanyStockRequestsClient() {
                                 return (
                                 <section
                                     key={group.key}
-                                    className="first:mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900/60 sm:first:mt-5"
+                                    className={`rounded-xl border border-l-4 border-gray-200 border-l-amber-500 bg-white shadow-theme-xs transition-shadow dark:border-gray-800 dark:border-l-amber-500 dark:bg-gray-900 ${isSupplierExpanded
+                                        ? "shadow-theme-md ring-1 ring-brand-500/25 dark:ring-brand-500/30"
+                                        : "hover:shadow-theme-sm"
+                                    }`}
                                 >
                                     <header
-                                        className={`sticky top-0 z-30 grid grid-cols-[48px_minmax(0,1fr)] overflow-hidden bg-brand-50 shadow-sm dark:bg-gray-900 ${isSupplierExpanded ? "rounded-t-2xl border-b border-gray-100 dark:border-gray-800" : "rounded-2xl"}`}
+                                        className={`sticky top-0 z-30 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 rounded-t-xl bg-white p-4 dark:bg-gray-900 xl:items-center xl:gap-x-5 xl:py-3 ${isSupplierExpanded
+                                            ? "border-b border-gray-200 dark:border-gray-800"
+                                            : "rounded-b-xl"
+                                        }`}
                                     >
-                                        <div className="flex items-start justify-center border-r border-brand-100 bg-brand-50 pt-3 dark:border-gray-800 dark:bg-gray-900">
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    toggleSupplierBasket(group.key)
-                                                }
-                                                aria-expanded={isSupplierExpanded}
-                                                aria-controls={`supplier-basket-${group.key}`}
-                                                aria-label={
-                                                    isSupplierExpanded
-                                                        ? `Απόκρυψη γραμμών ${group.name}`
-                                                        : `Προβολή γραμμών ${group.name}`
-                                                }
-                                                title={
-                                                    isSupplierExpanded
-                                                        ? "Απόκρυψη γραμμών"
-                                                        : "Προβολή γραμμών"
-                                                }
-                                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition hover:bg-white hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                                            >
-                                                <ChevronDown
-                                                    strokeWidth={2.25}
-                                                    className={`h-4 w-4 transition-transform ${isSupplierExpanded ? "rotate-180" : ""}`}
-                                                />
-                                            </button>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                toggleSupplierBasket(group.key)
+                                            }
+                                            aria-expanded={isSupplierExpanded}
+                                            aria-controls={`supplier-basket-${group.key}`}
+                                            aria-label={
+                                                isSupplierExpanded
+                                                    ? `Απόκρυψη γραμμών ${group.name}`
+                                                    : `Προβολή γραμμών ${group.name}`
+                                            }
+                                            title={
+                                                isSupplierExpanded
+                                                    ? "Απόκρυψη γραμμών"
+                                                    : "Προβολή γραμμών"
+                                            }
+                                            className={`inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 ${isSupplierExpanded
+                                                ? "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300"
+                                                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                                            }`}
+                                        >
+                                            <ChevronDown
+                                                strokeWidth={2.25}
+                                                className={`size-5 transition-transform ${isSupplierExpanded ? "rotate-180" : ""}`}
+                                            />
+                                        </button>
 
-                                        <div className="flex min-w-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                                             <div className="min-w-0">
-                                                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-600 dark:text-brand-300">
-                                                    Προμηθευτής
+                                                <h2 className="break-words text-base font-semibold text-gray-900 xl:text-sm dark:text-white">
+                                                    {group.name}
+                                                </h2>
+                                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                    Κωδικός προμηθευτή: {group.code}
                                                 </p>
-                                                <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2">
-                                                    <h2 className="truncate text-base font-semibold text-gray-900 dark:text-white">
-                                                        {group.name}
-                                                    </h2>
-                                                    <span className="rounded-full border border-brand-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-200">
-                                                        Κωδικός: {group.code}
-                                                    </span>
-                                                </div>
                                             </div>
 
-                                            <div className="flex shrink-0 flex-wrap items-center gap-2">
-                                                <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 text-xs text-gray-600 shadow-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                                                     Γραμμές
                                                     <strong className="font-semibold tabular-nums text-gray-950 dark:text-white">
                                                         {group.rows.length}
                                                     </strong>
                                                 </span>
-                                                <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 text-xs text-gray-600 shadow-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                                                     Ποσότητα
                                                     <strong className="font-semibold tabular-nums text-gray-950 dark:text-white">
                                                         {group.requestedQty}
@@ -585,7 +587,7 @@ export default function CompanyStockRequestsClient() {
                                     {isSupplierExpanded ? (
                                     <div
                                         id={`supplier-basket-${group.key}`}
-                                        className="overflow-x-auto"
+                                        className="overflow-x-auto rounded-b-xl"
                                     >
                                         <table className="w-full min-w-[760px] table-fixed text-xs xl:text-sm">
                                             <colgroup>
@@ -595,7 +597,7 @@ export default function CompanyStockRequestsClient() {
                                                 <col className="w-[15%]" />
                                                 <col className="w-[23%]" />
                                             </colgroup>
-                                            <thead className="bg-gray-50 text-gray-500 dark:bg-gray-950/50">
+                                            <thead className="border-b border-gray-200 bg-gray-50 text-[11px] uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400">
                                                 <tr>
                                                     <th className="px-3 py-3" />
                                                     <th className="px-3 py-3 text-left font-semibold">

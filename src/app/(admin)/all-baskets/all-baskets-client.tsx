@@ -453,8 +453,6 @@ export default function AllBasketsClient() {
               <colgroup>
                 <col className="w-[5%]" />
                 <col className="w-[28%]" />
-                <col className="w-[14%]" />
-                <col className="w-[14%]" />
                 <col className="w-[12%]" />
                 <col className="w-[13%]" />
                 <col className="w-[14%]" />
@@ -473,20 +471,14 @@ export default function AllBasketsClient() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Πελάτης
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Από
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Έως
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
+                    Γραμμές
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
                     Τεμάχια
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Αξία
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">
-                    Γραμμές
+                    Σύνολο
                   </th>
                 </tr>
               </thead>
@@ -526,15 +518,12 @@ export default function AllBasketsClient() {
                     <td className="break-words px-2 py-3 text-sm font-medium text-gray-800 dark:text-white/90">
                       {row.CUSTOMER_NAME || "—"}
                     </td>
-
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                      {formatDate(row.MINDATE)}
+                    <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-300">
+                      <NumberBadge
+                        value={row.BASKETROWS || "0"}
+                        className="min-w-[64px]"
+                      />
                     </td>
-
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                      {formatDate(row.MAXDATE)}
-                    </td>
-
                     <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-300">
                       <NumberBadge
                         value={row.TOT_QTY || "0"}
@@ -542,18 +531,9 @@ export default function AllBasketsClient() {
                         className="min-w-[64px]"
                       />
                     </td>
-
                     <td className="px-4 py-3 text-right text-sm font-medium text-gray-700 dark:text-gray-200">
                       {formatPrice(row.TOTAL_VALUE)}
                     </td>
-
-                    <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-300">
-                      <NumberBadge
-                        value={row.BASKETROWS || "0"}
-                        className="min-w-[64px]"
-                      />
-                    </td>
-
                   </tr>
                 ))}
               </tbody>
