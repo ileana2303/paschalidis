@@ -9,11 +9,13 @@ import type {
 } from "@/lib/picking-list";
 
 export async function fetchPickingList(
-  status?: PickingStatus
+  status?: PickingStatus,
+  signal?: AbortSignal
 ): Promise<PickingListResponse> {
   const { data } = await httpClient.post<PickingListResponse>(
     "/api/picking-list",
-    status ? { status } : {}
+    status ? { status } : {},
+    { signal }
   );
 
   if (!data.success) {

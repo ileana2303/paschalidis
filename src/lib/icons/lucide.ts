@@ -4,6 +4,7 @@ export {
   ArrowRight,
   ArrowUp,
   BadgePercent,
+  Bell,
   BookOpenText,
   Boxes,
   Calendar,

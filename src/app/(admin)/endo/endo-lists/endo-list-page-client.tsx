@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import DataTable from "@/components/ui/data-table/data-table";
 import DataTableEmptyState from "@/components/ui/data-table/data-table-empty-state";
@@ -34,6 +35,7 @@ import type {
 import toast from "react-hot-toast";
 import { useSessionState } from "@/hooks/useSessionState";
 import { useLoadOnChange } from "@/hooks/useLoadOnChange";
+import { ENDO_NOTIFICATIONS_QUERY_KEY } from "@/lib/notifications";
 import {
     QTY_ACTIONS_COLUMN_KEY,
     REQUESTED_QTY_COLUMN_KEY,
@@ -108,6 +110,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
     const [deletingSelectedRows, setDeletingSelectedRows] = useState(false);
 
     const user = useAuthStore((state) => state.user);
+    const queryClient = useQueryClient();
 
     const { mutateAsync: fetchEndoLists } = useFetchEndoListsMutation();
     const { mutateAsync: deleteBasketItems } = useDeleteBasketItemsMutation();
@@ -265,6 +268,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                 s1Key: "1305",
             });
 
+            void queryClient.invalidateQueries({ queryKey: ENDO_NOTIFICATIONS_QUERY_KEY });
             await loadRows();
 
             const message =
@@ -285,6 +289,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         deleteBasketItems,
         deletingSelectedRows,
         loadRows,
+        queryClient,
         selectedBasketIds,
     ]);
 
@@ -476,6 +481,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                     ],
                 });
 
+                void queryClient.invalidateQueries({ queryKey: ENDO_NOTIFICATIONS_QUERY_KEY });
                 await loadRows();
 
                 const message =
@@ -499,6 +505,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
         [
             finalQtyByRow,
             loadRows,
+            queryClient,
             requestedQtyByRow,
             submitEndoBasketOrder,
             user,

@@ -36,7 +36,6 @@ import {
 } from "@/lib/icons/lucide";
 import {
   useDeletePickingListOrderMutation,
-  usePickingListIntervalNotifications,
   usePickingListQuery,
   useUpdatePickingListOrderMutation,
 } from "@/hooks/queries/usePickingListQueries";
@@ -970,13 +969,6 @@ export default function PickingListClient() {
       error instanceof Error ? error.message : "Αποτυχία φόρτωσης Picking List."
     );
   }, [error, isError]);
-
-  usePickingListIntervalNotifications({
-    branch: activeBranch,
-    enabled: !isLoading && Boolean(activeBranch),
-    orders,
-    refetch,
-  });
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {

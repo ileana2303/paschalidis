@@ -4,10 +4,8 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
-  type QueryObserverResult,
 } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
-import toast from "react-hot-toast";
+import { isAxiosError } from "axios";
 import {
   deletePickingListOrder,
   fetchPickingList,
@@ -20,42 +18,40 @@ import {
   type PickingListUpdatePayload,
   type PickingStatusFilter,
 } from "@/lib/picking-list";
+import { NOTIFICATION_POLL_INTERVAL_MS } from "@/lib/notifications";
+import { useAuthStore } from "@/stores/authStore";
 
-export const PICKING_LIST_REFETCH_INTERVAL_MS = 60_000;
-
-export const pickingListQueryKey = (statusFilter: PickingStatusFilter) =>
-  ["picking-list", statusFilter] as const;
+const pickingListQueryKey = (username: string | undefined, statusFilter: PickingStatusFilter) =>
+  ["picking-list", username, statusFilter] as const;
 
 function getRequestedStatus(statusFilter: PickingStatusFilter) {
   return statusFilter === "ALL" ? undefined : statusFilter;
 }
 
-function notifyNewPickingOrders(added: PickingListOrder[]) {
-  if (added.length === 0) return;
-
-  if (added.length === 1) {
-    const order = added[0];
-    const label = order.parastatiko || order.fincode || order.findoc;
-    toast.success(`Νέα παραγγελία: ${label}`, {
-      position: "top-center",
-      duration: 4000,
-    });
-    return;
-  }
-
-  toast.success(`${added.length} νέες παραγγελίες`, {
-    position: "top-center",
-    duration: 4000,
-  });
+export function isPickingListUnauthorized(error: unknown) {
+  return isAxiosError(error) && error.response?.status === 401;
 }
 
-export function usePickingListQuery(statusFilter: PickingStatusFilter) {
+export function usePickingListQuery(
+  statusFilter: PickingStatusFilter,
+  { enabled = true, notifications = false } = {}
+) {
+  const username = useAuthStore((state) => state.user?.username);
   const requestedStatus = getRequestedStatus(statusFilter);
 
-  return useQuery({
-    queryKey: pickingListQueryKey(statusFilter),
-    queryFn: async () => {
-      const data = await fetchPickingList(requestedStatus);
+  return useQuery<PickingListOrder[]>({
+    queryKey: pickingListQueryKey(username, statusFilter),
+    enabled: enabled && Boolean(username),
+    refetchInterval: (query) => {
+      if (isPickingListUnauthorized(query.state.error)) return false;
+      if (notifications) return NOTIFICATION_POLL_INTERVAL_MS;
+      return statusFilter === "ALL" ? false : 60_000;
+    },
+    refetchIntervalInBackground: notifications,
+    refetchOnWindowFocus: notifications,
+    retry: (failureCount, error) => failureCount < 1 && !isPickingListUnauthorized(error),
+    queryFn: async ({ signal }) => {
+      const data = await fetchPickingList(requestedStatus, signal);
       return groupPickingListRows(
         data.rows ?? [],
         requestedStatus ?? "S1"
@@ -68,6 +64,7 @@ export function useUpdatePickingListOrderMutation(
   statusFilter: PickingStatusFilter
 ) {
   const queryClient = useQueryClient();
+  const username = useAuthStore((state) => state.user?.username);
 
   return useMutation({
     mutationFn: (payload: PickingListUpdatePayload) =>
@@ -76,41 +73,34 @@ export function useUpdatePickingListOrderMutation(
       const findoc = payload.findoc.trim();
       if (!findoc) return;
 
-      queryClient.setQueryData<PickingListOrder[]>(
-        pickingListQueryKey(statusFilter),
-        (current) => {
-          if (!current) return current;
+      for (const filter of new Set<PickingStatusFilter>([statusFilter, "ALL"])) {
+        queryClient.setQueryData<PickingListOrder[]>(
+          pickingListQueryKey(username, filter),
+          (current) => {
+            if (!current) return current;
 
-          const next = current.map((order) =>
-            order.findoc === findoc
-              ? {
-                  ...order,
-                  ...(payload.pickerComment !== undefined
-                    ? { pickerComment: payload.pickerComment.trim() }
-                    : {}),
-                  ...(payload.status ? { status: payload.status } : {}),
-                }
-              : order
-          );
+            if (
+              payload.status &&
+              payload.status !== filter &&
+              (filter !== "ALL" || payload.status === "PICKED_IT_UP")
+            ) {
+              return current.filter((order) => order.findoc !== findoc);
+            }
 
-          if (
-            payload.status === "PICKED_IT_UP" &&
-            statusFilter !== "PICKED_IT_UP"
-          ) {
-            return next.filter((order) => order.findoc !== findoc);
+            return current.map((order) =>
+              order.findoc === findoc
+                ? {
+                    ...order,
+                    ...(payload.pickerComment !== undefined
+                      ? { pickerComment: payload.pickerComment.trim() }
+                      : {}),
+                    ...(payload.status ? { status: payload.status } : {}),
+                  }
+                : order
+            );
           }
-
-          if (
-            payload.status &&
-            statusFilter !== "ALL" &&
-            payload.status !== statusFilter
-          ) {
-            return next.filter((order) => order.findoc !== findoc);
-          }
-
-          return next;
-        }
-      );
+        );
+      }
     },
   });
 }
@@ -119,6 +109,7 @@ export function useDeletePickingListOrderMutation(
   statusFilter: PickingStatusFilter
 ) {
   const queryClient = useQueryClient();
+  const username = useAuthStore((state) => state.user?.username);
 
   return useMutation({
     mutationFn: (payload: PickingListDeletePayload) =>
@@ -127,56 +118,12 @@ export function useDeletePickingListOrderMutation(
       const findoc = payload.findoc.trim();
       if (!findoc) return;
 
-      queryClient.setQueryData<PickingListOrder[]>(
-        pickingListQueryKey(statusFilter),
-        (current) =>
-          current?.filter((order) => order.findoc !== findoc) ?? current
-      );
+      for (const filter of new Set<PickingStatusFilter>([statusFilter, "ALL"])) {
+        queryClient.setQueryData<PickingListOrder[]>(
+          pickingListQueryKey(username, filter),
+          (current) => current?.filter((order) => order.findoc !== findoc)
+        );
+      }
     },
   });
-}
-
-type PickingListIntervalNotificationOptions = {
-  branch: string;
-  enabled: boolean;
-  orders: PickingListOrder[];
-  refetch: () => Promise<QueryObserverResult<PickingListOrder[], Error>>;
-};
-
-export function usePickingListIntervalNotifications({
-  branch,
-  enabled,
-  orders,
-  refetch,
-}: PickingListIntervalNotificationOptions) {
-  const knownFindocsRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    knownFindocsRef.current = new Set(orders.map((order) => order.findoc));
-  }, [orders]);
-
-  useEffect(() => {
-    if (!enabled || !branch) return;
-
-    const intervalId = window.setInterval(() => {
-      void (async () => {
-        const before = knownFindocsRef.current;
-        const result = await refetch();
-        if (!result.isSuccess || !result.data) return;
-
-        const nextOrders = result.data;
-        knownFindocsRef.current = new Set(
-          nextOrders.map((order) => order.findoc)
-        );
-
-        const added = nextOrders.filter(
-          (order) => !before.has(order.findoc) && order.branch === branch
-        );
-
-        notifyNewPickingOrders(added);
-      })();
-    }, PICKING_LIST_REFETCH_INTERVAL_MS);
-
-    return () => window.clearInterval(intervalId);
-  }, [branch, enabled, refetch]);
 }

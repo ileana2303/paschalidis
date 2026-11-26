@@ -31,6 +31,7 @@ import { useSidebar } from "../context/SidebarContext";
 import { History, ListTodo, Receipt, ShoppingBasket, Warehouse } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { canAccessPath } from "@/lib/auth/permissions";
+import { ENDO_RECEIVED_PATH, PICKING_LIST_PATH } from "@/lib/notifications";
 import type { AuthPermissions } from "@/lib/auth/types";
 
 type NavSubItem = {
@@ -121,7 +122,7 @@ const navItems: NavItem[] = [
       {
         icon: Send,
         name: "Εισερχόμενα Αιτήματα",
-        path: "/endo/endo-lists-received",
+        path: ENDO_RECEIVED_PATH,
       },
       {
         icon: ClipboardList,
@@ -138,7 +139,7 @@ const navItems: NavItem[] = [
   {
     icon: ListTodo,
     name: "Picking List",
-    path: "/picking-list",
+    path: PICKING_LIST_PATH,
   },
   {
     icon: History,
@@ -192,7 +193,7 @@ const mobileNavItems: NavItem[] = [
   {
     icon: ListTodo,
     name: "Picking List",
-    path: "/picking-list",
+    path: PICKING_LIST_PATH,
   },
   {
     icon: History,
@@ -228,7 +229,16 @@ const collapsibleGroupNames = navItems
   .filter((item) => item.subItems)
   .map((item) => item.name);
 
-const AppSidebar: React.FC = () => {
+function NotificationBadge({ count, compact = false }: { count: number; compact?: boolean }) {
+  return (
+    <span className={`${compact ? "absolute -right-1 -top-1" : "ml-auto"} min-w-5 shrink-0 rounded-full bg-red-600 px-1 text-center text-xs font-semibold leading-5 text-white`}>
+      <span className="sr-only">Εκκρεμείς ειδοποιήσεις: </span>
+      {count}
+    </span>
+  );
+}
+
+const AppSidebar: React.FC<{ notificationCounts: Record<string, number> }> = ({ notificationCounts }) => {
   const { isExpanded, isMobile, isMobileOpen } = useSidebar();
   const pathname = usePathname();
   const permissions = useAuthStore((state) => state.permissions);
@@ -278,6 +288,7 @@ const AppSidebar: React.FC = () => {
         const hasActivePath = nav.path ? isActive(nav.path) : false;
         const isGroupActive = hasActivePath || hasActiveSubItem;
         const isGroupExpanded = expandedGroups[nav.name] ?? true;
+        const count = nav.path ? (notificationCounts[nav.path] ?? 0) : 0;
 
         if (isManagement) {
           return (
@@ -315,6 +326,7 @@ const AppSidebar: React.FC = () => {
                     >
                       {visibleSubItems?.map((subItem) => {
                         const SubItemIcon = subItem.icon;
+                        const count = notificationCounts[subItem.path] ?? 0;
 
                         return (
                           <Link
@@ -331,6 +343,7 @@ const AppSidebar: React.FC = () => {
                             <SubItemIcon className="h-3.5 w-3.5 shrink-0" />
 
                             <span className="whitespace-nowrap font-normal">{subItem.name}</span>
+                            {count > 0 && <NotificationBadge count={count} />}
                           </Link>
                         );
                       })}
@@ -357,20 +370,23 @@ const AppSidebar: React.FC = () => {
                   {isGroupExpanded &&
                     visibleSubItems?.map((subItem) => {
                       const SubItemIcon = subItem.icon;
+                      const count = notificationCounts[subItem.path] ?? 0;
+                      const label = count > 0 ? `${subItem.name} (${count} εκκρεμή)` : subItem.name;
 
                       return (
                         <Link
                           key={subItem.name}
                           href={subItem.path}
                           prefetch={false}
-                          aria-label={subItem.name}
-                          title={subItem.name}
-                          className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 ${isActive(subItem.path)
+                          aria-label={label}
+                          title={label}
+                          className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 ${isActive(subItem.path)
                             ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
                             : "text-gray-500 hover:bg-white/70 hover:text-brand-600 dark:text-gray-400 dark:hover:bg-white/[0.05] dark:hover:text-gray-300"
                           }`}
                         >
                           <SubItemIcon className="h-4 w-4" />
+                          {count > 0 && <NotificationBadge count={count} compact />}
                         </Link>
                       );
                     })}
@@ -475,7 +491,8 @@ const AppSidebar: React.FC = () => {
                 <Link
                   href={nav.path}
                   prefetch={false}
-                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 
+                  aria-label={count > 0 ? `${nav.name} (${count} εκκρεμή)` : nav.name}
+                  className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200
                     ${isActive(nav.path!)
                       ? "bg-brand-500 text-white shadow-sm dark:bg-brand-600"
                       : "text-gray-600 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/[0.05] hover:shadow-sm"} hover:translate-x-[2px]`}
@@ -491,6 +508,7 @@ const AppSidebar: React.FC = () => {
                   {isSidebarExpanded && (
                     <span className="whitespace-nowrap">{nav.name}</span>
                   )}
+                  {count > 0 && <NotificationBadge count={count} compact={!isSidebarExpanded} />}
                 </Link>
               )
             )}
@@ -504,15 +522,17 @@ const AppSidebar: React.FC = () => {
               >
                 {visibleSubItems?.map((subItem) => {
                   const SubItemIcon = subItem.icon;
+                  const count = notificationCounts[subItem.path] ?? 0;
+                  const label = count > 0 ? `${subItem.name} (${count} εκκρεμή)` : subItem.name;
 
                   return (
                     <li key={subItem.name}>
                       <Link
                         href={subItem.path}
                         prefetch={false}
-                        aria-label={subItem.name}
-                        title={subItem.name}
-                        className={`group flex items-center rounded-lg text-[13px] transition-all duration-200 ${isSidebarExpanded
+                        aria-label={label}
+                        title={label}
+                        className={`group relative flex items-center rounded-lg text-[13px] transition-all duration-200 ${isSidebarExpanded
                           ? "gap-1.5 whitespace-nowrap px-1.5 py-2"
                           : "h-10 w-10 justify-center"
                           }
@@ -527,6 +547,7 @@ const AppSidebar: React.FC = () => {
                         {isSidebarExpanded && (
                           <span className="whitespace-nowrap font-normal">{subItem.name}</span>
                         )}
+                        {count > 0 && <NotificationBadge count={count} compact={!isSidebarExpanded} />}
                       </Link>
                     </li>
                   );

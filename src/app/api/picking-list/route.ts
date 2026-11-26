@@ -58,17 +58,21 @@ function normalizeRow(row: Record<string, unknown>): PickingListLine {
       value == null ? "" : String(value),
     ])
   ) as PickingListLine;
-  const submittedBy = Object.entries(normalizedRow).find(
-    ([key]) => key.trim().toUpperCase() === "CCCEXTUSER"
-  )?.[1];
-  const retailCustomerName = Object.entries(normalizedRow).find(
-    ([key]) => key.trim().toUpperCase() === "LPELATIS"
-  )?.[1];
+  const fields = Object.entries(normalizedRow);
+  const read = (name: string) =>
+    fields.find(([key, value]) =>
+      key.trim().replaceAll("_", "").toUpperCase() === name && value?.trim()
+    )?.[1]?.trim() ?? "";
 
   return {
     ...normalizedRow,
-    CCCEXTUSER: String(submittedBy ?? "").trim(),
-    LPELATIS: String(retailCustomerName ?? "").trim(),
+    FINDOC: read("FINDOC"),
+    FINCODE: read("FINCODE"),
+    PARASTATIKO: read("PARASTATIKO"),
+    InsDate: read("INSDATE"),
+    TrnDate: read("TRNDATE"),
+    CCCEXTUSER: read("CCCEXTUSER"),
+    LPELATIS: read("LPELATIS"),
   };
 }
 

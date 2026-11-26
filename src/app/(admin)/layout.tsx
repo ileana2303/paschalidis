@@ -4,6 +4,7 @@ import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
+import { useAppNotifications } from "@/hooks/useAppNotifications";
 import {
   canAccessPath,
   getFirstAllowedPath,
@@ -23,6 +24,7 @@ export default function AdminLayout({
   const router = useRouter();
   const permissions = useAuthStore((state) => state.permissions);
   const activeBranch = useAuthStore((state) => state.user?.mainBranch ?? null);
+  const notifications = useAppNotifications();
 
   useEffect(() => {
     if (permissions && !canAccessPath(permissions, pathname, activeBranch)) {
@@ -39,7 +41,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen print:block xl:flex">
       <div className="print:hidden">
-        <AppSidebar />
+        <AppSidebar notificationCounts={notifications.countsByPath} />
       </div>
       <div className="print:hidden">
         <Backdrop />
@@ -48,7 +50,7 @@ export default function AdminLayout({
         className={`min-w-0 flex-1 transition-all duration-300 ease-in-out print:ml-0 print:transition-none ${mainContentMargin}`}
       >
         <div className="print:hidden">
-          <AppHeader />
+          <AppHeader notifications={notifications.enabled ? notifications : undefined} />
         </div>
         <div className="mx-auto min-w-0 w-full max-w-[1800px] p-4 print:max-w-none print:p-0 md:p-6 xl:max-w-none xl:px-8 2xl:px-10">
           {isPathAvailableForBranch(pathname, activeBranch) ? children : null}

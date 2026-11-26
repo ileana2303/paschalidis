@@ -78,11 +78,13 @@ export async function submitEndoPriorityOrder(
 }
 
 export async function fetchEndoLists(
-    payload: EndoListRoutePayload
+    payload: EndoListRoutePayload,
+    signal?: AbortSignal
 ): Promise<EndoListsResponse> {
     const { data } = await httpClient.post<EndoListsResponse>(
         "/api/endo/lists",
-        payload
+        payload,
+        { signal }
     );
 
     if (!data.success) {
