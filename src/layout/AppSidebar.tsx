@@ -31,7 +31,7 @@ import { useSidebar } from "../context/SidebarContext";
 import { History, ListTodo, Receipt, ShoppingBasket, Warehouse } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { canAccessPath } from "@/lib/auth/permissions";
-import { ENDO_RECEIVED_PATH, PICKING_LIST_PATH } from "@/lib/notifications";
+import { ENDO_RECEIVED_PATH, PICKING_LIST_PATH, PRICE_REQUESTS_PATH, STOCK_REQUESTS_PATH } from "@/lib/notifications";
 import type { AuthPermissions } from "@/lib/auth/types";
 
 type NavSubItem = {
@@ -162,12 +162,12 @@ const navItems: NavItem[] = [
       },
       {
         name: "Αιτήματα Ανατροφοδοσίας",
-        path: "/stock-requests",
+        path: STOCK_REQUESTS_PATH,
         icon: ClipboardList,
       },
       {
         name: "Αιτήματα Τιμών",
-        path: "/price-requests",
+        path: PRICE_REQUESTS_PATH,
         icon: BadgePercent,
       },
       {
@@ -201,9 +201,14 @@ const mobileNavItems: NavItem[] = [
     path: "/basket-history",
   },
   {
+    icon: ClipboardList,
+    name: "Αιτήματα Ανατροφοδοσίας",
+    path: STOCK_REQUESTS_PATH,
+  },
+  {
     icon: BadgePercent,
     name: "Αιτήματα Τιμών",
-    path: "/price-requests",
+    path: PRICE_REQUESTS_PATH,
   },
 ];
 
@@ -231,7 +236,7 @@ const collapsibleGroupNames = navItems
 
 function NotificationBadge({ count, compact = false }: { count: number; compact?: boolean }) {
   return (
-    <span className={`${compact ? "absolute -right-1 -top-1" : "ml-auto"} min-w-5 shrink-0 rounded-full bg-red-600 px-1 text-center text-xs font-semibold leading-5 text-white`}>
+    <span className={`${compact ? "absolute -right-1 -top-1" : "ml-auto"} min-w-5 shrink-0 rounded-full bg-sky-100 px-1 text-center text-xs font-semibold leading-5 text-slate-700 dark:bg-sky-950 dark:text-slate-200`}>
       <span className="sr-only">Εκκρεμείς ειδοποιήσεις: </span>
       {count}
     </span>

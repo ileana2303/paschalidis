@@ -341,6 +341,7 @@ export interface IRequestedPriceListRow {
     PRICE_REQ: string;
     KATASTIMA: string;
     APPUSER_ID: string;
+    INS_DATE?: string;
 }
 
 export interface RequestedPriceListResponse

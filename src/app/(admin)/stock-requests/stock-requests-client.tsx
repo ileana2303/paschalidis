@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import PageBreadcrumb from "@/components/template-components/common/PageBreadCrumb";
 import ItemForensicsButton from "@/components/stock/item-forensics-button";
 import ItemForensicsDrawer from "@/components/stock/item-forensics-drawer";
@@ -35,6 +36,7 @@ import { useRequestListIntervalRefresh } from "@/hooks/queries/useRequestListInt
 import { useAuthStore } from "@/stores/authStore";
 import { normalizeBranchCode } from "@/lib/auth/branches";
 import { getBranchColor } from "@/lib/branch-colors";
+import { STOCK_REQUESTS_PATH } from "@/lib/notifications";
 import toast from "react-hot-toast";
 import { useSessionState } from "@/hooks/useSessionState";
 import { useLoadOnChange } from "@/hooks/useLoadOnChange";
@@ -72,12 +74,15 @@ function TableSkeleton() {
 
 interface StockRequestsClientProps {
     mode?: "requests" | "list";
+    initialBranchCode?: StockBranchCode;
 }
 
 export default function StockRequestsClient({
     mode = "requests",
+    initialBranchCode,
 }: StockRequestsClientProps) {
     const isStockList = mode === "list";
+    const router = useRouter();
     const user = useAuthStore((state) => state.user);
     const currentBranchCode = useMemo(
         () => normalizeBranchCode(user?.mainBranch),
@@ -117,9 +122,9 @@ export default function StockRequestsClient({
     const [notes, setNotes] = useSessionState("stock-requests-notes", "");
     const rowsLoadRequestId = useRef(0);
     const [selectedBranchCode, setSelectedBranchCode] = useState<StockBranchCode>(() => {
-        return isStockRequestBranchCode(currentBranchCode)
+        return initialBranchCode ?? (isStockRequestBranchCode(currentBranchCode)
             ? currentBranchCode
-            : STOCK_REQUEST_BRANCH_OPTIONS[0].code;
+            : STOCK_REQUEST_BRANCH_OPTIONS[0].code);
     });
 
     const selectedBranchLabel = useMemo(() => {
@@ -716,7 +721,11 @@ export default function StockRequestsClient({
                                                 return;
                                             }
 
-                                            setSelectedBranchCode(nextBranchCode);
+                                            if (isStockList) {
+                                                setSelectedBranchCode(nextBranchCode);
+                                            } else {
+                                                router.replace(`${STOCK_REQUESTS_PATH}?branch=${nextBranchCode}`, { scroll: false });
+                                            }
                                         }}
                                         disabled={
                                             loading ||

@@ -4,6 +4,10 @@ export const NOTIFICATION_POLL_INTERVAL_MS = 10_000;
 export const ENDO_RECEIVED_PATH = "/endo/endo-lists-received";
 export const ENDO_NOTIFICATIONS_QUERY_KEY = ["endo", "notifications"] as const;
 export const PICKING_LIST_PATH = "/picking-list";
+export const STOCK_REQUESTS_PATH = "/stock-requests";
+export const PRICE_REQUESTS_PATH = "/price-requests";
+export const STOCK_REQUEST_NOTIFICATIONS_QUERY_KEY = ["notifications", STOCK_REQUESTS_PATH] as const;
+export const PRICE_REQUEST_NOTIFICATIONS_QUERY_KEY = ["notifications", PRICE_REQUESTS_PATH] as const;
 
 export type AppNotification = {
     id: string;

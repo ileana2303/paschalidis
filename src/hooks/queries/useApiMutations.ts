@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { PRICE_REQUEST_NOTIFICATIONS_QUERY_KEY, STOCK_REQUEST_NOTIFICATIONS_QUERY_KEY } from "@/lib/notifications";
 import type {
     BasketAllRoutePayload,
     BasketInRoutePayload,
@@ -150,11 +151,16 @@ export const useFetchStockRequestsMutation = () =>
             fetchStockRequests(payload),
     });
 
-export const useUpdateStockRequestMutation = () =>
-    useMutation({
+export const useUpdateStockRequestMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
         mutationFn: (payload: StockRequestUpdateRoutePayload) =>
             updateStockRequest(payload),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: STOCK_REQUEST_NOTIFICATIONS_QUERY_KEY });
+        },
     });
+};
 
 export const useSubmitAnatrofOrderMutation = () =>
     useMutation({
@@ -207,17 +213,27 @@ export const useFetchRequestedPriceRequestsMutation = () =>
         mutationFn: () => fetchRequestedPriceRequests(),
     });
 
-export const useUpdateRequestedPriceRequestMutation = () =>
-    useMutation({
+export const useUpdateRequestedPriceRequestMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
         mutationFn: (payload: RequestedPriceUpdateRoutePayload) =>
             updateRequestedPriceRequest(payload),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: PRICE_REQUEST_NOTIFICATIONS_QUERY_KEY });
+        },
     });
+};
 
-export const useDeleteRequestedPriceRequestsMutation = () =>
-    useMutation({
+export const useDeleteRequestedPriceRequestsMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
         mutationFn: (payload: BasketMassDeleteRoutePayload) =>
             deleteRequestedPriceRequests(payload),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: PRICE_REQUEST_NOTIFICATIONS_QUERY_KEY });
+        },
     });
+};
 
 export const useSubmitBasketOrderMutation = () =>
     useMutation({

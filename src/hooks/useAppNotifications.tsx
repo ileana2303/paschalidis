@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryKey } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import toast from "react-hot-toast";
 import NotificationPreview from "@/components/header/NotificationPreview";
 import { isPickingListUnauthorized, usePickingListQuery } from "@/hooks/queries/usePickingListQueries";
 import { fetchEndoLists } from "@/lib/api-client/endo";
+import { fetchRequestedPriceRequests } from "@/lib/api-client/basket";
+import { fetchStockRequests } from "@/lib/api-client/items";
 import { normalizeBranchCode, resolveBranchName } from "@/lib/auth/branches";
 import { canAccessPath } from "@/lib/auth/permissions";
 import { getBranchColor } from "@/lib/branch-colors";
@@ -18,6 +20,10 @@ import {
     ENDO_RECEIVED_PATH,
     NOTIFICATION_POLL_INTERVAL_MS,
     PICKING_LIST_PATH,
+    PRICE_REQUEST_NOTIFICATIONS_QUERY_KEY,
+    PRICE_REQUESTS_PATH,
+    STOCK_REQUEST_NOTIFICATIONS_QUERY_KEY,
+    STOCK_REQUESTS_PATH,
     notificationTimestamp,
     type AppNotification,
     type NotificationFeed,
@@ -28,6 +34,7 @@ import {
     getPickingOrderType,
     getPickingOrderTypeOption,
 } from "@/lib/picking-list";
+import { STOCK_REQUEST_BRANCH_OPTIONS, canUpdate } from "@/lib/utils/stock-requests";
 
 function subscribeToVisibility(onChange: () => void) {
     document.addEventListener("visibilitychange", onChange);
@@ -129,8 +136,70 @@ async function fetchEndoItems(branch: string, signal: AbortSignal) {
     return Array.from(items.values());
 }
 
-function isUnauthorized(error: unknown) {
-    return isAxiosError(error) && error.response?.status === 401;
+async function fetchStockRequestItems(): Promise<AppNotification[]> {
+    const lists = await Promise.all(STOCK_REQUEST_BRANCH_OPTIONS.map(async ({ code }) => ({
+        code,
+        data: await fetchStockRequests({ branch: code, origin: "STORE" }),
+    })));
+    const items = new Map<string, AppNotification>();
+    for (const { code, data } of lists) {
+        for (const row of data.rows ?? []) {
+            const id = String(row.BASKETID ?? "").trim();
+            if (!id || items.has(id) || !canUpdate(row.STATUS ?? "")) continue;
+            items.set(id, {
+                id: `stock:${id}`,
+                href: `${STOCK_REQUESTS_PATH}?branch=${code}`,
+                text: [row.ITEM_CODE, row.ITEM_NAME].filter(Boolean).join(" · ") || `Αίτημα #${id}`,
+                badges: [
+                    { label: "Αίτημα Ανατροφοδοσίας", tone: getPickingOrderTypeOption("REPLENISHMENT").tone },
+                    { label: resolveBranchName(code), tone: getBranchColor(code) },
+                ],
+                timestamp: notificationTimestamp(row.INS_DATE),
+            });
+        }
+    }
+    return Array.from(items.values());
+}
+
+async function fetchPriceRequestItems(): Promise<AppNotification[]> {
+    const { rows } = await fetchRequestedPriceRequests();
+    const items = new Map<string, AppNotification>();
+    for (const row of rows ?? []) {
+        const id = String(row.BASKETID ?? "").trim();
+        if (!id || items.has(id)) continue;
+        const branch = normalizeBranchCode(row.KATASTIMA);
+        const badges = [{ label: "Αίτημα Τιμής", tone: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300" }];
+        if (branch) badges.push({ label: resolveBranchName(branch), tone: getBranchColor(branch) });
+        items.set(id, {
+            id: `price:${id}`,
+            href: PRICE_REQUESTS_PATH,
+            text: [row.CUSTOMER_NAME, row.ITEM_CODE].filter(Boolean).join(" · ") || `Αίτημα #${id}`,
+            badges,
+            timestamp: notificationTimestamp(row.INS_DATE),
+        });
+    }
+    return Array.from(items.values());
+}
+
+function isAccessDenied(error: unknown) {
+    return isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403);
+}
+
+function useNotificationFeed(
+    queryKey: QueryKey,
+    enabled: boolean,
+    load: (signal: AbortSignal) => Promise<AppNotification[]>,
+) {
+    const query = useQuery({
+        queryKey,
+        enabled,
+        queryFn: ({ signal }) => load(signal),
+        refetchInterval: (query) => isAccessDenied(query.state.error) ? false : NOTIFICATION_POLL_INTERVAL_MS,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        retry: (failureCount, error) => failureCount < 1 && !isAccessDenied(error),
+    });
+    return enabled && !isAccessDenied(query.error) ? query.data : undefined;
 }
 
 export function useAppNotifications() {
@@ -141,16 +210,23 @@ export function useAppNotifications() {
     const enabled = Boolean(username && branch);
     const endoEnabled = enabled && canAccessPath(permissions, ENDO_RECEIVED_PATH, branch);
     const pickingEnabled = enabled && canAccessPath(permissions, PICKING_LIST_PATH, branch);
-    const endoQuery = useQuery({
-        queryKey: [...ENDO_NOTIFICATIONS_QUERY_KEY, username, branch],
-        enabled: endoEnabled,
-        queryFn: ({ signal }) => fetchEndoItems(branch, signal),
-        refetchInterval: (query) => isUnauthorized(query.state.error) ? false : NOTIFICATION_POLL_INTERVAL_MS,
-        refetchIntervalInBackground: true,
-        refetchOnWindowFocus: true,
-        retry: (failureCount, error) => failureCount < 1 && !isUnauthorized(error),
-    });
-    const endoItems = endoEnabled && !isUnauthorized(endoQuery.error) ? endoQuery.data : undefined;
+    const stockEnabled = enabled && canAccessPath(permissions, STOCK_REQUESTS_PATH, branch);
+    const priceEnabled = enabled && canAccessPath(permissions, PRICE_REQUESTS_PATH, branch);
+    const endoItems = useNotificationFeed(
+        [...ENDO_NOTIFICATIONS_QUERY_KEY, username, branch],
+        endoEnabled,
+        (signal) => fetchEndoItems(branch, signal),
+    );
+    const stockItems = useNotificationFeed(
+        [...STOCK_REQUEST_NOTIFICATIONS_QUERY_KEY, username],
+        stockEnabled,
+        fetchStockRequestItems,
+    );
+    const priceItems = useNotificationFeed(
+        [...PRICE_REQUEST_NOTIFICATIONS_QUERY_KEY, username],
+        priceEnabled,
+        fetchPriceRequestItems,
+    );
     const pickingQuery = usePickingListQuery("ALL", { enabled: pickingEnabled, notifications: true });
     const pickingOrders = pickingEnabled && !isPickingListUnauthorized(pickingQuery.error)
         ? pickingQuery.data
@@ -181,12 +257,14 @@ export function useAppNotifications() {
             href: PICKING_LIST_PATH,
             items: pickingItems,
         },
+        { href: STOCK_REQUESTS_PATH, items: stockItems },
+        { href: PRICE_REQUESTS_PATH, items: priceItems },
     ];
 
-    useNotificationPopups(JSON.stringify([username, branch, endoEnabled, pickingEnabled]), feeds);
+    useNotificationPopups(JSON.stringify([username, branch, endoEnabled, pickingEnabled, stockEnabled, priceEnabled]), feeds);
 
     return {
-        enabled: endoEnabled || pickingEnabled,
+        enabled: endoEnabled || pickingEnabled || stockEnabled || priceEnabled,
         items: feeds.flatMap((feed) => feed.items ?? [])
             .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0)),
         countsByPath: Object.fromEntries(feeds.map(({ href, items }) => [href, items?.length ?? 0])),
