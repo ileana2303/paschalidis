@@ -37,10 +37,8 @@ import { useLoadOnChange } from "@/hooks/useLoadOnChange";
 import {
     QTY_ACTIONS_COLUMN_KEY,
     REQUESTED_QTY_COLUMN_KEY,
-    buildColumns,
     canApproveRowWithQty,
     filterRows,
-    formatColumnLabel,
     formatDateTime,
     getRequestedQtyFromRow,
     getRowKey,
@@ -56,6 +54,25 @@ import {
 interface EndoListPageClientProps {
     scope: EndoListScope;
 }
+
+const commonColumns = [
+    ["ITEM_CODE", "Κωδικός"],
+    ["ITEM_NAME", "Είδος"],
+    ["INS_DATE", "Καταχωρήθηκε"],
+    ["TO_BRANCH", "ΑΠΟΣΤΟΛΗ ΠΡΟΣ"],
+] as const;
+
+const requestedColumns = [
+    ...commonColumns,
+    ["QTY", "Ποσότητα"],
+    ["STATUS", "Κατάσταση"],
+] as const;
+
+const receivedColumns = [
+    ...commonColumns,
+    [REQUESTED_QTY_COLUMN_KEY, "Ποσότητα"],
+    [QTY_ACTIONS_COLUMN_KEY, "Ενέργειες"],
+] as const;
 
 function renderCell(key: string, value: unknown) {
     if (value == null || value === "") {
@@ -181,32 +198,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
 
     const filteredRows = useMemo(() => filterRows(rows, search), [rows, search]);
 
-    const columns = useMemo(() => buildColumns(filteredRows), [filteredRows]);
-
-    const tableColumns = useMemo(() => {
-        if (!isReceivedScope) {
-            return columns.filter((column) => column !== "TO_BRANCH");
-        }
-
-        const withoutQtyColumns = columns.filter(
-            (column) =>
-                column !== "BRANCH" &&
-                column !== "QTY" &&
-                column !== "QTY_REQUESTED" &&
-                !isStatusColumnKey(column) &&
-                !/^YP\d+$/i.test(column) &&
-                !/^THESI\d+$/i.test(column) &&
-                column !== "NET_QTY_AVAILABLE" &&
-                column !== "SoReserved" &&
-                column !== "SO_RESERVED"
-        );
-
-        return [
-            ...withoutQtyColumns,
-            REQUESTED_QTY_COLUMN_KEY,
-            QTY_ACTIONS_COLUMN_KEY,
-        ];
-    }, [columns, isReceivedScope]);
+    const tableColumns = isReceivedScope ? receivedColumns : requestedColumns;
 
     const filteredBasketIds = useMemo(
         () =>
@@ -479,7 +471,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                             supplyingBranch: parsePositiveValue(row.BRANCH),
                             requestingBranch: parsePositiveValue(row.TO_BRANCH),
                             itemCode: String(row.ITEM_CODE ?? "").trim() || undefined,
-                            itemDescr: String(row.ITEM_DESCR ?? "").trim() || undefined,
+                            itemDescr: row.ITEM_NAME?.trim() || row.ITEM_DESCR?.trim() || undefined,
                         },
                     ],
                 });
@@ -597,16 +589,12 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                 disabled={deletingSelectedRows}
                                             />
                                         </th>
-                                        {tableColumns.map((column) => (
+                                        {tableColumns.map(([column, label]) => (
                                             <th
                                                 key={column}
                                                 className="whitespace-nowrap px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
                                             >
-                                                {isReceivedScope && column === "TO_BRANCH"
-                                                    ? "ΑΠΟΣΤΟΛΗ ΠΡΟΣ"
-                                                    : !isReceivedScope && column === "BRANCH"
-                                                        ? "ΑΙΤΗΜΑ ΠΡΟΣ"
-                                                        : formatColumnLabel(column)}
+                                                {label}
                                             </th>
                                         ))}
                                     </tr>
@@ -648,7 +636,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                         }
                                                     />
                                                 </td>
-                                                {tableColumns.map((column) => {
+                                                {tableColumns.map(([column]) => {
                                                     if (
                                                         isReceivedScope &&
                                                         column === REQUESTED_QTY_COLUMN_KEY
@@ -787,12 +775,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                         );
                                                     }
 
-                                                    if (
-                                                        (isReceivedScope &&
-                                                            column === "TO_BRANCH") ||
-                                                        (!isReceivedScope &&
-                                                            column === "BRANCH")
-                                                    ) {
+                                                    if (column === "TO_BRANCH") {
                                                         const branchCode = String(
                                                             row[column] ?? ""
                                                         ).trim();
@@ -828,12 +811,18 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                         );
                                                     }
 
+                                                    const value = column === "ITEM_NAME"
+                                                        ? row.ITEM_NAME || row.ITEM_DESCR
+                                                        : column === "STATUS"
+                                                            ? row.STATUS || row.STATUS_LABEL
+                                                            : row[column];
+
                                                     return (
                                                         <td
                                                             key={`${rowKey}-${column}`}
                                                             className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200"
                                                         >
-                                                            {renderCell(column, row[column])}
+                                                            {renderCell(column, value)}
                                                         </td>
                                                     );
                                                 })}

@@ -7,59 +7,7 @@ export type EndoListScope = Exclude<EndoListRoutePayload["scope"], "both" | unde
 export const REQUESTED_QTY_COLUMN_KEY = "__REQUESTED_QTY";
 export const QTY_ACTIONS_COLUMN_KEY = "__QTY_ACTIONS";
 
-export function formatColumnLabel(key: string) {
-    if (key === "ITEM_CODE") return "Κωδικός";
-    if (key === "ITEM_NAME" || key === "ITEM_DESCR") return "Είδος";
-    if (key === "TOTAL_AVAIL") return "Διαθέσιμα";
-    if (key === "YP1000") return "Κασομούλη";
-    if (key === "YP1006") return "Λ.Αθηνών";
-    if (key === "YP1007") return "Λ.Μεσογείων";
-    if (key === "QTY" || key === "QTY_REQUESTED" || key === REQUESTED_QTY_COLUMN_KEY) return "Ποσότητα";
-    if (key === QTY_ACTIONS_COLUMN_KEY) return "Ενέργειες";
-
-    return key.replace(/_/g, " ").replace(/\s+/g, " ").trim();
-}
-
 export const formatDateTime = formatDateTimeEl;
-
-export function buildColumns(rows: IEndoListRow[]) {
-    const keys = new Set<string>();
-
-    rows.forEach((row) => {
-        Object.keys(row).forEach((key) => keys.add(key));
-    });
-
-    const preferredOrder = [
-        "ITEM_CODE",
-        "ITEM_NAME",
-        "ITEM_DESCR",
-        "TOTAL_AVAIL",
-        "YP1000",
-        "YP1006",
-        "YP1007",
-        "BASKETID",
-        "ID",
-        "INS_DATE",
-        "BRANCH",
-        "TO_BRANCH",
-        "MTRL",
-        "QTY",
-        "QTY_REQUESTED",
-        "STATUS",
-        "STATUS_LABEL",
-    ];
-
-    return Array.from(keys).sort((a, b) => {
-        const aIndex = preferredOrder.indexOf(a);
-        const bIndex = preferredOrder.indexOf(b);
-
-        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-        if (aIndex !== -1) return -1;
-        if (bIndex !== -1) return 1;
-
-        return a.localeCompare(b, "el-GR");
-    });
-}
 
 export function filterRows(rows: IEndoListRow[], searchTerm: string) {
     const normalizedSearch = searchTerm.trim().toLowerCase();
