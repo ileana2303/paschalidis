@@ -64,7 +64,8 @@ so they enter the Picking List lifecycle. A customer order must include its
 submitting branch; there is no fallback branch.
 
 For customer baskets, invoice comments are `ΠΑΡΑΓΓΕΛΙΑ ΧΟΝΔΡΙΚΗΣ B2B`. Receipt comments are
-`ΠΑΡΑΓΓΕΛΙΑ ΛΙΑΝΙΚΗΣ Α/Α<customer TRDR>` even though the submitted TRDR is `11643`.
+`ΠΑΡΑΓΓΕΛΙΑ ΛΙΑΝΙΚΗΣ Α/Α<customer TRDR> - <customer name>`, with the name suffix added
+when available. The submitted TRDR is `11643`.
 
 ## ENDO specifics
 

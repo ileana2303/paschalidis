@@ -46,6 +46,7 @@ export type BuildBasketPayloadParams = {
     series: string;
     /** The real selected customer's TRDR, including for retail comments. */
     customerTrdr: number;
+    customerName?: string;
     receiptType: BasketReceiptType;
     /** Customer branch stored on the basket row; zero when unavailable. */
     trdBranch: number;
@@ -71,6 +72,7 @@ export function buildBasketPayload({
     clientID,
     series,
     customerTrdr,
+    customerName,
     receiptType,
     trdBranch,
     payment,
@@ -94,7 +96,7 @@ export function buildBasketPayload({
                 TRUCKS: trucks,
                 DELIVDATE: deliveryDate,
                 COMMENTS: isReceipt
-                    ? `${BASKET_RECEIPT_COMMENTS}${customerTrdr}`
+                    ? BASKET_RECEIPT_COMMENTS(customerTrdr, customerName)
                     : BASKET_INVOICE_COMMENTS,
                 REMARKS: remarks, // user notes
                 SHIPKIND: shipKind,

@@ -161,6 +161,7 @@ export async function submitBasketOrder(body: BasketOrderRequestBody) {
         clientID,
         series,
         customerTrdr,
+        customerName: body.customerName,
         receiptType,
         trdBranch,
         payment: BASKET_PAYMENT,
