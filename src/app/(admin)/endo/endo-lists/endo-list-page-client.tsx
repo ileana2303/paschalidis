@@ -61,17 +61,18 @@ const commonColumns = [
     ["ITEM_CODE", "Κωδικός"],
     ["ITEM_NAME", "Είδος"],
     ["INS_DATE", "Καταχωρήθηκε"],
-    ["TO_BRANCH", "ΑΠΟΣΤΟΛΗ ΠΡΟΣ"],
 ] as const;
 
 const requestedColumns = [
     ...commonColumns,
+    ["BRANCH", "ΕΝΔΟΔΙΑΚΙΝΗΣΗ ΑΠΟ"],
     ["QTY", "Ποσότητα"],
     ["STATUS", "Κατάσταση"],
 ] as const;
 
 const receivedColumns = [
     ...commonColumns,
+    ["TO_BRANCH", "ΕΝΔΟΔΙΑΚΙΝΗΣΗ ΠΡΟΣ"],
     [REQUESTED_QTY_COLUMN_KEY, "Ποσότητα"],
     [QTY_ACTIONS_COLUMN_KEY, "Ενέργειες"],
 ] as const;
@@ -782,7 +783,7 @@ export default function EndoListPageClient({ scope }: EndoListPageClientProps) {
                                                         );
                                                     }
 
-                                                    if (column === "TO_BRANCH") {
+                                                    if (column === "BRANCH" || column === "TO_BRANCH") {
                                                         const branchCode = String(
                                                             row[column] ?? ""
                                                         ).trim();
