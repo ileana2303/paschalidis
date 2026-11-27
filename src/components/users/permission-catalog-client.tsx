@@ -103,7 +103,10 @@ function getParentOptions(
         );
     }
 
-    const options = Array.from(counts.keys(), (code) => ({
+    const parentCodes = type === "MODULE"
+        ? new Set([...MODULE_GROUP_SIDEBAR_ORDER, ...counts.keys()])
+        : counts.keys();
+    const options = Array.from(parentCodes, (code) => ({
         code,
         label:
             type === "MODULE"
@@ -111,7 +114,7 @@ function getParentOptions(
                 : code === "branches"
                     ? "Καταστήματα"
                     : code,
-        count: counts.get(code)!,
+        count: counts.get(code) ?? 0,
         groupCode: type === "MODULE" ? code : undefined,
     }));
 

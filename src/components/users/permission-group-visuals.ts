@@ -41,6 +41,13 @@ const PERMISSION_GROUP_VISUALS: Record<string, PermissionGroupVisual> = {
             "bg-violet-600 text-white ring-violet-600 shadow-theme-xs dark:bg-violet-500 dark:ring-violet-500",
         rowBorder: "border-l-violet-500 dark:border-l-violet-500",
     },
+    picking: {
+        badge:
+            "bg-indigo-50 text-indigo-800 ring-indigo-200 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-200 dark:ring-indigo-500/30 dark:hover:bg-indigo-500/20",
+        selectedBadge:
+            "bg-indigo-600 text-white ring-indigo-600 shadow-theme-xs dark:bg-indigo-500 dark:ring-indigo-500",
+        rowBorder: "border-l-indigo-500 dark:border-l-indigo-500",
+    },
     "company-management": {
         badge:
             "bg-rose-50 text-rose-800 ring-rose-200 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/30 dark:hover:bg-rose-500/20",

@@ -138,13 +138,19 @@ const navItems: NavItem[] = [
   },
   {
     icon: ListTodo,
-    name: "Picking List",
-    path: PICKING_LIST_PATH,
-  },
-  {
-    icon: ClipboardList,
-    name: "Κατάσταση Picking List",
-    path: PICKING_LIST_STATUS_PATH,
+    name: "Picking",
+    subItems: [
+      {
+        icon: ListTodo,
+        name: "Picking List",
+        path: PICKING_LIST_PATH,
+      },
+      {
+        icon: ClipboardList,
+        name: "Κατάσταση Picking List",
+        path: PICKING_LIST_STATUS_PATH,
+      },
+    ],
   },
   {
     icon: History,
@@ -197,13 +203,19 @@ const navItems: NavItem[] = [
 const mobileNavItems: NavItem[] = [
   {
     icon: ListTodo,
-    name: "Picking List",
-    path: PICKING_LIST_PATH,
-  },
-  {
-    icon: ClipboardList,
-    name: "Κατάσταση Picking List",
-    path: PICKING_LIST_STATUS_PATH,
+    name: "Picking",
+    subItems: [
+      {
+        icon: ListTodo,
+        name: "Picking List",
+        path: PICKING_LIST_PATH,
+      },
+      {
+        icon: ClipboardList,
+        name: "Κατάσταση Picking List",
+        path: PICKING_LIST_STATUS_PATH,
+      },
+    ],
   },
   {
     icon: History,

@@ -45,6 +45,7 @@ export const MODULE_GROUP_LABELS: Record<string, string> = {
   "warehouse-management": "Επεξεργασία Αποθήκης",
   anatrofodosia: "Ανατροφοδοσία",
   endodiakinisi: "Ενδοδιακίνηση",
+  picking: "Picking",
   "company-management": "Διαχείριση",
 };
 
@@ -53,6 +54,7 @@ export const MODULE_GROUP_SIDEBAR_ORDER = [
   "warehouse-management",
   "anatrofodosia",
   "endodiakinisi",
+  "picking",
   "company-management",
 ] as const;
 
